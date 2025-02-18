@@ -3,6 +3,15 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# These are the files folders that the code outputs
+# For testing purposes only
+src/
+build/
+dist/
+
+# OS-specific files
+.DS_Store
+
 # User-specific files
 *.rsuser
 *.suo

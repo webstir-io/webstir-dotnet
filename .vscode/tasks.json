@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "dotnet",
+			"task": "build ./CLI/CLI.csproj",
+			"file": "./CLI/CLI.csproj",
+			"group": "build",
+			"problemMatcher": [],
+			"label": "build"
+		}
+	]
+}

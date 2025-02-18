@@ -1,0 +1,1 @@
+dotnet publish -p:AssemblyName=webstir -p:PublishSingleFile=true --self-contained true
