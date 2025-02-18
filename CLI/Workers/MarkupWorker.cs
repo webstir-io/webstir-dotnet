@@ -55,4 +55,24 @@ public class MarkupWorker : IWebFileWorker
         foreach (var file in Directories.BinDirectory.GetFiles("*.html"))
             file.CopyTo($"{Directories.DistDirectory.FullName}/{file.Name}");
     }
+
+    public void Add(DirectoryInfo pageDirectory)
+    {
+        var pageName = pageDirectory.Name;
+
+        var baseHtml = 
+
+@$"<head>
+    <title>Home</title>
+    <link rel=""stylesheet"" href=""{pageName}.css"" />
+    <script src=""{pageName}.js"" async></script>
+</head>
+<body>
+    <main>
+        {pageName}
+    </main>
+</body>";
+
+        File.WriteAllText(pageDirectory.Join($"{pageName}.html"), baseHtml);
+    }
 }

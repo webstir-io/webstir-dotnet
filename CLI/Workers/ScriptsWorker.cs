@@ -74,4 +74,10 @@ public class ScriptsWorker : IWebFileWorker
         foreach (var file in Directories.BinDirectory.GetFiles("*.js"))
             file.CopyTo($"{Directories.DistDirectory.FullName}/{file.Name}");
     }
+
+    public void Add(DirectoryInfo pageDirectory)
+    {
+        var pageName = pageDirectory.Name;
+        File.Create(pageDirectory.Join($"{pageName}.css")).Close();
+    }
 }

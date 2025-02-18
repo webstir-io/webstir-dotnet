@@ -15,6 +15,10 @@ public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watche
             case "init":
                 Init();
                 break;
+            
+            case "add":
+                Add();
+                break;
 
             case "":
             case "build":
@@ -26,6 +30,7 @@ public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watche
                 break;
             
             case "watch":
+                Build();
                 Watch();
                 break;
 
@@ -40,6 +45,26 @@ public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watche
     {
         foreach (var worker in _webFileWorkers)
             worker.Init();
+    }
+
+    public void Add()
+    {
+        //TODO: Rework this to be more user friendly, add a command router
+        Console.Write("Enter the name of the page: ");
+        var pageName = Console.ReadLine();
+        if (string.IsNullOrEmpty(pageName))
+        {
+            Console.WriteLine("Page name must be provided.");
+            return;
+        }
+        var pagePath = Directories.PagesDirectory.Join(pageName);
+        var pageDirectory = Directory.CreateDirectory(pagePath);
+
+        Console.Write($"Adding {pageName}...");
+        foreach (var worker in _webFileWorkers)
+            worker.Add(pageDirectory);     
+
+        Console.WriteLine("Done");
     }
 
     public void Build(bool releaseMode = false)

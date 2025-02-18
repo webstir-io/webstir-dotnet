@@ -1,3 +1,4 @@
+
 namespace CLI.Workers;
 
 public class ImagesWorker : IWebFileWorker
@@ -17,5 +18,10 @@ public class ImagesWorker : IWebFileWorker
     public void Publish()
     {
         Directories.BinImagesDirectory.CopyTo(Directories.DistImagesDirectory.FullName);
+    }
+
+    public void Add(DirectoryInfo pageDirectory)
+    {
+        return;
     }
 }

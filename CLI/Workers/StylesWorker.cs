@@ -104,4 +104,10 @@ public class StylesWorker : IWebFileWorker
         foreach (var file in Directories.BinDirectory.GetFiles("*.css"))
             file.CopyTo($"{Directories.DistDirectory.FullName}/{file.Name}");
     }
+
+    public void Add(DirectoryInfo pageDirectory)
+    {
+        var pageName = pageDirectory.Name;
+        File.Create(pageDirectory.Join($"{pageName}.ts")).Close();
+    }
 }
