@@ -30,6 +30,11 @@ public class MarkupWorker : IWebFileWorker
 
         // Merge the app.html file with the page html file and write to intermediate build folder
         var appHtmlFile = new HtmlFile(appHtmlFilepath);
+        if (releaseMode)
+        {
+            appHtmlFile.Remove(@$"    <script src=""refresh.js"" async></script>{Environment.NewLine}");
+        }
+
         foreach (var pageDirectory in Directories.PagesDirectory.GetDirectories())
         foreach (var pageFile in pageDirectory.GetFiles("*.html"))
         {

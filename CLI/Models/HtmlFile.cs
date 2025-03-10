@@ -2,7 +2,7 @@ namespace CLI.Models;
 
 public class HtmlFile(string _filepath)
 {
-    private readonly string _html = File.ReadAllText(_filepath);
+    private string _html = File.ReadAllText(_filepath);
 
     public string Html => _html;
     
@@ -19,6 +19,12 @@ public class HtmlFile(string _filepath)
         mergedHtml = mergedHtml.Insert(mainInsertLocation, mainContent);
 
         return mergedHtml;
+    }
+
+    public void Remove(string markup)
+    {
+        var blah = _html.IndexOf(markup);
+        _html = _html.Replace(markup, string.Empty);
     }
 
     private string GetTagContent(string tagName, string html)
