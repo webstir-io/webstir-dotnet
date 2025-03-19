@@ -12,6 +12,7 @@ public static class Settings
     public static string ScriptsFolder { get; } = "scripts";
     public static string ImagesFolder { get; } = "images";
     public static string IndexFolder {get; } = "index";
+    public static string NodeModulesFolder { get; } = "node_modules";
 }
 
 public static class Directories
@@ -19,6 +20,7 @@ public static class Directories
     public static DirectoryInfo SourceDirectory => Directory.CreateDirectory(Settings.SourceFolder);
     public static DirectoryInfo BuildDirectory => Directory.CreateDirectory(Settings.BuildFolder);
     public static DirectoryInfo DistDirectory => Directory.CreateDirectory(Settings.DistFolder);
+    public static DirectoryInfo NodeModulesDirectory => new(Settings.NodeModulesFolder);
     public static DirectoryInfo AppDirectory => Directory.CreateDirectory(SourceDirectory.Join(Settings.AppFolder));
     public static DirectoryInfo PagesDirectory => Directory.CreateDirectory(SourceDirectory.Join(Settings.PagesFolder));
     public static DirectoryInfo IndexDirectory => Directory.CreateDirectory(PagesDirectory.Join(Settings.IndexFolder));

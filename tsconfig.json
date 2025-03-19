@@ -17,7 +17,7 @@
     "sourceMap": false,
     "baseUrl": "./src",
     "paths": {
-      "@utils/*": ["utils/*"]
+      "$utils/*": ["utils/*"]
     },
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,

@@ -23,7 +23,6 @@ public class HtmlFile(string _filepath)
 
     public void Remove(string markup)
     {
-        var blah = _html.IndexOf(markup);
         _html = _html.Replace(markup, string.Empty);
     }
 
