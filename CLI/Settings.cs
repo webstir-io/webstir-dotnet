@@ -11,6 +11,7 @@ public static class Settings
     public static string StylesFolder { get; } = "styles";
     public static string ScriptsFolder { get; } = "scripts";
     public static string ImagesFolder { get; } = "images";
+    public static string ConfigFolder { get; } = "config";
     public static string IndexFolder {get; } = "index";
     public static string NodeModulesFolder { get; } = "node_modules";
 }
@@ -25,6 +26,7 @@ public static class Directories
     public static DirectoryInfo PagesDirectory => Directory.CreateDirectory(SourceDirectory.Join(Settings.PagesFolder));
     public static DirectoryInfo IndexDirectory => Directory.CreateDirectory(PagesDirectory.Join(Settings.IndexFolder));
     public static DirectoryInfo ImagesDirectory => Directory.CreateDirectory(SourceDirectory.Join(Settings.ImagesFolder));
+    public static DirectoryInfo ConfigDirectory => Directory.CreateDirectory(AppDirectory.Join(Settings.ConfigFolder));
     public static DirectoryInfo BuildPagesDirectory => Directory.CreateDirectory(BuildDirectory.Join(Settings.PagesFolder));
     public static DirectoryInfo BinDirectory => Directory.CreateDirectory(BuildDirectory.Join(Settings.BinFolder));
     public static DirectoryInfo BinImagesDirectory => Directory.CreateDirectory(BinDirectory.Join(Settings.ImagesFolder));

@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.Rewrite;
 
 namespace CLI;
 
@@ -43,6 +44,9 @@ public class Server()
             }
         });
 
+        var rewriteOptions = new RewriteOptions().AddRewrite(@"^([\w\-/]+)$", "$1.html", skipRemainingRules: true);
+        app.UseRewriter(rewriteOptions);
+        app.UseDefaultFiles();
         app.UseStaticFiles();
         app.UseFileServer(new FileServerOptions
         {

@@ -1,11 +1,11 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-using CLI.Bundlers;
+using CLI.Bundlers.Javascript;
 using CLI.Helpers;
 
 namespace CLI.Workers;
 
-public class ScriptsWorker(ScriptBundler scriptBundler) : IWebFileWorker
+public class ScriptsWorker() : IWebFileWorker
 {
     private const string _tsConfigFile = "tsconfig.json";
     private const string _appTsFile = "app.ts";
@@ -49,17 +49,72 @@ public class ScriptsWorker(ScriptBundler scriptBundler) : IWebFileWorker
 
         foreach (DirectoryInfo pageDirectory in Directories.BuildPagesDirectory.GetDirectories())
         {
-            List<string> jsLines = [.. File.ReadAllLines(appJsBuildFilepath)];
+            List<string> jsLines = ReadAllAppJsFileLines();            
             foreach (FileInfo jsFile in pageDirectory.GetFiles("*.js", SearchOption.AllDirectories))
             {
-                scriptBundler.Bundle(jsFile.FullName);
-                // jsLines.AddRange(BuildDependencies(jsFile.FullName));
+                // Skip lines that contain "use strict";
+                jsLines.AddRange(File.ReadAllLines(jsFile.FullName).Where(line => line.Trim() != "\"use strict\";"));    
             }
 
             string pageJsFile = Directories.BinDirectory.Join($"{pageDirectory.Name}.js");
             File.WriteAllLines(pageJsFile, jsLines);
         }
     }
+
+    private static List<string> ReadAllAppJsFileLines()
+    {
+        string appJsBuildFilepath = Directories.BuildDirectory
+            .Join(Settings.AppFolder)
+            .Join(_appJsFile);
+
+        var jsLines = new List<string>();
+        jsLines.AddRange(File.ReadAllLines(appJsBuildFilepath));
+
+        var appJsBuildDir = new DirectoryInfo(Directories.BuildDirectory.Join(Settings.AppFolder));
+        foreach (var jsFile in appJsBuildDir.GetFiles("*.js", SearchOption.AllDirectories))
+        {
+            if (!jsFile.Name.Equals(_appJsFile, StringComparison.OrdinalIgnoreCase))
+                jsLines.AddRange(File.ReadAllLines(jsFile.FullName).Where(line => line.Trim() != "\"use strict\";"));
+        }
+
+        return jsLines;
+    }
+
+    // public void Build(bool releaseMode = false)
+    // { 
+    //     var process = Process.Start("tsc");
+    //     process.WaitForExit();
+
+    //     if (process.ExitCode != 0)
+    //         return;
+
+    //     var appJsBuildFilepath = Directories.BuildDirectory
+    //         .Join(Settings.AppFolder)
+    //         .Join(_appJsFile);
+
+    //     var jsLines = File.ReadAllLines(appJsBuildFilepath).ToList();
+
+    //     if (!releaseMode)
+    //     {
+    //         var refreshJsBuildFilepath = Directories.BuildDirectory
+    //             .Join(Settings.AppFolder)
+    //             .Join(_refreshJsFile);
+
+    //         jsLines.AddRange(File.ReadAllLines(refreshJsBuildFilepath).Skip(1));
+    //     }
+        
+    //     foreach (var pageDirectory in Directories.BuildPagesDirectory.GetDirectories())
+    //     {
+    //         foreach (var jsFile in pageDirectory.GetFiles("*.js", SearchOption.AllDirectories))
+    //         {
+    //             // Skip the first line that the TypeScript compiler adds for each file
+    //             jsLines.AddRange(File.ReadAllLines(jsFile.FullName).Skip(1));                
+    //         }
+
+    //         var pageJsFile = Directories.BinDirectory.Join($"{pageDirectory.Name}.js");
+    //         File.WriteAllLines(pageJsFile, jsLines);
+    //     }
+    // }
 
     public void Publish()
     {

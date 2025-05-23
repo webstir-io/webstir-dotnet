@@ -1,5 +1,5 @@
 ﻿using CLI;
-using CLI.Bundlers;
+
 using CLI.Workers;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,7 +9,7 @@ try
     services.AddSingleton<Runner>();
     services.AddSingleton<Watcher>();
     services.AddSingleton<Server>();
-    services.AddTransient<ScriptBundler>();
+
     services.AddTransient<IWebFileWorker, MarkupWorker>();
     services.AddTransient<IWebFileWorker, StylesWorker>();
     services.AddTransient<IWebFileWorker, ScriptsWorker>();

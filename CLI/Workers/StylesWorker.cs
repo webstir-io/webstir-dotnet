@@ -37,16 +37,26 @@ public class StylesWorker : IWebFileWorker
     {        
         var appCssFileLines = File.ReadAllLines(_appCssFilepath).ToList();
         
-        if (File.Exists(Directories.AppDirectory.Join("header.css")))
-        {
-            var headerCssFileLines = File.ReadAllLines(Directories.AppDirectory.Join("header.css"));
-            appCssFileLines.AddRange(headerCssFileLines);
-        }
+        // if (File.Exists(Directories.AppDirectory.Join("header.css")))
+        // {
+        //     var headerCssFileLines = File.ReadAllLines(Directories.AppDirectory.Join("header.css"));
+        //     appCssFileLines.AddRange(headerCssFileLines);
+        // }
 
-        if (File.Exists(Directories.AppDirectory.Join("footer.css")))
+        // if (File.Exists(Directories.AppDirectory.Join("footer.css")))
+        // {
+        //     var footerCssFileLines = File.ReadAllLines(Directories.AppDirectory.Join("footer.css"));
+        //     appCssFileLines.AddRange(footerCssFileLines);
+        // }
+
+        foreach (var cssFile in Directories.AppDirectory.GetFiles("*.css", SearchOption.AllDirectories))
         {
-            var footerCssFileLines = File.ReadAllLines(Directories.AppDirectory.Join("footer.css"));
-            appCssFileLines.AddRange(footerCssFileLines);
+            if (cssFile.Name.Equals(_appCssFile))
+                continue;
+
+            var fileComment = $"{Environment.NewLine}/* {cssFile.Name} */";
+            appCssFileLines.Add(fileComment);
+            appCssFileLines.AddRange(File.ReadAllLines(cssFile.FullName));
         }
 
         return appCssFileLines;
