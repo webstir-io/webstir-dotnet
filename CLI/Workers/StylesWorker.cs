@@ -28,7 +28,10 @@ public class StylesWorker : IWebFileWorker
         // Copy the consolidated css page files to bin folder
         foreach (var mergedPageFile in Directories.BuildPagesDirectory.GetFiles("*.css", SearchOption.AllDirectories))
         {
-            var outputFilepath = Directories.BinDirectory.Join(mergedPageFile.Name);
+            var outputFilepath = Directories.BinPagesDirectory
+                .SubDirectory(Path.GetFileNameWithoutExtension(mergedPageFile.Name))
+                .Join(mergedPageFile.Name);
+
             File.Copy(mergedPageFile.FullName, outputFilepath);
         }
     }
@@ -62,7 +65,7 @@ public class StylesWorker : IWebFileWorker
         return appCssFileLines;
     }
 
-    private void MergePageCssFiles(List<string> appCssFileLines)
+    private static void MergePageCssFiles(List<string> appCssFileLines)
     {        
         foreach (var pageDirectory in Directories.PagesDirectory.GetDirectories())
         {

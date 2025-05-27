@@ -50,7 +50,6 @@ public class MarkupWorker : IWebFileWorker
                 string outputFilePath = Path.Combine(Directories.BinDirectory.FullName, pageHtmlFragmentFile.Name);
 
                 File.WriteAllText(outputFilePath, mergedHtmlContent);
-                Console.WriteLine($"MarkupWorker: Generated {outputFilePath}");
             }
         }
     }
@@ -79,7 +78,7 @@ public class MarkupWorker : IWebFileWorker
         var baseHtmlFragment =
 $@"<head>
     <title>{pageName}</title>
-    <link rel=""stylesheet"" href=""{pageName}.css"" />
+    <link rel=""stylesheet"" href=""pages/{pageName}{pageName}.css"" />
     <script type=""module"" src=""pages/{pageName}/{pageName}.js"" async></script>
 </head>
 <body>

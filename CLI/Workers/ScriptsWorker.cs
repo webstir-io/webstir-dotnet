@@ -60,7 +60,7 @@ public class ScriptsWorker() : IWebFileWorker
         }
     }
 
-    private void CopyCompiledJsFiles(DirectoryInfo sourceDir, DirectoryInfo targetDir)
+    private static void CopyCompiledJsFiles(DirectoryInfo sourceDir, DirectoryInfo targetDir)
     {
         if (!sourceDir.Exists)
         {
@@ -79,7 +79,6 @@ public class ScriptsWorker() : IWebFileWorker
 
             Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!); // Ensure sub-directory exists in target
             File.Copy(jsFile.FullName, targetFilePath, true);
-            Console.WriteLine($"Copied {jsFile.FullName} to {targetFilePath}");
         }
     }
 
@@ -116,10 +115,9 @@ public class ScriptsWorker() : IWebFileWorker
             CreateNoWindow = true
         };
 
-        using var process = Process.Start(processInfo);
-        if (process is null)
-            throw new Exception("Failed to start TypeScript compiler process.");
-            
+        using var process = Process.Start(processInfo)
+            ?? throw new Exception("Failed to start TypeScript compiler process.");
+
         process.WaitForExit();
 
         if (process.ExitCode != 0)
@@ -128,6 +126,5 @@ public class ScriptsWorker() : IWebFileWorker
             string output = process.StandardOutput.ReadToEnd();
             throw new Exception($"TypeScript compilation failed. Exit Code: {process.ExitCode}\nOutput:\n{output}\nErrors:\n{errors}");
         }
-        Console.WriteLine("TypeScript compilation successful.");
     }
 }
