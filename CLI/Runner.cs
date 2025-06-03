@@ -20,18 +20,18 @@ public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watche
                 Add();
                 break;
 
-            case "":
             case "build":
                 Build();
                 break;
 
-            case "publish":
-                Publish();
-                break;
-            
+            case "":
             case "watch":
                 Build();
                 Watch();
+                break;
+
+            case "publish":
+                Publish();
                 break;
 
             default:
