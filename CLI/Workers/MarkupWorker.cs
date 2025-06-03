@@ -63,7 +63,6 @@ public class MarkupWorker : IWebFileWorker
         {
             string destinationFilePath = Path.Combine(Directories.DistDirectory.FullName, htmlFileToPublish.Name);
             htmlFileToPublish.CopyTo(destinationFilePath, true);
-            Console.WriteLine($"MarkupWorker: Published {htmlFileToPublish.Name} to dist.");
         }
     }
 

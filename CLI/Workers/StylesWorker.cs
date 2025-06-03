@@ -114,8 +114,21 @@ public class StylesWorker : IWebFileWorker
 
     public void Publish()
     {
-        foreach (var file in Directories.BinDirectory.GetFiles("*.css"))
-            file.CopyTo($"{Directories.DistDirectory.FullName}/{file.Name}");
+        var appCssInBin = Directories.BinDirectory.Join(_appCssFile);
+        if (File.Exists(appCssInBin))
+            File.Copy(appCssInBin, Directories.DistDirectory.Join(_appCssFile), true);
+
+        if (Directories.BinPagesDirectory.Exists)
+        {
+            foreach (var pageDirectory in Directories.BinPagesDirectory.GetDirectories())
+            {
+                var distPagesDirectory = Directories.DistPagesDirectory.SubDirectory(pageDirectory.Name);
+                distPagesDirectory.Create();
+
+                foreach (var cssFile in pageDirectory.GetFiles("*.css"))
+                    cssFile.CopyTo(distPagesDirectory.Join(cssFile.Name), true);
+            }
+        }
     }
 
     public void Add(DirectoryInfo pageDirectory)
