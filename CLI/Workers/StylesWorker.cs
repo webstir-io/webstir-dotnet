@@ -28,7 +28,10 @@ public class StylesWorker : IWebFileWorker
         // Copy the consolidated css page files to bin folder
         foreach (var mergedPageFile in Directories.BuildPagesDirectory.GetFiles("*.css", SearchOption.AllDirectories))
         {
-            var outputFilepath = Directories.BinDirectory.Join(mergedPageFile.Name);
+            var outputFilepath = Directories.BinPagesDirectory
+                .SubDirectory(Path.GetFileNameWithoutExtension(mergedPageFile.Name))
+                .Join(mergedPageFile.Name);
+
             File.Copy(mergedPageFile.FullName, outputFilepath);
         }
     }
@@ -62,7 +65,7 @@ public class StylesWorker : IWebFileWorker
         return appCssFileLines;
     }
 
-    private void MergePageCssFiles(List<string> appCssFileLines)
+    private static void MergePageCssFiles(List<string> appCssFileLines)
     {        
         foreach (var pageDirectory in Directories.PagesDirectory.GetDirectories())
         {
@@ -111,8 +114,21 @@ public class StylesWorker : IWebFileWorker
 
     public void Publish()
     {
-        foreach (var file in Directories.BinDirectory.GetFiles("*.css"))
-            file.CopyTo($"{Directories.DistDirectory.FullName}/{file.Name}");
+        var appCssInBin = Directories.BinDirectory.Join(_appCssFile);
+        if (File.Exists(appCssInBin))
+            File.Copy(appCssInBin, Directories.DistDirectory.Join(_appCssFile), true);
+
+        if (Directories.BinPagesDirectory.Exists)
+        {
+            foreach (var pageDirectory in Directories.BinPagesDirectory.GetDirectories())
+            {
+                var distPagesDirectory = Directories.DistPagesDirectory.SubDirectory(pageDirectory.Name);
+                distPagesDirectory.Create();
+
+                foreach (var cssFile in pageDirectory.GetFiles("*.css"))
+                    cssFile.CopyTo(distPagesDirectory.Join(cssFile.Name), true);
+            }
+        }
     }
 
     public void Add(DirectoryInfo pageDirectory)

@@ -87,10 +87,14 @@ public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watche
     {
         Build(true);
 
+        Console.Write("Publishing...");
+
         Directories.DistDirectory.Delete(true);
 
         foreach (var worker in _webFileWorkers)
             worker.Publish();
+            
+        Console.WriteLine("Done");
     }
 
     public void Watch()

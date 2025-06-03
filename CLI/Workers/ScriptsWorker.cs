@@ -1,7 +1,6 @@
 using System.Diagnostics;
-using System.Text.RegularExpressions;
-using CLI.Bundlers.Javascript;
 using CLI.Helpers;
+using System.IO; // Added for Path and Directory operations
 
 namespace CLI.Workers;
 
@@ -26,7 +25,7 @@ public class ScriptsWorker() : IWebFileWorker
 
         string outputAppTsFilepath = Directories.AppDirectory.Join(_appTsFile);
         if (!File.Exists(outputAppTsFilepath))
-            AssemblyHelpers.WriteResourceToFile(_indexTsFile, outputAppTsFilepath);
+            AssemblyHelpers.WriteResourceToFile(_appTsFile, outputAppTsFilepath);
 
         string outputIndexTsFilepath = Directories.IndexDirectory.Join(_indexTsFile);
         if (!File.Exists(outputIndexTsFilepath))
@@ -34,92 +33,69 @@ public class ScriptsWorker() : IWebFileWorker
     }
 
     public void Build(bool releaseMode = false)
-    { 
+    {
         ComplileTypeScriptFiles();
+
+        // Copy compiled JS files from build to bin
+        CopyCompiledJsFiles(Directories.BuildDirectory, Directories.BinDirectory);
 
         if (!releaseMode)
         {
-            string refreshJsFilepath = Directories.AppDirectory.Join(_refreshJsFile);
-            File.Copy(refreshJsFilepath, Directories.BinDirectory.Join(_refreshJsFile), true);
-        }
+            string sourceRefreshJsApp = Directories.AppDirectory.Join(_refreshJsFile);
+            string sourceRefreshJsBuild = Path.Combine(Directories.BuildDirectory.FullName, Settings.AppFolder, _refreshJsFile); // Corrected path construction
+            string targetRefreshJs = Directories.BinDirectory.Join(_refreshJsFile);
 
-        string appJsBuildFilepath = Directories.BuildDirectory
-            .Join(Settings.AppFolder)
-            .Join(_appJsFile);
-
-        foreach (DirectoryInfo pageDirectory in Directories.BuildPagesDirectory.GetDirectories())
-        {
-            List<string> jsLines = ReadAllAppJsFileLines();            
-            foreach (FileInfo jsFile in pageDirectory.GetFiles("*.js", SearchOption.AllDirectories))
+            if (File.Exists(sourceRefreshJsApp))
             {
-                // Skip lines that contain "use strict";
-                jsLines.AddRange(File.ReadAllLines(jsFile.FullName).Where(line => line.Trim() != "\"use strict\";"));    
+                 File.Copy(sourceRefreshJsApp, targetRefreshJs, true);
             }
-
-            string pageJsFile = Directories.BinDirectory.Join($"{pageDirectory.Name}.js");
-            File.WriteAllLines(pageJsFile, jsLines);
+            else if (File.Exists(sourceRefreshJsBuild))
+            {
+                 File.Copy(sourceRefreshJsBuild, targetRefreshJs, true);
+            }
+            else
+            {
+                Console.WriteLine($"Warning: {_refreshJsFile} not found in {Directories.AppDirectory.FullName} or {sourceRefreshJsBuild}");
+            }
         }
     }
 
-    private static List<string> ReadAllAppJsFileLines()
+    private static void CopyCompiledJsFiles(DirectoryInfo sourceDir, DirectoryInfo targetDir)
     {
-        string appJsBuildFilepath = Directories.BuildDirectory
-            .Join(Settings.AppFolder)
-            .Join(_appJsFile);
-
-        var jsLines = new List<string>();
-        jsLines.AddRange(File.ReadAllLines(appJsBuildFilepath));
-
-        var appJsBuildDir = new DirectoryInfo(Directories.BuildDirectory.Join(Settings.AppFolder));
-        foreach (var jsFile in appJsBuildDir.GetFiles("*.js", SearchOption.AllDirectories))
+        if (!sourceDir.Exists)
         {
-            if (!jsFile.Name.Equals(_appJsFile, StringComparison.OrdinalIgnoreCase))
-                jsLines.AddRange(File.ReadAllLines(jsFile.FullName).Where(line => line.Trim() != "\"use strict\";"));
+            Console.WriteLine($"Warning: Source directory for JS compilation output not found: {sourceDir.FullName}");
+            return;
         }
 
-        return jsLines;
+        // Ensure the target directory exists
+        Directory.CreateDirectory(targetDir.FullName);
+
+        // Copy all .js files, maintaining subfolder structure
+        foreach (FileInfo jsFile in sourceDir.GetFiles("*.js", SearchOption.AllDirectories))
+        {
+            string relativePath = Path.GetRelativePath(sourceDir.FullName, jsFile.FullName);
+            string targetFilePath = Path.Combine(targetDir.FullName, relativePath);
+
+            Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!); // Ensure sub-directory exists in target
+            File.Copy(jsFile.FullName, targetFilePath, true);
+        }
     }
-
-    // public void Build(bool releaseMode = false)
-    // { 
-    //     var process = Process.Start("tsc");
-    //     process.WaitForExit();
-
-    //     if (process.ExitCode != 0)
-    //         return;
-
-    //     var appJsBuildFilepath = Directories.BuildDirectory
-    //         .Join(Settings.AppFolder)
-    //         .Join(_appJsFile);
-
-    //     var jsLines = File.ReadAllLines(appJsBuildFilepath).ToList();
-
-    //     if (!releaseMode)
-    //     {
-    //         var refreshJsBuildFilepath = Directories.BuildDirectory
-    //             .Join(Settings.AppFolder)
-    //             .Join(_refreshJsFile);
-
-    //         jsLines.AddRange(File.ReadAllLines(refreshJsBuildFilepath).Skip(1));
-    //     }
-        
-    //     foreach (var pageDirectory in Directories.BuildPagesDirectory.GetDirectories())
-    //     {
-    //         foreach (var jsFile in pageDirectory.GetFiles("*.js", SearchOption.AllDirectories))
-    //         {
-    //             // Skip the first line that the TypeScript compiler adds for each file
-    //             jsLines.AddRange(File.ReadAllLines(jsFile.FullName).Skip(1));                
-    //         }
-
-    //         var pageJsFile = Directories.BinDirectory.Join($"{pageDirectory.Name}.js");
-    //         File.WriteAllLines(pageJsFile, jsLines);
-    //     }
-    // }
 
     public void Publish()
     {
-        foreach (var file in Directories.BinDirectory.GetFiles("*.js"))
-            file.CopyTo($"{Directories.DistDirectory.FullName}/{file.Name}");
+        Directory.CreateDirectory(Directories.DistDirectory.FullName); // Ensure dist directory exists
+
+        // Copy all .js files from BinDirectory to DistDirectory, maintaining subfolder structure
+        foreach (FileInfo jsFile in Directories.BinDirectory.GetFiles("*.js", SearchOption.AllDirectories))
+        {
+            string relativePath = Path.GetRelativePath(Directories.BinDirectory.FullName, jsFile.FullName);
+            string targetFilePath = Path.Combine(Directories.DistDirectory.FullName, relativePath);
+
+            Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!); // Ensure sub-directory exists in target
+            File.Copy(jsFile.FullName, targetFilePath, true);
+            // Console.WriteLine($"ScriptsWorker: Published {jsFile.FullName} to {targetFilePath}"); // Optional: for debugging
+        }
     }
 
     public void Add(DirectoryInfo pageDirectory)
@@ -130,122 +106,25 @@ public class ScriptsWorker() : IWebFileWorker
 
     private static void ComplileTypeScriptFiles()
     {
-        var process = Process.Start("tsc");
+        var processInfo = new ProcessStartInfo
+        {
+            FileName = "tsc",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = Process.Start(processInfo)
+            ?? throw new Exception("Failed to start TypeScript compiler process.");
+
         process.WaitForExit();
+
         if (process.ExitCode != 0)
-            throw new Exception("TypeScript compilation failed.");
+        {
+            string errors = process.StandardError.ReadToEnd();
+            string output = process.StandardOutput.ReadToEnd();
+            throw new Exception($"TypeScript compilation failed. Exit Code: {process.ExitCode}\nOutput:\n{output}\nErrors:\n{errors}");
+        }
     }
-
-    // private static string BuildDependencies(string entryFile)
-    // {
-    //     var modules = new Dictionary<string, string>();
-    //     BuildDependencyGraph(entryFile, modules);
-
-    //     // Identify used functions/variables
-    //     var usedSymbols = new HashSet<string>();
-    //     CollectUsedSymbols(entryFile, modules, usedSymbols);
-
-    //     // Merge all modules into a single file with tree shaking
-    //     string bundle = string.Empty;
-    //     foreach (var module in modules)
-    //     {
-    //         bundle += $"// Module: {module.Key}\n";
-    //         bundle += RemoveUnusedExports(module.Value, usedSymbols) + "\n\n";
-    //     }
-
-    //     return bundle;
-    // }
-
-    // private static void BuildDependencyGraph(string filePath, Dictionary<string, string> modules)
-    // {
-    //     if (modules.ContainsKey(filePath))
-    //         return;
-
-    //     // This is slightly inefficient, but it simplifies the code
-    //     List<string> fileLines = [.. File.ReadAllLines(filePath)];
-    //     List<string> dependencies = ParseDependencies(string.Join("\n", fileLines));
-    //     fileLines.RemoveAll(line => line.StartsWith("import"));
-    //     var bundledJs = string.Join(Environment.NewLine, fileLines);
-    //         // .Replace("export default", string.Empty)
-    //         // .Replace("export", string.Empty);
-
-    //     modules[filePath] = bundledJs;
-
-    //     // Resolve dependencies recursively
-    //     foreach (var dependency in dependencies)
-    //     {
-    //         string dependencyPath;
-    //         if (dependency.StartsWith('$'))
-    //         {
-    //             dependencyPath = Directories.BuildDirectory.Join($"{dependency[1..]}.js");
-    //         }
-    //         else 
-    //         {
-    //             throw new NotImplementedException("Node modules are not supported yet.");
-    //         }
-            
-    //         if (!File.Exists(dependencyPath))
-    //             throw new Exception($"Module file '{dependencyPath}' not found");
-
-    //         BuildDependencyGraph(dependencyPath, modules);
-    //     }
-    // }
-
-    // private static List<string> ParseDependencies(string jsCode)
-    // {
-    //     var dependencies = new List<string>();
-
-    //     // Exclude single-line comments (//...)
-    //     jsCode = Regex.Replace(jsCode, @"//.*?$", "", RegexOptions.Multiline);
-
-    //     // Exclude Remove multi-line comments (/* ... */)
-    //     jsCode = Regex.Replace(jsCode, @"/\*.*?\*/", "", RegexOptions.Singleline);
-
-    //     // Find import statements that remain
-    //     var importRegex = new Regex(@"import\s+.*?['""](.+?)['""];", RegexOptions.Compiled);
-
-    //     foreach (Match match in importRegex.Matches(jsCode))
-    //         dependencies.Add(match.Groups[1].Value);
-
-    //     return dependencies;
-    // }
-
-    // private static void CollectUsedSymbols(string filePath, Dictionary<string, string> modules, HashSet<string> usedSymbols)
-    // {
-    //     if (!modules.TryGetValue(filePath, out string? content)) 
-    //         return;
-        
-    //     var functionCallRegex = new Regex(@"\b(\w+)\s*\(", RegexOptions.Compiled);
-    //     foreach (Match match in functionCallRegex.Matches(content))
-    //     {
-    //         usedSymbols.Add(match.Groups[1].Value);
-    //     }
-
-    //     foreach (var dependency in ParseDependencies(content))
-    //     {
-    //         string directoryName = Path.GetDirectoryName(filePath) 
-    //             ?? throw new ArgumentException($"Invalid file path: {filePath}");
-            
-    //         string dependencyPath = Path.Combine(directoryName, dependency);
-    //         CollectUsedSymbols(dependencyPath, modules, usedSymbols);
-    //     }
-    // }
-
-    // static string RemoveUnusedExports(string jsCode, HashSet<string> usedSymbols)
-    // {
-    //     var exportRegex = new Regex(@"export\s+(function|const|let|var|class)\s+(\w+)", RegexOptions.Compiled);
-    //     string newCode = jsCode;
-
-    //     foreach (Match match in exportRegex.Matches(jsCode))
-    //     {
-    //         string exportedName = match.Groups[2].Value;
-    //         if (!usedSymbols.Contains(exportedName))
-    //         {
-    //             // Remove the export keyword but keep the function definition
-    //             newCode = newCode.Replace(match.Value, match.Value.Replace("export ", ""));
-    //         }
-    //     }
-
-    //     return newCode;
-    // }
 }

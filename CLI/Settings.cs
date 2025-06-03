@@ -28,9 +28,11 @@ public static class Directories
     public static DirectoryInfo ImagesDirectory => Directory.CreateDirectory(SourceDirectory.Join(Settings.ImagesFolder));
     public static DirectoryInfo ConfigDirectory => Directory.CreateDirectory(AppDirectory.Join(Settings.ConfigFolder));
     public static DirectoryInfo BuildPagesDirectory => Directory.CreateDirectory(BuildDirectory.Join(Settings.PagesFolder));
-    public static DirectoryInfo BinDirectory => Directory.CreateDirectory(BuildDirectory.Join(Settings.BinFolder));
+    public static DirectoryInfo BinDirectory => Directory.CreateDirectory(BuildDirectory.Join(Settings.BinFolder)); 
+    public static DirectoryInfo BinPagesDirectory => Directory.CreateDirectory(BinDirectory.Join(Settings.PagesFolder));
     public static DirectoryInfo BinImagesDirectory => Directory.CreateDirectory(BinDirectory.Join(Settings.ImagesFolder));
     public static DirectoryInfo DistImagesDirectory => Directory.CreateDirectory(DistDirectory.Join(Settings.ImagesFolder));
+    public static DirectoryInfo DistPagesDirectory => Directory.CreateDirectory(DistDirectory.Join(Settings.PagesFolder));
 
     public static DirectoryInfo SubDirectory(this DirectoryInfo directoryInfo, string subDirectory)
     {
@@ -49,16 +51,7 @@ public static class Directories
 
     public static IEnumerable<FileInfo> GetFilesRecursively(this DirectoryInfo directoryInfo, string filter = "*")
     {
-        var foundFiles = new List<FileInfo>();
-        foreach (var file in directoryInfo.GetFiles(filter))
-        {
-            foundFiles.Add(file);
-        }
-
-        foreach (var subDirectory in directoryInfo.GetDirectories())
-            foundFiles.AddRange(subDirectory.GetFilesRecursively(filter));
-
-        return foundFiles;
+        return directoryInfo.EnumerateFiles(filter, SearchOption.AllDirectories);
     }
 
     public static void CopyTo(this DirectoryInfo sourceDirectory, string destPath, bool recursive = true)
