@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Rewrite;
+using System.Text;
+using Microsoft.AspNetCore.Http;
 
 namespace CLI;
 
@@ -9,7 +11,7 @@ public class Server()
 {
     private const string _webRootPath = "build/bin";
 
-    private readonly List<StreamWriter> _sseClients = [];
+    private readonly List<HttpContext> _sseClients = [];
 
     public void Start()
     {
@@ -29,14 +31,13 @@ public class Server()
                 context.Response.Headers.CacheControl = "no-cache";
                 context.Response.Headers.Connection = "keep-alive";
                 
-                var response = context.Response;
-                var writer = new StreamWriter(response.Body);
-                
-                _sseClients.Add(writer);
+                _sseClients.Add(context);
                 
                 // Send initial connection message
-                await writer.WriteLineAsync("data: connected\n");
-                await writer.FlushAsync();
+                var message = "data: connected\n\n";
+                var bytes = Encoding.UTF8.GetBytes(message);
+                await context.Response.Body.WriteAsync(bytes);
+                await context.Response.Body.FlushAsync();
                 
                 try
                 {
@@ -49,8 +50,7 @@ public class Server()
                 }
                 finally
                 {
-                    _sseClients.Remove(writer);
-                    writer.Dispose();
+                    _sseClients.Remove(context);
                 }
             }
             else
@@ -74,27 +74,25 @@ public class Server()
 
     public void Stop()
     {
-        foreach (var client in _sseClients)
-        {
-            client.Dispose();
-        }
         _sseClients.Clear();
     }
 
     public async Task Update()
     {
-        var deadClients = new List<StreamWriter>();
+        var deadClients = new List<HttpContext>();
         
-        foreach (var client in _sseClients)
+        foreach (var context in _sseClients.ToList())
         {
             try
             {
-                await client.WriteLineAsync("data: reload\n");
-                await client.FlushAsync();
+                var message = "data: reload\n\n";
+                var bytes = Encoding.UTF8.GetBytes(message);
+                await context.Response.Body.WriteAsync(bytes);
+                await context.Response.Body.FlushAsync();
             }
             catch
             {
-                deadClients.Add(client);
+                deadClients.Add(context);
             }
         }
         
@@ -102,7 +100,6 @@ public class Server()
         foreach (var client in deadClients)
         {
             _sseClients.Remove(client);
-            client.Dispose();
         }
     }
 }

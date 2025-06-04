@@ -41,12 +41,12 @@ public static class Directories
 
     public static string Join(this DirectoryInfo directoryInfo, string name)
     {
-        return $"{directoryInfo.FullName}/{name}";
+        return Path.Combine(directoryInfo.FullName, name);
     }
 
     public static string Join(this string path, string name)
     {
-        return $"{path}/{name}";
+        return Path.Combine(path, name);
     }
 
     public static IEnumerable<FileInfo> GetFilesRecursively(this DirectoryInfo directoryInfo, string filter = "*")
@@ -59,24 +59,25 @@ public static class Directories
         if (!sourceDirectory.Exists)
             throw new DirectoryNotFoundException($"Source directory not found: {sourceDirectory.FullName}");
 
-        Directory.CreateDirectory(destPath);
+        var destDir = Directory.CreateDirectory(destPath);
+
+        // Skip if source and destination are the same to prevent infinite loops
+        if (sourceDirectory.FullName.Equals(destDir.FullName, StringComparison.OrdinalIgnoreCase))
+            return;
 
         foreach (var file in sourceDirectory.GetFiles())
         {
-            var targetFilePath = $"{destPath}/{file.Name}";
-            //Wow, this triggers an infinite loop in FileSystemEvents.
-            //file.CopyTo(targetFilePath);
-            var fileLines = File.ReadAllBytes(file.FullName);
-            File.WriteAllBytes(targetFilePath, fileLines);
+            var targetFilePath = Path.Combine(destPath, file.Name);
+            // Using CopyTo with overwrite flag to avoid FileSystemWatcher issues
+            file.CopyTo(targetFilePath, overwrite: true);
         }
 
-        var subDirectories = sourceDirectory.GetDirectories();
         if (recursive)
         {
-            foreach (var subDirectory in subDirectories)
+            foreach (var subDirectory in sourceDirectory.GetDirectories())
             {
-                var destDirectory = $"{destPath}/{subDirectory.Name}";
-                subDirectory.CopyTo(destDirectory);
+                var destDirectory = Path.Combine(destPath, subDirectory.Name);
+                subDirectory.CopyTo(destDirectory, recursive);
             }
         }
     }
