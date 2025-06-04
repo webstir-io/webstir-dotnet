@@ -2,7 +2,7 @@ namespace CLI;
 
 public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watcher)
 {
-    public void Run(string[] args)
+    public async Task Run(string[] args)
     {
         var command = args.Length != 0 
             ? args.First() 
@@ -25,7 +25,7 @@ public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watche
             case "":
             case "watch":
                 Build();
-                Watch();
+                await Watch();
                 break;
 
             case "publish":
@@ -99,8 +99,8 @@ public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watche
         Console.WriteLine("Done");
     }
 
-    public void Watch()
+    public async Task Watch()
     {
-        _watcher.Watch(Build);
+        await _watcher.Watch(Build);
     }
 }

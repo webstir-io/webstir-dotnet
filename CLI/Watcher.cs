@@ -6,7 +6,7 @@ public class Watcher(Server _server)
     private DateTime _lastChangeTime = DateTime.MinValue;
     private readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(200);
 
-    public void Watch(Action<bool> onChangeAction)
+    public async Task Watch(Action<bool> onChangeAction)
     {
         Console.WriteLine("Watching for changes...");
         
@@ -26,10 +26,25 @@ public class Watcher(Server _server)
         watcher.IncludeSubdirectories = true;
         watcher.EnableRaisingEvents = true;
         
-        _server.Start();        
+        await _server.Start();        
 
-        Console.WriteLine("Press enter to exit.");
-        Console.ReadLine();
+        Console.WriteLine("Press Ctrl+C to exit.");
+        
+        // Set up Ctrl+C handler
+        var exitEvent = new TaskCompletionSource<bool>();
+        Console.CancelKeyPress += (sender, e) =>
+        {
+            e.Cancel = true; // Prevent immediate termination
+            exitEvent.SetResult(true);
+        };
+        
+        // Wait for Ctrl+C
+        await exitEvent.Task;
+        
+        Console.WriteLine("Stopping server...");
+        // Stop the server gracefully
+        await _server.Stop();
+        
         Console.WriteLine("Stopped watching");
     }
 

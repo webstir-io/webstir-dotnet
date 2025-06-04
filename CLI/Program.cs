@@ -16,7 +16,7 @@ try
     services.AddTransient<IWebFileWorker, ImagesWorker>();
 
     using ServiceProvider provider = services.BuildServiceProvider();
-    provider.GetService<Runner>()!.Run(args);
+    await provider.GetService<Runner>()!.Run(args);
 
 }
 catch (Exception ex)
