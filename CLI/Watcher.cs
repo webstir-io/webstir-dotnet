@@ -1,10 +1,10 @@
-using System.Collections.Concurrent;
-
 namespace CLI;
 
 public class Watcher(Server _server)
 {
     private Action<bool>? _onChangeAction;
+    private DateTime _lastChangeTime = DateTime.MinValue;
+    private readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(200);
 
     public void Watch(Action<bool> onChangeAction)
     {
@@ -35,20 +35,43 @@ public class Watcher(Server _server)
 
     private async void OnChanged(object sender, FileSystemEventArgs e)
     {
-        if (e.FullPath.EndsWith(".DS_Store"))
+        if (ShouldIgnoreFile(e.FullPath))
             return;
 
-        Console.WriteLine($"Detected file change: {e.FullPath}");
-        WaitForFile(e.FullPath);
-        _onChangeAction!.Invoke(false);
-        await _server.Update();
+        // Debounce rapid changes
+        var now = DateTime.UtcNow;
+        if (now - _lastChangeTime < _debounceInterval)
+            return;
+        _lastChangeTime = now;
+
+        try
+        {
+            Console.WriteLine($"Detected file change: {e.FullPath}");
+            await WaitForFileAsync(e.FullPath);
+            _onChangeAction!.Invoke(false);
+            await _server.Update();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error handling file change: {ex.Message}");
+        }
     }
 
     private async void OnDeleted(object sender, FileSystemEventArgs e)
     {
-        Console.WriteLine($"File deleted");
-        _onChangeAction!.Invoke(false);
-        await _server.Update();
+        if (ShouldIgnoreFile(e.FullPath))
+            return;
+
+        try
+        {
+            Console.WriteLine($"File deleted: {e.Name}");
+            _onChangeAction!.Invoke(false);
+            await _server.Update();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error handling file deletion: {ex.Message}");
+        }
     }
 
     private static void OnError(object sender, ErrorEventArgs e) =>
@@ -66,7 +89,7 @@ public class Watcher(Server _server)
         }
     }
 
-    private static void WaitForFile(string filePath, int timeoutMs = 10000, int checkIntervalMs = 500)
+    private static async Task WaitForFileAsync(string filePath, int timeoutMs = 10000, int checkIntervalMs = 500)
     {
         Console.Write("Waiting for file...");
 
@@ -83,12 +106,20 @@ public class Watcher(Server _server)
             catch (IOException)
             {
                 // The file is still locked, so we need to wait and try again
-                Task.Delay(checkIntervalMs).Wait();
+                await Task.Delay(checkIntervalMs);
                 timeElapsed += checkIntervalMs;
             }
         }
 
         Console.WriteLine("Warning: timeout waiting for file");
-        return;
+    }
+
+    private static bool ShouldIgnoreFile(string filePath)
+    {
+        var fileName = Path.GetFileName(filePath);
+        return fileName.StartsWith('.') || // Hidden files
+               fileName.EndsWith(".tmp") || // Temp files
+               fileName.EndsWith("~") || // Backup files
+               fileName == "Thumbs.db"; // Windows thumbnail cache
     }
 }
