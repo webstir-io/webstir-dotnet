@@ -43,7 +43,7 @@ dotnet run -- add <page-name>
 ### Key Components
 - **Runner.cs**: Command orchestrator handling init, add, build, publish, watch
 - **Workers/**: File type handlers (MarkupWorker, StylesWorker, ScriptsWorker, ImagesWorker)
-- **Server.cs**: Development server with WebSocket hot reload at http://localhost:3456
+- **Server.cs**: Development server with WebSocket hot reload at http://localhost:8000
 - **Watcher.cs**: File system monitoring for automatic rebuilds
 
 ### Directory Structure

@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace CLI;
 
 public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watcher)
@@ -17,7 +15,7 @@ public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watche
                 break;
             
             case "add":
-                Add();
+                Add(args.Skip(1).ToArray());
                 break;
 
             case "build":
@@ -47,24 +45,28 @@ public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watche
             worker.Init();
     }
 
-    public void Add()
+    public void Add(string[] args)
     {
-        //TODO: Rework this to be more user friendly, add a command router
-        Console.Write("Enter the name of the page: ");
-        var pageName = Console.ReadLine();
+        var pageName = args.FirstOrDefault();   
         if (string.IsNullOrEmpty(pageName))
         {
-            Console.WriteLine("Page name must be provided.");
+            Console.WriteLine("Usage: webstir add <page-name>");
             return;
         }
-        var pagePath = Directories.PagesDirectory.Join(pageName);
+        
+        var pagePath = Directories.PagesDirectory.Join(pageName);   
+        if (Directory.Exists(pagePath))
+        {
+            Console.WriteLine($"Page '{pageName}' already exists at {pagePath}");
+            return;
+        }
+        
         var pageDirectory = Directory.CreateDirectory(pagePath);
-
-        Console.Write($"Adding {pageName}...");
+        Console.WriteLine($"Creating page '{pageName}'...");
         foreach (var worker in _webFileWorkers)
             worker.Add(pageDirectory);     
 
-        Console.WriteLine("Done");
+        Console.WriteLine($"✓ Created page at {pagePath}");
     }
 
     public void Build(bool releaseMode = false)

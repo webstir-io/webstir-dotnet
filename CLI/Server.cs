@@ -72,6 +72,7 @@ public class Server()
         while (!result.CloseStatus.HasValue)
         {
             Console.WriteLine("Handling websocket request");
+            result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
         }
         
         await Close(result);
