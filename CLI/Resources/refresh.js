@@ -1,20 +1,21 @@
-const socket = new WebSocket('http://localhost:8000/ws');
+const eventSource = new EventSource('http://localhost:8000/events');
 
-socket.onopen = () => {
-    console.log('WebSocket connection established.');
+eventSource.onopen = () => {
+    console.log('SSE connection established.');
 };
 
-socket.onmessage = (event) => {
-    console.log(event.data);
-    location.reload();
+eventSource.onmessage = (event) => {
+    console.log('Received:', event.data);
+    if (event.data === 'reload') {
+        location.reload();
+    }
 };
 
-socket.onclose = () => {
-    console.log('WebSocket connection closed.');
+eventSource.onerror = (error) => {
+    console.error('SSE error:', error);
+    // EventSource will automatically reconnect
 };
 
 window.addEventListener('beforeunload', function () {
-    if (socket.readyState === WebSocket.OPEN) {
-        socket.close();
-    }
+    eventSource.close();
 });

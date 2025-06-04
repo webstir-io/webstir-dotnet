@@ -33,7 +33,7 @@ public class Watcher(Server _server)
         Console.WriteLine("Stopped watching");
     }
 
-    private void OnChanged(object sender, FileSystemEventArgs e)
+    private async void OnChanged(object sender, FileSystemEventArgs e)
     {
         if (e.FullPath.EndsWith(".DS_Store"))
             return;
@@ -41,14 +41,14 @@ public class Watcher(Server _server)
         Console.WriteLine($"Detected file change: {e.FullPath}");
         WaitForFile(e.FullPath);
         _onChangeAction!.Invoke(false);
-        _ = _server.Update();
+        await _server.Update();
     }
 
-    private void OnDeleted(object sender, FileSystemEventArgs e)
+    private async void OnDeleted(object sender, FileSystemEventArgs e)
     {
         Console.WriteLine($"File deleted");
         _onChangeAction!.Invoke(false);
-        _ = _server.Update();
+        await _server.Update();
     }
 
     private static void OnError(object sender, ErrorEventArgs e) =>
