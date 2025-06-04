@@ -15,15 +15,15 @@ public class StylesWorker : IWebFileWorker
         if (!File.Exists(_appCssFilepath))
             AssemblyHelpers.WriteResourceToFile(_appCssFile, _appCssFilepath);
 
-        var _indexCssOutputFilepath = Directories.IndexDirectory.Join(_indexCssFile);
-        if (!File.Exists(_indexCssOutputFilepath))
-            AssemblyHelpers.WriteResourceToFile(_indexCssFile, _indexCssOutputFilepath);
+        var indexCssOutputFilepath = Directories.IndexDirectory.Join(_indexCssFile);
+        if (!File.Exists(indexCssOutputFilepath))
+            AssemblyHelpers.WriteResourceToFile(_indexCssFile, indexCssOutputFilepath);
     }
 
     public void Build(bool releaseMode = false)
     {
-        var cssFileLines = MergeAppCssFiles();
-        MergePageCssFiles(cssFileLines);
+        var cssFileLines = MergeAppCssFiles(releaseMode);
+        MergePageCssFiles(cssFileLines, releaseMode);
 
         // Copy the consolidated css page files to bin folder
         foreach (var mergedPageFile in Directories.BuildPagesDirectory.GetFiles("*.css", SearchOption.AllDirectories))
@@ -36,36 +36,27 @@ public class StylesWorker : IWebFileWorker
         }
     }
 
-    private static List<string> MergeAppCssFiles()
+    private static List<string> MergeAppCssFiles(bool releaseMode)
     {        
         var appCssFileLines = File.ReadAllLines(_appCssFilepath).ToList();
-        
-        // if (File.Exists(Directories.AppDirectory.Join("header.css")))
-        // {
-        //     var headerCssFileLines = File.ReadAllLines(Directories.AppDirectory.Join("header.css"));
-        //     appCssFileLines.AddRange(headerCssFileLines);
-        // }
-
-        // if (File.Exists(Directories.AppDirectory.Join("footer.css")))
-        // {
-        //     var footerCssFileLines = File.ReadAllLines(Directories.AppDirectory.Join("footer.css"));
-        //     appCssFileLines.AddRange(footerCssFileLines);
-        // }
 
         foreach (var cssFile in Directories.AppDirectory.GetFiles("*.css", SearchOption.AllDirectories))
         {
             if (cssFile.Name.Equals(_appCssFile))
                 continue;
 
-            var fileComment = $"{Environment.NewLine}/* {cssFile.Name} */";
-            appCssFileLines.Add(fileComment);
+            if (!releaseMode)
+            {
+                var fileComment = $"{Environment.NewLine}/* {cssFile.Name} */";
+                appCssFileLines.Add(fileComment);
+            }
             appCssFileLines.AddRange(File.ReadAllLines(cssFile.FullName));
         }
 
         return appCssFileLines;
     }
 
-    private static void MergePageCssFiles(List<string> appCssFileLines)
+    private static void MergePageCssFiles(List<string> appCssFileLines, bool releaseMode)
     {        
         foreach (var pageDirectory in Directories.PagesDirectory.GetDirectories())
         {
@@ -78,18 +69,25 @@ public class StylesWorker : IWebFileWorker
 
             foreach (var cssFile in cssFiles)
             {
-                var fileComment = $"{Environment.NewLine}/* {cssFile.Name} */";
                 var fileLines = File.ReadAllLines(cssFile.FullName);
 
                 // Insert the page css file at the top but after the app.css file.
                 if (Path.GetFileNameWithoutExtension(cssFile.Name).Equals(pageDirectory.Name))
                 {
-                    mergedCssFileLines.Insert(endOfAppCssPosition++, fileComment);
+                    if (!releaseMode)
+                    {
+                        var fileComment = $"{Environment.NewLine}/* {cssFile.Name} */";
+                        mergedCssFileLines.Insert(endOfAppCssPosition++, fileComment);
+                    }
                     mergedCssFileLines.InsertRange(endOfAppCssPosition, fileLines);
                 }
                 else
                 {
-                    mergedCssFileLines.Add(fileComment);
+                    if (!releaseMode)
+                    {
+                        var fileComment = $"{Environment.NewLine}/* {cssFile.Name} */";
+                        mergedCssFileLines.Add(fileComment);
+                    }
                     mergedCssFileLines.AddRange(fileLines);
                 }
             }
@@ -114,10 +112,8 @@ public class StylesWorker : IWebFileWorker
 
     public void Publish()
     {
-        var appCssInBin = Directories.BinDirectory.Join(_appCssFile);
-        if (File.Exists(appCssInBin))
-            File.Copy(appCssInBin, Directories.DistDirectory.Join(_appCssFile), true);
-
+        // No app.css to copy in the current architecture
+        
         if (Directories.BinPagesDirectory.Exists)
         {
             foreach (var pageDirectory in Directories.BinPagesDirectory.GetDirectories())
@@ -126,7 +122,13 @@ public class StylesWorker : IWebFileWorker
                 distPagesDirectory.Create();
 
                 foreach (var cssFile in pageDirectory.GetFiles("*.css"))
-                    cssFile.CopyTo(distPagesDirectory.Join(cssFile.Name), true);
+                {
+                    var cssContent = File.ReadAllText(cssFile.FullName);
+                    cssContent = RemoveCssComments(cssContent);
+                    
+                    var targetPath = distPagesDirectory.Join(cssFile.Name);
+                    File.WriteAllText(targetPath, cssContent);
+                }
             }
         }
     }
@@ -134,6 +136,26 @@ public class StylesWorker : IWebFileWorker
     public void Add(DirectoryInfo pageDirectory)
     {
         var pageName = pageDirectory.Name;
-        File.Create(pageDirectory.Join($"{pageName}.ts")).Close();
+        var cssContent = $"/* Styles for {pageName} page */\n";
+        File.WriteAllText(pageDirectory.Join($"{pageName}.css"), cssContent);
+    }
+
+    private static string RemoveCssComments(string css)
+    {
+        // Remove CSS comments (/* ... */)
+        var commentPattern = @"/\*[\s\S]*?\*/";
+        css = System.Text.RegularExpressions.Regex.Replace(css, commentPattern, string.Empty);
+        
+        // Remove empty lines left by comment removal
+        var emptyLinePattern = @"^\s*\r?\n";
+        css = System.Text.RegularExpressions.Regex.Replace(
+            css, 
+            emptyLinePattern, 
+            string.Empty, 
+            System.Text.RegularExpressions.RegexOptions.Multiline
+        );
+        
+        // Trim whitespace from beginning and end
+        return css.Trim();
     }
 }

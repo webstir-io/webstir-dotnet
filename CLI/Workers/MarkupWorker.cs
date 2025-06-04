@@ -31,10 +31,8 @@ public class MarkupWorker : IWebFileWorker
         var appHtmlFile = new HtmlFile(appHtmlFilepath);
         if (releaseMode)
         {
-            // Assuming app.html references refresh.js from the root, e.g., <script src="refresh.js" async>
-            // Ensure this path is correct based on where app.html is and where refresh.js will be in 'bin'.
-            // If refresh.js is at bin root, and app.html is processed as a base, this path is fine.
-            appHtmlFile.Remove(@$"    <script src=""refresh.js"" async></script>{Environment.NewLine}");
+            // Remove refresh.js script tag in release mode
+            appHtmlFile.Remove(@"<script src=""refresh.js"" async></script>");
         }
 
         Directory.CreateDirectory(Directories.BinDirectory.FullName); // Ensure bin directory exists
@@ -43,13 +41,21 @@ public class MarkupWorker : IWebFileWorker
         {
             foreach (var pageHtmlFragmentFile in pageSourceDirectory.GetFiles("*.html")) // e.g., src/pages/index/index.html
             {
-                var pageFragment = new HtmlFile(pageHtmlFragmentFile.FullName);
-                string mergedHtmlContent = appHtmlFile.Merge(pageFragment.Html);
+                try
+                {
+                    var pageFragment = new HtmlFile(pageHtmlFragmentFile.FullName);
+                    string mergedHtmlContent = appHtmlFile.Merge(pageFragment.Html);
 
-                // Output path will be like build/bin/index.html or build/bin/login.html
-                string outputFilePath = Path.Combine(Directories.BinDirectory.FullName, pageHtmlFragmentFile.Name);
+                    // Output path will be like build/bin/index.html or build/bin/login.html
+                    string outputFilePath = Path.Combine(Directories.BinDirectory.FullName, pageHtmlFragmentFile.Name);
 
-                File.WriteAllText(outputFilePath, mergedHtmlContent);
+                    File.WriteAllText(outputFilePath, mergedHtmlContent);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error processing {pageHtmlFragmentFile.Name}: {ex.Message}");
+                    throw;
+                }
             }
         }
     }
@@ -61,8 +67,13 @@ public class MarkupWorker : IWebFileWorker
         // Copy all HTML files from the root of the bin directory to the dist directory
         foreach (var htmlFileToPublish in Directories.BinDirectory.GetFiles("*.html", SearchOption.TopDirectoryOnly))
         {
+            string htmlContent = File.ReadAllText(htmlFileToPublish.FullName);
+            
+            // Remove HTML comments for production
+            htmlContent = RemoveHtmlComments(htmlContent);
+            
             string destinationFilePath = Path.Combine(Directories.DistDirectory.FullName, htmlFileToPublish.Name);
-            htmlFileToPublish.CopyTo(destinationFilePath, true);
+            File.WriteAllText(destinationFilePath, htmlContent);
         }
     }
 
@@ -77,7 +88,7 @@ public class MarkupWorker : IWebFileWorker
         var baseHtmlFragment =
 $@"<head>
     <title>{pageName}</title>
-    <link rel=""stylesheet"" href=""pages/{pageName}{pageName}.css"" />
+    <link rel=""stylesheet"" href=""pages/{pageName}/{pageName}.css"" />
     <script type=""module"" src=""pages/{pageName}/{pageName}.js"" async></script>
 </head>
 <body>
@@ -90,5 +101,23 @@ $@"<head>
         string newPageFragmentPath = Path.Combine(pageDirectory.FullName, $"{pageName}.html");
         File.WriteAllText(newPageFragmentPath, baseHtmlFragment);
         Console.WriteLine($"MarkupWorker: Created HTML fragment for page '{pageName}' at {newPageFragmentPath}");
+    }
+
+    private static string RemoveHtmlComments(string html)
+    {
+        // Remove entire lines containing only comments (including the newline)
+        var commentLinePattern = @"^\s*<!--[\s\S]*?-->\s*\r?\n";
+        var result = System.Text.RegularExpressions.Regex.Replace(
+            html, 
+            commentLinePattern, 
+            string.Empty, 
+            System.Text.RegularExpressions.RegexOptions.Multiline
+        );
+        
+        // Also remove inline comments (comments not on their own line)
+        var inlineCommentPattern = @"<!--[\s\S]*?-->";
+        result = System.Text.RegularExpressions.Regex.Replace(result, inlineCommentPattern, string.Empty);
+        
+        return result;
     }
 }

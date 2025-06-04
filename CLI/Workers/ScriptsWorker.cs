@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using CLI.Helpers;
-using System.IO; // Added for Path and Directory operations
 
 namespace CLI.Workers;
 
@@ -8,7 +7,6 @@ public class ScriptsWorker() : IWebFileWorker
 {
     private const string _tsConfigFile = "tsconfig.json";
     private const string _appTsFile = "app.ts";
-    private const string _appJsFile = "app.js";
     private const string _indexTsFile = "index.ts";
     private const string _refreshJsFile = "refresh.js";
 
@@ -34,7 +32,7 @@ public class ScriptsWorker() : IWebFileWorker
 
     public void Build(bool releaseMode = false)
     {
-        ComplileTypeScriptFiles();
+        CompileTypeScriptFiles();
 
         // Copy compiled JS files from build to bin
         CopyCompiledJsFiles(Directories.BuildDirectory, Directories.BinDirectory);
@@ -42,20 +40,15 @@ public class ScriptsWorker() : IWebFileWorker
         if (!releaseMode)
         {
             string sourceRefreshJsApp = Directories.AppDirectory.Join(_refreshJsFile);
-            string sourceRefreshJsBuild = Path.Combine(Directories.BuildDirectory.FullName, Settings.AppFolder, _refreshJsFile); // Corrected path construction
             string targetRefreshJs = Directories.BinDirectory.Join(_refreshJsFile);
 
             if (File.Exists(sourceRefreshJsApp))
             {
-                 File.Copy(sourceRefreshJsApp, targetRefreshJs, true);
-            }
-            else if (File.Exists(sourceRefreshJsBuild))
-            {
-                 File.Copy(sourceRefreshJsBuild, targetRefreshJs, true);
+                File.Copy(sourceRefreshJsApp, targetRefreshJs, true);
             }
             else
             {
-                Console.WriteLine($"Warning: {_refreshJsFile} not found in {Directories.AppDirectory.FullName} or {sourceRefreshJsBuild}");
+                Console.WriteLine($"Warning: {_refreshJsFile} not found in {sourceRefreshJsApp}");
             }
         }
     }
@@ -93,18 +86,23 @@ public class ScriptsWorker() : IWebFileWorker
             string targetFilePath = Path.Combine(Directories.DistDirectory.FullName, relativePath);
 
             Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!); // Ensure sub-directory exists in target
-            File.Copy(jsFile.FullName, targetFilePath, true);
-            // Console.WriteLine($"ScriptsWorker: Published {jsFile.FullName} to {targetFilePath}"); // Optional: for debugging
+            
+            // Read JS content and remove comments
+            string jsContent = File.ReadAllText(jsFile.FullName);
+            jsContent = RemoveJavaScriptComments(jsContent);
+            
+            File.WriteAllText(targetFilePath, jsContent);
         }
     }
 
     public void Add(DirectoryInfo pageDirectory)
     {
         var pageName = pageDirectory.Name;
-        File.Create(pageDirectory.Join($"{pageName}.ts")).Close();
+        var tsFilePath = pageDirectory.Join($"{pageName}.ts");
+        File.WriteAllText(tsFilePath, $"// TypeScript file for {pageName} page\n");
     }
 
-    private static void ComplileTypeScriptFiles()
+    private static void CompileTypeScriptFiles()
     {
         var processInfo = new ProcessStartInfo
         {
@@ -124,7 +122,39 @@ public class ScriptsWorker() : IWebFileWorker
         {
             string errors = process.StandardError.ReadToEnd();
             string output = process.StandardOutput.ReadToEnd();
-            throw new Exception($"TypeScript compilation failed. Exit Code: {process.ExitCode}\nOutput:\n{output}\nErrors:\n{errors}");
+            var errorMessage = $"TypeScript compilation failed (Exit Code: {process.ExitCode})";
+            if (!string.IsNullOrWhiteSpace(errors))
+                errorMessage += $"\nErrors:\n{errors}";
+            if (!string.IsNullOrWhiteSpace(output))
+                errorMessage += $"\nOutput:\n{output}";
+            throw new Exception(errorMessage);
         }
+    }
+
+    private static string RemoveJavaScriptComments(string js)
+    {
+        // Remove single-line comments (// ...) but preserve URLs
+        var singleLinePattern = @"(?<!:)//.*$";
+        js = System.Text.RegularExpressions.Regex.Replace(
+            js, 
+            singleLinePattern, 
+            string.Empty, 
+            System.Text.RegularExpressions.RegexOptions.Multiline
+        );
+        
+        // Remove multi-line comments (/* ... */)
+        var multiLinePattern = @"/\*[\s\S]*?\*/";
+        js = System.Text.RegularExpressions.Regex.Replace(js, multiLinePattern, string.Empty);
+        
+        // Remove empty lines left by comment removal
+        var emptyLinePattern = @"^\s*\r?\n";
+        js = System.Text.RegularExpressions.Regex.Replace(
+            js, 
+            emptyLinePattern, 
+            string.Empty, 
+            System.Text.RegularExpressions.RegexOptions.Multiline
+        );
+        
+        return js.Trim();
     }
 }
