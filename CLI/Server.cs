@@ -80,7 +80,7 @@ public class Server()
         {
             try
             {
-                await _app.RunAsync("http://0.0.0.0:8000");
+                await _app.RunAsync("http://0.0.0.0:8088");
             }
             catch (Exception ex)
             {

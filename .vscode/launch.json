@@ -11,7 +11,7 @@
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/CLI/bin/Debug/net9.0/CLI.dll",
             "args": ["watch"],
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/CLI",
             "stopAtEntry": false,
             "console": "internalConsole",
         }

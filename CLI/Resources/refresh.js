@@ -1,4 +1,4 @@
-const eventSource = new EventSource('http://localhost:8000/events');
+const eventSource = new EventSource('http://localhost:8088/events');
 
 eventSource.onopen = () => {
     console.log('SSE connection established.');

@@ -14,10 +14,10 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "sourceMap": false,
+    "sourceMap": true,
     "baseUrl": "./src",
     "paths": {
-      "$utils/*": ["utils/*"]
+      "@components/*": ["components/*"]
     },
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
