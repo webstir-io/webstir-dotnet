@@ -10,7 +10,7 @@ namespace CLI;
 
 public class Server()
 {
-    private const string _webRootPath = "build/bin";
+    private const string _webRootPath = "build";
 
     private readonly List<HttpContext> _sseClients = [];
     private WebApplication? _app;

@@ -12,12 +12,12 @@ public class ImagesWorker : IWebFileWorker
 
     public void Build(bool releaseMode = false)
     {
-        Directories.ImagesDirectory.CopyTo(Directories.BinImagesDirectory.FullName);
+        Directories.ImagesDirectory.CopyTo(Directories.BuildImagesDirectory.FullName);
     }
 
     public void Publish()
     {
-        Directories.BinImagesDirectory.CopyTo(Directories.DistImagesDirectory.FullName);
+        Directories.BuildImagesDirectory.CopyTo(Directories.DistImagesDirectory.FullName);
     }
 
     public void Add(DirectoryInfo pageDirectory)

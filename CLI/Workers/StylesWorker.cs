@@ -25,15 +25,7 @@ public class StylesWorker : IWebFileWorker
         var cssFileLines = MergeAppCssFiles(releaseMode);
         MergePageCssFiles(cssFileLines, releaseMode);
 
-        // Copy the consolidated css page files to bin folder
-        foreach (var mergedPageFile in Directories.BuildPagesDirectory.GetFiles("*.css", SearchOption.AllDirectories))
-        {
-            var outputFilepath = Directories.BinPagesDirectory
-                .SubDirectory(Path.GetFileNameWithoutExtension(mergedPageFile.Name))
-                .Join(mergedPageFile.Name);
-
-            File.Copy(mergedPageFile.FullName, outputFilepath);
-        }
+        // The CSS files are already in the correct location (build/pages/)
     }
 
     private static List<string> MergeAppCssFiles(bool releaseMode)
@@ -114,9 +106,9 @@ public class StylesWorker : IWebFileWorker
     {
         // No app.css to copy in the current architecture
         
-        if (Directories.BinPagesDirectory.Exists)
+        if (Directories.BuildPagesDirectory.Exists)
         {
-            foreach (var pageDirectory in Directories.BinPagesDirectory.GetDirectories())
+            foreach (var pageDirectory in Directories.BuildPagesDirectory.GetDirectories())
             {
                 var distPagesDirectory = Directories.DistPagesDirectory.SubDirectory(pageDirectory.Name);
                 distPagesDirectory.Create();

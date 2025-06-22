@@ -35,7 +35,7 @@ public class MarkupWorker : IWebFileWorker
             appHtmlFile.Remove(@"<script src=""refresh.js"" async></script>");
         }
 
-        Directory.CreateDirectory(Directories.BinDirectory.FullName); // Ensure bin directory exists
+        Directory.CreateDirectory(Directories.BuildDirectory.FullName); // Ensure build directory exists
 
         foreach (var pageSourceDirectory in Directories.PagesDirectory.GetDirectories()) // e.g., src/pages/index
         {
@@ -46,8 +46,8 @@ public class MarkupWorker : IWebFileWorker
                     var pageFragment = new HtmlFile(pageHtmlFragmentFile.FullName);
                     string mergedHtmlContent = appHtmlFile.Merge(pageFragment.Html);
 
-                    // Output path will be like build/bin/index.html or build/bin/login.html
-                    string outputFilePath = Path.Combine(Directories.BinDirectory.FullName, pageHtmlFragmentFile.Name);
+                    // Output path will be like build/index.html or build/login.html
+                    string outputFilePath = Path.Combine(Directories.BuildDirectory.FullName, pageHtmlFragmentFile.Name);
 
                     File.WriteAllText(outputFilePath, mergedHtmlContent);
                 }
@@ -64,8 +64,8 @@ public class MarkupWorker : IWebFileWorker
     {
         Directory.CreateDirectory(Directories.DistDirectory.FullName); // Ensure dist directory exists
 
-        // Copy all HTML files from the root of the bin directory to the dist directory
-        foreach (var htmlFileToPublish in Directories.BinDirectory.GetFiles("*.html", SearchOption.TopDirectoryOnly))
+        // Copy all HTML files from the root of the build directory to the dist directory
+        foreach (var htmlFileToPublish in Directories.BuildDirectory.GetFiles("*.html", SearchOption.TopDirectoryOnly))
         {
             string htmlContent = File.ReadAllText(htmlFileToPublish.FullName);
             
@@ -83,8 +83,8 @@ public class MarkupWorker : IWebFileWorker
 
         // This HTML is for the *fragment* (e.g., src/pages/newPage/newPage.html)
         // Paths for CSS/JS should be relative to the final HTML file's location in 'bin' root.
-        // Page-specific CSS (e.g., newPage.css) is expected at: build/bin/newPage.css
-        // Page-specific JS (e.g., newPage.js) is expected at: build/bin/pages/newPage/newPage.js
+        // Page-specific CSS (e.g., newPage.css) is expected at: build/pages/newPage/newPage.css
+        // Page-specific JS (e.g., newPage.js) is expected at: build/pages/newPage/newPage.js
         var baseHtmlFragment =
 $@"<head>
     <title>{pageName}</title>

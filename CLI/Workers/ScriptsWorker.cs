@@ -34,13 +34,10 @@ public class ScriptsWorker() : IWebFileWorker
     {
         CompileTypeScriptFiles();
 
-        // Copy compiled JS files from build to bin
-        CopyCompiledJsFiles(Directories.BuildDirectory, Directories.BinDirectory);
-
         if (!releaseMode)
         {
             string sourceRefreshJsApp = Directories.AppDirectory.Join(_refreshJsFile);
-            string targetRefreshJs = Directories.BinDirectory.Join(_refreshJsFile);
+            string targetRefreshJs = Directories.BuildDirectory.Join(_refreshJsFile);
 
             if (File.Exists(sourceRefreshJsApp))
             {
@@ -53,36 +50,14 @@ public class ScriptsWorker() : IWebFileWorker
         }
     }
 
-    private static void CopyCompiledJsFiles(DirectoryInfo sourceDir, DirectoryInfo targetDir)
-    {
-        if (!sourceDir.Exists)
-        {
-            Console.WriteLine($"Warning: Source directory for JS compilation output not found: {sourceDir.FullName}");
-            return;
-        }
-
-        // Ensure the target directory exists
-        Directory.CreateDirectory(targetDir.FullName);
-
-        // Copy all .js files, maintaining subfolder structure
-        foreach (FileInfo jsFile in sourceDir.GetFiles("*.js", SearchOption.AllDirectories))
-        {
-            string relativePath = Path.GetRelativePath(sourceDir.FullName, jsFile.FullName);
-            string targetFilePath = Path.Combine(targetDir.FullName, relativePath);
-
-            Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!); // Ensure sub-directory exists in target
-            File.Copy(jsFile.FullName, targetFilePath, true);
-        }
-    }
-
     public void Publish()
     {
         Directory.CreateDirectory(Directories.DistDirectory.FullName); // Ensure dist directory exists
 
-        // Copy all .js files from BinDirectory to DistDirectory, maintaining subfolder structure
-        foreach (FileInfo jsFile in Directories.BinDirectory.GetFiles("*.js", SearchOption.AllDirectories))
+        // Copy all .js files from BuildDirectory to DistDirectory, maintaining subfolder structure
+        foreach (FileInfo jsFile in Directories.BuildDirectory.GetFiles("*.js", SearchOption.AllDirectories))
         {
-            string relativePath = Path.GetRelativePath(Directories.BinDirectory.FullName, jsFile.FullName);
+            string relativePath = Path.GetRelativePath(Directories.BuildDirectory.FullName, jsFile.FullName);
             string targetFilePath = Path.Combine(Directories.DistDirectory.FullName, relativePath);
 
             Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!); // Ensure sub-directory exists in target

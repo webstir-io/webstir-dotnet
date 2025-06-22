@@ -5,7 +5,6 @@ public static class Settings
     public static string SourceFolder { get; } = "src";
     public static string DistFolder { get; } = "dist";
     public static string BuildFolder { get; } = "build";
-    public static string BinFolder { get; } = "bin";
     public static string AppFolder { get; } = "app";
     public static string PagesFolder { get; } = "pages";
     public static string StylesFolder { get; } = "styles";
@@ -28,9 +27,7 @@ public static class Directories
     public static DirectoryInfo ImagesDirectory => Directory.CreateDirectory(SourceDirectory.Join(Settings.ImagesFolder));
     public static DirectoryInfo ConfigDirectory => Directory.CreateDirectory(AppDirectory.Join(Settings.ConfigFolder));
     public static DirectoryInfo BuildPagesDirectory => Directory.CreateDirectory(BuildDirectory.Join(Settings.PagesFolder));
-    public static DirectoryInfo BinDirectory => Directory.CreateDirectory(BuildDirectory.Join(Settings.BinFolder)); 
-    public static DirectoryInfo BinPagesDirectory => Directory.CreateDirectory(BinDirectory.Join(Settings.PagesFolder));
-    public static DirectoryInfo BinImagesDirectory => Directory.CreateDirectory(BinDirectory.Join(Settings.ImagesFolder));
+    public static DirectoryInfo BuildImagesDirectory => Directory.CreateDirectory(BuildDirectory.Join(Settings.ImagesFolder));
     public static DirectoryInfo DistImagesDirectory => Directory.CreateDirectory(DistDirectory.Join(Settings.ImagesFolder));
     public static DirectoryInfo DistPagesDirectory => Directory.CreateDirectory(DistDirectory.Join(Settings.PagesFolder));
 
