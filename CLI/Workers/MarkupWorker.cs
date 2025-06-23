@@ -13,19 +13,19 @@ public class MarkupWorker : IFileWorker
 
     public void Init()
     {
-        var appFilepath = Directories.AppDirectory.Join(_appHtmlFile);
+        var appFilepath = Directories.ClientAppDirectory.Join(_appHtmlFile);
         if (!File.Exists(appFilepath))
-            AssemblyHelpers.WriteResourceToFile(_appHtmlFile, appFilepath);
+            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _appHtmlFile, appFilepath);
         
-        var indexFilepath = Directories.IndexDirectory.Join(_indexHtmlFile);
+        var indexFilepath = Directories.ClientIndexDirectory.Join(_indexHtmlFile);
         if (!File.Exists(indexFilepath))
-            AssemblyHelpers.WriteResourceToFile(_indexHtmlFile, indexFilepath);
+            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _indexHtmlFile, indexFilepath);
     }
 
     public void Build(bool releaseMode = false)
     {
         // Find the base app.html file
-        var appHtmlFilepath = Directories.AppDirectory.Join(_appHtmlFile); // e.g., src/app/app.html
+        var appHtmlFilepath = Directories.ClientAppDirectory.Join(_appHtmlFile);
         if (!File.Exists(appHtmlFilepath))
             throw new FileNotFoundException($"Base application HTML file not found: {appHtmlFilepath}");
 
@@ -38,17 +38,16 @@ public class MarkupWorker : IFileWorker
 
         Directory.CreateDirectory(Directories.BuildDirectory.FullName); // Ensure build directory exists
 
-        foreach (var pageSourceDirectory in Directories.PagesDirectory.GetDirectories()) // e.g., src/pages/index
+        foreach (var pageSourceDirectory in Directories.ClientPagesDirectory.GetDirectories())
         {
-            foreach (var pageHtmlFragmentFile in pageSourceDirectory.GetFiles("*.html")) // e.g., src/pages/index/index.html
+            foreach (var pageHtmlFragmentFile in pageSourceDirectory.GetFiles("*.html"))
             {
                 try
                 {
                     var pageFragment = new HtmlFile(pageHtmlFragmentFile.FullName);
                     string mergedHtmlContent = appHtmlFile.Merge(pageFragment.Html);
 
-                    // Output path will be like build/index.html or build/login.html
-                    string outputFilePath = Path.Combine(Directories.BuildDirectory.FullName, pageHtmlFragmentFile.Name);
+                    string outputFilePath = Path.Combine(Directories.ClientBuildDirectory.FullName, pageHtmlFragmentFile.Name);
 
                     File.WriteAllText(outputFilePath, mergedHtmlContent);
                 }
@@ -63,29 +62,24 @@ public class MarkupWorker : IFileWorker
 
     public void Publish()
     {
-        Directory.CreateDirectory(Directories.DistDirectory.FullName); // Ensure dist directory exists
+        Directory.CreateDirectory(Directories.ClientDistDirectory.FullName);
 
-        // Copy all HTML files from the root of the build directory to the dist directory
-        foreach (var htmlFileToPublish in Directories.BuildDirectory.GetFiles("*.html", SearchOption.TopDirectoryOnly))
+        foreach (var htmlFileToPublish in Directories.ClientBuildDirectory.GetFiles("*.html", SearchOption.TopDirectoryOnly))
         {
             string htmlContent = File.ReadAllText(htmlFileToPublish.FullName);
             
             // Remove HTML comments for production
             htmlContent = RemoveHtmlComments(htmlContent);
             
-            string destinationFilePath = Path.Combine(Directories.DistDirectory.FullName, htmlFileToPublish.Name);
+            string destinationFilePath = Path.Combine(Directories.ClientDistDirectory.FullName, htmlFileToPublish.Name);
             File.WriteAllText(destinationFilePath, htmlContent);
         }
     }
 
-    public void Add(DirectoryInfo pageDirectory) // e.g., pageDirectory is src/pages/newPage
+    public void Add(DirectoryInfo pageDirectory)
     {
-        var pageName = pageDirectory.Name; // e.g., "newPage"
+        var pageName = pageDirectory.Name;
 
-        // This HTML is for the *fragment* (e.g., src/pages/newPage/newPage.html)
-        // Paths for CSS/JS should be relative to the final HTML file's location in 'bin' root.
-        // Page-specific CSS (e.g., newPage.css) is expected at: build/pages/newPage/newPage.css
-        // Page-specific JS (e.g., newPage.js) is expected at: build/pages/newPage/newPage.js
         var baseHtmlFragment =
 $@"<head>
     <title>{pageName}</title>

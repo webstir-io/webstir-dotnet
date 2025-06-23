@@ -13,44 +13,38 @@ public class NodeJsWorker() : IFileWorker
 
     public void Init()
     {
-        var serverDirectory = GetServerDirectory();
-        if (!serverDirectory.Exists)
+        if (!Directories.ServerDirectory.Exists)
             return;
 
-        string tsConfigPath = serverDirectory.Join(_tsConfigFile);
+        string tsConfigPath = Directories.ServerDirectory.Join(_tsConfigFile);
         if (!File.Exists(tsConfigPath))
-            AssemblyHelpers.WriteResourceToFile("server.tsconfig.json", tsConfigPath);
+            AssemblyHelpers.WriteResourceToFile(Settings.ServerFolder, _tsConfigFile, tsConfigPath);
 
-        string indexTsPath = serverDirectory.Join(_indexTsFile);
+        string indexTsPath = Directories.ServerDirectory.Join(_indexTsFile);
         if (!File.Exists(indexTsPath))
-            AssemblyHelpers.WriteResourceToFile("server.index.ts", indexTsPath);
+            AssemblyHelpers.WriteResourceToFile(Settings.ServerFolder, _indexTsFile, indexTsPath);
     }
 
     public void Build(bool releaseMode = false)
     {
-        var serverDirectory = GetServerDirectory();
-        if (!serverDirectory.Exists)
+        if (!Directories.ServerDirectory.Exists)
             return;
 
-        CompileServerTypeScript(serverDirectory);
+        CompileServerTypeScript(Directories.ServerDirectory);
     }
 
     public void Publish()
     {
-        var serverDirectory = GetServerDirectory();
-        if (!serverDirectory.Exists)
+        if (!Directories.ServerDirectory.Exists)
             return;
 
-        var serverBuildDirectory = GetServerBuildDirectory();
-        var serverDistDirectory = GetServerDistDirectory();
-        
-        Directory.CreateDirectory(serverDistDirectory.FullName);
+        Directory.CreateDirectory(Directories.ServerDistDirectory.FullName);
 
         // Copy all .js files from server build to server dist
-        foreach (FileInfo jsFile in serverBuildDirectory.GetFiles("*.js", SearchOption.AllDirectories))
+        foreach (FileInfo jsFile in Directories.ServerBuildDirectory.GetFiles("*.js", SearchOption.AllDirectories))
         {
-            string relativePath = Path.GetRelativePath(serverBuildDirectory.FullName, jsFile.FullName);
-            string targetFilePath = Path.Combine(serverDistDirectory.FullName, relativePath);
+            string relativePath = Path.GetRelativePath(Directories.ServerBuildDirectory.FullName, jsFile.FullName);
+            string targetFilePath = Path.Combine(Directories.ServerDistDirectory.FullName, relativePath);
 
             Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!);
             
@@ -67,20 +61,6 @@ public class NodeJsWorker() : IFileWorker
         // Server worker doesn't handle page creation
     }
 
-    private static DirectoryInfo GetServerDirectory()
-    {
-        return new DirectoryInfo(Path.Combine(Settings.SourceFolder, "server"));
-    }
-
-    private static DirectoryInfo GetServerBuildDirectory()
-    {
-        return Directory.CreateDirectory(Path.Combine(Settings.BuildFolder, "server"));
-    }
-
-    private static DirectoryInfo GetServerDistDirectory()
-    {
-        return Directory.CreateDirectory(Path.Combine(Settings.DistFolder, "server"));
-    }
 
     private static void CompileServerTypeScript(DirectoryInfo serverDirectory)
     {

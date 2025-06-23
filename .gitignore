@@ -12,6 +12,10 @@ dist/
 # OS-specific files
 .DS_Store
 
+# Base TypeScript configuration (generated files)
+/base.tsconfig.json
+CLI/base.tsconfig.json
+
 # User-specific files
 *.rsuser
 *.suo

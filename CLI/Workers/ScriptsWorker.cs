@@ -6,7 +6,8 @@ namespace CLI.Workers;
 
 public class ScriptsWorker() : IFileWorker
 {
-    private const string _tsConfigFile = "tsconfig.json";
+    private const string _tsConfigBaseFile = "base.tsconfig.json";
+    private const string _tsConfigClientFile = "tsconfig.json";
     private const string _appTsFile = "app.ts";
     private const string _indexTsFile = "index.ts";
     private const string _refreshJsFile = "refresh.js";
@@ -15,20 +16,24 @@ public class ScriptsWorker() : IFileWorker
 
     public void Init()
     {
-        if (!File.Exists(_tsConfigFile))
-            AssemblyHelpers.WriteResourceToFile(_tsConfigFile, _tsConfigFile);
+        if (!File.Exists(_tsConfigBaseFile))
+            AssemblyHelpers.WriteResourceToFile(_tsConfigBaseFile, _tsConfigBaseFile);
 
-        string outputRefreshJsFilepath = Directories.AppDirectory.Join(_refreshJsFile);
+        string clientTsConfigPath = Directories.ClientDirectory.Join(_tsConfigClientFile);
+        if (!File.Exists(clientTsConfigPath))
+            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _tsConfigClientFile, clientTsConfigPath);
+
+        string outputRefreshJsFilepath = Directories.ClientAppDirectory.Join(_refreshJsFile);
         if (!File.Exists(outputRefreshJsFilepath))
-            AssemblyHelpers.WriteResourceToFile(_refreshJsFile, outputRefreshJsFilepath);
+            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _refreshJsFile, outputRefreshJsFilepath);
 
-        string outputAppTsFilepath = Directories.AppDirectory.Join(_appTsFile);
+        string outputAppTsFilepath = Directories.ClientAppDirectory.Join(_appTsFile);
         if (!File.Exists(outputAppTsFilepath))
-            AssemblyHelpers.WriteResourceToFile(_appTsFile, outputAppTsFilepath);
+            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _appTsFile, outputAppTsFilepath);
 
-        string outputIndexTsFilepath = Directories.IndexDirectory.Join(_indexTsFile);
+        string outputIndexTsFilepath = Directories.ClientIndexDirectory.Join(_indexTsFile);
         if (!File.Exists(outputIndexTsFilepath))
-            AssemblyHelpers.WriteResourceToFile(_indexTsFile, outputIndexTsFilepath);
+            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _indexTsFile, outputIndexTsFilepath);
     }
 
     public void Build(bool releaseMode = false)
@@ -37,8 +42,8 @@ public class ScriptsWorker() : IFileWorker
 
         if (!releaseMode)
         {
-            string sourceRefreshJsApp = Directories.AppDirectory.Join(_refreshJsFile);
-            string targetRefreshJs = Directories.BuildDirectory.Join(_refreshJsFile);
+            string sourceRefreshJsApp = Directories.ClientAppDirectory.Join(_refreshJsFile);
+            string targetRefreshJs = Directories.ClientBuildDirectory.Join(_refreshJsFile);
 
             if (File.Exists(sourceRefreshJsApp))
             {
@@ -53,13 +58,13 @@ public class ScriptsWorker() : IFileWorker
 
     public void Publish()
     {
-        Directory.CreateDirectory(Directories.DistDirectory.FullName); // Ensure dist directory exists
+        Directory.CreateDirectory(Directories.ClientDistDirectory.FullName); // Ensure dist directory exists
 
         // Copy all .js files from BuildDirectory to DistDirectory, maintaining subfolder structure
-        foreach (FileInfo jsFile in Directories.BuildDirectory.GetFiles("*.js", SearchOption.AllDirectories))
+        foreach (FileInfo jsFile in Directories.ClientBuildDirectory.GetFiles("*.js", SearchOption.AllDirectories))
         {
-            string relativePath = Path.GetRelativePath(Directories.BuildDirectory.FullName, jsFile.FullName);
-            string targetFilePath = Path.Combine(Directories.DistDirectory.FullName, relativePath);
+            string relativePath = Path.GetRelativePath(Directories.ClientBuildDirectory.FullName, jsFile.FullName);
+            string targetFilePath = Path.Combine(Directories.ClientDistDirectory.FullName, relativePath);
 
             Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!); // Ensure sub-directory exists in target
             
@@ -80,9 +85,12 @@ public class ScriptsWorker() : IFileWorker
 
     private static void CompileTypeScriptFiles()
     {
+        var clientTsConfigPath = Directories.ClientDirectory.Join(_tsConfigClientFile);
+        
         var processInfo = new ProcessStartInfo
         {
             FileName = "tsc",
+            Arguments = $"-p \"{clientTsConfigPath}\"",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,

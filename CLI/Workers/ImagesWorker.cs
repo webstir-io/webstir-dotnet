@@ -13,12 +13,12 @@ public class ImagesWorker : IFileWorker
 
     public void Build(bool releaseMode = false)
     {
-        Directories.ImagesDirectory.CopyTo(Directories.BuildImagesDirectory.FullName);
+        Directories.ClientImagesDirectory.CopyTo(Directories.ClientBuildImagesDirectory.FullName);
     }
 
     public void Publish()
     {
-        Directories.BuildImagesDirectory.CopyTo(Directories.DistImagesDirectory.FullName);
+        Directories.ClientBuildImagesDirectory.CopyTo(Directories.ClientDistImagesDirectory.FullName);
     }
 
     public void Add(DirectoryInfo pageDirectory)

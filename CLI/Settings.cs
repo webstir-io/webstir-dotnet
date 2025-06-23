@@ -3,6 +3,8 @@ namespace CLI;
 public static class Settings
 {
     public static string SourceFolder { get; } = "src";
+    public static string ClientFolder { get; } = "client";
+    public static string ServerFolder { get; } = "server";
     public static string DistFolder { get; } = "dist";
     public static string BuildFolder { get; } = "build";
     public static string AppFolder { get; } = "app";
@@ -21,6 +23,8 @@ public static class Directories
     public static DirectoryInfo BuildDirectory => Directory.CreateDirectory(Settings.BuildFolder);
     public static DirectoryInfo DistDirectory => Directory.CreateDirectory(Settings.DistFolder);
     public static DirectoryInfo NodeModulesDirectory => new(Settings.NodeModulesFolder);
+    
+    // Legacy directories (src/app, src/pages, src/images)
     public static DirectoryInfo AppDirectory => Directory.CreateDirectory(SourceDirectory.Join(Settings.AppFolder));
     public static DirectoryInfo PagesDirectory => Directory.CreateDirectory(SourceDirectory.Join(Settings.PagesFolder));
     public static DirectoryInfo IndexDirectory => Directory.CreateDirectory(PagesDirectory.Join(Settings.IndexFolder));
@@ -30,6 +34,25 @@ public static class Directories
     public static DirectoryInfo BuildImagesDirectory => Directory.CreateDirectory(BuildDirectory.Join(Settings.ImagesFolder));
     public static DirectoryInfo DistImagesDirectory => Directory.CreateDirectory(DistDirectory.Join(Settings.ImagesFolder));
     public static DirectoryInfo DistPagesDirectory => Directory.CreateDirectory(DistDirectory.Join(Settings.PagesFolder));
+
+    // Client-specific directories (src/client/app, src/client/pages, src/client/images)
+    public static DirectoryInfo ClientDirectory => Directory.CreateDirectory(SourceDirectory.Join(Settings.ClientFolder));
+    public static DirectoryInfo ClientAppDirectory => Directory.CreateDirectory(ClientDirectory.Join(Settings.AppFolder));
+    public static DirectoryInfo ClientPagesDirectory => Directory.CreateDirectory(ClientDirectory.Join(Settings.PagesFolder));
+    public static DirectoryInfo ClientIndexDirectory => Directory.CreateDirectory(ClientPagesDirectory.Join(Settings.IndexFolder));
+    public static DirectoryInfo ClientImagesDirectory => Directory.CreateDirectory(ClientDirectory.Join(Settings.ImagesFolder));
+    public static DirectoryInfo ClientConfigDirectory => Directory.CreateDirectory(ClientAppDirectory.Join(Settings.ConfigFolder));
+    public static DirectoryInfo ClientBuildDirectory => Directory.CreateDirectory(BuildDirectory.Join(Settings.ClientFolder));    
+    public static DirectoryInfo ClientBuildPagesDirectory => Directory.CreateDirectory(ClientBuildDirectory.Join(Settings.PagesFolder));
+    public static DirectoryInfo ClientBuildImagesDirectory => Directory.CreateDirectory(ClientBuildDirectory.Join(Settings.ImagesFolder));
+    public static DirectoryInfo ClientDistDirectory => Directory.CreateDirectory(DistDirectory.Join(Settings.ClientFolder));    
+    public static DirectoryInfo ClientDistImagesDirectory => Directory.CreateDirectory(ClientDistDirectory.Join(Settings.ImagesFolder));
+    public static DirectoryInfo ClientDistPagesDirectory => Directory.CreateDirectory(ClientDistDirectory.Join(Settings.PagesFolder));
+
+    //Server-specific directories (src/server/app, src/server/pages, src/server/images)
+    public static DirectoryInfo ServerDirectory => Directory.CreateDirectory(SourceDirectory.Join(Settings.ServerFolder));
+    public static DirectoryInfo ServerBuildDirectory => Directory.CreateDirectory(BuildDirectory.Join(Settings.ServerFolder));
+    public static DirectoryInfo ServerDistDirectory => Directory.CreateDirectory(DistDirectory.Join(Settings.ServerFolder));    
 
     public static DirectoryInfo SubDirectory(this DirectoryInfo directoryInfo, string subDirectory)
     {

@@ -7,18 +7,18 @@ public class StylesWorker : IFileWorker
 {
     private const string _appCssFile = "app.css";
     private const string _indexCssFile = "index.css";
-    private static readonly string _appCssFilepath = Directories.AppDirectory.Join(_appCssFile);
+    private static readonly string _appCssFilepath = Directories.ClientAppDirectory.Join(_appCssFile);
 
     public int BuildOrder { get; } = 3;
 
     public void Init()
     {
         if (!File.Exists(_appCssFilepath))
-            AssemblyHelpers.WriteResourceToFile(_appCssFile, _appCssFilepath);
+            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _appCssFile, _appCssFilepath);
 
-        var indexCssOutputFilepath = Directories.IndexDirectory.Join(_indexCssFile);
+        var indexCssOutputFilepath = Directories.ClientIndexDirectory.Join(_indexCssFile);
         if (!File.Exists(indexCssOutputFilepath))
-            AssemblyHelpers.WriteResourceToFile(_indexCssFile, indexCssOutputFilepath);
+            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _indexCssFile, indexCssOutputFilepath);
     }
 
     public void Build(bool releaseMode = false)
@@ -33,7 +33,7 @@ public class StylesWorker : IFileWorker
     {        
         var appCssFileLines = File.ReadAllLines(_appCssFilepath).ToList();
 
-        foreach (var cssFile in Directories.AppDirectory.GetFiles("*.css", SearchOption.AllDirectories))
+        foreach (var cssFile in Directories.ClientAppDirectory.GetFiles("*.css", SearchOption.AllDirectories))
         {
             if (cssFile.Name.Equals(_appCssFile))
                 continue;
@@ -51,7 +51,7 @@ public class StylesWorker : IFileWorker
 
     private static void MergePageCssFiles(List<string> appCssFileLines, bool releaseMode)
     {        
-        foreach (var pageDirectory in Directories.PagesDirectory.GetDirectories())
+        foreach (var pageDirectory in Directories.ClientPagesDirectory.GetDirectories())
         {
             var endOfAppCssPosition = appCssFileLines.Count;
             var mergedCssFileLines = new List<string>(appCssFileLines);
@@ -85,7 +85,7 @@ public class StylesWorker : IFileWorker
                 }
             }
 
-            var outputFilepath = Directories.BuildPagesDirectory
+            var outputFilepath = Directories.ClientBuildPagesDirectory
                 .SubDirectory(pageDirectory.Name)
                 .Join($"{pageDirectory.Name}.css");
 
@@ -107,11 +107,11 @@ public class StylesWorker : IFileWorker
     {
         // No app.css to copy in the current architecture
         
-        if (Directories.BuildPagesDirectory.Exists)
+        if (Directories.ClientBuildPagesDirectory.Exists)
         {
-            foreach (var pageDirectory in Directories.BuildPagesDirectory.GetDirectories())
+            foreach (var pageDirectory in Directories.ClientBuildPagesDirectory.GetDirectories())
             {
-                var distPagesDirectory = Directories.DistPagesDirectory.SubDirectory(pageDirectory.Name);
+                var distPagesDirectory = Directories.ClientDistPagesDirectory.SubDirectory(pageDirectory.Name);
                 distPagesDirectory.Create();
 
                 foreach (var cssFile in pageDirectory.GetFiles("*.css"))

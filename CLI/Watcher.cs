@@ -4,6 +4,9 @@ namespace CLI;
 
 public class Watcher(IWebServer _webServer, INodeServer _nodeServer)
 {
+    private static readonly string[] IgnoredFiles = { "Thumbs.db", ".DS_Store" };
+    private static readonly string[] IgnoredExtensions = { ".tmp" };
+    
     private Action<bool>? _onChangeAction;
     private DateTime _lastChangeTime = DateTime.MinValue;
     private readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(200);
@@ -152,15 +155,15 @@ public class Watcher(IWebServer _webServer, INodeServer _nodeServer)
     private static bool ShouldIgnoreFile(string filePath)
     {
         var fileName = Path.GetFileName(filePath);
+        
         return fileName.StartsWith('.') || // Hidden files
-               fileName.EndsWith(".tmp") || // Temp files
                fileName.EndsWith('~') || // Backup files
-               fileName == "Thumbs.db"; // Windows thumbnail cache
+               IgnoredFiles.Contains(fileName) ||
+               IgnoredExtensions.Any(fileName.EndsWith);
     }
 
     private static bool IsServerFile(string filePath)
     {
-        var serverPath = Path.Combine(Settings.SourceFolder, "server");
-        return filePath.StartsWith(serverPath, StringComparison.OrdinalIgnoreCase);
+        return filePath.StartsWith(Directories.ServerDirectory.FullName, StringComparison.OrdinalIgnoreCase);
     }
 }
