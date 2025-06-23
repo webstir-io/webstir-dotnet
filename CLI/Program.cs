@@ -9,7 +9,7 @@ try
     ServiceCollection services = new();
     services.AddSingleton<Runner>();
     services.AddSingleton<Watcher>();
-    services.AddSingleton<Server>();
+    services.AddSingleton<IWebServer, WebServer>();
     services.AddSingleton<INodeServer, NodeServer>();
 
     services.AddTransient<IWebFileWorker, MarkupWorker>();

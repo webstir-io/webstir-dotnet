@@ -1,6 +1,8 @@
+using CLI.Interfaces;
+
 namespace CLI;
 
-public class Watcher(Server _server)
+public class Watcher(IWebServer _webServer, INodeServer _nodeServer)
 {
     private Action<bool>? _onChangeAction;
     private DateTime _lastChangeTime = DateTime.MinValue;
@@ -26,26 +28,36 @@ public class Watcher(Server _server)
         watcher.IncludeSubdirectories = true;
         watcher.EnableRaisingEvents = true;
         
-        await _server.Start();        
+        // Start both servers
+        await _webServer.StartAsync();
+        await _nodeServer.StartAsync();
 
         Console.WriteLine("Press Ctrl+C to exit.");
         
         // Set up Ctrl+C handler
         var exitEvent = new TaskCompletionSource<bool>();
-        Console.CancelKeyPress += (sender, e) =>
+        Console.CancelKeyPress += async (sender, e) =>
         {
             e.Cancel = true; // Prevent immediate termination
+            await StopServersAsync();
             exitEvent.SetResult(true);
         };
         
         // Wait for Ctrl+C
         await exitEvent.Task;
         
-        Console.WriteLine("Stopping server...");
-        // Stop the server gracefully
-        await _server.Stop();
+        Console.WriteLine("Stopping servers...");
+        await StopServersAsync();
         
         Console.WriteLine("Stopped watching");
+    }
+
+    private async Task StopServersAsync()
+    {
+        await Task.WhenAll(
+            _webServer.StopAsync(),
+            _nodeServer.StopAsync()
+        );
     }
 
     private async void OnChanged(object sender, FileSystemEventArgs e)
@@ -64,7 +76,7 @@ public class Watcher(Server _server)
             Console.WriteLine($"Detected file change: {e.FullPath}");
             await WaitForFileAsync(e.FullPath);
             _onChangeAction!.Invoke(false);
-            await _server.Update();
+            await _webServer.UpdateClientsAsync();
         }
         catch (Exception ex)
         {
@@ -81,7 +93,7 @@ public class Watcher(Server _server)
         {
             Console.WriteLine($"File deleted: {e.Name}");
             _onChangeAction!.Invoke(false);
-            await _server.Update();
+            await _webServer.UpdateClientsAsync();
         }
         catch (Exception ex)
         {
@@ -134,7 +146,7 @@ public class Watcher(Server _server)
         var fileName = Path.GetFileName(filePath);
         return fileName.StartsWith('.') || // Hidden files
                fileName.EndsWith(".tmp") || // Temp files
-               fileName.EndsWith("~") || // Backup files
+               fileName.EndsWith('~') || // Backup files
                fileName == "Thumbs.db"; // Windows thumbnail cache
     }
 }
