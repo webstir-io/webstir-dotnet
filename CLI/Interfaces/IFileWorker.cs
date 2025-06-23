@@ -1,6 +1,6 @@
-namespace CLI;
+namespace CLI.Interfaces;
 
-public interface IWebFileWorker
+public interface IFileWorker
 {
     int BuildOrder { get; }
     void Init();

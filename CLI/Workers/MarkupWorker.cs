@@ -1,9 +1,10 @@
 using CLI.Helpers;
+using CLI.Interfaces;
 using CLI.Models;
 
 namespace CLI.Workers;
 
-public class MarkupWorker : IWebFileWorker
+public class MarkupWorker : IFileWorker
 {
     private const string _appHtmlFile = "app.html";
     private const string _indexHtmlFile = "index.html";

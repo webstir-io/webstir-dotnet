@@ -1,7 +1,8 @@
+using CLI.Interfaces;
 
 namespace CLI.Workers;
 
-public class ImagesWorker : IWebFileWorker
+public class ImagesWorker : IFileWorker
 {
     public int BuildOrder { get; } = 4;
 

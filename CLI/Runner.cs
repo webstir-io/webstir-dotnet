@@ -1,6 +1,8 @@
+using CLI.Interfaces;
+
 namespace CLI;
 
-public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watcher)
+public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
 {
     public async Task Run(string[] args)
     {
@@ -41,7 +43,7 @@ public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watche
 
     public void Init()
     {
-        foreach (var worker in _webFileWorkers)
+        foreach (var worker in _fileWorkers)
             worker.Init();
     }
 
@@ -63,7 +65,7 @@ public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watche
         
         var pageDirectory = Directory.CreateDirectory(pagePath);
         Console.WriteLine($"Creating page '{pageName}'...");
-        foreach (var worker in _webFileWorkers)
+        foreach (var worker in _fileWorkers)
             worker.Add(pageDirectory);     
 
         Console.WriteLine($"✓ Created page at {pagePath}");
@@ -79,7 +81,7 @@ public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watche
                 directory.Delete(true);
         }
 
-        foreach (var worker in _webFileWorkers.OrderBy(p => p.BuildOrder))
+        foreach (var worker in _fileWorkers.OrderBy(p => p.BuildOrder))
             worker.Build(releaseMode);
 
         Console.WriteLine("Done");
@@ -93,7 +95,7 @@ public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watche
 
         Directories.DistDirectory.Delete(true);
 
-        foreach (var worker in _webFileWorkers)
+        foreach (var worker in _fileWorkers)
             worker.Publish();
             
         Console.WriteLine("Done");

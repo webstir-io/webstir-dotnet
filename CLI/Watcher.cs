@@ -76,6 +76,14 @@ public class Watcher(IWebServer _webServer, INodeServer _nodeServer)
             Console.WriteLine($"Detected file change: {e.FullPath}");
             await WaitForFileAsync(e.FullPath);
             _onChangeAction!.Invoke(false);
+            
+            // If server files changed, restart Node.js server
+            if (IsServerFile(e.FullPath))
+            {
+                Console.WriteLine("Server files changed, restarting Node.js server...");
+                await _nodeServer.RestartAsync();
+            }
+            
             await _webServer.UpdateClientsAsync();
         }
         catch (Exception ex)
@@ -148,5 +156,11 @@ public class Watcher(IWebServer _webServer, INodeServer _nodeServer)
                fileName.EndsWith(".tmp") || // Temp files
                fileName.EndsWith('~') || // Backup files
                fileName == "Thumbs.db"; // Windows thumbnail cache
+    }
+
+    private static bool IsServerFile(string filePath)
+    {
+        var serverPath = Path.Combine(Settings.SourceFolder, "server");
+        return filePath.StartsWith(serverPath, StringComparison.OrdinalIgnoreCase);
     }
 }

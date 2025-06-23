@@ -1,8 +1,9 @@
 using CLI.Helpers;
+using CLI.Interfaces;
 
 namespace CLI.Workers;
 
-public class StylesWorker : IWebFileWorker
+public class StylesWorker : IFileWorker
 {
     private const string _appCssFile = "app.css";
     private const string _indexCssFile = "index.css";

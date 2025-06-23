@@ -12,10 +12,11 @@ try
     services.AddSingleton<IWebServer, WebServer>();
     services.AddSingleton<INodeServer, NodeServer>();
 
-    services.AddTransient<IWebFileWorker, MarkupWorker>();
-    services.AddTransient<IWebFileWorker, StylesWorker>();
-    services.AddTransient<IWebFileWorker, ScriptsWorker>();
-    services.AddTransient<IWebFileWorker, ImagesWorker>();
+    services.AddTransient<IFileWorker, MarkupWorker>();
+    services.AddTransient<IFileWorker, StylesWorker>();
+    services.AddTransient<IFileWorker, ScriptsWorker>();
+    services.AddTransient<IFileWorker, ImagesWorker>();
+    services.AddTransient<IFileWorker, NodeJsWorker>();
 
     using ServiceProvider provider = services.BuildServiceProvider();
     await provider.GetService<Runner>()!.Run(args);

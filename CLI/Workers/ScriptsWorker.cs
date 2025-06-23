@@ -1,9 +1,10 @@
 using System.Diagnostics;
 using CLI.Helpers;
+using CLI.Interfaces;
 
 namespace CLI.Workers;
 
-public class ScriptsWorker() : IWebFileWorker
+public class ScriptsWorker() : IFileWorker
 {
     private const string _tsConfigFile = "tsconfig.json";
     private const string _appTsFile = "app.ts";
