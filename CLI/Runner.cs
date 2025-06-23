@@ -1,6 +1,8 @@
+using CLI.Interfaces;
+
 namespace CLI;
 
-public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watcher)
+public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watcher, INodeServer _nodeServer)
 {
     public async Task Run(string[] args)
     {
@@ -101,6 +103,17 @@ public class Runner(IEnumerable<IWebFileWorker> _webFileWorkers, Watcher _watche
 
     public async Task Watch()
     {
+        // Start Node.js server if server build exists
+        await _nodeServer.StartAsync();
+        
+        // Setup cleanup on exit
+        Console.CancelKeyPress += async (sender, e) =>
+        {
+            e.Cancel = true;
+            await _nodeServer.StopAsync();
+            Environment.Exit(0);
+        };
+        
         await _watcher.Watch(Build);
     }
 }

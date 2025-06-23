@@ -1,5 +1,6 @@
 ﻿using CLI;
-
+using CLI.Interfaces;
+using CLI.Services;
 using CLI.Workers;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,6 +10,7 @@ try
     services.AddSingleton<Runner>();
     services.AddSingleton<Watcher>();
     services.AddSingleton<Server>();
+    services.AddSingleton<INodeServer, NodeServer>();
 
     services.AddTransient<IWebFileWorker, MarkupWorker>();
     services.AddTransient<IWebFileWorker, StylesWorker>();
