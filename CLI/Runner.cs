@@ -3,8 +3,17 @@ using CLI.Interfaces;
 
 namespace CLI;
 
-public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
+public enum ProjectMode
 {
+    Unknown,
+    Legacy,
+    ClientOnly,
+    ServerOnly,
+    Fullstack
+}
+
+public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
+{    
     public async Task Run(string[] args)
     {
         var command = args.Length != 0 
@@ -22,7 +31,7 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
                 break;
 
             case "build":
-                Build();
+                Build(cleanBuild: args.Contains("--clean"));
                 break;
 
             case "":
@@ -79,20 +88,45 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
         Console.WriteLine($"✓ Created page at {pagePath}");
     }
 
-    public void Build(bool releaseMode = false)
+    public void Build(bool releaseMode = false, bool cleanBuild = false)
     {
         Console.Write("Building...");
 
-        if (Directory.Exists(Directories.BuildDirectory.FullName))
+        if (cleanBuild || ShouldCleanBuild())
         {
-            foreach (var directory in Directories.BuildDirectory.GetDirectories())
-                directory.Delete(true);
+            Console.Write(" (clean)");
+            if (Directory.Exists(Directories.BuildDirectory.FullName))
+            {
+                foreach (var directory in Directories.BuildDirectory.GetDirectories())
+                    directory.Delete(true);
+            }
         }
 
         foreach (var worker in _fileWorkers.OrderBy(p => p.BuildOrder))
             worker.Build(releaseMode);
 
-        Console.WriteLine("Done");
+        Console.WriteLine(" Done");
+    }
+
+    private static bool ShouldCleanBuild()
+    {
+        // Clean build if no build directory exists
+        if (!Directory.Exists(Directories.BuildDirectory.FullName))
+            return true;
+
+        // Clean build if tsconfig files don't match Resources
+        const string tsBuildInfoFile = ".tsbuildinfo";
+        var clientTsConfig = Directories.ClientBuildDirectory.Join(tsBuildInfoFile);
+        var serverTsConfig = Directories.ServerBuildDirectory.Join(tsBuildInfoFile);
+
+        // If in fullstack mode and either buildinfo is missing, clean build
+        if (Directories.ClientDirectory.Exists && !File.Exists(clientTsConfig))
+            return true;
+        if (Directories.ServerDirectory.Exists && !File.Exists(serverTsConfig))
+            return true;
+
+        // TODO: Add more intelligent checks like config file changes
+        return false;
     }
 
     public void Publish()
@@ -111,6 +145,6 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
 
     public async Task Watch()
     {
-        await _watcher.Watch(Build);
+        await _watcher.Watch(cleanBuild => Build(cleanBuild: cleanBuild));
     }
 }
