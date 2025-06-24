@@ -16,6 +16,7 @@ public static class Settings
     public static string IndexFolder {get; } = "index";
     public static string NodeModulesFolder { get; } = "node_modules";
     public static string PackageJsonFile { get; } = "package.json";
+    public static string SharedFolder { get; } = "shared";
 }
 
 public static class Directories
@@ -54,6 +55,9 @@ public static class Directories
     public static DirectoryInfo ServerDirectory => Directory.CreateDirectory(SourceDirectory.Join(Settings.ServerFolder));
     public static DirectoryInfo ServerBuildDirectory => Directory.CreateDirectory(BuildDirectory.Join(Settings.ServerFolder));
     public static DirectoryInfo ServerDistDirectory => Directory.CreateDirectory(DistDirectory.Join(Settings.ServerFolder));    
+
+    // Shared directory (src/shared)
+    public static DirectoryInfo SharedDirectory => Directory.CreateDirectory(SourceDirectory.Join(Settings.SharedFolder));
 
     public static DirectoryInfo SubDirectory(this DirectoryInfo directoryInfo, string subDirectory)
     {

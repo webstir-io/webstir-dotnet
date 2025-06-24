@@ -16,7 +16,8 @@ try
     services.AddTransient<IFileWorker, StylesWorker>();
     services.AddTransient<IFileWorker, ScriptsWorker>();
     services.AddTransient<IFileWorker, ImagesWorker>();
-    services.AddTransient<IFileWorker, NodeJsWorker>();
+    services.AddTransient<IFileWorker, ServerWorker>();
+    services.AddTransient<IFileWorker, SharedWorker>();
 
     using ServiceProvider provider = services.BuildServiceProvider();
     await provider.GetService<Runner>()!.Run(args);

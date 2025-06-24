@@ -4,7 +4,7 @@ using CLI.Interfaces;
 
 namespace CLI.Workers;
 
-public class NodeJsWorker() : IFileWorker
+public class ServerWorker() : IFileWorker
 {
     private const string _tsConfigFile = "tsconfig.json";
     private const string _indexTsFile = "index.ts";
@@ -38,7 +38,7 @@ public class NodeJsWorker() : IFileWorker
             RunNpmInstall();
         }
 
-        CompileServerTypeScript(Directories.ServerDirectory);
+        CompileTypeScriptFiles();
     }
 
     public void Publish()
@@ -70,9 +70,9 @@ public class NodeJsWorker() : IFileWorker
     }
 
 
-    private static void CompileServerTypeScript(DirectoryInfo serverDirectory)
+    private static void CompileTypeScriptFiles()
     {
-        var tsConfigPath = serverDirectory.Join(_tsConfigFile);
+        var tsConfigPath = Directories.ServerDirectory.Join(_tsConfigFile);
         
         var processInfo = new ProcessStartInfo
         {

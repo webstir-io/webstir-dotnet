@@ -1,5 +1,6 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { URL } from 'url';
+import type { ApiResponse } from '@shared/types';
 
 const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   const url = new URL(req.url!, `http://${req.headers.host}`);
@@ -9,11 +10,17 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   res.setHeader('Content-Type', 'application/json');
   
   if (req.method === 'GET' && url.pathname === '/api/health') {
+    const response: ApiResponse<{ status: string; timestamp: number }> = {
+      data: { status: 'ok', timestamp: Date.now() }
+    };
     res.writeHead(200);
-    res.end(JSON.stringify({ status: 'ok', timestamp: Date.now() }));
+    res.end(JSON.stringify(response));
   } else {
+    const errorResponse: ApiResponse<never> = {
+      error: 'Not found'
+    };
     res.writeHead(404);
-    res.end(JSON.stringify({ error: 'Not found' }));
+    res.end(JSON.stringify(errorResponse));
   }
 });
 

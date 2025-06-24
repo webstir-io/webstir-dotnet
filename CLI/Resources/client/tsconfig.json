@@ -3,12 +3,12 @@
   "compilerOptions": {
     "target": "ES2020",
     "lib": ["ES2020", "DOM"],
-    "outDir": "../../build/client",
+    "outDir": "../../build",
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["../shared/*"]
     }
   },
-  "include": [".", "../shared"],
+  "include": ["."],
   "exclude": ["node_modules", "../../build", "../../dist"]
 }
