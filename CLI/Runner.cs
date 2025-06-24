@@ -1,3 +1,4 @@
+using CLI.Helpers;
 using CLI.Interfaces;
 
 namespace CLI;
@@ -45,6 +46,13 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
     {
         foreach (var worker in _fileWorkers)
             worker.Init();
+        
+        // Copy package.json if it doesn't exist
+        var packageJsonPath = Path.Combine(Directory.GetCurrentDirectory(), Settings.PackageJsonFile);
+        if (!File.Exists(packageJsonPath))
+        {
+            AssemblyHelpers.WriteResourceToFile("", Settings.PackageJsonFile, packageJsonPath);
+        }
     }
 
     public void Add(string[] args)

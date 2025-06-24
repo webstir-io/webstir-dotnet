@@ -12,16 +12,30 @@ namespace CLI.Services;
 
 public class WebServer() : IWebServer
 {
-    private const string _webRootPath = "build";
     private const string _apiServerUrl = "http://localhost:3001";
 
     private readonly List<HttpContext> _sseClients = [];
     private WebApplication? _app;
+    private string _webRootPath = "build";
 
     public bool IsRunning => _app != null;
 
     public async Task StartAsync()
     {
+        // Check for new structure first, fallback to legacy
+        if (Directory.Exists("build/client"))
+        {
+            _webRootPath = "build/client";
+        }
+        else if (Directory.Exists("build"))
+        {
+            _webRootPath = "build";
+        }
+        else
+        {
+            throw new DirectoryNotFoundException("No valid webroot found. Expected 'build/client' or 'build'.");
+        }
+
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions 
         { 
             WebRootPath = _webRootPath

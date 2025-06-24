@@ -15,6 +15,7 @@ public static class Settings
     public static string ConfigFolder { get; } = "config";
     public static string IndexFolder {get; } = "index";
     public static string NodeModulesFolder { get; } = "node_modules";
+    public static string PackageJsonFile { get; } = "package.json";
 }
 
 public static class Directories

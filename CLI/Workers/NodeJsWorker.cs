@@ -30,6 +30,14 @@ public class NodeJsWorker() : IFileWorker
         if (!Directories.ServerDirectory.Exists)
             return;
 
+        // Check if node_modules exists and package.json exists
+        var packageJsonPath = Path.Combine(Directory.GetCurrentDirectory(), Settings.PackageJsonFile);
+        if (File.Exists(packageJsonPath) && !Directories.NodeModulesDirectory.Exists)
+        {
+            Console.WriteLine("Installing npm dependencies...");
+            RunNpmInstall();
+        }
+
         CompileServerTypeScript(Directories.ServerDirectory);
     }
 
@@ -86,6 +94,37 @@ public class NodeJsWorker() : IFileWorker
             string errors = process.StandardError.ReadToEnd();
             string output = process.StandardOutput.ReadToEnd();
             var errorMessage = $"Server TypeScript compilation failed (Exit Code: {process.ExitCode})";
+            if (!string.IsNullOrWhiteSpace(errors))
+                errorMessage += $"\nErrors:\n{errors}";
+            if (!string.IsNullOrWhiteSpace(output))
+                errorMessage += $"\nOutput:\n{output}";
+            throw new Exception(errorMessage);
+        }
+    }
+
+    private static void RunNpmInstall()
+    {
+        var processInfo = new ProcessStartInfo
+        {
+            FileName = "npm",
+            Arguments = "ci",  // Use ci for reproducible installs
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = Directory.GetCurrentDirectory()
+        };
+
+        using var process = Process.Start(processInfo)
+            ?? throw new Exception("Failed to start npm install process.");
+
+        process.WaitForExit();
+
+        if (process.ExitCode != 0)
+        {
+            string errors = process.StandardError.ReadToEnd();
+            string output = process.StandardOutput.ReadToEnd();
+            var errorMessage = $"npm install failed (Exit Code: {process.ExitCode})";
             if (!string.IsNullOrWhiteSpace(errors))
                 errorMessage += $"\nErrors:\n{errors}";
             if (!string.IsNullOrWhiteSpace(output))
