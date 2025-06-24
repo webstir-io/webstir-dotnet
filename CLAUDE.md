@@ -1,71 +1,117 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides implementation guidance to Claude Code when modifying the webstir codebase.
 
-## Project Overview
+## Critical Implementation Details
 
-Webstir is a minimalist static site generator framework written in C# (.NET 9.0) that compiles TypeScript and manages page-based static sites. It features a custom build pipeline, development server with hot reload, and a unique approach to merging page fragments with app-level templates.
+### When Making Changes
 
-## Commands
+1. **Port Numbers**: 
+   - WebServer: 8088 (hardcoded in WebServer.cs)
+   - Node.js API: 3001 (from webstir.json)
+   - WebSocket: 3456 (for hot reload)
 
-### Development
-```bash
-# Build and run the development server with hot reload
-dotnet run -- watch
+2. **Build Output Paths**:
+   - Frontend: `build/client/` (NOT build/bin/)
+   - Backend: `build/server/`
+   - Shared: `build/shared/`
+   - Static server root: `build/client/`
 
-# Build the project to build/bin directory
-dotnet run -- build
+3. **Worker Responsibilities**:
+   - **ScriptsWorker**: Only compiles `src/client/` TypeScript
+   - **NodeJsWorker**: Compiles `src/server/` AND manages Node process
+   - **MarkupWorker**: Merges HTML fragments, injects refresh.js in dev mode
+   - Each worker has a BuildOrder property (1-5)
 
-# Create production build in dist directory
-dotnet run -- publish
+### Key Classes to Understand
 
-# Initialize a new project
-dotnet run -- init
+**Runner.cs (CLI/Runner.cs)**
+- Entry point for all commands
+- Instantiates workers based on command
+- Manages build/watch lifecycle
 
-# Add a new page
-dotnet run -- add <page-name>
+**WebServer.cs (CLI/Services/WebServer.cs)**
+- Kestrel-based static file server
+- Integrates ApiProxy middleware
+- Serves from `build/client/` directory
+
+**ApiProxy.cs (CLI/Services/ApiProxy.cs)**
+- Middleware that intercepts `/api/*` requests
+- Forwards to Node.js backend using HttpClient
+- Preserves headers and request body
+
+**NodeService.cs (CLI/Services/NodeService.cs)**
+- Process management for Node.js
+- Handles start/stop/restart
+- Captures stdout/stderr
+- Auto-restarts on file changes
+
+**NodeJsWorker.cs (CLI/Workers/NodeJsWorker.cs)**
+- Compiles server TypeScript using `tsc`
+- Starts/stops NodeService
+- Watches `src/server/**/*.ts` files
+
+### TypeScript Compilation
+
+**Client** (`src/client/tsconfig.json`):
+```json
+{
+  "compilerOptions": {
+    "outDir": "../../build/client",
+    "rootDir": "../",
+    "module": "esnext",
+    "target": "es2020"
+  }
+}
 ```
 
-### Publishing the CLI tool
-```bash
-# Create a self-contained executable named 'webstir'
-./publish.sh
+**Server** (`src/server/tsconfig.json`):
+```json
+{
+  "compilerOptions": {
+    "outDir": "../../build/server",
+    "rootDir": "../",
+    "module": "commonjs",
+    "target": "es2020"
+  }
+}
 ```
 
-## Architecture
+### HTML Generation Flow
 
-### Build Pipeline Order
-1. **Scripts** (BuildOrder: 1): TypeScript compilation via tsc
-2. **Markup** (BuildOrder: 2): HTML fragment merging with app.html template
-3. **Styles** (BuildOrder: 3): CSS consolidation (app.css + page-specific CSS)
-4. **Images** (BuildOrder: 4): Asset copying
+1. MarkupWorker reads `src/client/app/app.html`
+2. Finds `<!-- content -->` placeholder
+3. For each page, inserts page's `index.html` content
+4. In dev mode: injects `<script src="/refresh.js"></script>`
+5. Outputs to `build/client/[page]/index.html`
 
-### Key Components
-- **Runner.cs**: Command orchestrator handling init, add, build, publish, watch
-- **Workers/**: File type handlers (MarkupWorker, StylesWorker, ScriptsWorker, ImagesWorker)
-- **Server.cs**: Development server with WebSocket hot reload at http://localhost:8000
-- **Watcher.cs**: File system monitoring for automatic rebuilds
+### CSS Concatenation
 
-### Directory Structure
-```
-src/
-├── app/          # Shared template files (app.html, app.css, app.ts)
-├── pages/        # Individual pages (each with index.html, index.css, index.ts)
-└── images/       # Image assets
+1. StylesWorker reads `src/client/app/app.css`
+2. For each page, appends page's `index.css`
+3. Outputs to `build/client/[page]/index.css`
 
-build/            # TypeScript output and development builds
-└── bin/          # Development server root
+### Common Pitfalls
 
-dist/             # Production builds (no refresh.js)
-```
+- Don't hardcode paths - use `Path.Combine()`
+- Always check `Settings.IsProduction` before injecting dev scripts
+- NodeService must be disposed properly to kill process
+- Workers run in BuildOrder sequence (1-5)
+- API proxy needs trailing slash handling
 
-### Page Architecture
-- Each page lives in `src/pages/<page-name>/`
-- Page HTML fragments are merged into `src/app/app.html` template
-- CSS files are concatenated: app.css + page-specific CSS
-- TypeScript compiled to ES modules with imports resolved
+### Testing Changes
 
-### Hot Reload Implementation
-- Development builds inject `refresh.js` into HTML
-- WebSocket connection on port 3456 triggers page refresh on file changes
-- Production builds strip out development scripts
+After modifying workers:
+1. Run `dotnet run -- build` to test compilation
+2. Run `dotnet run -- watch` to test full dev server
+3. Check both frontend (8088) and API calls work
+4. Verify Node.js process starts/stops correctly
+5. Test hot reload by editing files
+
+### File Watching Patterns
+
+- Client TypeScript: `src/client/**/*.ts`
+- Server TypeScript: `src/server/**/*.ts` 
+- HTML: `src/client/**/*.html`
+- CSS: `src/client/**/*.css`
+- Shared types: `src/shared/**/*.ts`

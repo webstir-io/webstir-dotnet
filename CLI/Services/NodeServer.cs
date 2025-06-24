@@ -66,11 +66,7 @@ public class NodeServer : INodeServer, IDisposable
             // Wait a bit for the server to start
             await Task.Delay(500);
             
-            if (IsRunning)
-            {
-                Console.WriteLine("Node.js server started on port 3001");
-            }
-            else
+            if (!IsRunning)
             {
                 throw new InvalidOperationException("Node.js server failed to start");
             }
