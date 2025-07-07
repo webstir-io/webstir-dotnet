@@ -81,7 +81,7 @@ public class ScriptsWorker() : IWebFileWorker
     {
         var processInfo = new ProcessStartInfo
         {
-            FileName = "tsc",
+            FileName = OperatingSystem.IsWindows() ? "tsc.cmd" : "tsc",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
