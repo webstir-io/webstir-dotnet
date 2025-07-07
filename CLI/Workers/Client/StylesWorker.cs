@@ -1,20 +1,25 @@
 using CLI.Helpers;
 using CLI.Interfaces;
+using CLI.Models;
 
 namespace CLI.Workers;
 
-public class StylesWorker : IFileWorker
+public class StylesWorker : IPageWorker
 {
     private const string _appCssFile = "app.css";
     private const string _indexCssFile = "index.css";
-    private static readonly string _appCssFilepath = Directories.ClientAppDirectory.Join(_appCssFile);
 
     public int BuildOrder { get; } = 3;
 
-    public void Init()
+    public void Init(ProjectMode mode = ProjectMode.Fullstack)
     {
-        if (!File.Exists(_appCssFilepath))
-            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _appCssFile, _appCssFilepath);
+        // Skip style files for ServerOnly mode
+        if (mode == ProjectMode.ServerOnly)
+            return;
+            
+        var appCssFilepath = Directories.ClientAppDirectory.Join(_appCssFile);
+        if (!File.Exists(appCssFilepath))
+            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _appCssFile, appCssFilepath);
 
         var indexCssOutputFilepath = Directories.ClientIndexDirectory.Join(_indexCssFile);
         if (!File.Exists(indexCssOutputFilepath))
@@ -31,7 +36,8 @@ public class StylesWorker : IFileWorker
 
     private static List<string> MergeAppCssFiles(bool releaseMode)
     {        
-        var appCssFileLines = File.ReadAllLines(_appCssFilepath).ToList();
+        var appCssFilepath = Directories.ClientAppDirectory.Join(_appCssFile);
+        var appCssFileLines = File.ReadAllLines(appCssFilepath).ToList();
 
         foreach (var cssFile in Directories.ClientAppDirectory.GetFiles("*.css", SearchOption.AllDirectories))
         {
@@ -126,7 +132,7 @@ public class StylesWorker : IFileWorker
         }
     }
 
-    public void Add(DirectoryInfo pageDirectory)
+    public void AddPage(DirectoryInfo pageDirectory)
     {
         var pageName = pageDirectory.Name;
         var cssContent = $"/* Styles for {pageName} page */\n";

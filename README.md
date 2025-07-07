@@ -31,11 +31,15 @@ dotnet build
 
 ### Development
 ```bash
-# Initialize a new project
+# Initialize a new project (defaults to fullstack)
 dotnet run -- init
 
+# Initialize specific project types
+dotnet run -- init --client-only    # Frontend only (no Node.js backend)
+dotnet run -- init --server-only    # Backend only (Node.js API server)
+
 # Add a new page
-dotnet run -- add <page-name>
+dotnet run -- add-page <page-name>
 
 # Build and run the fullstack development server
 dotnet run -- watch
@@ -47,8 +51,32 @@ dotnet run -- build
 dotnet run -- publish
 ```
 
+## Project Types
+
+Webstir supports three project configurations:
+
+### Fullstack (Default)
+Complete frontend and backend setup with shared types:
+- Frontend static site with TypeScript
+- Node.js backend server  
+- Shared types between frontend and backend
+- API proxy for seamless communication
+
+### Client-Only
+Frontend-only static site:
+- Perfect for static websites, SPAs, or JAMstack sites
+- No backend server or API proxy
+- Lighter weight deployment
+
+### Server-Only  
+Backend API server only:
+- Node.js/Express API server
+- No frontend files
+- Ideal for microservices or headless APIs
+
 ## Project Structure
 
+### Fullstack Project Structure
 ```
 src/
 ├── client/           # Frontend code
@@ -144,16 +172,39 @@ Configure your project in `webstir.json`:
 }
 ```
 
-## Creating a Fullstack App
+## Creating Projects
 
+### Fullstack App (Default)
 ```bash
-# Initialize a new project
+# Initialize a new fullstack project
 dotnet run -- init
 
 # Add a new page
-dotnet run -- add dashboard
+dotnet run -- add-page dashboard
 
 # Start the fullstack development server
+dotnet run -- watch
+```
+
+### Client-Only App
+```bash
+# Initialize a frontend-only project
+dotnet run -- init --client-only
+
+# Add pages as needed
+dotnet run -- add-page about
+dotnet run -- add-page contact
+
+# Run the static development server
+dotnet run -- watch
+```
+
+### Server-Only API
+```bash
+# Initialize a backend-only project
+dotnet run -- init --server-only
+
+# Start the Node.js development server
 dotnet run -- watch
 ```
 

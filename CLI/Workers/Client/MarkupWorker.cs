@@ -4,15 +4,19 @@ using CLI.Models;
 
 namespace CLI.Workers;
 
-public class MarkupWorker : IFileWorker
+public class MarkupWorker : IPageWorker
 {
     private const string _appHtmlFile = "app.html";
     private const string _indexHtmlFile = "index.html";
 
     public int BuildOrder { get; } = 2;
 
-    public void Init()
+    public void Init(ProjectMode mode = ProjectMode.Fullstack)
     {
+        // Skip markup files for ServerOnly mode
+        if (mode == ProjectMode.ServerOnly)
+            return;
+            
         var appFilepath = Directories.ClientAppDirectory.Join(_appHtmlFile);
         if (!File.Exists(appFilepath))
             AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _appHtmlFile, appFilepath);
@@ -76,7 +80,7 @@ public class MarkupWorker : IFileWorker
         }
     }
 
-    public void Add(DirectoryInfo pageDirectory)
+    public void AddPage(DirectoryInfo pageDirectory)
     {
         var pageName = pageDirectory.Name;
 

@@ -21,10 +21,16 @@ public static class Settings
 
 public static class Directories
 {
+    // Core directories that are always created
     public static DirectoryInfo SourceDirectory => Directory.CreateDirectory(Settings.SourceFolder);
     public static DirectoryInfo BuildDirectory => Directory.CreateDirectory(Settings.BuildFolder);
     public static DirectoryInfo DistDirectory => Directory.CreateDirectory(Settings.DistFolder);
     public static DirectoryInfo NodeModulesDirectory => new(Settings.NodeModulesFolder);
+    
+    // Helper methods to get directory info without creating
+    public static DirectoryInfo GetClientDirectory() => new(SourceDirectory.Join(Settings.ClientFolder));
+    public static DirectoryInfo GetServerDirectory() => new(SourceDirectory.Join(Settings.ServerFolder));
+    public static DirectoryInfo GetSharedDirectory() => new(SourceDirectory.Join(Settings.SharedFolder));
     
     // Legacy directories (src/app, src/pages, src/images)
     public static DirectoryInfo AppDirectory => Directory.CreateDirectory(SourceDirectory.Join(Settings.AppFolder));

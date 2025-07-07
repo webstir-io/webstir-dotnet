@@ -1,4 +1,5 @@
 using CLI.Interfaces;
+using CLI.Models;
 
 namespace CLI.Workers;
 
@@ -6,8 +7,9 @@ public class ImagesWorker : IFileWorker
 {
     public int BuildOrder { get; } = 4;
 
-    public void Init()
+    public void Init(ProjectMode mode = ProjectMode.Fullstack)
     {
+        // Images worker doesn't need initialization
         return;
     }
 
@@ -19,10 +21,5 @@ public class ImagesWorker : IFileWorker
     public void Publish()
     {
         Directories.ClientBuildImagesDirectory.CopyTo(Directories.ClientDistImagesDirectory.FullName);
-    }
-
-    public void Add(DirectoryInfo pageDirectory)
-    {
-        return;
     }
 }

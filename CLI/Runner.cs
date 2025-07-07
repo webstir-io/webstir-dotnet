@@ -1,16 +1,8 @@
 using CLI.Helpers;
 using CLI.Interfaces;
+using CLI.Models;
 
 namespace CLI;
-
-public enum ProjectMode
-{
-    Unknown,
-    Legacy,
-    ClientOnly,
-    ServerOnly,
-    Fullstack
-}
 
 public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
 {    
@@ -23,11 +15,11 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
         switch (command)
         {
             case "init":
-                Init();
+                Init(args[1..]);
                 break;
             
-            case "add":
-                Add(args.Skip(1).ToArray());
+            case "add-page":
+                AddPage(args[1..]);
                 break;
 
             case "build":
@@ -51,25 +43,34 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
         }
     }
 
-    public void Init()
+    public void Init(string[] args)
     {
+        var mode = ParseProjectMode(args);
+        
         foreach (var worker in _fileWorkers)
-            worker.Init();
+            worker.Init(mode);
         
         // Copy package.json if it doesn't exist
         var packageJsonPath = Path.Combine(Directory.GetCurrentDirectory(), Settings.PackageJsonFile);
         if (!File.Exists(packageJsonPath))
         {
-            AssemblyHelpers.WriteResourceToFile("", Settings.PackageJsonFile, packageJsonPath);
+            AssemblyHelpers.WriteResourceToFile(Settings.PackageJsonFile, packageJsonPath);
         }
     }
+    
+    private static ProjectMode ParseProjectMode(string[] args)
+    {
+        if (args.Contains("--client-only")) return ProjectMode.ClientOnly;
+        if (args.Contains("--server-only")) return ProjectMode.ServerOnly;
+        return ProjectMode.Fullstack; // Default
+    }
 
-    public void Add(string[] args)
+    public void AddPage(string[] args)
     {
         var pageName = args.FirstOrDefault();   
         if (string.IsNullOrEmpty(pageName))
         {
-            Console.WriteLine("Usage: webstir add <page-name>");
+            Console.WriteLine("Usage: webstir add-page <page-name>");
             return;
         }
         
@@ -82,8 +83,8 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
         
         var pageDirectory = Directory.CreateDirectory(pagePath);
         Console.WriteLine($"Creating page '{pageName}'...");
-        foreach (var worker in _fileWorkers)
-            worker.Add(pageDirectory);     
+        foreach (var worker in _fileWorkers.OfType<IPageWorker>())
+            worker.AddPage(pageDirectory);     
 
         Console.WriteLine($"✓ Created page at {pagePath}");
     }

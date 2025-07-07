@@ -1,5 +1,6 @@
 using CLI.Helpers;
 using CLI.Interfaces;
+using CLI.Models;
 
 namespace CLI.Workers;
 
@@ -11,8 +12,12 @@ public class SharedWorker : IFileWorker
     
     public int BuildOrder { get; } = 0; // Doesn't participate in build
     
-    public void Init()
+    public void Init(ProjectMode mode = ProjectMode.Fullstack)
     {
+        // Only create shared folder for Fullstack mode
+        if (mode != ProjectMode.Fullstack)
+            return;
+            
         // Create shared/types directory
         var sharedTypesDirectory = Directories.SharedDirectory.SubDirectory(_typesFolder);
         
@@ -23,12 +28,6 @@ public class SharedWorker : IFileWorker
             var resourcePath = $"{_sharedFolder}.{_typesFolder}";
             AssemblyHelpers.WriteResourceToFile(resourcePath, _indexTsFile, indexTsPath);
         }
-    }
-    
-    public void Add(DirectoryInfo pageDirectory)
-    {
-        // Shared types don't need page-specific additions
-        return;
     }
     
     public void Build(bool releaseMode = false)

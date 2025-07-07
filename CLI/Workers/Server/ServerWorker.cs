@@ -1,43 +1,38 @@
 using System.Diagnostics;
 using CLI.Helpers;
 using CLI.Interfaces;
+using CLI.Models;
 
 namespace CLI.Workers;
 
-public class ScriptsWorker() : IFileWorker
+public class ServerWorker() : IFileWorker
 {
-    private const string _tsConfigBaseFile = "base.tsconfig.json";
-    private const string _tsConfigClientFile = "tsconfig.json";
-    private const string _appTsFile = "app.ts";
+    private const string _tsConfigFile = "tsconfig.json";
     private const string _indexTsFile = "index.ts";
-    private const string _refreshJsFile = "refresh.js";
 
-    public int BuildOrder { get; } = 1;
+    public int BuildOrder { get; } = 1; // Run parallel with other workers
 
-    public void Init()
+    public void Init(ProjectMode mode = ProjectMode.Fullstack)
     {
-        if (!File.Exists(_tsConfigBaseFile))
-            AssemblyHelpers.WriteResourceToFile(_tsConfigBaseFile, _tsConfigBaseFile);
+        // Skip server files for ClientOnly mode
+        if (mode == ProjectMode.ClientOnly)
+            return;
 
-        string clientTsConfigPath = Directories.ClientDirectory.Join(_tsConfigClientFile);
-        if (!File.Exists(clientTsConfigPath))
-            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _tsConfigClientFile, clientTsConfigPath);
+        // For init, we want to create the directory
+        string tsConfigPath = Directories.ServerDirectory.Join(_tsConfigFile);
+        if (!File.Exists(tsConfigPath))
+            AssemblyHelpers.WriteResourceToFile(Settings.ServerFolder, _tsConfigFile, tsConfigPath);
 
-        string outputRefreshJsFilepath = Directories.ClientAppDirectory.Join(_refreshJsFile);
-        if (!File.Exists(outputRefreshJsFilepath))
-            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _refreshJsFile, outputRefreshJsFilepath);
-
-        string outputAppTsFilepath = Directories.ClientAppDirectory.Join(_appTsFile);
-        if (!File.Exists(outputAppTsFilepath))
-            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _appTsFile, outputAppTsFilepath);
-
-        string outputIndexTsFilepath = Directories.ClientIndexDirectory.Join(_indexTsFile);
-        if (!File.Exists(outputIndexTsFilepath))
-            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _indexTsFile, outputIndexTsFilepath);
+        string indexTsPath = Directories.ServerDirectory.Join(_indexTsFile);
+        if (!File.Exists(indexTsPath))
+            AssemblyHelpers.WriteResourceToFile(Settings.ServerFolder, _indexTsFile, indexTsPath);
     }
 
     public void Build(bool releaseMode = false)
     {
+        if (!Directories.GetServerDirectory().Exists)
+            return;
+
         // Check if node_modules exists and package.json exists
         var packageJsonPath = Path.Combine(Directory.GetCurrentDirectory(), Settings.PackageJsonFile);
         if (File.Exists(packageJsonPath) && !Directories.NodeModulesDirectory.Exists)
@@ -47,34 +42,22 @@ public class ScriptsWorker() : IFileWorker
         }
 
         CompileTypeScriptFiles();
-
-        if (!releaseMode)
-        {
-            string sourceRefreshJsApp = Directories.ClientAppDirectory.Join(_refreshJsFile);
-            string targetRefreshJs = Directories.ClientBuildDirectory.Join(_refreshJsFile);
-
-            if (File.Exists(sourceRefreshJsApp))
-            {
-                File.Copy(sourceRefreshJsApp, targetRefreshJs, true);
-            }
-            else
-            {
-                Console.WriteLine($"Warning: {_refreshJsFile} not found in {sourceRefreshJsApp}");
-            }
-        }
     }
 
     public void Publish()
     {
-        Directory.CreateDirectory(Directories.ClientDistDirectory.FullName); // Ensure dist directory exists
+        if (!Directories.ServerDirectory.Exists)
+            return;
 
-        // Copy all .js files from BuildDirectory to DistDirectory, maintaining subfolder structure
-        foreach (FileInfo jsFile in Directories.ClientBuildDirectory.GetFiles("*.js", SearchOption.AllDirectories))
+        Directory.CreateDirectory(Directories.ServerDistDirectory.FullName);
+
+        // Copy all .js files from server build to server dist
+        foreach (FileInfo jsFile in Directories.ServerBuildDirectory.GetFiles("*.js", SearchOption.AllDirectories))
         {
-            string relativePath = Path.GetRelativePath(Directories.ClientBuildDirectory.FullName, jsFile.FullName);
-            string targetFilePath = Path.Combine(Directories.ClientDistDirectory.FullName, relativePath);
+            string relativePath = Path.GetRelativePath(Directories.ServerBuildDirectory.FullName, jsFile.FullName);
+            string targetFilePath = Path.Combine(Directories.ServerDistDirectory.FullName, relativePath);
 
-            Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!); // Ensure sub-directory exists in target
+            Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!);
             
             // Read JS content and remove comments
             string jsContent = File.ReadAllText(jsFile.FullName);
@@ -84,21 +67,14 @@ public class ScriptsWorker() : IFileWorker
         }
     }
 
-    public void Add(DirectoryInfo pageDirectory)
-    {
-        var pageName = pageDirectory.Name;
-        var tsFilePath = pageDirectory.Join($"{pageName}.ts");
-        File.WriteAllText(tsFilePath, $"// TypeScript file for {pageName} page\n");
-    }
-
     private static void CompileTypeScriptFiles()
     {
-        var clientTsConfigPath = Directories.ClientDirectory.Join(_tsConfigClientFile);
+        var tsConfigPath = Directories.ServerDirectory.Join(_tsConfigFile);
         
         var processInfo = new ProcessStartInfo
         {
             FileName = "tsc",
-            Arguments = $"-p \"{clientTsConfigPath}\"",
+            Arguments = $"-p \"{tsConfigPath}\"",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -106,7 +82,7 @@ public class ScriptsWorker() : IFileWorker
         };
 
         using var process = Process.Start(processInfo)
-            ?? throw new Exception("Failed to start TypeScript compiler process.");
+            ?? throw new Exception("Failed to start TypeScript compiler process for server.");
 
         process.WaitForExit();
 
@@ -114,7 +90,7 @@ public class ScriptsWorker() : IFileWorker
         {
             string errors = process.StandardError.ReadToEnd();
             string output = process.StandardOutput.ReadToEnd();
-            var errorMessage = $"TypeScript compilation failed (Exit Code: {process.ExitCode})";
+            var errorMessage = $"Server TypeScript compilation failed (Exit Code: {process.ExitCode})";
             if (!string.IsNullOrWhiteSpace(errors))
                 errorMessage += $"\nErrors:\n{errors}";
             if (!string.IsNullOrWhiteSpace(output))

@@ -2,6 +2,38 @@
 
 This file provides implementation guidance to Claude Code when modifying the webstir codebase.
 
+## Recent Changes (July 2025)
+
+### Project Modes
+Webstir now supports three project modes via init command:
+- `webstir init` - Fullstack (default): Creates client, server, and shared directories
+- `webstir init --client-only` - Frontend only: No server or shared directories
+- `webstir init --server-only` - Backend only: No client or shared directories
+
+### Worker Organization
+Workers are now organized into subdirectories:
+- `CLI/Workers/Client/` - Client-side workers (Scripts, Markup, Styles, Images)
+- `CLI/Workers/Server/` - Server-side workers (ServerWorker)
+- `CLI/Workers/Shared/` - Shared workers (SharedWorker)
+
+### Interface Changes
+- Removed `InitOptions` class - now using `ProjectMode` enum directly
+- `IFileWorker.Init()` now takes `ProjectMode` parameter with default value
+- New `IPageWorker` interface extends `IFileWorker` for workers that create pages
+- Removed unused interfaces: `IClientFileWorker`, `IServerFileWorker`, `ISharedFileWorker`
+
+### Command Changes
+- `webstir add <page-name>` renamed to `webstir add-page <page-name>` for clarity
+- Only workers implementing `IPageWorker` are called for add-page command
+
+### Directory Creation Fix
+The `Directories` class now has helper methods to get directory info without auto-creating:
+- `GetClientDirectory()` - Returns DirectoryInfo without creating
+- `GetServerDirectory()` - Returns DirectoryInfo without creating  
+- `GetSharedDirectory()` - Returns DirectoryInfo without creating
+
+This prevents unwanted directory creation when checking project modes.
+
 ## Critical Implementation Details
 
 ### When Making Changes
