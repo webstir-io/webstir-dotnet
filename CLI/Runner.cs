@@ -1,6 +1,7 @@
 using CLI.Helpers;
 using CLI.Interfaces;
 using CLI.Models;
+using static CLI.Constants.Commands;
 
 namespace CLI;
 
@@ -11,39 +12,77 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
         var command = args.Length != 0 
             ? args.First() 
             : string.Empty;
+        
+        // Handle help requests
+        if (IsHelpRequested(command, args))
+            return;
 
+        // Execute the command
+        await ExecuteCommand(command, args);
+    }
+
+    private static bool IsHelpRequested(string command, string[] args)
+    {
+        // Check for help flags
+        if (command == HelpCommand || command == HelpOption || command == HelpShortOption)
+        {
+            if (args.Length > 1 && command == HelpCommand)
+                Helper.ShowCommandHelp(args[1]);
+            else
+                Helper.ShowGeneralHelp();
+            return true;
+        }
+        
+        // Check for command-specific help
+        if (args.Length > 1 && (args[1] == HelpOption || args[1] == HelpShortOption))
+        {
+            Helper.ShowCommandHelp(command);
+            return true;
+        }
+
+        return false;
+    }
+
+    private async Task ExecuteCommand(string command, string[] args)
+    {
         switch (command)
         {
-            case "init":
+            case InitCommand:
                 Init(args[1..]);
                 break;
             
-            case "add-page":
+            case AddPageCommand:
                 AddPage(args[1..]);
                 break;
 
-            case "build":
-                Build(cleanBuild: args.Contains("--clean"));
+            case BuildCommand:
+                Build(cleanBuild: args.Contains(CleanOption));
                 break;
 
             case "":
-            case "watch":
+            case WatchCommand:
                 Build();
                 await Watch();
                 break;
 
-            case "publish":
+            case PublishCommand:
                 Publish();
                 break;
 
             default:
-                Console.WriteLine($"Unknown command '{command}'");
-                Build();
+                ShowUnknownCommandError(command);
                 break;
         }
     }
 
-    public void Init(string[] args)
+    private static void ShowUnknownCommandError(string command)
+    {
+        Console.WriteLine($"Unknown command '{command}'");
+        Console.WriteLine();
+        Console.WriteLine($"Run '{Webstir} {HelpCommand}' to see available commands.");
+    }
+
+    private void Init(string[] args)
     {
         var mode = ParseProjectMode(args);
         
@@ -60,17 +99,17 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
     
     private static ProjectMode ParseProjectMode(string[] args)
     {
-        if (args.Contains("--client-only")) return ProjectMode.ClientOnly;
-        if (args.Contains("--server-only")) return ProjectMode.ServerOnly;
+        if (args.Contains(ClientOnlyOption)) return ProjectMode.ClientOnly;
+        if (args.Contains(ServerOnlyOption)) return ProjectMode.ServerOnly;
         return ProjectMode.Fullstack; // Default
     }
 
-    public void AddPage(string[] args)
+    private void AddPage(string[] args)
     {
         var pageName = args.FirstOrDefault();   
         if (string.IsNullOrEmpty(pageName))
         {
-            Console.WriteLine("Usage: webstir add-page <page-name>");
+            Console.WriteLine($"Usage: {Webstir} {AddPageCommand} <page-name>");
             return;
         }
         
@@ -89,7 +128,7 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
         Console.WriteLine($"✓ Created page at {pagePath}");
     }
 
-    public void Build(bool releaseMode = false, bool cleanBuild = false)
+    private void Build(bool releaseMode = false, bool cleanBuild = false)
     {
         Console.Write("Building...");
 
@@ -130,7 +169,7 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
         return false;
     }
 
-    public void Publish()
+    private void Publish()
     {
         Build(true);
 
@@ -144,7 +183,7 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
         Console.WriteLine("Done");
     }
 
-    public async Task Watch()
+    private async Task Watch()
     {
         await _watcher.Watch(cleanBuild => Build(cleanBuild: cleanBuild));
     }

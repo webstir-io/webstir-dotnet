@@ -4,6 +4,26 @@ This file provides implementation guidance to Claude Code when modifying the web
 
 ## Recent Changes (July 2025)
 
+### Help System Implementation
+Webstir now has a comprehensive built-in help system:
+- `webstir help` - Shows all available commands
+- `webstir help <command>` - Shows detailed help for specific command
+- `webstir <command> --help` or `-h` - Alternative syntax for command help
+- All commands now have examples and option descriptions
+
+Key implementation details:
+- **Helper.cs** - Contains all help logic and command definitions
+- **CommandHelp.cs** - Data model for command help information
+- **Commands.cs** - Centralized constants for all command names and options
+- No magic strings - all command names come from constants
+- Colored output for better readability (cyan for commands, yellow for options)
+
+### Code Organization Improvements
+- **Runner.cs refactored** - Split into smaller methods: `IsHelpRequested()`, `ExecuteCommand()`, `ShowUnknownCommandError()`
+- **Helper.cs location** - Moved from Services folder to main CLI folder alongside Runner.cs
+- **Constants pattern** - All string literals extracted to `CLI/Constants/Commands.cs`
+- **Private methods** - Command methods in Runner.cs are now private (better encapsulation)
+
 ### Project Modes
 Webstir now supports three project modes via init command:
 - `webstir init` - Fullstack (default): Creates client, server, and shared directories
@@ -25,6 +45,8 @@ Workers are now organized into subdirectories:
 ### Command Changes
 - `webstir add <page-name>` renamed to `webstir add-page <page-name>` for clarity
 - Only workers implementing `IPageWorker` are called for add-page command
+- Default command is now `watch` - running `webstir` with no args starts the dev server
+- Added `--clean` option to build command
 
 ### Directory Creation Fix
 The `Directories` class now has helper methods to get directory info without auto-creating:
@@ -59,8 +81,24 @@ This prevents unwanted directory creation when checking project modes.
 
 **Runner.cs (CLI/Runner.cs)**
 - Entry point for all commands
-- Instantiates workers based on command
+- Delegates help requests to Helper class
+- Executes commands via private methods
 - Manages build/watch lifecycle
+
+**Helper.cs (CLI/Helper.cs)**
+- Manages all help-related functionality
+- Contains command definitions and metadata
+- Provides `ShowGeneralHelp()` and `ShowCommandHelp()` methods
+- Uses colored console output for better UX
+
+**Commands.cs (CLI/Constants/Commands.cs)**
+- Centralized location for all string constants
+- Command names, option flags, and common strings
+- Enables easy rebranding by changing constants in one place
+
+**CommandHelp.cs (CLI/Models/CommandHelp.cs)**
+- Data model for command help information
+- Stores command name, description, usage, examples, and options
 
 **WebServer.cs (CLI/Services/WebServer.cs)**
 - Kestrel-based static file server

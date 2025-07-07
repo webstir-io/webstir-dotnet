@@ -13,13 +13,29 @@ Key features include TypeScript compilation, hot reload, API proxy middleware, a
 
 ## Commands
 
+### Getting Help
+```bash
+# Show all available commands
+dotnet run -- help
+
+# Show help for a specific command
+dotnet run -- help init
+dotnet run -- init --help
+
+# Quick help
+dotnet run -- --help
+dotnet run -- -h
+```
+
 ### Development
 ```bash
-# Build and run the development server with hot reload
+# Build and run the development server with hot reload (default command)
 dotnet run -- watch
+dotnet run --        # Same as watch
 
 # Build the project to build directory
 dotnet run -- build
+dotnet run -- build --clean    # Clean build (removes build directory first)
 
 # Create production build in dist directory
 dotnet run -- publish
@@ -39,6 +55,17 @@ dotnet run -- add-page <page-name>
 ./publish.sh
 ```
 
+## Command Reference
+
+| Command | Description | Options |
+|---------|-------------|---------|
+| `help` | Show help information | `[command]` - Show help for specific command |
+| `init` | Initialize a new webstir project | `--client-only` - Frontend only<br>`--server-only` - Backend only |
+| `add-page` | Add a new page to your project | `<page-name>` - Name of the page (required) |
+| `build` | Build the project once | `--clean` - Clean build directory first |
+| `watch` | Build and watch for changes (default) | None |
+| `publish` | Create production build | None |
+
 ## Architecture
 
 ### Build Pipeline Order
@@ -49,6 +76,15 @@ dotnet run -- add-page <page-name>
 
 ### Key Components
 - **Runner.cs**: Command orchestrator handling init, add-page, build, publish, watch
+  - Refactored with `IsHelpRequested()`, `ExecuteCommand()`, and `ShowUnknownCommandError()` methods
+  - All command methods are now private for better encapsulation
+- **Helper.cs**: Manages all help-related functionality
+  - Contains command definitions with descriptions, usage, examples, and options
+  - Provides colored console output for better readability
+- **Commands.cs**: Centralized constants for all command names and options
+  - No magic strings - all command names come from this single source
+  - Enables easy rebranding by changing constants in one place
+- **CommandHelp.cs**: Data model for command help information
 - **Workers/**: Organized into Client/, Server/, and Shared/ subdirectories
   - Client: ScriptsWorker, MarkupWorker, StylesWorker, ImagesWorker (implement IPageWorker)
   - Server: ServerWorker

@@ -12,6 +12,7 @@ A minimalist fullstack framework written in C# (.NET 9.0) that combines static s
 - **Page-Based Architecture**: Organized page structure with HTML, CSS, and TypeScript
 - **Template System**: HTML fragments merged with app-level templates
 - **Production Ready**: Optimized builds for deployment
+- **Built-in Help System**: Comprehensive help for all commands
 
 ## Installation
 
@@ -27,7 +28,35 @@ dotnet build
 ./publish.sh
 ```
 
+## Quick Start
+
+```bash
+# Get help
+dotnet run -- help
+
+# Create a new fullstack project
+dotnet run -- init
+dotnet run -- add-page home
+
+# Start development server
+dotnet run --
+```
+
 ## Commands
+
+### Getting Help
+```bash
+# Show all available commands
+dotnet run -- help
+
+# Show help for a specific command
+dotnet run -- help init
+dotnet run -- init --help
+
+# Quick help
+dotnet run -- --help
+dotnet run -- -h
+```
 
 ### Development
 ```bash
@@ -41,15 +70,28 @@ dotnet run -- init --server-only    # Backend only (Node.js API server)
 # Add a new page
 dotnet run -- add-page <page-name>
 
-# Build and run the fullstack development server
+# Build and run the fullstack development server (default command)
 dotnet run -- watch
+dotnet run --        # Same as watch
 
-# Build the project to build/bin directory
+# Build the project once
 dotnet run -- build
+dotnet run -- build --clean    # Clean build (removes build directory first)
 
 # Create production build in dist directory
 dotnet run -- publish
 ```
+
+## Command Reference
+
+| Command | Description | Options |
+|---------|-------------|---------|
+| `help` | Show help information | `[command]` - Show help for specific command |
+| `init` | Initialize a new webstir project | `--client-only` - Frontend only<br>`--server-only` - Backend only |
+| `add-page` | Add a new page to your project | `<page-name>` - Name of the page (required) |
+| `build` | Build the project once | `--clean` - Clean build directory first |
+| `watch` | Build and watch for changes (default) | None |
+| `publish` | Create production build | None |
 
 ## Project Types
 
