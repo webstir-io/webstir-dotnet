@@ -28,6 +28,13 @@ public class SharedWorker : IFileWorker
             var resourcePath = $"{_sharedFolder}.{_typesFolder}";
             AssemblyHelpers.WriteResourceToFile(resourcePath, _indexTsFile, indexTsPath);
         }
+        
+        // Create router-types.ts file
+        var routerTypesPath = Directories.SharedDirectory.Join("router-types.ts");
+        if (!File.Exists(routerTypesPath))
+        {
+            AssemblyHelpers.WriteResourceToFile(_sharedFolder, "router-types.ts", routerTypesPath);
+        }
     }
     
     public void Build(bool releaseMode = false)

@@ -4,6 +4,7 @@
     "target": "ES2020",
     "lib": ["ES2020", "DOM"],
     "outDir": "../../build/client",
+    "rootDir": "../",
     "baseUrl": ".",
     "incremental": true,
     "tsBuildInfoFile": "../../build/client/.tsbuildinfo",
@@ -11,6 +12,6 @@
       "@shared/*": ["../shared/*"]
     }
   },
-  "include": ["."],
+  "include": ["**/*.ts", "../shared/**/*.ts"],
   "exclude": ["node_modules", "../../build", "../../dist"]
 }

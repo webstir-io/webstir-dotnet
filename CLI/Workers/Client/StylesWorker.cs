@@ -91,9 +91,18 @@ public class StylesWorker : IPageWorker
                 }
             }
 
-            var outputFilepath = Directories.ClientBuildPagesDirectory
-                .SubDirectory(pageDirectory.Name)
-                .Join($"{pageDirectory.Name}.css");
+            // Output CSS directly to page directory (or root for index)
+            string outputFilepath;
+            if (pageDirectory.Name.Equals("index", StringComparison.OrdinalIgnoreCase))
+            {
+                outputFilepath = Directories.ClientBuildDirectory.Join($"{pageDirectory.Name}.css");
+            }
+            else
+            {
+                outputFilepath = Directories.ClientBuildDirectory
+                    .SubDirectory(pageDirectory.Name)
+                    .Join($"{pageDirectory.Name}.css");
+            }
 
             File.WriteAllLines(outputFilepath, mergedCssFileLines);
         }
@@ -111,23 +120,32 @@ public class StylesWorker : IPageWorker
 
     public void Publish()
     {
-        // No app.css to copy in the current architecture
-        
-        if (Directories.ClientBuildPagesDirectory.Exists)
+        // Process root index.css if it exists
+        var rootIndexCss = Directories.ClientBuildDirectory.GetFiles("index.css").FirstOrDefault();
+        if (rootIndexCss != null)
         {
-            foreach (var pageDirectory in Directories.ClientBuildPagesDirectory.GetDirectories())
-            {
-                var distPagesDirectory = Directories.ClientDistPagesDirectory.SubDirectory(pageDirectory.Name);
-                distPagesDirectory.Create();
+            var cssContent = File.ReadAllText(rootIndexCss.FullName);
+            cssContent = RemoveCssComments(cssContent);
+            var targetPath = Directories.ClientDistDirectory.Join(rootIndexCss.Name);
+            File.WriteAllText(targetPath, cssContent);
+        }
+        
+        // Process CSS files in page directories
+        foreach (var pageDirectory in Directories.ClientBuildDirectory.GetDirectories())
+        {
+            // Skip non-page directories
+            if (pageDirectory.Name == "app" || pageDirectory.Name == "images")
+                continue;
+                
+            var distPageDirectory = Directories.ClientDistDirectory.SubDirectory(pageDirectory.Name);
 
-                foreach (var cssFile in pageDirectory.GetFiles("*.css"))
-                {
-                    var cssContent = File.ReadAllText(cssFile.FullName);
-                    cssContent = RemoveCssComments(cssContent);
-                    
-                    var targetPath = distPagesDirectory.Join(cssFile.Name);
-                    File.WriteAllText(targetPath, cssContent);
-                }
+            foreach (var cssFile in pageDirectory.GetFiles("*.css"))
+            {
+                var cssContent = File.ReadAllText(cssFile.FullName);
+                cssContent = RemoveCssComments(cssContent);
+                
+                var targetPath = distPageDirectory.Join(cssFile.Name);
+                File.WriteAllText(targetPath, cssContent);
             }
         }
     }

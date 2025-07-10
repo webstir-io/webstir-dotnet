@@ -3,7 +3,7 @@ using CLI.Helpers;
 using CLI.Interfaces;
 using CLI.Models;
 
-namespace CLI.Workers;
+namespace CLI.Workers.Client;
 
 public class ScriptsWorker() : IPageWorker
 {
@@ -17,15 +17,12 @@ public class ScriptsWorker() : IPageWorker
 
     public void Init(ProjectMode mode = ProjectMode.Fullstack)
     {
-        // Always create base TypeScript config
         if (!File.Exists(_tsConfigBaseFile))
             AssemblyHelpers.WriteResourceToFile(_tsConfigBaseFile, _tsConfigBaseFile);
 
-        // Skip client files for ServerOnly mode
         if (mode == ProjectMode.ServerOnly)
             return;
 
-        // Always create client TypeScript config
         string clientTsConfigPath = Directories.ClientDirectory.Join(_tsConfigClientFile);
         if (!File.Exists(clientTsConfigPath))
             AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _tsConfigClientFile, clientTsConfigPath);
@@ -34,7 +31,6 @@ public class ScriptsWorker() : IPageWorker
         if (!File.Exists(outputRefreshJsFilepath))
             AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _refreshJsFile, outputRefreshJsFilepath);
 
-        // Always create TypeScript files
         string outputAppTsFilepath = Directories.ClientAppDirectory.Join(_appTsFile);
         if (!File.Exists(outputAppTsFilepath))
             AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _appTsFile, outputAppTsFilepath);
@@ -42,11 +38,18 @@ public class ScriptsWorker() : IPageWorker
         string outputIndexTsFilepath = Directories.ClientIndexDirectory.Join(_indexTsFile);
         if (!File.Exists(outputIndexTsFilepath))
             AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _indexTsFile, outputIndexTsFilepath);
+            
+        string routerFilePath = Directories.ClientAppDirectory.Join("router.ts");
+        if (!File.Exists(routerFilePath))
+            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, "router.ts", routerFilePath);
+            
+        string navigationFilePath = Directories.ClientAppDirectory.Join("navigation.ts");
+        if (!File.Exists(navigationFilePath))
+            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, "navigation.ts", navigationFilePath);
     }
 
     public void Build(bool releaseMode = false)
     {
-        // Check if node_modules exists and package.json exists
         var packageJsonPath = Path.Combine(Directory.GetCurrentDirectory(), Settings.PackageJsonFile);
         if (File.Exists(packageJsonPath) && !Directories.NodeModulesDirectory.Exists)
         {
@@ -55,6 +58,7 @@ public class ScriptsWorker() : IPageWorker
         }
 
         CompileTypeScriptFiles();
+        FlattenPageScripts();
 
         if (!releaseMode)
         {
@@ -74,17 +78,15 @@ public class ScriptsWorker() : IPageWorker
 
     public void Publish()
     {
-        Directory.CreateDirectory(Directories.ClientDistDirectory.FullName); // Ensure dist directory exists
+        Directory.CreateDirectory(Directories.ClientDistDirectory.FullName);
 
-        // Copy all .js files from BuildDirectory to DistDirectory, maintaining subfolder structure
         foreach (FileInfo jsFile in Directories.ClientBuildDirectory.GetFiles("*.js", SearchOption.AllDirectories))
         {
             string relativePath = Path.GetRelativePath(Directories.ClientBuildDirectory.FullName, jsFile.FullName);
             string targetFilePath = Path.Combine(Directories.ClientDistDirectory.FullName, relativePath);
 
-            Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!); // Ensure sub-directory exists in target
+            Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!);
             
-            // Read JS content and remove comments
             string jsContent = File.ReadAllText(jsFile.FullName);
             jsContent = RemoveJavaScriptComments(jsContent);
             
@@ -96,7 +98,12 @@ public class ScriptsWorker() : IPageWorker
     {
         var pageName = pageDirectory.Name;
         var tsFilePath = pageDirectory.Join($"{pageName}.ts");
-        File.WriteAllText(tsFilePath, $"// TypeScript file for {pageName} page\n");
+        var tsContent = $"""
+            import '../../app/app.js';
+
+            console.log('{pageName} page loaded');
+            """;
+        File.WriteAllText(tsFilePath, tsContent);
     }
 
     private static void CompileTypeScriptFiles()
@@ -131,12 +138,51 @@ public class ScriptsWorker() : IPageWorker
         }
     }
 
+    private static void FlattenPageScripts()
+    {
+        var pagesDirectory = Directories.ClientBuildDirectory.SubDirectory("pages");
+        if (!pagesDirectory.Exists)
+            return;
+
+        foreach (var pageDirectory in pagesDirectory.GetDirectories())
+        {
+            var pageName = pageDirectory.Name;
+            DirectoryInfo targetDirectory;
+
+            if (pageName.Equals("index", StringComparison.OrdinalIgnoreCase))
+            {
+                targetDirectory = Directories.ClientBuildDirectory;
+            }
+            else
+            {
+                targetDirectory = Directories.ClientBuildDirectory.SubDirectory(pageName);
+            }
+
+            foreach (var jsFile in pageDirectory.GetFiles("*.js"))
+            {
+                var targetPath = targetDirectory.Join(jsFile.Name);
+                jsFile.MoveTo(targetPath, overwrite: true);
+            }
+
+            foreach (var mapFile in pageDirectory.GetFiles("*.js.map"))
+            {
+                var targetPath = targetDirectory.Join(mapFile.Name);
+                mapFile.MoveTo(targetPath, overwrite: true);
+            }
+        }
+
+        if (pagesDirectory.Exists)
+        {
+            pagesDirectory.Delete(recursive: true);
+        }
+    }
+
     private static void RunNpmInstall()
     {
         var processInfo = new ProcessStartInfo
         {
             FileName = "npm",
-            Arguments = "ci",  // Use ci for reproducible installs
+            Arguments = "ci",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -164,7 +210,6 @@ public class ScriptsWorker() : IPageWorker
 
     private static string RemoveJavaScriptComments(string js)
     {
-        // Remove single-line comments (// ...) but preserve URLs
         var singleLinePattern = @"(?<!:)//.*$";
         js = System.Text.RegularExpressions.Regex.Replace(
             js, 
@@ -173,11 +218,9 @@ public class ScriptsWorker() : IPageWorker
             System.Text.RegularExpressions.RegexOptions.Multiline
         );
         
-        // Remove multi-line comments (/* ... */)
         var multiLinePattern = @"/\*[\s\S]*?\*/";
         js = System.Text.RegularExpressions.Regex.Replace(js, multiLinePattern, string.Empty);
         
-        // Remove empty lines left by comment removal
         var emptyLinePattern = @"^\s*\r?\n";
         js = System.Text.RegularExpressions.Regex.Replace(
             js, 

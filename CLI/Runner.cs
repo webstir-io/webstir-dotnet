@@ -13,17 +13,14 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
             ? args.First() 
             : string.Empty;
         
-        // Handle help requests
         if (IsHelpRequested(command, args))
             return;
 
-        // Execute the command
         await ExecuteCommand(command, args);
     }
 
     private static bool IsHelpRequested(string command, string[] args)
     {
-        // Check for help flags
         if (command == HelpCommand || command == HelpOption || command == HelpShortOption)
         {
             if (args.Length > 1 && command == HelpCommand)
@@ -33,7 +30,6 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
             return true;
         }
         
-        // Check for command-specific help
         if (args.Length > 1 && (args[1] == HelpOption || args[1] == HelpShortOption))
         {
             Helper.ShowCommandHelp(command);
@@ -89,7 +85,6 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
         foreach (var worker in _fileWorkers)
             worker.Init(mode);
         
-        // Copy package.json if it doesn't exist
         var packageJsonPath = Path.Combine(Directory.GetCurrentDirectory(), Settings.PackageJsonFile);
         if (!File.Exists(packageJsonPath))
         {
@@ -101,7 +96,7 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
     {
         if (args.Contains(ClientOnlyOption)) return ProjectMode.ClientOnly;
         if (args.Contains(ServerOnlyOption)) return ProjectMode.ServerOnly;
-        return ProjectMode.Fullstack; // Default
+        return ProjectMode.Fullstack;
     }
 
     private void AddPage(string[] args)
@@ -113,7 +108,7 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
             return;
         }
         
-        var pagePath = Directories.PagesDirectory.Join(pageName);   
+        var pagePath = Directories.ClientPagesDirectory.Join(pageName);   
         if (Directory.Exists(pagePath))
         {
             Console.WriteLine($"Page '{pageName}' already exists at {pagePath}");
@@ -150,22 +145,18 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
 
     private static bool ShouldCleanBuild()
     {
-        // Clean build if no build directory exists
         if (!Directory.Exists(Directories.BuildDirectory.FullName))
             return true;
 
-        // Clean build if tsconfig files don't match Resources
         const string tsBuildInfoFile = ".tsbuildinfo";
         var clientTsConfig = Directories.ClientBuildDirectory.Join(tsBuildInfoFile);
         var serverTsConfig = Directories.ServerBuildDirectory.Join(tsBuildInfoFile);
 
-        // If in fullstack mode and either buildinfo is missing, clean build
         if (Directories.ClientDirectory.Exists && !File.Exists(clientTsConfig))
             return true;
         if (Directories.ServerDirectory.Exists && !File.Exists(serverTsConfig))
             return true;
 
-        // TODO: Add more intelligent checks like config file changes
         return false;
     }
 
