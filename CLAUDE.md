@@ -4,6 +4,39 @@ This file provides implementation guidance to Claude Code when modifying the web
 
 ## Recent Changes (July 2025)
 
+### Client-Side Routing Implementation
+Webstir now supports optional client-side routing for building SPAs:
+
+#### New Files:
+- **CLI/Resources/client/router.ts** - Core router implementation with navigation, link interception, and lifecycle management
+- **CLI/Resources/client/navigation.ts** - Public navigation API for programmatic routing
+- **CLI/Resources/shared/router-types.ts** - TypeScript interfaces shared between client and build system
+- **CLI/Models/RoutingMetadata.cs** - C# models for routing configuration
+
+#### Key Features:
+- **Automatic Detection** - MarkupWorker detects pages that export `routeHandler`
+- **Metadata Injection** - Routing metadata JSON injected into HTML in development mode
+- **Dynamic Loading** - Router only loaded when SPA pages are detected
+- **Lifecycle Hooks** - Support for onEnter, onLeave, and onUpdate handlers
+- **Link Interception** - Automatic SPA navigation for internal links
+- **Graceful Fallback** - Non-SPA pages continue using traditional navigation
+
+#### Implementation Details:
+- **MarkupWorker Changes**:
+  - `DetectRoutingConfiguration()` - Scans pages for route handler exports
+  - `InjectRoutingMetadata()` - Adds metadata JSON to HTML body
+  - Routing metadata includes page names, routes, and SPA flags
+- **App.ts Changes**:
+  - Conditionally imports router based on metadata
+  - Registers route handlers from page modules
+  - Only initializes for projects with SPA pages
+- **Router Features**:
+  - Browser history management via History API
+  - Query parameter extraction and passing to handlers
+  - Prevents navigation loops and handles edge cases
+
+## Recent Changes (July 2025)
+
 ### Help System Implementation
 Webstir now has a comprehensive built-in help system:
 - `webstir help` - Shows all available commands
@@ -168,6 +201,35 @@ This prevents unwanted directory creation when checking project modes.
 - NodeService must be disposed properly to kill process
 - Workers run in BuildOrder sequence (1-5)
 - API proxy needs trailing slash handling
+
+### Client Routing Details
+
+**Route Handler Detection** (MarkupWorker.cs):
+- Uses regex patterns to detect `export const routeHandler` in TypeScript files
+- Supports multiple export syntaxes: named exports, default exports, object exports
+- Only scans page TypeScript files, not app-level files
+
+**Metadata Injection**:
+- JSON metadata injected as `<script id="app-routing-metadata" type="application/json">`
+- Only injected in development mode (not in production builds)
+- Placed before closing `</body>` tag
+
+**Router Initialization Flow**:
+1. App.ts loads and checks for routing metadata in DOM
+2. If SPA pages exist, dynamically imports router.ts
+3. Router loads metadata and sets up browser navigation
+4. For each SPA page, imports the page module and registers handlers
+
+**Navigation Behavior**:
+- Internal links with registered routes use pushState navigation
+- External links, download links, and target="_blank" bypass router
+- Non-SPA pages trigger full page loads
+- Query parameters are extracted and passed to route handlers
+
+**TypeScript Module Paths**:
+- Client imports use relative paths or `@shared/` alias
+- Shared types use `@shared/router-types.js` (note .js extension for ESM)
+- Page modules expected at `../pages/{pageName}/{pageName}.js`
 
 ### Testing Changes
 

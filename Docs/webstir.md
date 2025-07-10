@@ -9,7 +9,7 @@ Webstir is a minimalist fullstack framework written in C# (.NET 9.0) that combin
 - **Client-Only**: Static site generation only
 - **Server-Only**: Node.js API server only
 
-Key features include TypeScript compilation, hot reload, API proxy middleware, and automatic Node.js process management.
+Key features include TypeScript compilation, hot reload, API proxy middleware, automatic Node.js process management, and optional client-side routing for SPAs.
 
 ## Commands
 
@@ -89,6 +89,10 @@ dotnet run -- add-page <page-name>
   - Client: ScriptsWorker, MarkupWorker, StylesWorker, ImagesWorker (implement IPageWorker)
   - Server: ServerWorker
   - Shared: SharedWorker
+- **MarkupWorker.cs**: Enhanced with client routing support
+  - Detects pages with exported route handlers
+  - Injects routing metadata into HTML for SPA functionality
+- **RoutingMetadata.cs**: C# models for routing configuration
 - **WebServer.cs**: Kestrel-based static file server on port 8088
 - **ApiProxy.cs**: Middleware forwarding /api/* requests to Node.js backend
 - **NodeService.cs**: Node.js process management with auto-restart
@@ -135,6 +139,36 @@ dist/                # Production builds (optimized, no refresh.js)
 - WebSocket connection on port 3456 triggers page refresh on file changes
 - Backend changes trigger automatic Node.js server restart
 - Production builds strip out development scripts
+
+### Client-Side Routing
+Webstir includes optional client-side routing for building single-page applications:
+
+#### Core Components
+- **router.ts**: Main router implementation with navigation and lifecycle management
+- **navigation.ts**: Public API for programmatic navigation
+- **router-types.ts**: Shared TypeScript interfaces for route handlers
+
+#### How It Works
+1. **Automatic Detection**: MarkupWorker scans pages for exported `routeHandler` objects
+2. **Metadata Injection**: Routing configuration injected as JSON in development builds
+3. **Dynamic Loading**: Router only loaded when SPA pages are detected
+4. **Link Interception**: Internal links automatically use SPA navigation when available
+
+#### Route Handlers
+Pages can export route handlers with lifecycle hooks:
+```typescript
+export const routeHandler: RouteHandler = {
+  onEnter: async (params) => { /* Called when entering page */ },
+  onLeave: async () => { /* Called when leaving page */ },
+  onUpdate: async (params) => { /* Called when query params change */ }
+};
+```
+
+#### Navigation API
+```typescript
+import { navigate } from '@webstir/navigation';
+await navigate('/products/?category=electronics');
+```
 
 ### Port Configuration
 - WebServer (static files): 8088
