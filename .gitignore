@@ -5,10 +5,10 @@
 
 # These are the files folders that the code outputs
 # For testing purposes only
-src/
-build/
-dist/
-/demo/
+CLI/src/
+CLI/build/
+CLI/dist/
+CLI/demo/
 
 # OS-specific files
 .DS_Store
