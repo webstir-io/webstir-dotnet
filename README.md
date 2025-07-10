@@ -14,6 +14,7 @@ A minimalist fullstack framework written in C# (.NET 9.0) that combines static s
 - **Template System**: HTML fragments merged with app-level templates
 - **Production Ready**: Optimized builds for deployment
 - **Built-in Help System**: Comprehensive help for all commands
+- **Demo Command**: Instant demo app showcasing all features with one command
 
 ## Installation
 
@@ -32,10 +33,10 @@ dotnet build
 ## Quick Start
 
 ```bash
-# Get help
-dotnet run -- help
+# See webstir in action with a demo app
+dotnet run -- demo
 
-# Create a new fullstack project
+# Or create your own project
 dotnet run -- init
 dotnet run -- add-page home
 
@@ -61,6 +62,10 @@ dotnet run -- -h
 
 ### Development
 ```bash
+# Create a demo application showcasing all webstir features
+dotnet run -- demo              # Creates in 'demo' folder
+dotnet run -- demo my-app       # Creates in 'my-app' folder
+
 # Initialize a new project (defaults to fullstack)
 dotnet run -- init
 
@@ -88,6 +93,7 @@ dotnet run -- publish
 | Command | Description | Options |
 |---------|-------------|---------|
 | `help` | Show help information | `[command]` - Show help for specific command |
+| `demo` | Create a demo application showcasing all webstir features | `[directory]` - Target directory (default: 'demo') |
 | `init` | Initialize a new webstir project | `--client-only` - Frontend only<br>`--server-only` - Backend only |
 | `add-page` | Add a new page to your project | `<page-name>` - Name of the page (required) |
 | `build` | Build the project once | `--clean` - Clean build directory first |

@@ -1,0 +1,29 @@
+.home-page {
+    text-align: center;
+}
+
+.lead {
+    font-size: 1.25rem;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-2xl);
+}
+
+.hero-section {
+    margin: var(--space-2xl) 0;
+}
+
+.feature-list {
+    list-style: none;
+    max-width: 500px;
+    margin: var(--space-xl) auto;
+    text-align: left;
+}
+
+.feature-list li {
+    padding: var(--space-sm) 0;
+    font-size: 1.1rem;
+}
+
+.cta-section {
+    margin-top: var(--space-2xl);
+}

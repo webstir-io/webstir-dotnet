@@ -12,7 +12,8 @@ public static class Helper
         [BuildCommand] = GetBuildCommand(),
         [WatchCommand] = GetWatchCommand(),
         [PublishCommand] = GetPublishCommand(),
-        [HelpCommand] = GetHelpCommand()
+        [HelpCommand] = GetHelpCommand(),
+        [DemoCommand] = GetDemoCommand()
     };
 
     private static CommandHelp CreateCommand(
@@ -102,6 +103,16 @@ public static class Helper
             ],
             null,
             "[command]");
+
+    private static CommandHelp GetDemoCommand() => 
+        CreateCommand(DemoCommand, 
+            "Create a demo application showcasing all webstir features",
+            [
+                Example($"{Webstir} {DemoCommand}", "Create a demo app in the current directory"),
+                Example($"{Webstir} {DemoCommand} my-demo", "Create a demo app in 'my-demo' directory")
+            ],
+            null,
+            "[directory]");
 
     public static void ShowGeneralHelp()
     {

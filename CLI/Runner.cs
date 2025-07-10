@@ -1,7 +1,9 @@
 using CLI.Helpers;
 using CLI.Interfaces;
 using CLI.Models;
+using CLI.Builders.Demo;
 using static CLI.Constants.Commands;
+using System.Diagnostics;
 
 namespace CLI;
 
@@ -63,6 +65,10 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
 
             case PublishCommand:
                 Publish();
+                break;
+
+            case DemoCommand:
+                Demo(args[1..]);
                 break;
 
             default:
@@ -177,5 +183,40 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
     private async Task Watch()
     {
         await _watcher.Watch(cleanBuild => Build(cleanBuild: cleanBuild));
+    }
+
+    private void Demo(string[] args)
+    {
+        var targetDirectory = args.FirstOrDefault() ?? Settings.DemoFolder;
+        
+        if (!Path.IsPathRooted(targetDirectory))
+        {
+            targetDirectory = Path.Combine(Directory.GetCurrentDirectory(), targetDirectory);
+        }
+        
+        // If the directory exists, delete it to ensure a clean demo
+        if (Directory.Exists(targetDirectory))
+        {
+            Console.WriteLine($"Removing existing demo directory at {targetDirectory}...");
+            Directory.Delete(targetDirectory, recursive: true);
+        }
+        
+        var demoBuilder = new DemoBuilder(_fileWorkers);
+        demoBuilder.CreateTemplate(targetDirectory);
+        
+        // Start webstir in the demo directory
+        Console.WriteLine();
+        Console.WriteLine($"Starting {Webstir} in demo directory...");
+        Console.WriteLine();
+        
+        var processInfo = new ProcessStartInfo
+        {
+            FileName = Webstir,
+            WorkingDirectory = targetDirectory,
+            UseShellExecute = false
+        };
+        
+        using var process = Process.Start(processInfo);
+        process?.WaitForExit();
     }
 }

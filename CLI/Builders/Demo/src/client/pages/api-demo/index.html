@@ -1,0 +1,95 @@
+<div class="api-demo-page">
+  <h1>API Demo</h1>
+  
+  <p class="description">
+    Test the fullstack capabilities of Webstir. This page demonstrates type-safe API calls 
+    between the frontend and backend using shared TypeScript types.
+  </p>
+  
+  <div class="demo-sections">
+    <!-- User Management Section -->
+    <section class="api-section">
+      <h2>User Management</h2>
+      
+      <div class="api-controls">
+        <h3>Get All Users</h3>
+        <button id="get-users" class="btn btn-primary">Fetch Users</button>
+        <div id="users-result" class="result-box"></div>
+      </div>
+      
+      <div class="api-controls">
+        <h3>Get User by ID</h3>
+        <div class="input-group">
+          <input type="number" id="user-id" placeholder="Enter user ID (e.g., 1)" min="1">
+          <button id="get-user" class="btn btn-secondary">Get User</button>
+        </div>
+        <div id="user-result" class="result-box"></div>
+      </div>
+      
+      <div class="api-controls">
+        <h3>Create New User</h3>
+        <form id="create-user-form" class="form">
+          <input type="text" id="new-username" placeholder="Username" required>
+          <input type="email" id="new-email" placeholder="Email" required>
+          <input type="text" id="new-name" placeholder="Full Name" required>
+          <button type="submit" class="btn btn-success">Create User</button>
+        </form>
+        <div id="create-result" class="result-box"></div>
+      </div>
+    </section>
+    
+    <!-- Posts Section -->
+    <section class="api-section">
+      <h2>Blog Posts</h2>
+      
+      <div class="api-controls">
+        <h3>Recent Posts</h3>
+        <button id="get-posts" class="btn btn-primary">Load Posts</button>
+        <div id="posts-result" class="result-box"></div>
+      </div>
+      
+      <div class="api-controls">
+        <h3>Create Post</h3>
+        <form id="create-post-form" class="form">
+          <input type="text" id="post-title" placeholder="Post Title" required>
+          <textarea id="post-content" placeholder="Post Content" rows="4" required></textarea>
+          <input type="number" id="post-author" placeholder="Author ID" min="1" required>
+          <button type="submit" class="btn btn-success">Create Post</button>
+        </form>
+        <div id="post-create-result" class="result-box"></div>
+      </div>
+    </section>
+    
+    <!-- Server Status Section -->
+    <section class="api-section">
+      <h2>Server Status</h2>
+      
+      <div class="api-controls">
+        <h3>Health Check</h3>
+        <button id="health-check" class="btn btn-info">Check Server Health</button>
+        <div id="health-result" class="result-box"></div>
+      </div>
+      
+      <div class="api-controls">
+        <h3>API Stats</h3>
+        <button id="api-stats" class="btn btn-info">Get API Statistics</button>
+        <div id="stats-result" class="result-box"></div>
+      </div>
+    </section>
+  </div>
+  
+  <div class="info-panel">
+    <h3>How It Works</h3>
+    <ul>
+      <li>All API calls go through <code>/api/*</code> endpoints</li>
+      <li>The Webstir proxy forwards requests to the Node.js backend</li>
+      <li>TypeScript interfaces in <code>src/shared/</code> ensure type safety</li>
+      <li>No CORS configuration needed - it just works!</li>
+    </ul>
+    
+    <div class="note">
+      <strong>Note:</strong> This is a traditional page load (not SPA). 
+      Navigate to <a href="/about">About</a> or <a href="/features">Features</a> to see SPA routing in action.
+    </div>
+  </div>
+</div>

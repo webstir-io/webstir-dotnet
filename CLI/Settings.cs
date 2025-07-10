@@ -17,6 +17,7 @@ public static class Settings
     public static string NodeModulesFolder { get; } = "node_modules";
     public static string PackageJsonFile { get; } = "package.json";
     public static string SharedFolder { get; } = "shared";
+    public static string DemoFolder { get; } = "demo";
 }
 
 public static class Directories

@@ -2,7 +2,7 @@ using CLI.Helpers;
 using CLI.Interfaces;
 using CLI.Models;
 
-namespace CLI.Workers;
+namespace CLI.Workers.Client;
 
 public class StylesWorker : IPageWorker
 {

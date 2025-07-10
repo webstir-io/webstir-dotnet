@@ -29,6 +29,10 @@ dotnet run -- -h
 
 ### Development
 ```bash
+# Create a demo application showcasing all webstir features
+dotnet run -- demo              # Creates in 'demo' folder and starts server
+dotnet run -- demo my-app       # Creates in 'my-app' folder and starts server
+
 # Build and run the development server with hot reload (default command)
 dotnet run -- watch
 dotnet run --        # Same as watch
@@ -60,11 +64,45 @@ dotnet run -- add-page <page-name>
 | Command | Description | Options |
 |---------|-------------|---------|
 | `help` | Show help information | `[command]` - Show help for specific command |
+| `demo` | Create a demo application showcasing all webstir features | `[directory]` - Target directory (default: 'demo') |
 | `init` | Initialize a new webstir project | `--client-only` - Frontend only<br>`--server-only` - Backend only |
 | `add-page` | Add a new page to your project | `<page-name>` - Name of the page (required) |
 | `build` | Build the project once | `--clean` - Clean build directory first |
 | `watch` | Build and watch for changes (default) | None |
 | `publish` | Create production build | None |
+
+## Demo Command
+
+The `demo` command creates a fully-featured example application that showcases all webstir capabilities:
+
+### Features Demonstrated
+- **Multiple Pages**: Home (traditional), About & Features (SPA with routing)
+- **Client-Side Routing**: Pages with route handlers for SPA navigation
+- **API Integration**: Full CRUD operations with Node.js backend
+- **Shared Types**: Type-safe communication between client and server
+- **Elegant Styling**: Minimal CSS with custom properties and responsive design
+- **Hot Reload**: See changes instantly during development
+
+### Implementation Details
+- **Auto-cleanup**: Deletes existing demo folder for a clean start
+- **Auto-start**: Launches development server immediately after creation
+- **Template System**: Uses ITemplateBuilder interface for extensibility
+- **Embedded Resources**: Template files included in CLI assembly
+
+### Demo Structure
+```
+demo/
+├── src/
+│   ├── client/
+│   │   ├── app/         # App shell with navigation
+│   │   └── pages/       # Home, About, Features, API Demo
+│   ├── server/
+│   │   ├── index.ts     # HTTP server with routing
+│   │   └── routes/      # API endpoints
+│   └── shared/
+│       └── types/       # Shared TypeScript interfaces
+└── README.md            # Demo-specific documentation
+```
 
 ## Architecture
 

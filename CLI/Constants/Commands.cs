@@ -9,6 +9,7 @@ public static class Commands
     public const string WatchCommand = "watch";
     public const string PublishCommand = "publish";
     public const string HelpCommand = "help";
+    public const string DemoCommand = "demo";
     
     // Option names
     public const string ClientOnlyOption = "--client-only";

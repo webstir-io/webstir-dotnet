@@ -4,6 +4,60 @@ This file provides implementation guidance to Claude Code when modifying the web
 
 ## Recent Changes (July 2025)
 
+### Demo Command Implementation
+Webstir now includes a `demo` command that creates a fully-featured demo application:
+
+#### Command Features:
+- **Auto-cleanup** - Automatically deletes existing demo folder for clean state
+- **Auto-start** - Launches webstir development server after creation
+- **Complete Example** - Showcases all webstir features in one app
+
+#### Implementation:
+- **ITemplateBuilder Interface** (`CLI/Interfaces/ITemplateBuilder.cs`)
+  - Defines contract for template builders
+  - Enables future template expansions
+- **DemoBuilder** (`CLI/Builders/Demo/DemoBuilder.cs`)
+  - Implements ITemplateBuilder
+  - Uses embedded resources for template files
+  - Calls webstir init first, then overlays demo files
+- **Template Files** (`CLI/Builders/Demo/src/`)
+  - Complete demo app source files
+  - Uses @shared imports (no transformation needed)
+  - Includes elegant minimal CSS styling
+
+#### Key Files Created:
+- **Client Pages**:
+  - `home/` - Traditional navigation page
+  - `about/` - SPA page with route handler
+  - `features/` - SPA page demonstrating features
+  - `api-demo/` - API integration showcase
+- **Server**:
+  - Uses native Node.js http module (no Express)
+  - Demonstrates shared types usage
+  - Includes user and data API endpoints
+- **Shared Types**:
+  - `types/index.ts` - Base ApiResponse type
+  - `types/demo.ts` - Demo-specific types (User, Feature)
+
+#### Build Integration:
+- Template files included as EmbeddedResource in CLI.csproj
+- Resource extraction handles file extensions correctly
+- Demo folder added to .gitignore
+
+#### Command Usage:
+```bash
+webstir demo              # Creates demo in 'demo' folder
+webstir demo my-app       # Creates demo in 'my-app' folder
+```
+
+#### Runner.cs Implementation:
+- Deletes existing demo directory if present
+- Creates demo via DemoBuilder
+- Starts webstir process in demo directory
+- Uses Settings.DemoFolder constant ("demo")
+
+## Recent Changes (July 2025)
+
 ### Client-Side Routing Implementation
 Webstir now supports optional client-side routing for building SPAs:
 
