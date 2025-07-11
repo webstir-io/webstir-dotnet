@@ -22,7 +22,8 @@ public class NodeServer : INodeServer, IDisposable
                 return;
             }
 
-            if (!Directory.Exists("build/server") || !File.Exists("build/server/index.js"))
+            var serverIndexPath = Directories.ServerBuildDirectory.Join("index.js");
+            if (!File.Exists(serverIndexPath))
             {
                 Console.WriteLine("Server build not found. Skipping Node.js server startup.");
                 return;
@@ -33,12 +34,12 @@ public class NodeServer : INodeServer, IDisposable
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "node",
-                    Arguments = "build/server/index.js",
+                    Arguments = Directories.ServerBuildDirectory.Join("index.js"),
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
-                    WorkingDirectory = Directory.GetCurrentDirectory()
+                    WorkingDirectory = Settings.WorkingDirectory
                 }
             };
 

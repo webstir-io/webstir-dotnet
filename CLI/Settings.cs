@@ -18,15 +18,23 @@ public static class Settings
     public static string PackageJsonFile { get; } = "package.json";
     public static string SharedFolder { get; } = "shared";
     public static string DemoFolder { get; } = "demo";
+    
+    // Current working directory for webstir operations
+    private static string _workingDirectory = Directory.GetCurrentDirectory();
+    public static string WorkingDirectory 
+    { 
+        get => _workingDirectory;
+        set => _workingDirectory = Path.GetFullPath(value);
+    }
 }
 
 public static class Directories
 {
     // Core directories that are always created
-    public static DirectoryInfo SourceDirectory => Directory.CreateDirectory(Settings.SourceFolder);
-    public static DirectoryInfo BuildDirectory => Directory.CreateDirectory(Settings.BuildFolder);
-    public static DirectoryInfo DistDirectory => Directory.CreateDirectory(Settings.DistFolder);
-    public static DirectoryInfo NodeModulesDirectory => new(Settings.NodeModulesFolder);
+    public static DirectoryInfo SourceDirectory => Directory.CreateDirectory(Path.Combine(Settings.WorkingDirectory, Settings.SourceFolder));
+    public static DirectoryInfo BuildDirectory => Directory.CreateDirectory(Path.Combine(Settings.WorkingDirectory, Settings.BuildFolder));
+    public static DirectoryInfo DistDirectory => Directory.CreateDirectory(Path.Combine(Settings.WorkingDirectory, Settings.DistFolder));
+    public static DirectoryInfo NodeModulesDirectory => new(Path.Combine(Settings.WorkingDirectory, Settings.NodeModulesFolder));
     
     // Helper methods to get directory info without creating
     public static DirectoryInfo GetClientDirectory() => new(SourceDirectory.Join(Settings.ClientFolder));

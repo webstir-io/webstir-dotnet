@@ -63,14 +63,14 @@ function setupFeatureCardInteractions() {
     
     // Add hover sound effect (visual feedback)
     card.addEventListener('mouseenter', () => {
-      const icon = card.querySelector('.feature-icon');
+      const icon = card.querySelector('.feature-icon') as HTMLElement;
       if (icon) {
         icon.style.transform = 'scale(1.1) rotate(5deg)';
       }
     });
     
     card.addEventListener('mouseleave', () => {
-      const icon = card.querySelector('.feature-icon');
+      const icon = card.querySelector('.feature-icon') as HTMLElement;
       if (icon) {
         icon.style.transform = 'scale(1) rotate(0deg)';
       }

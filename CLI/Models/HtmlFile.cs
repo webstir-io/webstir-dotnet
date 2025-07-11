@@ -6,19 +6,47 @@ public class HtmlFile(string _filepath)
 
     public string Html => _html;
     
-    public string Merge(string html)
+    public string Merge(string pageHtml)
     {
-        var headTag = "head";
-        var headContent = GetTagContent(headTag, html);
-        var headInsertLocation = _html.IndexOf(ToEndTag(headTag)) - 1;
-        var mergedHtml = _html.Insert(headInsertLocation, headContent);
-
-        var mainTag = "main";
-        var mainContent = GetTagContent(mainTag, html);
-        var mainInsertLocation = mergedHtml.IndexOf(ToEndTag(mainTag)) - 1;
-        mergedHtml = mergedHtml.Insert(mainInsertLocation, mainContent);
-
-        return mergedHtml;
+        var result = _html;
+        
+        // Extract head content from the page
+        var headContentMatch = System.Text.RegularExpressions.Regex.Match(
+            pageHtml, 
+            @"<head[^>]*>(.*?)</head>", 
+            System.Text.RegularExpressions.RegexOptions.Singleline
+        );
+        
+        if (headContentMatch.Success)
+        {
+            var headContent = headContentMatch.Groups[1].Value;
+            // Insert head content before closing </head> tag in template
+            result = System.Text.RegularExpressions.Regex.Replace(
+                result,
+                @"</head>",
+                headContent + "</head>"
+            );
+        }
+        
+        // Extract main content from the page
+        var mainContentMatch = System.Text.RegularExpressions.Regex.Match(
+            pageHtml, 
+            @"<main[^>]*>(.*?)</main>", 
+            System.Text.RegularExpressions.RegexOptions.Singleline
+        );
+        
+        if (mainContentMatch.Success)
+        {
+            var mainContent = mainContentMatch.Groups[1].Value;
+            // Replace <main> </main> with <main>content</main>
+            result = System.Text.RegularExpressions.Regex.Replace(
+                result,
+                @"<main([^>]*)>\s*</main>",
+                "<main$1>" + mainContent + "</main>"
+            );
+        }
+        
+        return result;
     }
 
     public void Remove(string markup)

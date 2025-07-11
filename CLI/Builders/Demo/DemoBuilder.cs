@@ -19,13 +19,6 @@ public class DemoBuilder : ITemplateBuilder
     
     public void CreateTemplate(string directory)
     {
-        Console.WriteLine($"Creating webstir demo in {directory}...");
-        
-        // Create directory if it doesn't exist
-        if (!Directory.Exists(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
         
         // Save current directory
         var originalDirectory = Directory.GetCurrentDirectory();
@@ -35,18 +28,9 @@ public class DemoBuilder : ITemplateBuilder
             // Change to target directory
             Directory.SetCurrentDirectory(directory);
             
-            // Initialize basic webstir project structure using existing workers
-            Console.WriteLine("Initializing webstir project...");
-            foreach (var worker in _fileWorkers)
-            {
-                worker.Init(ProjectMode.Fullstack);
-            }
-            
             // Copy demo template files
-            Console.WriteLine("Adding demo files...");
             CopyDemoFiles();
             
-            Console.WriteLine("✓ Demo application created successfully!");
         }
         finally
         {

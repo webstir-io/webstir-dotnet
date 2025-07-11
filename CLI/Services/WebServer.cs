@@ -23,17 +23,17 @@ public class WebServer() : IWebServer
     public async Task StartAsync()
     {
         // Check for new structure first, fallback to legacy
-        if (Directory.Exists("build/client"))
+        if (Directories.ClientBuildDirectory.Exists)
         {
-            _webRootPath = "build/client";
+            _webRootPath = Directories.ClientBuildDirectory.FullName;
         }
-        else if (Directory.Exists("build"))
+        else if (Directories.BuildDirectory.Exists)
         {
-            _webRootPath = "build";
+            _webRootPath = Directories.BuildDirectory.FullName;
         }
         else
         {
-            throw new DirectoryNotFoundException("No valid webroot found. Expected 'build/client' or 'build'.");
+            throw new DirectoryNotFoundException($"No valid webroot found. Expected '{Directories.ClientBuildDirectory.FullName}' or '{Directories.BuildDirectory.FullName}'.");
         }
 
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions 
@@ -60,13 +60,16 @@ public class WebServer() : IWebServer
         // Add API proxy middleware
         app.UseMiddleware<ApiProxyMiddleware>(_apiServerUrl);
 
-        var rewriteOptions = new RewriteOptions().AddRewrite(@"^([\w\-/]+)$", "$1.html", skipRemainingRules: true);
-        app.UseRewriter(rewriteOptions);
-        app.UseDefaultFiles();
+        // Configure default files to look for index.html
+        var defaultFilesOptions = new DefaultFilesOptions();
+        defaultFilesOptions.DefaultFileNames.Clear();
+        defaultFilesOptions.DefaultFileNames.Add("index.html");
+        app.UseDefaultFiles(defaultFilesOptions);
+        
         app.UseStaticFiles();
         app.UseFileServer(new FileServerOptions
         {
-            FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, _webRootPath)),
+            FileProvider = new PhysicalFileProvider(_webRootPath),
             EnableDirectoryBrowsing = true
         });
 

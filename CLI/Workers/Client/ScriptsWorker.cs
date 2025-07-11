@@ -17,8 +17,9 @@ public class ScriptsWorker() : IPageWorker
 
     public void Init(ProjectMode mode = ProjectMode.Fullstack)
     {
-        if (!File.Exists(_tsConfigBaseFile))
-            AssemblyHelpers.WriteResourceToFile(_tsConfigBaseFile, _tsConfigBaseFile);
+        var baseTsConfigPath = Path.Combine(Settings.WorkingDirectory, _tsConfigBaseFile);
+        if (!File.Exists(baseTsConfigPath))
+            AssemblyHelpers.WriteResourceToFile(_tsConfigBaseFile, baseTsConfigPath);
 
         if (mode == ProjectMode.ServerOnly)
             return;
@@ -50,15 +51,14 @@ public class ScriptsWorker() : IPageWorker
 
     public void Build(bool releaseMode = false)
     {
-        var packageJsonPath = Path.Combine(Directory.GetCurrentDirectory(), Settings.PackageJsonFile);
+        var packageJsonPath = Path.Combine(Settings.WorkingDirectory, Settings.PackageJsonFile);
         if (File.Exists(packageJsonPath) && !Directories.NodeModulesDirectory.Exists)
         {
-            Console.WriteLine("Installing npm dependencies...");
             RunNpmInstall();
         }
 
         CompileTypeScriptFiles();
-        FlattenPageScripts();
+        FlattenBuildOutput();
 
         if (!releaseMode)
         {
@@ -138,8 +138,44 @@ public class ScriptsWorker() : IPageWorker
         }
     }
 
-    private static void FlattenPageScripts()
+    private static void FlattenBuildOutput()
     {
+        // First, move everything from client/client/* up one level
+        var nestedClientDirectory = Directories.ClientBuildDirectory.SubDirectory("client");
+        if (nestedClientDirectory.Exists)
+        {
+            // Move all contents up one level
+            foreach (var item in nestedClientDirectory.GetDirectories())
+            {
+                var targetPath = Directories.ClientBuildDirectory.Join(item.Name);
+                if (Directory.Exists(targetPath))
+                {
+                    // If target exists, we need to merge contents
+                    foreach (var file in item.GetFiles("*", SearchOption.AllDirectories))
+                    {
+                        var relativePath = Path.GetRelativePath(item.FullName, file.FullName);
+                        var targetFilePath = Path.Combine(targetPath, relativePath);
+                        Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!);
+                        file.MoveTo(targetFilePath, overwrite: true);
+                    }
+                    item.Delete(recursive: true);
+                }
+                else
+                {
+                    item.MoveTo(targetPath);
+                }
+            }
+            
+            foreach (var file in nestedClientDirectory.GetFiles())
+            {
+                var targetPath = Directories.ClientBuildDirectory.Join(file.Name);
+                file.MoveTo(targetPath, overwrite: true);
+            }
+            
+            nestedClientDirectory.Delete(recursive: true);
+        }
+        
+        // Then flatten pages as before
         var pagesDirectory = Directories.ClientBuildDirectory.SubDirectory("pages");
         if (!pagesDirectory.Exists)
             return;
@@ -179,15 +215,19 @@ public class ScriptsWorker() : IPageWorker
 
     private static void RunNpmInstall()
     {
+        // Check if package-lock.json exists to determine which npm command to use
+        var packageLockPath = Path.Combine(Settings.WorkingDirectory, "package-lock.json");
+        var npmCommand = File.Exists(packageLockPath) ? "ci" : "install";
+        
         var processInfo = new ProcessStartInfo
         {
             FileName = "npm",
-            Arguments = "ci",
+            Arguments = npmCommand,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
-            WorkingDirectory = Directory.GetCurrentDirectory()
+            WorkingDirectory = Settings.WorkingDirectory
         };
 
         using var process = Process.Start(processInfo)

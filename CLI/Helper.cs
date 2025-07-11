@@ -72,7 +72,8 @@ public static class Helper
             "Build the project once",
             [
                 Example($"{Webstir} {BuildCommand}", "Build the project"),
-                Example($"{Webstir} {BuildCommand} {CleanOption}", "Clean build (removes build directory first)")
+                Example($"{Webstir} {BuildCommand} {CleanOption}", "Clean build (removes build directory first)"),
+                Example($"{Webstir} {BuildCommand} ./my-app", "Build project in ./my-app directory")
             ],
             [
                 Option(CleanOption, "Clean build directory before building")
@@ -84,7 +85,8 @@ public static class Helper
             "Build and watch for changes (default)",
             [
                 Example($"{Webstir} {WatchCommand}", "Start development server with hot reload"),
-                Example(Webstir, $"Same as '{Webstir} {WatchCommand}'")
+                Example(Webstir, $"Same as '{Webstir} {WatchCommand}'"),
+                Example($"{Webstir} {WatchCommand} ../project", "Watch project in parent directory")
             ]);
 
     private static CommandHelp GetPublishCommand() => 
@@ -118,7 +120,7 @@ public static class Helper
     {
         Console.WriteLine($"{Webstir} - Modern web development build tool");
         Console.WriteLine();
-        Console.WriteLine($"Usage: {Webstir} [command] [options]");
+        Console.WriteLine($"Usage: {Webstir} [command] [options] [path]");
         Console.WriteLine();
         Console.WriteLine("Commands:");
         
@@ -132,6 +134,16 @@ public static class Helper
         
         Console.WriteLine();
         Console.WriteLine($"Run '{Webstir} {HelpCommand} <command>' for more information on a specific command.");
+        Console.WriteLine();
+        Console.WriteLine("Path parameter:");
+        Console.WriteLine("  You can specify a path as the last argument to run commands in a different directory.");
+        Console.WriteLine();
+        Console.WriteLine("Examples:");
+        Console.ForegroundColor = ConsoleColor.Gray;
+        Console.WriteLine($"  {Webstir} build ./my-project         # Build project in ./my-project directory");
+        Console.WriteLine($"  {Webstir} watch /path/to/project     # Watch project at absolute path");
+        Console.WriteLine($"  {Webstir} init new-app               # Initialize new project in new-app directory");
+        Console.ResetColor();
     }
 
     public static void ShowCommandHelp(string commandName)

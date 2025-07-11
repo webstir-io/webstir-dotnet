@@ -15,10 +15,32 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
             ? args.First() 
             : string.Empty;
         
+        // For help commands, don't extract path parameter
         if (IsHelpRequested(command, args))
             return;
+        
+        // Extract path parameter if provided for other commands
+        var remainingArgs = ExtractAndSetWorkingDirectory(args);
+        
+        await ExecuteCommand(command, remainingArgs);
+    }
 
-        await ExecuteCommand(command, args);
+    private static string[] ExtractAndSetWorkingDirectory(string[] args)
+    {
+        // Check if the last argument is a path (not starting with -- or -)
+        if (args.Length > 0)
+        {
+            var lastArg = args[args.Length - 1];
+            
+            // If it's not an option and it's not a known command, treat it as a path
+            if (!lastArg.StartsWith("-") && args.Length > 1)
+            {
+                Settings.WorkingDirectory = lastArg;
+                return args.Take(args.Length - 1).ToArray();
+            }
+        }
+        
+        return args;
     }
 
     private static bool IsHelpRequested(string command, string[] args)
@@ -91,7 +113,7 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
         foreach (var worker in _fileWorkers)
             worker.Init(mode);
         
-        var packageJsonPath = Path.Combine(Directory.GetCurrentDirectory(), Settings.PackageJsonFile);
+        var packageJsonPath = Path.Combine(Settings.WorkingDirectory, Settings.PackageJsonFile);
         if (!File.Exists(packageJsonPath))
         {
             AssemblyHelpers.WriteResourceToFile(Settings.PackageJsonFile, packageJsonPath);
@@ -135,7 +157,6 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
 
         if (cleanBuild || ShouldCleanBuild())
         {
-            Console.Write(" (clean)");
             if (Directory.Exists(Directories.BuildDirectory.FullName))
             {
                 foreach (var directory in Directories.BuildDirectory.GetDirectories())
@@ -189,34 +210,52 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
     {
         var targetDirectory = args.FirstOrDefault() ?? Settings.DemoFolder;
         
-        if (!Path.IsPathRooted(targetDirectory))
-        {
-            targetDirectory = Path.Combine(Directory.GetCurrentDirectory(), targetDirectory);
-        }
-        
         // If the directory exists, delete it to ensure a clean demo
         if (Directory.Exists(targetDirectory))
         {
-            Console.WriteLine($"Removing existing demo directory at {targetDirectory}...");
             Directory.Delete(targetDirectory, recursive: true);
         }
         
+        // First, run webstir init to create the base structure
+        
+        // Get the path to the current executable
+        var webstirPath = Environment.ProcessPath ?? "dotnet";
+        var webstirArgs = Environment.ProcessPath != null 
+            ? $"{InitCommand} {targetDirectory}"
+            : $"run -- {InitCommand} {targetDirectory}";
+            
+        var initProcess = new ProcessStartInfo
+        {
+            FileName = webstirPath,
+            Arguments = webstirArgs,
+            UseShellExecute = false,
+            WorkingDirectory = Directory.GetCurrentDirectory()
+        };
+        
+        using (var process = Process.Start(initProcess))
+        {
+            process?.WaitForExit();
+        }
+        
+        // Then use DemoBuilder to overlay the demo files
         var demoBuilder = new DemoBuilder(_fileWorkers);
         demoBuilder.CreateTemplate(targetDirectory);
         
         // Start webstir in the demo directory
-        Console.WriteLine();
-        Console.WriteLine($"Starting {Webstir} in demo directory...");
-        Console.WriteLine();
         
-        var processInfo = new ProcessStartInfo
+        var watchArgs = Environment.ProcessPath != null 
+            ? $"{WatchCommand} {targetDirectory}"
+            : $"run -- {WatchCommand} {targetDirectory}";
+            
+        var watchProcess = new ProcessStartInfo
         {
-            FileName = Webstir,
-            WorkingDirectory = targetDirectory,
-            UseShellExecute = false
+            FileName = webstirPath,
+            Arguments = watchArgs,
+            UseShellExecute = false,
+            WorkingDirectory = Directory.GetCurrentDirectory()
         };
         
-        using var process = Process.Start(processInfo);
-        process?.WaitForExit();
+        using var watchProc = Process.Start(watchProcess);
+        watchProc?.WaitForExit();
     }
 }

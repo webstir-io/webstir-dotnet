@@ -156,7 +156,7 @@ public class MarkupWorker : IPageWorker
         var routerPath = Path.Combine(Directories.ClientAppDirectory.FullName, "router.ts");
         if (File.Exists(routerPath))
         {
-            Console.WriteLine("Detected router.ts - SPA mode enabled globally");
+            // Router detected - SPA mode will be enabled
         }
         
         return metadata;

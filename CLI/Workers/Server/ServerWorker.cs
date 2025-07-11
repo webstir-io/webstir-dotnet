@@ -34,10 +34,9 @@ public class ServerWorker() : IFileWorker
             return;
 
         // Check if node_modules exists and package.json exists
-        var packageJsonPath = Path.Combine(Directory.GetCurrentDirectory(), Settings.PackageJsonFile);
+        var packageJsonPath = Path.Combine(Settings.WorkingDirectory, Settings.PackageJsonFile);
         if (File.Exists(packageJsonPath) && !Directories.NodeModulesDirectory.Exists)
         {
-            Console.WriteLine("Installing npm dependencies...");
             RunNpmInstall();
         }
 
@@ -101,15 +100,19 @@ public class ServerWorker() : IFileWorker
 
     private static void RunNpmInstall()
     {
+        // Check if package-lock.json exists to determine which npm command to use
+        var packageLockPath = Path.Combine(Settings.WorkingDirectory, "package-lock.json");
+        var npmCommand = File.Exists(packageLockPath) ? "ci" : "install";
+        
         var processInfo = new ProcessStartInfo
         {
             FileName = "npm",
-            Arguments = "ci",  // Use ci for reproducible installs
+            Arguments = npmCommand,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
-            WorkingDirectory = Directory.GetCurrentDirectory()
+            WorkingDirectory = Settings.WorkingDirectory
         };
 
         using var process = Process.Start(processInfo)
