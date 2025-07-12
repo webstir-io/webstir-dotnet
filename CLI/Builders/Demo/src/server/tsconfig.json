@@ -1,0 +1,17 @@
+{
+  "extends": "../../base.tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "outDir": "../../build",
+    "baseUrl": ".",
+    "incremental": true,
+    "tsBuildInfoFile": "../../build/server/.tsbuildinfo",
+    "paths": {
+      "@shared/*": ["../shared/*"]
+    }
+  },
+  "include": ["."],
+  "exclude": ["node_modules", "../../build", "../../dist"]
+}

@@ -76,7 +76,10 @@ public static class Directories
 
     public static DirectoryInfo SubDirectory(this DirectoryInfo directoryInfo, string subDirectory)
     {
-        return directoryInfo.CreateSubdirectory(subDirectory);
+        // Use Directory.CreateDirectory to preserve hyphens in directory names
+        // CreateSubdirectory can sometimes sanitize names, replacing hyphens with underscores
+        var fullPath = Path.Combine(directoryInfo.FullName, subDirectory);
+        return Directory.CreateDirectory(fullPath);
     }
 
     public static string Join(this DirectoryInfo directoryInfo, string name)
