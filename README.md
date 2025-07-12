@@ -10,6 +10,7 @@ A minimalist fullstack framework written in C# (.NET 9.0) that combines static s
 - **API Proxy**: Automatic proxying between frontend and backend during development
 - **Node.js Integration**: Run Node.js servers alongside your static site
 - **Page-Based Architecture**: Organized page structure with HTML, CSS, and TypeScript
+- **Modern CSS**: @import support with namespace resolution for modular styling
 - **Client-Side Routing**: Optional SPA routing with lifecycle hooks and navigation API
 - **Template System**: HTML fragments merged with app-level templates
 - **Production Ready**: Optimized builds for deployment
@@ -167,7 +168,7 @@ dist/                 # Production builds
 ### Frontend
 1. **Pages**: Each page is a directory in `src/client/pages/` containing HTML, CSS, and TypeScript
 2. **Templates**: Page HTML fragments are merged into `src/client/app/app.html` at build time
-3. **Styles**: CSS files are concatenated (app.css + page-specific CSS)
+3. **Styles**: Modern CSS with @import support for modular styling
 4. **Scripts**: TypeScript is compiled to ES modules with separate tsconfig
 
 ### Backend
@@ -279,6 +280,75 @@ import { navigate } from '@webstir/navigation';
 // From products page to detail page
 await navigate('/product-detail/?id=123');
 ```
+
+### CSS Architecture
+
+Webstir uses a modern CSS architecture with @import support, allowing for modular and maintainable stylesheets.
+
+#### Basic Structure
+
+```
+src/client/
+├── app/
+│   ├── app.css          # Main stylesheet with @import statements
+│   └── styles/          # Reusable style modules
+│       ├── reset.css    # CSS reset
+│       └── base.css     # Base element styles
+└── pages/
+    └── home/
+        └── index.css    # Page styles that import app.css
+```
+
+#### Using @import
+
+Main app stylesheet (`app.css`):
+```css
+/* Main App Stylesheet */
+@import "./styles/reset.css";
+@import "./styles/base.css";
+
+/* App-specific styles */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+```
+
+Page stylesheet (`pages/home/index.css`):
+```css
+/* Home Page Styles */
+@import "@app/app.css";
+
+/* Page-specific styles */
+.hero {
+  padding: 2rem 0;
+}
+```
+
+#### Namespace Support
+
+Webstir supports special namespaces for cleaner imports:
+- `@app/` - References `src/client/app/` directory
+- `@components/` - References `src/client/app/components/`
+- `@shared/` - References `src/client/shared/styles/`
+- `@pages/` - References `src/client/pages/`
+
+#### Build Behavior
+
+**Development Mode:**
+- @import statements are preserved
+- Referenced files are copied to build directory
+- Enables hot module replacement for CSS changes
+
+**Production Mode:**
+- All @import statements are inlined
+- Creates a single optimized CSS file per page
+- Comments are removed and code is minified
+
+#### Legacy Support
+
+Projects without @import statements continue to work with automatic CSS concatenation, ensuring backward compatibility.
 
 ### Development Server
 

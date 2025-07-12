@@ -82,6 +82,10 @@ public class ScriptsWorker() : IPageWorker
 
         foreach (FileInfo jsFile in Directories.ClientBuildDirectory.GetFiles("*.js", SearchOption.AllDirectories))
         {
+            // Skip refresh.js as it's only for development
+            if (jsFile.Name.Equals(_refreshJsFile, StringComparison.OrdinalIgnoreCase))
+                continue;
+                
             string relativePath = Path.GetRelativePath(Directories.ClientBuildDirectory.FullName, jsFile.FullName);
             string targetFilePath = Path.Combine(Directories.ClientDistDirectory.FullName, relativePath);
 

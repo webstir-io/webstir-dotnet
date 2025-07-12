@@ -19,12 +19,12 @@ public class HtmlFile(string _filepath)
         
         if (headContentMatch.Success)
         {
-            var headContent = headContentMatch.Groups[1].Value;
+            var headContent = headContentMatch.Groups[1].Value.Trim();
             // Insert head content before closing </head> tag in template
             result = System.Text.RegularExpressions.Regex.Replace(
                 result,
                 @"</head>",
-                headContent + "</head>"
+                headContent + "\n</head>"
             );
         }
         
@@ -37,7 +37,7 @@ public class HtmlFile(string _filepath)
         
         if (mainContentMatch.Success)
         {
-            var mainContent = mainContentMatch.Groups[1].Value;
+            var mainContent = mainContentMatch.Groups[1].Value.Trim();
             // Replace <main> </main> with <main>content</main>
             result = System.Text.RegularExpressions.Regex.Replace(
                 result,

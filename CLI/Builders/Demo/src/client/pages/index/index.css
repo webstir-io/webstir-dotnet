@@ -1,0 +1,55 @@
+/* Index Page Styles */
+@import "@app/app.css";
+
+.hero {
+  text-align: center;
+  padding: var(--space-2xl) 0;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+}
+
+.hero h1 {
+  font-size: var(--font-size-3xl);
+  margin-bottom: var(--space-md);
+}
+
+.hero p {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-light);
+  max-width: 600px;
+  margin: 0 auto var(--space-lg);
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-lg);
+  margin-top: var(--space-2xl);
+}
+
+.feature-card {
+  text-align: center;
+}
+
+.feature-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto var(--space-md);
+  background-color: var(--color-primary);
+  border-radius: var(--radius-lg);
+}
+
+.cta-section {
+  text-align: center;
+  margin-top: var(--space-2xl);
+  padding: var(--space-2xl);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+}
+
+.cta-buttons {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+  margin-top: var(--space-lg);
+}
