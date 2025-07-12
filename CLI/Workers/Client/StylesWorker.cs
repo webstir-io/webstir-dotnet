@@ -1,7 +1,7 @@
 using CLI.Helpers;
 using CLI.Interfaces;
 using CLI.Models;
-using System.Text.RegularExpressions;
+using CLI.Processors.Css;
 
 namespace CLI.Workers.Client;
 
@@ -10,17 +10,6 @@ public class StylesWorker : IPageWorker
     private const string _appCssFile = "app.css";
     private const string _indexCssFile = "index.css";
     
-    // Regex pattern to match @import statements
-    private static readonly Regex ImportRegex = new(@"@import\s+(?:url\s*\()?\s*[""']([^""']+)[""']\s*\)?;", RegexOptions.Compiled);
-    
-    // Namespace mapping for @import resolution
-    private static readonly Dictionary<string, string> NamespaceMap = new()
-    {
-        { "@app/", "app/" },
-        { "@components/", "app/components/" },
-        { "@shared/", "shared/styles/" },
-        { "@pages/", "pages/" }
-    };
 
     public int BuildOrder { get; } = 3;
 
@@ -61,7 +50,7 @@ public class StylesWorker : IPageWorker
         if (File.Exists(appCssFilepath))
         {
             var appCssContent = File.ReadAllText(appCssFilepath);
-            if (UsesImportStatements(appCssContent))
+            if (CssImportProcessor.HasImportStatements(appCssContent))
             {
                 // New @import processing
                 BuildWithImports(releaseMode);
@@ -76,7 +65,7 @@ public class StylesWorker : IPageWorker
         // The CSS files are already in the correct location (build/pages/)
     }
     
-    private void BuildWithImports(bool releaseMode)
+    private static void BuildWithImports(bool releaseMode)
     {
         // Process each page directory
         foreach (var pageDirectory in Directories.ClientPagesDirectory.GetDirectories())
@@ -102,7 +91,7 @@ public class StylesWorker : IPageWorker
             }
             
             // Process imports for build mode
-            cssContent = ProcessImportsForBuild(cssContent, pageCssFile.FullName, outputFilepath, releaseMode);
+            cssContent = CssImportProcessor.ProcessForBuild(cssContent, pageCssFile.FullName, outputFilepath, releaseMode);
             
             // Write the processed CSS
             File.WriteAllText(outputFilepath, cssContent);
@@ -201,7 +190,7 @@ public class StylesWorker : IPageWorker
         if (File.Exists(appCssFilepath))
         {
             var appCssContent = File.ReadAllText(appCssFilepath);
-            usesImports = UsesImportStatements(appCssContent);
+            usesImports = CssImportProcessor.HasImportStatements(appCssContent);
         }
         
         // Process root index.css if it exists
@@ -217,11 +206,11 @@ public class StylesWorker : IPageWorker
                 if (File.Exists(sourcePagePath))
                 {
                     cssContent = File.ReadAllText(sourcePagePath);
-                    cssContent = ProcessImportsForPublish(cssContent, sourcePagePath);
+                    cssContent = CssImportProcessor.ProcessForPublish(cssContent, sourcePagePath);
                 }
             }
             
-            cssContent = RemoveCssComments(cssContent);
+            cssContent = CssMinifier.Minify(cssContent);
             var targetPath = Directories.ClientDistDirectory.Join(rootIndexCss.Name);
             File.WriteAllText(targetPath, cssContent);
         }
@@ -246,11 +235,11 @@ public class StylesWorker : IPageWorker
                     if (File.Exists(sourcePagePath))
                     {
                         cssContent = File.ReadAllText(sourcePagePath);
-                        cssContent = ProcessImportsForPublish(cssContent, sourcePagePath);
+                        cssContent = CssImportProcessor.ProcessForPublish(cssContent, sourcePagePath);
                     }
                 }
                 
-                cssContent = RemoveCssComments(cssContent);
+                cssContent = CssMinifier.Minify(cssContent);
                 
                 var targetPath = distPageDirectory.Join(cssFile.Name);
                 File.WriteAllText(targetPath, cssContent);
@@ -265,140 +254,4 @@ public class StylesWorker : IPageWorker
         File.WriteAllText(pageDirectory.Join($"{pageName}.css"), cssContent);
     }
 
-    private static string RemoveCssComments(string css)
-    {
-        // Remove CSS comments (/* ... */)
-        var commentPattern = @"/\*[\s\S]*?\*/";
-        css = System.Text.RegularExpressions.Regex.Replace(css, commentPattern, string.Empty);
-        
-        // Remove empty lines left by comment removal
-        var emptyLinePattern = @"^\s*\r?\n";
-        css = System.Text.RegularExpressions.Regex.Replace(
-            css, 
-            emptyLinePattern, 
-            string.Empty, 
-            System.Text.RegularExpressions.RegexOptions.Multiline
-        );
-        
-        // Trim whitespace from beginning and end
-        return css.Trim();
-    }
-    
-    /// <summary>
-    /// Checks if CSS content contains @import statements
-    /// </summary>
-    private static bool UsesImportStatements(string cssContent)
-    {
-        return ImportRegex.IsMatch(cssContent);
-    }
-    
-    /// <summary>
-    /// Processes @import statements for build mode - keeps imports but copies files and rewrites paths
-    /// </summary>
-    private static string ProcessImportsForBuild(string cssContent, string sourceFilePath, string outputPath, bool releaseMode = false)
-    {
-        var sourceDir = Path.GetDirectoryName(sourceFilePath) ?? "";
-        var outputDir = Path.GetDirectoryName(outputPath) ?? "";
-        var processedImports = new HashSet<string>(); // To prevent circular imports
-        
-        return ImportRegex.Replace(cssContent, match =>
-        {
-            var importPath = match.Groups[1].Value;
-            var resolvedPath = ResolveImportPath(importPath, sourceDir);
-            
-            if (string.IsNullOrEmpty(resolvedPath) || !File.Exists(resolvedPath))
-            {
-                // Return error comment if file not found
-                return releaseMode ? "" : $"/* ERROR: Import file not found: {importPath} */";
-            }
-            
-            // Check for circular imports
-            if (processedImports.Contains(resolvedPath))
-            {
-                return releaseMode ? "" : $"/* ERROR: Circular import detected: {importPath} */";
-            }
-            
-            processedImports.Add(resolvedPath);
-            
-            // Calculate relative path from output location to imported file
-            var importedFileName = Path.GetFileName(resolvedPath);
-            var importedOutputPath = Path.Combine(outputDir, importedFileName);
-            
-            // Copy the imported file to the output directory if it's not already there
-            if (!File.Exists(importedOutputPath))
-            {
-                var importedContent = File.ReadAllText(resolvedPath);
-                // Recursively process imports in the imported file
-                importedContent = ProcessImportsForBuild(importedContent, resolvedPath, importedOutputPath, releaseMode);
-                File.WriteAllText(importedOutputPath, importedContent);
-            }
-            
-            // Return the import statement with the new relative path
-            return $"@import \"./{importedFileName}\";";
-        });
-    }
-    
-    /// <summary>
-    /// Processes @import statements for publish mode - inlines all imported content
-    /// </summary>
-    private static string ProcessImportsForPublish(string cssContent, string sourceFilePath, HashSet<string>? processedFiles = null)
-    {
-        processedFiles ??= [];
-        var sourceDir = Path.GetDirectoryName(sourceFilePath) ?? "";
-        
-        return ImportRegex.Replace(cssContent, match =>
-        {
-            var importPath = match.Groups[1].Value;
-            var resolvedPath = ResolveImportPath(importPath, sourceDir);
-            
-            if (string.IsNullOrEmpty(resolvedPath) || !File.Exists(resolvedPath))
-            {
-                // Return empty string for missing files in publish mode
-                return "";
-            }
-            
-            // Check for circular imports
-            if (processedFiles.Contains(resolvedPath))
-            {
-                return "";
-            }
-            
-            processedFiles.Add(resolvedPath);
-            
-            // Read and recursively process the imported file
-            var importedContent = File.ReadAllText(resolvedPath);
-            importedContent = ProcessImportsForPublish(importedContent, resolvedPath, processedFiles);
-            
-            // Return the inlined content
-            return importedContent;
-        });
-    }
-    
-    /// <summary>
-    /// Resolves an import path considering namespace mappings and relative paths
-    /// </summary>
-    private static string ResolveImportPath(string importPath, string sourceDir)
-    {
-        // Handle namespace imports
-        foreach (var ns in NamespaceMap)
-        {
-            if (importPath.StartsWith(ns.Key))
-            {
-                var relativePath = importPath[ns.Key.Length..];
-                var clientPath = Path.Combine(Directories.ClientDirectory.FullName, ns.Value, relativePath);
-                return Path.GetFullPath(clientPath);
-            }
-        }
-        
-        // Handle relative imports
-        if (importPath.StartsWith("./") || importPath.StartsWith("../"))
-        {
-            var fullPath = Path.Combine(sourceDir, importPath);
-            return Path.GetFullPath(fullPath);
-        }
-        
-        // Handle absolute imports from client root
-        var absolutePath = Path.Combine(Directories.ClientDirectory.FullName, importPath);
-        return Path.GetFullPath(absolutePath);
-    }
 }
