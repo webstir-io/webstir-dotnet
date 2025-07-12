@@ -9,6 +9,8 @@ CLI/src/
 CLI/build/
 CLI/dist/
 CLI/demo/
+CLI/package.json
+CLI/package-lock.json
 
 # OS-specific files
 .DS_Store

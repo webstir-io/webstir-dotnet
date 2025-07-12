@@ -8,13 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\**\*" />
-    <EmbeddedResource Include="Builders\Demo\src\**\*" />
-    <EmbeddedResource Include="Builders\Demo\README.md" />
+    <ProjectReference Include="..\Engine\Engine.csproj" />
   </ItemGroup>
 
 </Project>

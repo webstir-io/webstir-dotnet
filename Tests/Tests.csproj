@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\CLI\CLI.csproj" />
+    <ProjectReference Include="..\Engine\Engine.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

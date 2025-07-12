@@ -1,9 +1,10 @@
-using CLI.Helpers;
-using CLI.Interfaces;
-using CLI.Models;
-using CLI.Builders.Demo;
-using static CLI.Constants.Commands;
+using Engine;
+using Engine.Helpers;
+using Engine.Interfaces;
+using Engine.Models;
+using Engine.Builders.Demo;
 using System.Diagnostics;
+using static CLI.Constants;
 
 namespace CLI;
 
@@ -48,15 +49,15 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
         if (command == HelpCommand || command == HelpOption || command == HelpShortOption)
         {
             if (args.Length > 1 && command == HelpCommand)
-                Helper.ShowCommandHelp(args[1]);
+                Help.ShowCommandHelp(args[1]);
             else
-                Helper.ShowGeneralHelp();
+                Help.ShowGeneralHelp();
             return true;
         }
         
         if (args.Length > 1 && (args[1] == HelpOption || args[1] == HelpShortOption))
         {
-            Helper.ShowCommandHelp(command);
+            Help.ShowCommandHelp(command);
             return true;
         }
 
@@ -103,7 +104,7 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
     {
         Console.WriteLine($"Unknown command '{command}'");
         Console.WriteLine();
-        Console.WriteLine($"Run '{Webstir} {HelpCommand}' to see available commands.");
+        Console.WriteLine($"Run '{AppName} {HelpCommand}' to see available commands.");
     }
 
     private void Init(string[] args)
@@ -132,7 +133,7 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
         var pageName = args.FirstOrDefault();   
         if (string.IsNullOrEmpty(pageName))
         {
-            Console.WriteLine($"Usage: {Webstir} {AddPageCommand} <page-name>");
+            Console.WriteLine($"Usage: {AppName} {AddPageCommand} <page-name>");
             return;
         }
         
