@@ -6,6 +6,9 @@
 
 CLI/out
 
+# Test temp files
+Tests/temp/
+
 # OS-specific files
 .DS_Store
 
