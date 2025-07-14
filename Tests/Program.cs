@@ -1,185 +1,124 @@
-using System;
-using System.IO;
-using System.Reflection;
-using System.Text.RegularExpressions;
-using Engine.Processors.Css;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Tests.Framework;
+using Tests.Suite;
 
 namespace Tests;
 
+public class TestOptions
+{
+    public bool ShowHelp { get; set; }
+    public List<string> TestSuites { get; set; } = new();
+}
+
 class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
-        Console.WriteLine("=== WebStir Tests ===\n");
+        // Parse command line arguments
+        var options = ParseArguments(args);
         
-        // Run CSS Minification tests
-        TestCssMinification();
-    }
-    
-    static void TestCssMinification()
-    {
-        Console.WriteLine("Running CSS Minification Tests...\n");
-        
-        // We can now use the public CssMinifier directly!
-        
-        // Test 1: Basic minification
-        TestBasicMinification();
-        
-        // Test 2: Edge cases
-        TestEdgeCases();
-        
-        // Test 3: Real-world CSS
-        TestRealWorldCss();
-    }
-    
-    static void TestBasicMinification()
-    {
-        Console.WriteLine("Test 1: Basic Minification");
-        
-        var testCss = @"
-/* Comment to remove */
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px 15px 20px 15px;
-    background-color: #ffffff;
-    border: 1px solid #e0e0e0;
-}
-
-/* Another comment */
-h1 {
-    color: #333333;  /* Inline comment */
-    font-size: 2.5rem;
-    margin-bottom: 0px;
-}";
-        
-        var minified = CssMinifier.Minify(testCss);
-        var originalSize = testCss.Length;
-        var minifiedSize = minified.Length;
-        var reduction = (1 - (double)minifiedSize / originalSize) * 100;
-        
-        Console.WriteLine($"  Original: {originalSize} bytes");
-        Console.WriteLine($"  Minified: {minifiedSize} bytes");
-        Console.WriteLine($"  Reduction: {reduction:F1}%");
-        Console.WriteLine($"  Result: {minified}");
-        Console.WriteLine();
-    }
-    
-    static void TestEdgeCases()
-    {
-        Console.WriteLine("Test 2: Edge Cases");
-        
-        // Test various edge cases
-        var edgeCases = new Dictionary<string, string>
+        if (options.ShowHelp)
         {
-            ["Empty CSS"] = "",
-            ["Only comments"] = "/* comment 1 */ /* comment 2 */",
-            ["URL with quotes"] = ".bg { background: url(\"image.jpg\"); }",
-            ["Zero units"] = ".box { margin: 0px; padding: 0rem; border-width: 0em; }",
-            ["Hex colors"] = ".colors { color: #336699; background: #ffffff; }",
-            ["Media queries"] = "@media (max-width: 768px) { .box { padding: 10px; } }",
-            ["Complex selectors"] = ".nav > ul > li > a:hover { color: red; }",
-            ["Trailing semicolons"] = ".test { color: red; background: blue; }"
-        };
-        
-        foreach (var testCase in edgeCases)
-        {
-            var minified = CssMinifier.Minify(testCase.Value);
-            Console.WriteLine($"  {testCase.Key}:");
-            Console.WriteLine($"    Input:  {testCase.Value}");
-            Console.WriteLine($"    Output: {minified}");
+            ShowHelp();
+            return;
         }
-        Console.WriteLine();
+        
+        // Setup dependency injection
+        var services = new ServiceCollection();
+        ConfigureServices(services);
+        
+        using var serviceProvider = services.BuildServiceProvider();
+        
+        // Get services from DI container
+        var testRunner = serviceProvider.GetRequiredService<ITestRunner>();
+        var outputManager = serviceProvider.GetRequiredService<ITestOutputManager>();
+        
+        // Run tests
+        var summary = options.TestSuites.Any() 
+            ? await testRunner.RunTestsAsync(options.TestSuites)
+            : await testRunner.RunAllTestsAsync();
+        
+        // Output results
+        await outputManager.WriteResultsAsync(summary, null, null);
+        
+        // Exit with error code if tests failed
+        Environment.Exit(summary.FailedTests > 0 ? 1 : 0);
     }
     
-    static void TestRealWorldCss()
+    private static TestOptions ParseArguments(string[] args)
     {
-        Console.WriteLine("Test 3: Real-world CSS");
+        var options = new TestOptions();
         
-        var realWorldCss = @"
-/* Reset Styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-/* Typography */
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 16px;
-    line-height: 1.5;
-    color: #333333;
-    background-color: #ffffff;
-}
-
-/* Container */
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-}
-
-/* Buttons */
-.btn {
-    display: inline-block;
-    padding: 10px 20px;
-    background-color: #0066cc;
-    color: #ffffff;
-    text-decoration: none;
-    border-radius: 4px;
-    transition: background-color 0.3s ease;
-}
-
-.btn:hover {
-    background-color: #0052a3;
-}
-
-/* Grid */
-.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-    margin: 20px 0;
-}
-
-/* Media Queries */
-@media (max-width: 768px) {
-    .container {
-        padding: 0 10px;
+        for (int i = 0; i < args.Length; i++)
+        {
+            switch (args[i].ToLowerInvariant())
+            {
+                case "help" or "--help" or "-h":
+                    options.ShowHelp = true;
+                    break;
+                case "test":
+                    // Take only the next argument as the test suite name
+                    if (i + 1 < args.Length)
+                    {
+                        options.TestSuites.Add(args[++i]);
+                    }
+                    break;
+                default:
+                    // Ignore unknown arguments
+                    break;
+            }
+        }
+        
+        return options;
     }
     
-    .grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-}
-
-/* Utilities */
-.text-center { text-align: center; }
-.mt-1 { margin-top: 0.5rem; }
-.mt-2 { margin-top: 1rem; }
-.mt-3 { margin-top: 1.5rem; }";
-        
-        var minified = CssMinifier.Minify(realWorldCss);
-        var originalSize = realWorldCss.Length;
-        var minifiedSize = minified.Length;
-        var reduction = (1 - (double)minifiedSize / originalSize) * 100;
-        
-        Console.WriteLine($"  Original: {originalSize} bytes");
-        Console.WriteLine($"  Minified: {minifiedSize} bytes");
-        Console.WriteLine($"  Reduction: {reduction:F1}%");
-        Console.WriteLine($"  Target: 30-50% reduction");
-        Console.WriteLine($"  Status: {(reduction >= 30 ? "✓ PASSED" : "✗ FAILED")}");
-        
-        // Save output for inspection
-        var outputPath = "test-output-minified.css";
-        File.WriteAllText(outputPath, minified);
-        Console.WriteLine($"  Output saved to: {outputPath}");
-        
-        // Show first 200 chars
-        Console.WriteLine($"\n  Preview (first 200 chars):");
-        Console.WriteLine($"  {minified.Substring(0, Math.Min(200, minified.Length))}...");
+    private static void ShowHelp()
+    {
+        Console.WriteLine("WebStir Test Runner");
         Console.WriteLine();
+        Console.WriteLine("Usage: dotnet run [command]");
+        Console.WriteLine();
+        Console.WriteLine("Commands:");
+        Console.WriteLine("  (none)               Run all tests (default)");
+        Console.WriteLine("  test <suite>         Run specific test suite");
+        Console.WriteLine("  help                 Show this help message");
+        Console.WriteLine();
+        Console.WriteLine("Available Test Suites:");
+        Console.WriteLine("  init                 - Tests the init command");
+        Console.WriteLine("  build                - Tests the build command");
+        Console.WriteLine("  watch                - Tests the watch command"); 
+        Console.WriteLine("  publish              - Tests the publish command");
+        Console.WriteLine("  demo                 - Tests the demo command");
+        Console.WriteLine("  help                 - Tests the help command");
+        Console.WriteLine();
+        Console.WriteLine("Examples:");
+        Console.WriteLine("  dotnet run                    # Run all tests");
+        Console.WriteLine("  dotnet run help               # Show this help");
+        Console.WriteLine("  dotnet run test init          # Run only init tests");
+        Console.WriteLine("  dotnet run test build         # Run only build tests");
+        Console.WriteLine("  dotnet run test watch         # Run only watch tests");
+    }
+    
+    private static void ConfigureServices(IServiceCollection services)
+    {
+        // Add logging (errors only for clean output)
+        services.AddLogging(builder =>
+        {
+            builder.AddConsole()
+                   .SetMinimumLevel(LogLevel.Error);
+        });
+        
+        // Register test suites
+        services.AddTransient<ITestSuite, InitTests>();
+        services.AddTransient<ITestSuite, BuildTests>();
+        services.AddTransient<ITestSuite, WatchTests>();
+        services.AddTransient<ITestSuite, PublishTests>();
+        services.AddTransient<ITestSuite, DemoTests>();
+        services.AddTransient<ITestSuite, HelpTests>();
+        
+        // Register test runner and output manager
+        services.AddTransient<ITestRunner, TestRunner>();
+        services.AddTransient<ITestOutputManager, TestOutputManager>();
     }
 }

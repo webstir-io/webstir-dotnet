@@ -1,60 +1,54 @@
 using System.Diagnostics;
+using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Models;
 
 namespace Engine.Workers;
 
-public class ServerWorker() : IFileWorker
+public class ServerWorker(App app) : IModuleWorker
 {
     private const string _tsConfigFile = "tsconfig.json";
     private const string _indexTsFile = "index.ts";
 
-    public int BuildOrder { get; } = 1; // Run parallel with other workers
+    public int BuildOrder => 3; // Depends on SharedWorker, can run with other fast operations
 
     public void Init(ProjectMode mode = ProjectMode.Fullstack)
     {
-        // Skip server files for ClientOnly mode
-        if (mode == ProjectMode.ClientOnly)
-            return;
-
-        // For init, we want to create the directory
-        string tsConfigPath = Directories.ServerDirectory.Join(_tsConfigFile);
+        string tsConfigPath = app.ServerDir.CombinePath(_tsConfigFile);
         if (!File.Exists(tsConfigPath))
-            AssemblyHelpers.WriteResourceToFile(Settings.ServerFolder, _tsConfigFile, tsConfigPath);
+            AssemblyHelpers.WriteResourceToFile(App.Folders.Server, _tsConfigFile, tsConfigPath);
 
-        string indexTsPath = Directories.ServerDirectory.Join(_indexTsFile);
+        string indexTsPath = app.ServerDir.CombinePath(_indexTsFile);
         if (!File.Exists(indexTsPath))
-            AssemblyHelpers.WriteResourceToFile(Settings.ServerFolder, _indexTsFile, indexTsPath);
+            AssemblyHelpers.WriteResourceToFile(App.Folders.Server, _indexTsFile, indexTsPath);
     }
 
     public void Build(bool releaseMode = false)
     {
-        if (!Directories.GetServerDirectory().Exists)
+        if (!app.ServerDir.Exists)
             return;
 
         // Check if node_modules exists and package.json exists
-        var packageJsonPath = Path.Combine(Settings.WorkingDirectory, Settings.PackageJsonFile);
-        if (File.Exists(packageJsonPath) && !Directories.NodeModulesDirectory.Exists)
-        {
+        var packageJsonPath = app.WorkingDir.CombinePath(App.Files.PackageJson);
+        if (File.Exists(packageJsonPath) && !app.NodeModulesDir.Exists)
             RunNpmInstall();
-        }
 
         CompileTypeScriptFiles();
     }
 
     public void Publish()
     {
-        if (!Directories.ServerDirectory.Exists)
+        if (!app.ServerDir.Exists)
             return;
 
-        Directory.CreateDirectory(Directories.ServerDistDirectory.FullName);
+        Directory.CreateDirectory(app.ServerDistDir.FullName);
 
         // Copy all .js files from server build to server dist
-        foreach (FileInfo jsFile in Directories.ServerBuildDirectory.GetFiles("*.js", SearchOption.AllDirectories))
+        foreach (FileInfo jsFile in app.ServerBuildDir.GetFiles("*.js", SearchOption.AllDirectories))
         {
-            string relativePath = Path.GetRelativePath(Directories.ServerBuildDirectory.FullName, jsFile.FullName);
-            string targetFilePath = Path.Combine(Directories.ServerDistDirectory.FullName, relativePath);
+            string relativePath = Path.GetRelativePath(app.ServerBuildDir.FullName, jsFile.FullName);
+            string targetFilePath = Path.Combine(app.ServerDistDir.FullName, relativePath);
 
             Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!);
             
@@ -66,10 +60,10 @@ public class ServerWorker() : IFileWorker
         }
     }
 
-    private static void CompileTypeScriptFiles()
+    private void CompileTypeScriptFiles()
     {
-        var tsConfigPath = Directories.ServerDirectory.Join(_tsConfigFile);
-        
+        var tsConfigPath = app.ServerDir.CombinePath(_tsConfigFile);
+
         var processInfo = new ProcessStartInfo
         {
             FileName = "tsc",
@@ -98,10 +92,10 @@ public class ServerWorker() : IFileWorker
         }
     }
 
-    private static void RunNpmInstall()
+    private void RunNpmInstall()
     {
         // Check if package-lock.json exists to determine which npm command to use
-        var packageLockPath = Path.Combine(Settings.WorkingDirectory, "package-lock.json");
+        var packageLockPath = app.WorkingDir.CombinePath("package-lock.json");
         var npmCommand = File.Exists(packageLockPath) ? "ci" : "install";
         
         var processInfo = new ProcessStartInfo
@@ -112,7 +106,7 @@ public class ServerWorker() : IFileWorker
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
-            WorkingDirectory = Settings.WorkingDirectory
+            WorkingDirectory = app.WorkingDir.FullName
         };
 
         using var process = Process.Start(processInfo)
@@ -159,4 +153,6 @@ public class ServerWorker() : IFileWorker
         
         return js.Trim();
     }
+
+    public void AddPage(DirectoryInfo pageDirectory) { }
 }

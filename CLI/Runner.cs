@@ -1,32 +1,40 @@
-using Engine;
 using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Models;
-using Engine.Builders.Demo;
+using Engine.Services;
+using Engine.Workflows;
 using System.Diagnostics;
-using static CLI.Constants;
+using Microsoft.Extensions.DependencyInjection;
+using Engine;
+using Engine.Extensions;
 
 namespace CLI;
 
-public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
-{    
+public class Runner(IServiceProvider serviceProvider)
+{
+    private App _app = null!;
+    private IWorkflowFactory _workflowFactory = null!;
+        
     public async Task Run(string[] args)
     {
-        var command = args.Length != 0 
-            ? args.First() 
+        var command = args.Length != 0
+            ? args.First()
             : string.Empty;
-        
-        // For help commands, don't extract path parameter
+
         if (IsHelpRequested(command, args))
             return;
-        
-        // Extract path parameter if provided for other commands
-        var remainingArgs = ExtractAndSetWorkingDirectory(args);
-        
+
+        var (remainingArgs, workingDirectory) = ExtractWorkingDirectory(args);
+
+        using var scope = serviceProvider.CreateScope();
+        _app = scope.ServiceProvider.GetRequiredService<App>();
+        _workflowFactory = scope.ServiceProvider.GetRequiredService<IWorkflowFactory>();
+        _app.Initialize(workingDirectory);
+
         await ExecuteCommand(command, remainingArgs);
     }
 
-    private static string[] ExtractAndSetWorkingDirectory(string[] args)
+    private static (string[] args, string workingDirectory) ExtractWorkingDirectory(string[] args)
     {
         // Check if the last argument is a path (not starting with -- or -)
         if (args.Length > 0)
@@ -34,28 +42,27 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
             var lastArg = args[args.Length - 1];
             
             // If it's not an option and it's not a known command, treat it as a path
-            if (!lastArg.StartsWith("-") && args.Length > 1)
+            if (!lastArg.StartsWith('-') && args.Length > 1)
             {
-                Settings.WorkingDirectory = lastArg;
-                return args.Take(args.Length - 1).ToArray();
+                return (args.Take(args.Length - 1).ToArray(), lastArg);
             }
         }
         
-        return args;
+        return (args, Directory.GetCurrentDirectory());
     }
 
     private static bool IsHelpRequested(string command, string[] args)
     {
-        if (command == HelpCommand || command == HelpOption || command == HelpShortOption)
+        if (command == App.Commands.Help || command == App.Options.Help || command == App.Options.HelpShort)
         {
-            if (args.Length > 1 && command == HelpCommand)
+            if (args.Length > 1 && command == App.Commands.Help)
                 Help.ShowCommandHelp(args[1]);
             else
                 Help.ShowGeneralHelp();
             return true;
         }
-        
-        if (args.Length > 1 && (args[1] == HelpOption || args[1] == HelpShortOption))
+
+        if (args.Length > 1 && (args[1] == App.Options.Help || args[1] == App.Options.HelpShort))
         {
             Help.ShowCommandHelp(command);
             return true;
@@ -68,30 +75,29 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
     {
         switch (command)
         {
-            case InitCommand:
-                Init(args[1..]);
-                break;
-            
-            case AddPageCommand:
-                AddPage(args[1..]);
+            case App.Commands.Init:
+                await _workflowFactory.ExecuteAsync(command, args[1..]);
                 break;
 
-            case BuildCommand:
-                Build(cleanBuild: args.Contains(CleanOption));
+            case App.Commands.AddPage:
+                await _workflowFactory.ExecuteAsync(command, args[1..]);
+                break;
+
+            case App.Commands.Build:
+                await _workflowFactory.ExecuteAsync(command, args);
+                break;
+
+            case App.Commands.Publish:
+                await _workflowFactory.ExecuteAsync(command, args);
                 break;
 
             case "":
-            case WatchCommand:
-                Build();
-                await Watch();
+            case App.Commands.Watch:
+                await ExecuteWatchWorkflow(args);
                 break;
 
-            case PublishCommand:
-                Publish();
-                break;
-
-            case DemoCommand:
-                Demo(args[1..]);
+            case App.Commands.Demo:
+                await ExecuteDemoWorkflow(args[1..]);
                 break;
 
             default:
@@ -104,159 +110,38 @@ public class Runner(IEnumerable<IFileWorker> _fileWorkers, Watcher _watcher)
     {
         Console.WriteLine($"Unknown command '{command}'");
         Console.WriteLine();
-        Console.WriteLine($"Run '{AppName} {HelpCommand}' to see available commands.");
+        Console.WriteLine($"Run '{App.Name} {App.Commands.Help}' to see available commands.");
     }
 
-    private void Init(string[] args)
+
+    private async Task ExecuteWatchWorkflow(string[] args)
     {
-        var mode = ParseProjectMode(args);
+        var watcherService = serviceProvider.GetRequiredService<WatchService>();
         
-        foreach (var worker in _fileWorkers)
-            worker.Init(mode);
+        // Initial build
+        await _workflowFactory.ExecuteAsync(App.Commands.Build, args);
         
-        var packageJsonPath = Path.Combine(Settings.WorkingDirectory, Settings.PackageJsonFile);
-        if (!File.Exists(packageJsonPath))
+        // Watch for changes
+        await watcherService.Watch(async cleanBuild => 
         {
-            AssemblyHelpers.WriteResourceToFile(Settings.PackageJsonFile, packageJsonPath);
-        }
+            var buildArgs = cleanBuild ? new[] { App.Options.Clean } : Array.Empty<string>();
+            await _workflowFactory.ExecuteAsync(App.Commands.Build, buildArgs);
+        });
+    }
+
+    private async Task ExecuteDemoWorkflow(string[] args)
+    {
+        // TODO: Implement demo workflow properly
+        var targetDirectory = args.FirstOrDefault() ?? App.Folders.Demo;
+        Console.WriteLine($"Demo functionality is temporarily disabled during refactoring.");
+        Console.WriteLine($"Target directory would be: {targetDirectory}");
+        await Task.CompletedTask;
     }
     
     private static ProjectMode ParseProjectMode(string[] args)
     {
-        if (args.Contains(ClientOnlyOption)) return ProjectMode.ClientOnly;
-        if (args.Contains(ServerOnlyOption)) return ProjectMode.ServerOnly;
+        if (args.Contains(App.Options.ClientOnly)) return ProjectMode.ClientOnly;
+        if (args.Contains(App.Options.ServerOnly)) return ProjectMode.ServerOnly;
         return ProjectMode.Fullstack;
-    }
-
-    private void AddPage(string[] args)
-    {
-        var pageName = args.FirstOrDefault();   
-        if (string.IsNullOrEmpty(pageName))
-        {
-            Console.WriteLine($"Usage: {AppName} {AddPageCommand} <page-name>");
-            return;
-        }
-        
-        var pagePath = Directories.ClientPagesDirectory.Join(pageName);   
-        if (Directory.Exists(pagePath))
-        {
-            Console.WriteLine($"Page '{pageName}' already exists at {pagePath}");
-            return;
-        }
-        
-        var pageDirectory = Directory.CreateDirectory(pagePath);
-        Console.WriteLine($"Creating page '{pageName}'...");
-        foreach (var worker in _fileWorkers.OfType<IPageWorker>())
-            worker.AddPage(pageDirectory);     
-
-        Console.WriteLine($"✓ Created page at {pagePath}");
-    }
-
-    private void Build(bool releaseMode = false, bool cleanBuild = false)
-    {
-        Console.Write("Building...");
-
-        if (cleanBuild || ShouldCleanBuild())
-        {
-            if (Directory.Exists(Directories.BuildDirectory.FullName))
-            {
-                foreach (var directory in Directories.BuildDirectory.GetDirectories())
-                    directory.Delete(true);
-            }
-        }
-
-        foreach (var worker in _fileWorkers.OrderBy(p => p.BuildOrder))
-            worker.Build(releaseMode);
-
-        Console.WriteLine(" Done");
-    }
-
-    private static bool ShouldCleanBuild()
-    {
-        if (!Directory.Exists(Directories.BuildDirectory.FullName))
-            return true;
-
-        const string tsBuildInfoFile = ".tsbuildinfo";
-        var clientTsConfig = Directories.ClientBuildDirectory.Join(tsBuildInfoFile);
-        var serverTsConfig = Directories.ServerBuildDirectory.Join(tsBuildInfoFile);
-
-        if (Directories.ClientDirectory.Exists && !File.Exists(clientTsConfig))
-            return true;
-        if (Directories.ServerDirectory.Exists && !File.Exists(serverTsConfig))
-            return true;
-
-        return false;
-    }
-
-    private void Publish()
-    {
-        Build(true);
-
-        Console.Write("Publishing...");
-
-        Directories.DistDirectory.Delete(true);
-
-        foreach (var worker in _fileWorkers)
-            worker.Publish();
-            
-        Console.WriteLine("Done");
-    }
-
-    private async Task Watch()
-    {
-        await _watcher.Watch(cleanBuild => Build(cleanBuild: cleanBuild));
-    }
-
-    private void Demo(string[] args)
-    {
-        var targetDirectory = args.FirstOrDefault() ?? Settings.DemoFolder;
-        
-        // If the directory exists, delete it to ensure a clean demo
-        if (Directory.Exists(targetDirectory))
-        {
-            Directory.Delete(targetDirectory, recursive: true);
-        }
-        
-        // First, run webstir init to create the base structure
-        
-        // Get the path to the current executable
-        var webstirPath = Environment.ProcessPath ?? "dotnet";
-        var webstirArgs = Environment.ProcessPath != null 
-            ? $"{InitCommand} {targetDirectory}"
-            : $"run -- {InitCommand} {targetDirectory}";
-            
-        var initProcess = new ProcessStartInfo
-        {
-            FileName = webstirPath,
-            Arguments = webstirArgs,
-            UseShellExecute = false,
-            WorkingDirectory = Directory.GetCurrentDirectory()
-        };
-        
-        using (var process = Process.Start(initProcess))
-        {
-            process?.WaitForExit();
-        }
-        
-        // Then use DemoBuilder to overlay the demo files
-        var demoBuilder = new DemoBuilder(_fileWorkers);
-        demoBuilder.CreateTemplate(targetDirectory);
-        
-        // Start webstir in the demo directory
-        
-        var watchArgs = Environment.ProcessPath != null 
-            ? $"{WatchCommand} {targetDirectory}"
-            : $"run -- {WatchCommand} {targetDirectory}";
-            
-        var watchProcess = new ProcessStartInfo
-        {
-            FileName = webstirPath,
-            Arguments = watchArgs,
-            UseShellExecute = false,
-            WorkingDirectory = Directory.GetCurrentDirectory()
-        };
-        
-        using var watchProc = Process.Start(watchProcess);
-        watchProc?.WaitForExit();
     }
 }

@@ -3,21 +3,11 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
-# These are the files folders that the code outputs
-# For testing purposes only
-CLI/src/
-CLI/build/
-CLI/dist/
-CLI/demo/
-CLI/package.json
-CLI/package-lock.json
+
+CLI/out
 
 # OS-specific files
 .DS_Store
-
-# Base TypeScript configuration (generated files)
-/base.tsconfig.json
-CLI/base.tsconfig.json
 
 # User-specific files
 *.rsuser
@@ -193,9 +183,6 @@ DocProject/Help/*.hhk
 DocProject/Help/*.hhp
 DocProject/Help/Html2
 DocProject/Help/html
-
-# Click-Once directory
-publish/
 
 # Publish Web Output
 *.[Pp]ublish.xml

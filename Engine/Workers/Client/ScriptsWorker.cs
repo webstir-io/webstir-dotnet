@@ -1,58 +1,57 @@
 using System.Diagnostics;
+using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Models;
 
 namespace Engine.Workers.Client;
 
-public class ScriptsWorker() : IPageWorker
+public class ScriptsWorker(App app) : IClientWorker
 {
+    public int BuildOrder => 1; // Heavy TypeScript compilation - let it use full CPU
     private const string _tsConfigBaseFile = "base.tsconfig.json";
     private const string _tsConfigClientFile = "tsconfig.json";
     private const string _appTsFile = "app.ts";
     private const string _indexTsFile = "index.ts";
     private const string _refreshJsFile = "refresh.js";
-
-    public int BuildOrder { get; } = 1;
+    private const string _routerTsFile = "router.ts";
+    private const string _navigationTsFile = "navigation.ts";
 
     public void Init(ProjectMode mode = ProjectMode.Fullstack)
     {
-        var baseTsConfigPath = Path.Combine(Settings.WorkingDirectory, _tsConfigBaseFile);
+        var baseTsConfigPath = app.WorkingDir.CombinePath(_tsConfigBaseFile);
         if (!File.Exists(baseTsConfigPath))
             AssemblyHelpers.WriteResourceToFile(_tsConfigBaseFile, baseTsConfigPath);
 
-        if (mode == ProjectMode.ServerOnly)
-            return;
-
-        string clientTsConfigPath = Directories.ClientDirectory.Join(_tsConfigClientFile);
+        string clientTsConfigPath = app.ClientDir.CombinePath(_tsConfigClientFile);
         if (!File.Exists(clientTsConfigPath))
-            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _tsConfigClientFile, clientTsConfigPath);
+            AssemblyHelpers.WriteResourceToFile("client", _tsConfigClientFile, clientTsConfigPath);
 
-        string outputRefreshJsFilepath = Directories.ClientAppDirectory.Join(_refreshJsFile);
+        string outputRefreshJsFilepath = app.ClientAppDir.CombinePath(_refreshJsFile);
         if (!File.Exists(outputRefreshJsFilepath))
-            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _refreshJsFile, outputRefreshJsFilepath);
+            AssemblyHelpers.WriteResourceToFile("client", _refreshJsFile, outputRefreshJsFilepath);
 
-        string outputAppTsFilepath = Directories.ClientAppDirectory.Join(_appTsFile);
+        string outputAppTsFilepath = app.ClientAppDir.CombinePath(_appTsFile);
         if (!File.Exists(outputAppTsFilepath))
-            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _appTsFile, outputAppTsFilepath);
+            AssemblyHelpers.WriteResourceToFile("client", _appTsFile, outputAppTsFilepath);
 
-        string outputIndexTsFilepath = Directories.ClientIndexDirectory.Join(_indexTsFile);
+        string outputIndexTsFilepath = app.ClientIndexDir.CombinePath(_indexTsFile);
         if (!File.Exists(outputIndexTsFilepath))
-            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, _indexTsFile, outputIndexTsFilepath);
-            
-        string routerFilePath = Directories.ClientAppDirectory.Join("router.ts");
+            AssemblyHelpers.WriteResourceToFile("client", _indexTsFile, outputIndexTsFilepath);
+
+        string routerFilePath = app.ClientAppDir.CombinePath(_routerTsFile);
         if (!File.Exists(routerFilePath))
-            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, "router.ts", routerFilePath);
-            
-        string navigationFilePath = Directories.ClientAppDirectory.Join("navigation.ts");
+            AssemblyHelpers.WriteResourceToFile("client", _routerTsFile, routerFilePath);
+
+        string navigationFilePath = app.ClientAppDir.CombinePath(_navigationTsFile);
         if (!File.Exists(navigationFilePath))
-            AssemblyHelpers.WriteResourceToFile(Settings.ClientFolder, "navigation.ts", navigationFilePath);
+            AssemblyHelpers.WriteResourceToFile("client", _navigationTsFile, navigationFilePath);
     }
 
     public void Build(bool releaseMode = false)
     {
-        var packageJsonPath = Path.Combine(Settings.WorkingDirectory, Settings.PackageJsonFile);
-        if (File.Exists(packageJsonPath) && !Directories.NodeModulesDirectory.Exists)
+        var packageJsonPath = app.WorkingDir.CombinePath(App.Files.PackageJson);
+        if (File.Exists(packageJsonPath) && !app.NodeModulesDir.Exists)
         {
             RunNpmInstall();
         }
@@ -60,34 +59,31 @@ public class ScriptsWorker() : IPageWorker
         CompileTypeScriptFiles();
         FlattenBuildOutput();
 
-        if (!releaseMode)
-        {
-            string sourceRefreshJsApp = Directories.ClientAppDirectory.Join(_refreshJsFile);
-            string targetRefreshJs = Directories.ClientBuildDirectory.Join(_refreshJsFile);
+        string sourceRefreshJsApp = app.ClientAppDir.CombinePath(_refreshJsFile);
+        string targetRefreshJs = app.ClientBuildDir.CombinePath(_refreshJsFile);
 
-            if (File.Exists(sourceRefreshJsApp))
-            {
-                File.Copy(sourceRefreshJsApp, targetRefreshJs, true);
-            }
-            else
-            {
-                Console.WriteLine($"Warning: {_refreshJsFile} not found in {sourceRefreshJsApp}");
-            }
+        if (File.Exists(sourceRefreshJsApp))
+        {
+            File.Copy(sourceRefreshJsApp, targetRefreshJs, true);
+        }
+        else
+        {
+            Console.WriteLine($"Warning: {_refreshJsFile} not found in {sourceRefreshJsApp}");
         }
     }
 
     public void Publish()
     {
-        Directory.CreateDirectory(Directories.ClientDistDirectory.FullName);
+        Directory.CreateDirectory(app.ClientDistDir.FullName);
 
-        foreach (FileInfo jsFile in Directories.ClientBuildDirectory.GetFiles("*.js", SearchOption.AllDirectories))
+        foreach (FileInfo jsFile in app.ClientBuildDir.GetFiles("*.js", SearchOption.AllDirectories))
         {
             // Skip refresh.js as it's only for development
             if (jsFile.Name.Equals(_refreshJsFile, StringComparison.OrdinalIgnoreCase))
                 continue;
-                
-            string relativePath = Path.GetRelativePath(Directories.ClientBuildDirectory.FullName, jsFile.FullName);
-            string targetFilePath = Path.Combine(Directories.ClientDistDirectory.FullName, relativePath);
+
+            string relativePath = Path.GetRelativePath(app.ClientBuildDir.FullName, jsFile.FullName);
+            string targetFilePath = Path.Combine(app.ClientDistDir.FullName, relativePath);
 
             Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!);
             
@@ -98,22 +94,10 @@ public class ScriptsWorker() : IPageWorker
         }
     }
 
-    public void AddPage(DirectoryInfo pageDirectory)
+    private void CompileTypeScriptFiles()
     {
-        var pageName = pageDirectory.Name;
-        var tsFilePath = pageDirectory.Join($"{pageName}.ts");
-        var tsContent = $"""
-            import '../../app/app.js';
+        var clientTsConfigPath = app.ClientDir.CombinePath(_tsConfigClientFile);
 
-            console.log('{pageName} page loaded');
-            """;
-        File.WriteAllText(tsFilePath, tsContent);
-    }
-
-    private static void CompileTypeScriptFiles()
-    {
-        var clientTsConfigPath = Directories.ClientDirectory.Join(_tsConfigClientFile);
-        
         var processInfo = new ProcessStartInfo
         {
             FileName = "tsc",
@@ -142,16 +126,16 @@ public class ScriptsWorker() : IPageWorker
         }
     }
 
-    private static void FlattenBuildOutput()
+    private void FlattenBuildOutput()
     {
         // First, move everything from client/client/* up one level
-        var nestedClientDirectory = Directories.ClientBuildDirectory.SubDirectory("client");
+        var nestedClientDirectory = app.ClientBuildDir.CreateSubDirectory("client");
         if (nestedClientDirectory.Exists)
         {
             // Move all contents up one level
             foreach (var item in nestedClientDirectory.GetDirectories())
             {
-                var targetPath = Directories.ClientBuildDirectory.Join(item.Name);
+                var targetPath = app.ClientBuildDir.CombinePath(item.Name);
                 if (Directory.Exists(targetPath))
                 {
                     // If target exists, we need to merge contents
@@ -172,7 +156,7 @@ public class ScriptsWorker() : IPageWorker
             
             foreach (var file in nestedClientDirectory.GetFiles())
             {
-                var targetPath = Directories.ClientBuildDirectory.Join(file.Name);
+                var targetPath = app.ClientBuildDir.CombinePath(file.Name);
                 file.MoveTo(targetPath, overwrite: true);
             }
             
@@ -180,7 +164,7 @@ public class ScriptsWorker() : IPageWorker
         }
         
         // Then flatten pages as before
-        var pagesDirectory = Directories.ClientBuildDirectory.SubDirectory("pages");
+        var pagesDirectory = app.ClientBuildDir.CreateSubDirectory("pages");
         if (!pagesDirectory.Exists)
             return;
 
@@ -191,22 +175,22 @@ public class ScriptsWorker() : IPageWorker
 
             if (pageName.Equals("index", StringComparison.OrdinalIgnoreCase))
             {
-                targetDirectory = Directories.ClientBuildDirectory;
+                targetDirectory = app.ClientBuildDir;
             }
             else
             {
-                targetDirectory = Directories.ClientBuildDirectory.SubDirectory(pageName);
+                targetDirectory = app.ClientBuildDir.CreateSubDirectory(pageName);
             }
 
             foreach (var jsFile in pageDirectory.GetFiles("*.js"))
             {
-                var targetPath = targetDirectory.Join(jsFile.Name);
+                var targetPath = targetDirectory.CombinePath(jsFile.Name);
                 jsFile.MoveTo(targetPath, overwrite: true);
             }
 
             foreach (var mapFile in pageDirectory.GetFiles("*.js.map"))
             {
-                var targetPath = targetDirectory.Join(mapFile.Name);
+                var targetPath = targetDirectory.CombinePath(mapFile.Name);
                 mapFile.MoveTo(targetPath, overwrite: true);
             }
         }
@@ -217,10 +201,10 @@ public class ScriptsWorker() : IPageWorker
         }
     }
 
-    private static void RunNpmInstall()
+    private void RunNpmInstall()
     {
         // Check if package-lock.json exists to determine which npm command to use
-        var packageLockPath = Path.Combine(Settings.WorkingDirectory, "package-lock.json");
+        var packageLockPath = app.WorkingDir.CombinePath("package-lock.json");
         var npmCommand = File.Exists(packageLockPath) ? "ci" : "install";
         
         var processInfo = new ProcessStartInfo
@@ -231,7 +215,7 @@ public class ScriptsWorker() : IPageWorker
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
-            WorkingDirectory = Settings.WorkingDirectory
+            WorkingDirectory = app.WorkingDir.FullName
         };
 
         using var process = Process.Start(processInfo)
@@ -274,5 +258,23 @@ public class ScriptsWorker() : IPageWorker
         );
         
         return js.Trim();
+    }
+
+    public void AddPage(DirectoryInfo pageDirectory)
+    {
+        var pageName = pageDirectory.Name;
+        var tsFilePath = pageDirectory.CombinePath($"{pageName}.ts");
+        var tsContent = $"""
+            import '../../app/app.js';
+
+            console.log('{pageName} page loaded');
+            """;
+        File.WriteAllText(tsFilePath, tsContent);
+    }
+
+    public void AddPage(string name) 
+    {
+        var pageDirectory = app.ClientPagesDir.CreateSubDirectory(name);
+        AddPage(pageDirectory);
     }
 }

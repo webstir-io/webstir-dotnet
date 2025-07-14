@@ -12,8 +12,6 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\**\*" />
-    <EmbeddedResource Include="Builders\Demo\src\**\*" />
-    <EmbeddedResource Include="Builders\Demo\README.md" />
   </ItemGroup>
 
 </Project>

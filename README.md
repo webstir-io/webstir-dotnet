@@ -4,6 +4,9 @@ A minimalist fullstack framework written in C# (.NET 9.0) that combines static s
 
 ## Features
 
+- **Smart Module System**: Auto-detects project type and only runs relevant build workers
+- **Intelligent Performance**: Parallel execution optimized for real-world build characteristics  
+- **Isolated Workflows**: Each command operates in dedicated workspace for clean builds
 - **Fullstack Development**: Seamlessly integrate frontend and backend development
 - **TypeScript Support**: Built-in TypeScript compilation for both frontend and backend
 - **Hot Reload**: Development server with WebSocket-based hot reload
@@ -123,6 +126,44 @@ Backend API server only:
 - Node.js/Express API server
 - No frontend files
 - Ideal for microservices or headless APIs
+
+## Architecture
+
+### Intelligent Module System
+
+Webstir uses a smart module-based architecture that automatically detects your project type and only loads the necessary build workers:
+
+**Auto-Detection**: Analyzes your project's folder structure to determine if you're building:
+- **Fullstack**: Has both `src/client/` and `src/server/` directories
+- **Client-Only**: Has only `src/client/` directory
+- **Server-Only**: Has only `src/server/` directory
+
+**Module Loading**: Based on detection, only relevant modules are loaded:
+- **ClientModule**: HTML, CSS, TypeScript, and image processing workers
+- **ServerModule**: Node.js compilation and server management workers  
+- **SharedModule**: Shared TypeScript type definition workers
+
+**Performance Benefits**: Instead of running all workers regardless of project type, webstir only executes what's needed, resulting in faster builds and cleaner output.
+
+### Optimized Parallel Execution
+
+Build workers are intelligently grouped for optimal performance:
+
+1. **Heavy Operations** (BuildOrder 1): TypeScript compilation gets full CPU resources
+2. **Dependencies** (BuildOrder 2): Shared type definitions that other workers need
+3. **Parallel Group** (BuildOrder 3): Independent operations run simultaneously
+   - HTML processing, CSS compilation, image optimization, and server compilation
+
+This approach avoids the overhead of unnecessary parallelization while maximizing speed where it matters.
+
+### Isolated Workflows
+
+Each command (`init`, `build`, `publish`, `add-page`) operates in its own isolated workspace under `CLI/out/{workflow-name}/`:
+
+- **Clean Execution**: No interference between different commands
+- **Parallel Development**: Multiple developers can run different commands simultaneously
+- **Debugging**: Easy to inspect intermediate build artifacts
+- **Reliability**: Failures in one workflow don't affect others
 
 ## Project Structure
 

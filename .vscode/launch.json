@@ -14,6 +14,17 @@
             "cwd": "${workspaceFolder}/CLI",
             "stopAtEntry": false,
             "console": "internalConsole",
+        },
+        {
+            "name": "Tests",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/Tests/bin/Debug/net9.0/Tests.dll",
+            "args": ["test", "demo"],
+            "cwd": "${workspaceFolder}/Tests",
+            "console": "internalConsole",
+            "stopAtEntry": false
         }
     ]
 }

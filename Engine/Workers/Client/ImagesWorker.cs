@@ -1,25 +1,26 @@
+using Engine.Extensions;
 using Engine.Interfaces;
 using Engine.Models;
 
 namespace Engine.Workers.Client;
 
-public class ImagesWorker : IFileWorker
+public class ImagesWorker(App app) : IClientWorker
 {
-    public int BuildOrder { get; } = 4;
+    public int BuildOrder => 3; // Fast operations can run together after TS compilation
 
-    public void Init(ProjectMode mode = ProjectMode.Fullstack)
-    {
-        // Images worker doesn't need initialization
-        return;
-    }
+    public void Init(ProjectMode mode = ProjectMode.Fullstack) { }
 
     public void Build(bool releaseMode = false)
     {
-        Directories.ClientImagesDirectory.CopyTo(Directories.ClientBuildImagesDirectory.FullName);
+        app.ClientImagesDir.CopyTo(app.ClientBuildImagesDir.FullName);
     }
 
     public void Publish()
     {
-        Directories.ClientBuildImagesDirectory.CopyTo(Directories.ClientDistImagesDirectory.FullName);
+        app.ClientBuildImagesDir.CopyTo(app.ClientDistImagesDir.FullName);
     }
+
+    public void AddPage(DirectoryInfo pageDirectory) { }
+
+    public void AddPage(string name) { }
 }
