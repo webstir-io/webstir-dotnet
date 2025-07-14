@@ -7,7 +7,7 @@ namespace Engine.Workflows;
 /// <summary>
 /// Adds a new page to the project in an isolated workspace
 /// </summary>
-public class AddPageWorkflow : BaseWorkflow<AddPageParameters>
+public class AddPageWorkflow : BaseWorkflow
 {
     public AddPageWorkflow(App app) 
         : base(app)
@@ -16,32 +16,42 @@ public class AddPageWorkflow : BaseWorkflow<AddPageParameters>
 
     public override string WorkflowName => "add-page";
 
-    public override async Task ExecuteAsync(AddPageParameters parameters)
+    public override async Task ExecuteAsync(string[] args)
     {
-        LogInfo($"Adding new page '{parameters.PageName}'...");
+        // Parse parameters from args
+        var pageName = args.FirstOrDefault();
+        if (string.IsNullOrEmpty(pageName))
+        {
+            LogError($"Usage: {App.Name} {App.Commands.AddPage} <page-name>");
+            throw new ArgumentException($"Usage: {App.Name} {App.Commands.AddPage} <page-name>");
+        }
+
+        var workingDirectory = _app.WorkingDir;
+
+        LogInfo($"Adding new page '{pageName}'...");
 
         // Initialize App to point to add-page workspace
         InitializeWorkspace();
 
         // Copy working directory to workspace
-        if (parameters.WorkingDirectory.Exists)
+        if (workingDirectory.Exists)
         {
-            CopyToWorkspace(parameters.WorkingDirectory);
+            CopyToWorkspace(workingDirectory);
         }
 
         // Validate page name
-        if (string.IsNullOrWhiteSpace(parameters.PageName))
+        if (string.IsNullOrWhiteSpace(pageName))
         {
             LogError("Page name cannot be empty");
             throw new ArgumentException("Page name is required");
         }
 
         // Check if page already exists
-        var pagePath = _app.ClientPagesDir.CombinePath(parameters.PageName);
+        var pagePath = _app.ClientPagesDir.CombinePath(pageName);
         if (Directory.Exists(pagePath))
         {
-            LogError($"Page '{parameters.PageName}' already exists");
-            throw new InvalidOperationException($"Page '{parameters.PageName}' already exists");
+            LogError($"Page '{pageName}' already exists");
+            throw new InvalidOperationException($"Page '{pageName}' already exists");
         }
 
         // Create page directory
@@ -59,9 +69,9 @@ public class AddPageWorkflow : BaseWorkflow<AddPageParameters>
         }, projectMode);
 
         // Copy workspace back to working directory
-        await CopyWorkspaceToTarget(parameters.WorkingDirectory);
+        await CopyWorkspaceToTarget(workingDirectory);
 
-        LogInfo($"Page '{parameters.PageName}' added successfully");
+        LogInfo($"Page '{pageName}' added successfully");
     }
 
     private async Task CopyWorkspaceToTarget(DirectoryInfo targetDir)

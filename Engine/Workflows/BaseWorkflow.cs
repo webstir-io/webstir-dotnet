@@ -7,8 +7,7 @@ namespace Engine.Workflows;
 /// <summary>
 /// Base class for all workflows providing common functionality
 /// </summary>
-public abstract class BaseWorkflow<TParameters> : IWorkflow<TParameters> 
-    where TParameters : WorkflowParameters
+public abstract class BaseWorkflow : IWorkflow
 {
     protected readonly App _app;
 
@@ -27,12 +26,7 @@ public abstract class BaseWorkflow<TParameters> : IWorkflow<TParameters>
 
     public abstract string WorkflowName { get; }
 
-    public abstract Task ExecuteAsync(TParameters parameters);
-
-    public Task ExecuteAsync()
-    {
-        throw new InvalidOperationException($"Workflow {WorkflowName} requires parameters. Use ExecuteAsync(TParameters) instead.");
-    }
+    public abstract Task ExecuteAsync(string[] args);
 
     /// <summary>
     /// Initializes App to point to this workflow's workspace
@@ -109,4 +103,6 @@ public abstract class BaseWorkflow<TParameters> : IWorkflow<TParameters>
     {
         Console.WriteLine($"[{WorkflowName}] ERROR: {message}");
     }
+
+
 }

@@ -21,12 +21,10 @@ try
     services.AddScoped<App>();
     services.AddScoped<IWorkflowFactory, WorkflowFactory>();
 
-    // Register modules (may be removed in future)
     services.AddTransient<IAppModule, ClientModule>();
     services.AddTransient<IAppModule, ServerModule>();
     services.AddTransient<IAppModule, SharedModule>();
 
-    // Register workers
     services.AddTransient<IModuleWorker, HtmlWorker>();
     services.AddTransient<IModuleWorker, StylesWorker>();
     services.AddTransient<IModuleWorker, ScriptsWorker>();
@@ -34,7 +32,6 @@ try
     services.AddTransient<IModuleWorker, ServerWorker>();
     services.AddTransient<IModuleWorker, SharedWorker>();
 
-    // Register workflows
     services.AddTransient<InitWorkflow>();
     services.AddTransient<BuildWorkflow>();
     services.AddTransient<PublishWorkflow>();

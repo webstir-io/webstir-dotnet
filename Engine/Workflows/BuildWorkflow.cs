@@ -7,7 +7,7 @@ namespace Engine.Workflows;
 /// <summary>
 /// Builds the project in an isolated workspace
 /// </summary>
-public class BuildWorkflow : BaseWorkflow<BuildParameters>
+public class BuildWorkflow : BaseWorkflow
 {
     public BuildWorkflow(App app) 
         : base(app)
@@ -16,14 +16,18 @@ public class BuildWorkflow : BaseWorkflow<BuildParameters>
 
     public override string WorkflowName => "build";
 
-    public override async Task ExecuteAsync(BuildParameters parameters)
+    public override async Task ExecuteAsync(string[] args)
     {
-        LogInfo($"Starting build (ReleaseMode: {parameters.ReleaseMode}, CleanBuild: {parameters.CleanBuild})...");
+        // Parse parameters from args
+        var workingDirectory = _app.WorkingDir;
+        var releaseMode = false; // Build workflow always uses debug mode
+        var cleanBuild = ShouldCleanBuild(args);
+
+        LogInfo($"Starting build (ReleaseMode: {releaseMode}, CleanBuild: {cleanBuild})...");
 
         // Auto-detect project mode from source directory BEFORE workspace setup
         var originalWorkingDir = _app.WorkingDir.FullName;
-        _app.Initialize(parameters.WorkingDirectory.FullName);
-        
+        _app.Initialize(workingDirectory.FullName);
         
         var projectMode = _app.DetectProjectMode();
         LogInfo($"Detected project mode: {projectMode}");
@@ -33,27 +37,30 @@ public class BuildWorkflow : BaseWorkflow<BuildParameters>
         InitializeWorkspace();
 
         // Copy source files to workspace if they exist
-        if (parameters.WorkingDirectory.Exists)
+        if (workingDirectory.Exists)
         {
-            CopyToWorkspace(parameters.WorkingDirectory);
+            CopyToWorkspace(workingDirectory);
         }
         
         // Execute workers to build in workspace
         await ExecuteWorkersAsync(async worker =>
         {
-            await Task.Run(() => worker.Build(parameters.ReleaseMode));
+            await Task.Run(() => worker.Build(releaseMode));
         }, projectMode);
 
         LogInfo("Build completed successfully");
     }
 
     /// <summary>
-    /// Checks if a clean build is needed based on workspace state
+    /// Determines if a clean build is needed based on arguments or build state
     /// </summary>
-    public bool ShouldCleanBuild(DirectoryInfo workingDirectory)
+    private bool ShouldCleanBuild(string[] args)
     {
-        var workspaceDir = GetWorkspaceDir();
-        var buildDir = workspaceDir.CreateSubDirectory(App.Folders.Build);
+        var explicitClean = args.Contains(App.Options.Clean);
+        if (explicitClean) return true;
+
+        var buildWorkspaceDir = App.OutDir.CreateSubDirectory("build");
+        var buildDir = buildWorkspaceDir.CreateSubDirectory(App.Folders.Build);
         
         if (!buildDir.Exists)
             return true;
@@ -66,8 +73,8 @@ public class BuildWorkflow : BaseWorkflow<BuildParameters>
         var clientTsConfig = clientBuildDir.GetFiles(tsBuildInfoFile).FirstOrDefault();
         var serverTsConfig = serverBuildDir.GetFiles(tsBuildInfoFile).FirstOrDefault();
 
-        var clientSrcExists = workingDirectory.CreateSubDirectory($"{App.Folders.Src}/{App.Folders.Client}").Exists;
-        var serverSrcExists = workingDirectory.CreateSubDirectory($"{App.Folders.Src}/{App.Folders.Server}").Exists;
+        var clientSrcExists = _app.WorkingDir.CreateSubDirectory($"{App.Folders.Src}/{App.Folders.Client}").Exists;
+        var serverSrcExists = _app.WorkingDir.CreateSubDirectory($"{App.Folders.Src}/{App.Folders.Server}").Exists;
 
         if (clientSrcExists && clientTsConfig == null)
             return true;

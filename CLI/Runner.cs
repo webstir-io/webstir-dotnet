@@ -1,12 +1,6 @@
-using Engine.Helpers;
-using Engine.Interfaces;
-using Engine.Models;
 using Engine.Services;
-using Engine.Workflows;
-using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Engine;
-using Engine.Extensions;
 
 namespace CLI;
 
@@ -73,75 +67,13 @@ public class Runner(IServiceProvider serviceProvider)
 
     private async Task ExecuteCommand(string command, string[] args)
     {
-        switch (command)
+        if (command == "" || command == App.Commands.Watch)
         {
-            case App.Commands.Init:
-                await _workflowFactory.ExecuteAsync(command, args[1..]);
-                break;
-
-            case App.Commands.AddPage:
-                await _workflowFactory.ExecuteAsync(command, args[1..]);
-                break;
-
-            case App.Commands.Build:
-                await _workflowFactory.ExecuteAsync(command, args);
-                break;
-
-            case App.Commands.Publish:
-                await _workflowFactory.ExecuteAsync(command, args);
-                break;
-
-            case "":
-            case App.Commands.Watch:
-                await ExecuteWatchWorkflow(args);
-                break;
-
-            case App.Commands.Demo:
-                await ExecuteDemoWorkflow(args[1..]);
-                break;
-
-            default:
-                ShowUnknownCommandError(command);
-                break;
+            var watchService = serviceProvider.GetRequiredService<WatchService>();
+            await watchService.Watch(args);
+            return;
         }
-    }
-
-    private static void ShowUnknownCommandError(string command)
-    {
-        Console.WriteLine($"Unknown command '{command}'");
-        Console.WriteLine();
-        Console.WriteLine($"Run '{App.Name} {App.Commands.Help}' to see available commands.");
-    }
-
-
-    private async Task ExecuteWatchWorkflow(string[] args)
-    {
-        var watcherService = serviceProvider.GetRequiredService<WatchService>();
         
-        // Initial build
-        await _workflowFactory.ExecuteAsync(App.Commands.Build, args);
-        
-        // Watch for changes
-        await watcherService.Watch(async cleanBuild => 
-        {
-            var buildArgs = cleanBuild ? new[] { App.Options.Clean } : Array.Empty<string>();
-            await _workflowFactory.ExecuteAsync(App.Commands.Build, buildArgs);
-        });
-    }
-
-    private async Task ExecuteDemoWorkflow(string[] args)
-    {
-        // TODO: Implement demo workflow properly
-        var targetDirectory = args.FirstOrDefault() ?? App.Folders.Demo;
-        Console.WriteLine($"Demo functionality is temporarily disabled during refactoring.");
-        Console.WriteLine($"Target directory would be: {targetDirectory}");
-        await Task.CompletedTask;
-    }
-    
-    private static ProjectMode ParseProjectMode(string[] args)
-    {
-        if (args.Contains(App.Options.ClientOnly)) return ProjectMode.ClientOnly;
-        if (args.Contains(App.Options.ServerOnly)) return ProjectMode.ServerOnly;
-        return ProjectMode.Fullstack;
+        await _workflowFactory.ExecuteAsync(command, args);
     }
 }

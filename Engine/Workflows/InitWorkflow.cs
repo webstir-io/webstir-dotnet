@@ -8,7 +8,7 @@ namespace Engine.Workflows;
 /// <summary>
 /// Initializes a new webstir project in an isolated workspace
 /// </summary>
-public class InitWorkflow : BaseWorkflow<InitParameters>
+public class InitWorkflow : BaseWorkflow
 {
     public InitWorkflow(App app) 
         : base(app)
@@ -17,9 +17,13 @@ public class InitWorkflow : BaseWorkflow<InitParameters>
 
     public override string WorkflowName => "init";
 
-    public override async Task ExecuteAsync(InitParameters parameters)
+    public override async Task ExecuteAsync(string[] args)
     {
         LogInfo("Starting project initialization...");
+
+        // Parse parameters from args
+        var mode = ParseProjectMode(args);
+        var workingDirectory = _app.WorkingDir;
 
         // Initialize App to point to init workspace
         InitializeWorkspace();
@@ -28,16 +32,16 @@ public class InitWorkflow : BaseWorkflow<InitParameters>
         await ExecuteWorkersAsync(async worker =>
         {
             LogInfo($"Initializing {worker.GetType().Name}...");
-            await Task.Run(() => worker.Init(parameters.Mode));
-        }, parameters.Mode);
+            await Task.Run(() => worker.Init(mode));
+        }, mode);
 
         // Create package.json in workspace
         await CreatePackageJson();
 
         // Copy workspace to target directory
-        await CopyWorkspaceToTarget(parameters.WorkingDirectory);
+        await CopyWorkspaceToTarget(workingDirectory);
 
-        LogInfo($"Project initialized successfully at {parameters.WorkingDirectory.FullName}");
+        LogInfo($"Project initialized successfully at {workingDirectory.FullName}");
     }
 
     private async Task CreatePackageJson()
@@ -66,5 +70,15 @@ public class InitWorkflow : BaseWorkflow<InitParameters>
             // Copy all files from workspace to target directory
             _app.WorkingDir.CopyTo(targetDir.FullName);
         });
+    }
+
+    /// <summary>
+    /// Parses project mode from command line arguments
+    /// </summary>
+    private ProjectMode ParseProjectMode(string[] args)
+    {
+        if (args.Contains(App.Options.ClientOnly)) return ProjectMode.ClientOnly;
+        if (args.Contains(App.Options.ServerOnly)) return ProjectMode.ServerOnly;
+        return ProjectMode.Fullstack;
     }
 }

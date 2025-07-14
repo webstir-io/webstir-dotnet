@@ -7,7 +7,7 @@ namespace Engine.Workflows;
 /// <summary>
 /// Creates a production build in an isolated workspace
 /// </summary>
-public class PublishWorkflow : BaseWorkflow<PublishParameters>
+public class PublishWorkflow : BaseWorkflow
 {
     private readonly BuildWorkflow _buildWorkflow;
 
@@ -19,20 +19,19 @@ public class PublishWorkflow : BaseWorkflow<PublishParameters>
 
     public override string WorkflowName => "publish";
 
-    public override async Task ExecuteAsync(PublishParameters parameters)
+    public override async Task ExecuteAsync(string[] args)
     {
         LogInfo("Starting publish (production build)...");
 
-        // First run build workflow with release mode
-        var buildParameters = new BuildParameters
-        {
-            WorkingDirectory = parameters.WorkingDirectory,
-            ReleaseMode = true, // Publish always uses release mode
-            CleanBuild = parameters.CleanBuild
-        };
+        // Parse parameters from args
+        var workingDirectory = _app.WorkingDir;
+        var cleanBuild = args.Contains(App.Options.Clean);
+
+        // Create build args for the build workflow
+        var buildArgs = cleanBuild ? new[] { App.Options.Clean } : new string[0];
 
         LogInfo("Running build phase...");
-        await _buildWorkflow.ExecuteAsync(buildParameters);
+        await _buildWorkflow.ExecuteAsync(buildArgs);
 
         // Initialize App to point to publish workspace
         InitializeWorkspace();

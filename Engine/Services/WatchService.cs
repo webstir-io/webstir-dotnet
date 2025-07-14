@@ -2,7 +2,7 @@ using Engine.Interfaces;
 
 namespace Engine.Services;
 
-public class WatchService(App _app, IWebServer _webServer, INodeServer _nodeServer)
+public class WatchService(App _app, IWebServer _webServer, INodeServer _nodeServer, IWorkflowFactory _workflowFactory)
 {
     private static readonly string[] IgnoredFiles = ["Thumbs.db", ".DS_Store"];
     private static readonly string[] IgnoredExtensions = [".tmp"];
@@ -11,56 +11,111 @@ public class WatchService(App _app, IWebServer _webServer, INodeServer _nodeServ
     private DateTime _lastChangeTime = DateTime.MinValue;
     private readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(200);
 
-    public async Task Watch(Action<bool> onChangeAction)
+    public async Task Watch(string[]? args = null, Action<bool>? onChangeAction = null)
+    {
+        if (args != null)
+        {
+            await _workflowFactory.ExecuteAsync(App.Commands.Build, args);
+            _onChangeAction = cleanBuild => 
+            {
+                var buildArgs = cleanBuild ? [App.Options.Clean] : Array.Empty<string>();
+                _workflowFactory.ExecuteAsync(App.Commands.Build, buildArgs);
+            };
+        }
+        else
+        {
+            _onChangeAction = onChangeAction;
+        }
+
+        await StartFileWatching();
+    }
+
+    private async Task StartFileWatching()
     {
         Console.WriteLine("Watching for changes...");
 
-        using var watcher = new FileSystemWatcher(_app.SrcDir.FullName);
-        _onChangeAction = onChangeAction;
+        using var watcher = CreateFileSystemWatcher();
+        
+        try
+        {
+            await StartServers();
+            await WaitForExit();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during file watching: {ex.Message}");
+            throw;
+        }
+        finally
+        {
+            Console.WriteLine("Stopping servers...");
+            await StopServersAsync();
+            Console.WriteLine("Stopped watching");
+        }
+    }
 
-        watcher.NotifyFilter = NotifyFilters.CreationTime
-            | NotifyFilters.DirectoryName
-            | NotifyFilters.FileName
-            | NotifyFilters.LastWrite;
+    private FileSystemWatcher CreateFileSystemWatcher()
+    {
+        var watcher = new FileSystemWatcher(_app.SrcDir.FullName)
+        {
+            NotifyFilter = NotifyFilters.CreationTime
+                | NotifyFilters.DirectoryName
+                | NotifyFilters.FileName
+                | NotifyFilters.LastWrite,
+            IncludeSubdirectories = true,
+            EnableRaisingEvents = true
+        };
 
         watcher.Changed += OnChanged;
         watcher.Created += OnChanged;
         watcher.Deleted += OnDeleted;
         watcher.Renamed += OnChanged;
         watcher.Error += OnError;
-        watcher.IncludeSubdirectories = true;
-        watcher.EnableRaisingEvents = true;
-        
-        // Start both servers
+
+        return watcher;
+    }
+
+    private async Task StartServers()
+    {
         await _webServer.StartAsync();
         await _nodeServer.StartAsync();
+    }
 
+    private async Task WaitForExit()
+    {
         Console.WriteLine("Press Ctrl+C to exit.");
         
-        // Set up Ctrl+C handler
         var exitEvent = new TaskCompletionSource<bool>();
         Console.CancelKeyPress += async (sender, e) =>
         {
-            e.Cancel = true; // Prevent immediate termination
-            await StopServersAsync();
+            e.Cancel = true;
+            try
+            {
+                await StopServersAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error stopping servers during exit: {ex.Message}");
+            }
             exitEvent.SetResult(true);
         };
         
-        // Wait for Ctrl+C
         await exitEvent.Task;
-        
-        Console.WriteLine("Stopping servers...");
-        await StopServersAsync();
-        
-        Console.WriteLine("Stopped watching");
     }
 
     private async Task StopServersAsync()
     {
-        await Task.WhenAll(
-            _webServer.StopAsync(),
-            _nodeServer.StopAsync()
-        );
+        try
+        {
+            await Task.WhenAll(
+                _webServer.StopAsync(),
+                _nodeServer.StopAsync()
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error stopping servers: {ex.Message}");
+        }
     }
 
     private async void OnChanged(object sender, FileSystemEventArgs e)
