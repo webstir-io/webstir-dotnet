@@ -62,7 +62,13 @@ public class Watcher(Server _server)
         try
         {
             Console.WriteLine($"Detected file change: {e.FullPath}");
-            await WaitForFileAsync(e.FullPath);
+            
+            // Only wait for non-temp files
+            if (!e.FullPath.Contains(".tmp"))
+            {
+                await WaitForFileAsync(e.FullPath);
+            }
+            
             _onChangeAction!.Invoke(false);
             await _server.Update();
         }
