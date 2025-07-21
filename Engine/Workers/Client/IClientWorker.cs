@@ -1,4 +1,4 @@
-namespace Engine.Interfaces;
+namespace Engine.Workers.Client;
 
 public interface IClientWorker : IModuleWorker
 {

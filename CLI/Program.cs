@@ -1,14 +1,14 @@
 ﻿using CLI;
 using Engine;
-using Engine.Interfaces;
-using Engine.Modules;
 using Engine.Servers;
+using Engine.Modules;
 using Engine.Services;
 using Engine.Workers;
 using Engine.Workers.Client;
 using Engine.Workers.Shared;
 using Engine.Workflows;
 using Microsoft.Extensions.DependencyInjection;
+using Engine.Workers.Server;
 
 try
 {
@@ -32,10 +32,10 @@ try
     services.AddTransient<IModuleWorker, ServerWorker>();
     services.AddTransient<IModuleWorker, SharedWorker>();
 
-    services.AddTransient<InitWorkflow>();
-    services.AddTransient<BuildWorkflow>();
-    services.AddTransient<PublishWorkflow>();
-    services.AddTransient<AddPageWorkflow>();
+    services.AddTransient<IWorkflow, InitWorkflow>();
+    services.AddTransient<IWorkflow, BuildWorkflow>();
+    services.AddTransient<IWorkflow, PublishWorkflow>();
+    services.AddTransient<IWorkflow, AddPageWorkflow>();
 
     using ServiceProvider provider = services.BuildServiceProvider();
     await provider.GetService<Runner>()!.Run(args);

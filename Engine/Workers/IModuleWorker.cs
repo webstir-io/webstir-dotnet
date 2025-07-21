@@ -1,6 +1,6 @@
 using Engine.Models;
 
-namespace Engine.Interfaces;
+namespace Engine.Workers;
 
 public interface IModuleWorker
 {

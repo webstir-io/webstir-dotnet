@@ -1,10 +1,9 @@
 using System.Diagnostics;
 using Engine.Extensions;
 using Engine.Helpers;
-using Engine.Interfaces;
 using Engine.Models;
 
-namespace Engine.Workers;
+namespace Engine.Workers.Server;
 
 public class ServerWorker(App app) : IModuleWorker
 {

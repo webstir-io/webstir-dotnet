@@ -1,4 +1,4 @@
-namespace Engine.Interfaces;
+namespace Engine.Servers;
 
 public interface IWebServer
 {

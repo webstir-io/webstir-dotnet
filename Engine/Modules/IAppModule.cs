@@ -1,6 +1,7 @@
 using Engine.Models;
+using Engine.Workers;
 
-namespace Engine.Interfaces;
+namespace Engine.Modules;
 
 public interface IAppModule
 {

@@ -1,5 +1,5 @@
 using Engine.Extensions;
-using Engine.Interfaces;
+using Engine.Servers;
 using Engine.Models;
 
 namespace Engine.Workflows;
@@ -9,12 +9,9 @@ namespace Engine.Workflows;
 /// </summary>
 public class PublishWorkflow : BaseWorkflow
 {
-    private readonly BuildWorkflow _buildWorkflow;
-
-    public PublishWorkflow(App app, BuildWorkflow buildWorkflow) 
+    public PublishWorkflow(App app) 
         : base(app)
     {
-        _buildWorkflow = buildWorkflow;
     }
 
     public override string WorkflowName => "publish";
@@ -26,12 +23,11 @@ public class PublishWorkflow : BaseWorkflow
         // Parse parameters from args
         var workingDirectory = _app.WorkingDir;
         var cleanBuild = args.Contains(App.Options.Clean);
+        var releaseMode = true; // Publish workflow always uses release mode
 
-        // Create build args for the build workflow
-        var buildArgs = cleanBuild ? new[] { App.Options.Clean } : new string[0];
-
+        // First, run the build phase with the base build logic
         LogInfo("Running build phase...");
-        await _buildWorkflow.ExecuteAsync(buildArgs);
+        await ExecuteBuildAsync(workingDirectory, releaseMode, cleanBuild);
 
         // Initialize App to point to publish workspace
         InitializeWorkspace();
