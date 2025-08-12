@@ -9,7 +9,7 @@ public class BuildTests : BaseTest
     public override Task<TestResult[]> RunAsync()
     {
         TestResult[] tests = [
-            RunTest($"{App.Commands.Build} command runs without compilation errors", TestBuildCommandSuccess)
+            RunTest($"{Commands.Build} command runs without compilation errors", TestBuildCommandSuccess)
         ];
         return Task.FromResult(tests);
     }
@@ -20,12 +20,12 @@ public class BuildTests : BaseTest
         CleanupDirectory(testDir);
         SetupProject(testDir);
         
-        var result = RunCliCommand(App.Commands.Build, testDir, timeoutMs: 10000);
+        var result = RunCliCommand(Commands.Build, testDir, timeoutMs: 10000);
         
         if (result.TimedOut)
-            Assert.Fail($"{App.Commands.Build} command timed out");
+            Assert.Fail($"{Commands.Build} command timed out");
         
-        Assert.AreEqual(0, result.ExitCode, $"{App.Commands.Build} command failed. Error: {result.Error}");
+        Assert.AreEqual(0, result.ExitCode, $"{Commands.Build} command failed. Error: {result.Error}");
         
         // Verify build outputs exist
         var buildDir = Path.Combine(testDir, "build");

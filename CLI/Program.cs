@@ -7,8 +7,8 @@ using Engine.Workers;
 using Engine.Workers.Client;
 using Engine.Workers.Shared;
 using Engine.Workflows;
-using Microsoft.Extensions.DependencyInjection;
 using Engine.Workers.Server;
+using Microsoft.Extensions.DependencyInjection;
 
 try
 {
@@ -18,7 +18,7 @@ try
     services.AddSingleton<IWebServer, WebServer>();
     services.AddSingleton<INodeServer, NodeServer>();
 
-    services.AddScoped<App>();
+    services.AddScoped<Engine.AppContext>();
     services.AddScoped<IWorkflowFactory, WorkflowFactory>();
 
     services.AddTransient<IAppModule, ClientModule>();

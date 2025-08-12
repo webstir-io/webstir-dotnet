@@ -1,10 +1,9 @@
 using System.Diagnostics;
 using Engine.Extensions;
-using Engine.Servers;
 
 namespace Engine.Servers;
 
-public class NodeServer(App _app) : INodeServer, IDisposable
+public class NodeServer(AppContext _context) : INodeServer, IDisposable
 {
     private Process? _nodeProcess;
     private readonly SemaphoreSlim _processLock = new(1, 1);
@@ -23,7 +22,7 @@ public class NodeServer(App _app) : INodeServer, IDisposable
                 return;
             }
 
-            var serverIndexPath = _app.ServerBuildDir.CombinePath("index.js");
+            var serverIndexPath = _context.ServerBuildPath.Combine("index.js");
             if (!File.Exists(serverIndexPath))
             {
                 Console.WriteLine("Server build not found. Skipping Node.js server startup.");
@@ -35,12 +34,12 @@ public class NodeServer(App _app) : INodeServer, IDisposable
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "node",
-                    Arguments = _app.ServerBuildDir.CombinePath("index.js"),
+                    Arguments = _context.ServerBuildPath.Combine("index.js"),
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
-                    WorkingDirectory = _app.WorkingDir.FullName
+                    WorkingDirectory = _context.WorkingPath
                 }
             };
 

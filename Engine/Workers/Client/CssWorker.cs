@@ -1,164 +1,131 @@
 using Engine.Extensions;
 using Engine.Helpers;
-using Engine.Servers;
 using Engine.Models;
 using Engine.Processors.Css;
 
 namespace Engine.Workers.Client;
 
-public class StylesWorker(App app) : IClientWorker
+public class StylesWorker(AppContext context) : IClientWorker
 {
-    private const string _appCssFile = "app.css";
-    private const string _indexCssFile = "index.css";
+    private const string _contextCssFile = "context.css";
+    private const string _homeCssFile = "home.css";
     private const string _resetCssFile = "reset.css";
     private const string _baseCssFile = "base.css";
 
-    public int BuildOrder => 3; // Fast operations can run together after TS compilation
+    public int BuildOrder => 3;
 
-    public void Init(ProjectMode mode = ProjectMode.Fullstack)
+    public async Task Init(ProjectMode mode = ProjectMode.Fullstack)
     {
-        var stylesDirectory = app.ClientAppDir.CreateSubdirectory(App.Folders.Styles);
+        string stylesPath = context.ClientAppPath.CreateSubDirectory(Folders.Styles);
 
-        var appCssFilepath = stylesDirectory.CombinePath(_appCssFile);
-        if (!File.Exists(appCssFilepath))
-            AssemblyHelpers.WriteResourceToFile("client", _appCssFile, appCssFilepath);
+        string contextCssFilepath = stylesPath.Combine(_contextCssFile);
+        if (!File.Exists(contextCssFilepath))
+            AssemblyHelpers.WriteResourceToFile(Folders.Client, _contextCssFile, contextCssFilepath);
 
-        var resetCssFilepath = stylesDirectory.CombinePath(_resetCssFile);
+        string resetCssFilepath = stylesPath.Combine(_resetCssFile);
         if (!File.Exists(resetCssFilepath))
-            AssemblyHelpers.WriteResourceToFile("client.styles", _resetCssFile, resetCssFilepath);
+            AssemblyHelpers.WriteResourceToFile($"{Folders.Client}.{Folders.Styles}", _resetCssFile, resetCssFilepath);
 
-        var baseCssFilepath = stylesDirectory.CombinePath(_baseCssFile);
+        string baseCssFilepath = stylesPath.Combine(_baseCssFile);
         if (!File.Exists(baseCssFilepath))
-            AssemblyHelpers.WriteResourceToFile("client.styles", _baseCssFile, baseCssFilepath);
+            AssemblyHelpers.WriteResourceToFile($"{Folders.Client}.{Folders.Styles}", _baseCssFile, baseCssFilepath);
 
-        var indexCssOutputFilepath = app.ClientIndexDir.CombinePath(_indexCssFile);
-        if (!File.Exists(indexCssOutputFilepath))
-            AssemblyHelpers.WriteResourceToFile("client", _indexCssFile, indexCssOutputFilepath);
+        string homeCssOutputFilepath = context.ClientPagesPath.CreateSubDirectory(_homeCssFile);
+        if (!File.Exists(homeCssOutputFilepath))
+            AssemblyHelpers.WriteResourceToFile(Folders.Client, _homeCssFile, homeCssOutputFilepath);
+
+        await Task.CompletedTask;
     }
 
-    public void Build(bool releaseMode = false)
+    public async Task Build(bool releaseMode = false)
     {
-        var appCssFilepath = app.ClientAppDir.CombinePath(_appCssFile);
-        if (File.Exists(appCssFilepath))
+        string contextCssFilepath = context.ClientAppPath.Combine(_contextCssFile);
+        if (File.Exists(contextCssFilepath))
         {
-            var appCssContent = File.ReadAllText(appCssFilepath);
-            if (CssImportProcessor.HasImportStatements(appCssContent))
+            string contextCssContent = File.ReadAllText(contextCssFilepath);
+            if (CssImportProcessor.HasImportStatements(contextCssContent))
             {
                 BuildWithImports();
                 return;
             }
-        }    
+        }
+
+        await Task.CompletedTask;
     }
-    
+
     private void BuildWithImports()
     {
-        // Process each page directory
-        foreach (var pageDirectory in app.ClientPagesDir.GetDirectories())
+        foreach (string page in context.ClientPagesPath.Folders())
         {
-            var pageCssFile = pageDirectory.GetFiles($"{pageDirectory.Name}.css").FirstOrDefault();
+            string? pageCssFile = page.Files(ToCssFile(page.Name())).FirstOrDefault();
             if (pageCssFile == null)
                 continue;
-                
-            // Read the page CSS content
-            var cssContent = File.ReadAllText(pageCssFile.FullName);
-            
-            // Determine output path
-            string outputFilepath;
-            if (pageDirectory.Name.Equals("index", StringComparison.OrdinalIgnoreCase))
-            {
-                outputFilepath = app.ClientBuildDir.CombinePath($"{pageDirectory.Name}.css");
-            }
-            else
-            {
-                outputFilepath = app.ClientBuildDir
-                    .CreateSubDirectory(pageDirectory.Name)
-                    .CombinePath($"{pageDirectory.Name}.css");
-            }
-            
-            // Process imports for build mode
-            cssContent = CssImportProcessor.ProcessForBuild(cssContent, pageCssFile.FullName, outputFilepath, app.ClientDir.FullName);
-            
-            // Write the processed CSS
+
+            string cssContent = File.ReadAllText(pageCssFile);
+            string outputFilepath = context.ClientBuildPath
+                    .CreateSubDirectory(page)
+                    .Combine(ToCssFile(page.Name()));
+
+            cssContent = CssImportProcessor.ProcessForBuild(cssContent, pageCssFile, outputFilepath, context.ClientPath);
+
             File.WriteAllText(outputFilepath, cssContent);
         }
     }
 
-    public void Publish()
+    public async Task Publish()
     {
         // Check if the project uses @import statements
-        var appCssFilepath = app.ClientAppDir.CombinePath(_appCssFile);
+        var contextCssFilepath = context.ClientAppPath.Combine(_contextCssFile);
         var usesImports = false;
-        if (File.Exists(appCssFilepath))
+        if (File.Exists(contextCssFilepath))
         {
-            var appCssContent = File.ReadAllText(appCssFilepath);
-            usesImports = CssImportProcessor.HasImportStatements(appCssContent);
+            var contextCssContent = File.ReadAllText(contextCssFilepath);
+            usesImports = CssImportProcessor.HasImportStatements(contextCssContent);
         }
-        
-        // Process root index.css if it exists
-        var rootIndexCss = app.ClientBuildDir.GetFiles("index.css").FirstOrDefault();
-        if (rootIndexCss != null)
-        {
-            var cssContent = File.ReadAllText(rootIndexCss.FullName);
-            
-            if (usesImports)
-            {
-                // Process imports for publish mode (inline all imports)
-                var sourcePagePath = app.ClientPagesDir.CombinePath(App.Folders.Index, _indexCssFile);
-                if (File.Exists(sourcePagePath))
-                {
-                    cssContent = File.ReadAllText(sourcePagePath);
-                    cssContent = CssImportProcessor.ProcessForPublish(cssContent, sourcePagePath, app.ClientDir.FullName);
-                }
-            }
-            
-            cssContent = CssMinifier.Minify(cssContent);
-            var targetPath = app.ClientDistDir.CombinePath(rootIndexCss.Name);
-            File.WriteAllText(targetPath, cssContent);
-        }
-        
+
+
         // Process CSS files in page directories
-        foreach (var pageDirectory in app.ClientBuildDir.GetDirectories())
+        foreach (var page in context.ClientBuildPath.Folders())
         {
-            // Skip non-page directories
-            if (pageDirectory.Name == "app" || pageDirectory.Name == "images")
+            if (page.Name() == "context" || page.Name() == "images")
                 continue;
 
-            var distPageDirectory = app.ClientDistDir.CreateSubDirectory(pageDirectory.Name);
+            var distPageDirectory = context.ClientDistPath.CreateSubDirectory(page.Name());
 
-            foreach (var cssFile in pageDirectory.GetFiles("*.css"))
+            foreach (var cssFile in page.Files(ToCssFile("*")))
             {
-                var cssContent = File.ReadAllText(cssFile.FullName);
-                
+                var cssContent = File.ReadAllText(cssFile);
+
                 if (usesImports)
                 {
                     // Process imports for publish mode (inline all imports)
-                    var sourcePagePath = app.ClientPagesDir.CombinePath(pageDirectory.Name, cssFile.Name);
+                    var sourcePagePath = context.ClientPagesPath.Combine(page.Name(), cssFile.Name());
                     if (File.Exists(sourcePagePath))
                     {
                         cssContent = File.ReadAllText(sourcePagePath);
-                        cssContent = CssImportProcessor.ProcessForPublish(cssContent, sourcePagePath, app.ClientDir.FullName);
+                        cssContent = CssImportProcessor.ProcessForPublish(cssContent, sourcePagePath, context.ClientPath);
                     }
                 }
-                
+
                 cssContent = CssMinifier.Minify(cssContent);
 
-                var targetPath = distPageDirectory.CombinePath(cssFile.Name);
+                var targetPath = distPageDirectory.Combine(cssFile.Name());
                 File.WriteAllText(targetPath, cssContent);
             }
         }
+
+        await Task.CompletedTask;
     }
 
-    public void AddPage(DirectoryInfo pageDirectory)
+    public async Task AddPage(string pageName)
     {
-        var pageName = pageDirectory.Name;
-        var cssContent = $"/* {pageName} Page Styles */\n@import \"@app/app.css\";\n\n/* Add your page-specific styles here */\n";
-        File.WriteAllText(pageDirectory.CombinePath($"{pageName}.css"), cssContent);
+        var cssContent = $"/* {pageName} Page Styles */\n@import \"@context/context.css\";\n\n/* Add your page-specific styles here */\n";
+        File.WriteAllText(context.ClientPagesPath.Combine(ToCssFile(pageName)), cssContent);
+        await Task.CompletedTask;
     }
-
-    public void AddPage(string pageName)
+    
+    private static string ToCssFile(string pageName)
     {
-        var pageDirectory = app.ClientPagesDir.CreateSubDirectory(pageName);
-        AddPage(pageDirectory);
+        return $"{pageName}.css";
     }
-
 }

@@ -1,8 +1,9 @@
+using Engine;
 using Engine.Servers;
 
 namespace Engine.Services;
 
-public class WatchService(App _app, IWebServer _webServer, INodeServer _nodeServer, IWorkflowFactory _workflowFactory)
+public class WatchService(AppContext _context, IWebServer _webServer, INodeServer _nodeServer, IWorkflowFactory _workflowFactory)
 {
     private static readonly string[] IgnoredFiles = ["Thumbs.db", ".DS_Store"];
     private static readonly string[] IgnoredExtensions = [".tmp"];
@@ -15,11 +16,11 @@ public class WatchService(App _app, IWebServer _webServer, INodeServer _nodeServ
     {
         if (args != null)
         {
-            await _workflowFactory.ExecuteAsync(App.Commands.Build, args);
+            await _workflowFactory.ExecuteAsync(Commands.Build, args);
             _onChangeAction = cleanBuild => 
             {
-                var buildArgs = cleanBuild ? [App.Options.Clean] : Array.Empty<string>();
-                _workflowFactory.ExecuteAsync(App.Commands.Build, buildArgs);
+                var buildArgs = cleanBuild ? [BuildOptions.Clean] : Array.Empty<string>();
+                _workflowFactory.ExecuteAsync(Commands.Build, buildArgs);
             };
         }
         else
@@ -56,7 +57,7 @@ public class WatchService(App _app, IWebServer _webServer, INodeServer _nodeServ
 
     private FileSystemWatcher CreateFileSystemWatcher()
     {
-        var watcher = new FileSystemWatcher(_app.SrcDir.FullName)
+        var watcher = new FileSystemWatcher(_context.SrcPath)
         {
             NotifyFilter = NotifyFilters.CreationTime
                 | NotifyFilters.DirectoryName
@@ -219,6 +220,6 @@ public class WatchService(App _app, IWebServer _webServer, INodeServer _nodeServ
 
     private bool IsServerFile(string filePath)
     {
-        return filePath.StartsWith(_app.ServerDir.FullName, StringComparison.OrdinalIgnoreCase);
+        return filePath.StartsWith(_context.ServerPath, StringComparison.OrdinalIgnoreCase);
     }
 }

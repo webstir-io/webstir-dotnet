@@ -11,7 +11,7 @@ public class WatchTests : BaseTest
     public override Task<TestResult[]> RunAsync()
     {
         TestResult[] tests = [
-            RunTest($"{App.Commands.Watch} command starts without compilation errors", TestWatchCommandStartup)
+            RunTest($"{Commands.Watch} command starts without compilation errors", TestWatchCommandStartup)
         ];
         return Task.FromResult(tests);
     }
@@ -23,7 +23,7 @@ public class WatchTests : BaseTest
         SetupProject(testDir);
         
         var result = RunCliCommand(
-            App.Commands.Watch, 
+            Commands.Watch, 
             testDir, 
             timeoutMs: 8000,
             waitForSignal: "Watching for changes"
@@ -36,7 +36,7 @@ public class WatchTests : BaseTest
         AssertNoCompilationErrors(result);
         
         // Basic validation that watch mode initiated (process started and produced output)
-        Assert.GreaterThan(0, result.Output.Length + result.Error.Length, $"{App.Commands.Watch} command produced no output");
+        Assert.GreaterThan(0, result.Output.Length + result.Error.Length, $"{Commands.Watch} command produced no output");
         
     }
     

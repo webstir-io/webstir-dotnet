@@ -13,8 +13,8 @@ public class InitTests : BaseTest
         CleanupDirectory(testDir);        
 
         TestResult[] tests = [
-            RunTest($"{App.Commands.Init} command creates default project", TestInitDefault),
-            RunTest($"{App.Commands.Init} command creates named project", TestInitNamed)
+            RunTest($"{Commands.Init} command creates default project", TestInitDefault),
+            RunTest($"{Commands.Init} command creates named project", TestInitNamed)
         ];
         return Task.FromResult(tests);
     }
@@ -24,12 +24,12 @@ public class InitTests : BaseTest
         var testDir = Directories.GetTestDirectory(Path.Combine("init", "default"));
         Directory.CreateDirectory(testDir);
         
-        var result = RunCliCommand(App.Commands.Init, testDir, timeoutMs: 10000);
+        var result = RunCliCommand(Commands.Init, testDir, timeoutMs: 10000);
         
         if (result.TimedOut)
-            Assert.Fail($"{App.Commands.Init} command timed out");
+            Assert.Fail($"{Commands.Init} command timed out");
         
-        Assert.AreEqual(0, result.ExitCode, $"{App.Commands.Init} command failed. Error: {result.Error}");
+        Assert.AreEqual(0, result.ExitCode, $"{Commands.Init} command failed. Error: {result.Error}");
         
         // Verify essential files were created in correct structure
         Assert.IsTrue(File.Exists(Path.Combine(testDir, "src", "client", "app", "app.css")), "app.css not found");
@@ -46,12 +46,12 @@ public class InitTests : BaseTest
         var testDir = Directories.GetTestDirectory(Path.Combine("init", "named"));
         Directory.CreateDirectory(testDir);
 
-        var result = RunCliCommand($"{App.Commands.Init}", testDir, timeoutMs: 10000);
+        var result = RunCliCommand($"{Commands.Init}", testDir, timeoutMs: 10000);
 
         if (result.TimedOut)
-            Assert.Fail($"{App.Commands.Init} named command timed out");
+            Assert.Fail($"{Commands.Init} named command timed out");
         
-        Assert.AreEqual(0, result.ExitCode, $"{App.Commands.Init} named command failed. Error: {result.Error}");
+        Assert.AreEqual(0, result.ExitCode, $"{Commands.Init} named command failed. Error: {result.Error}");
         
         // Verify project directory was created
         Assert.IsTrue(Directory.Exists(testDir), "Named project directory not found");

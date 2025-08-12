@@ -1,94 +1,96 @@
 using Engine.Extensions;
 using Engine.Helpers;
-using Engine.Servers;
 using Engine.Models;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Engine.Workers.Client;
 
-public class HtmlWorker(App app) : IClientWorker
+public class HtmlWorker(AppContext context) : IClientWorker
 {
     private const string AppHtmlFileName = "app.html";
-    private const string IndexHtmlFileName = "index.html";    
-    
+    private const string HomeHtmlFileName = "home.html";
+    private const string IndexHtmlFileName = "index.html";
+
     private RoutingMetadata _routingMetadata = new();
 
-    public int BuildOrder => 3; // Fast operations can run together after TS compilation
+    public int BuildOrder => 3;
 
-    public void Init(ProjectMode mode = ProjectMode.Fullstack)
+    public async Task Init(ProjectMode mode = ProjectMode.Fullstack)
     {
-        InitializeTemplateFile(app.ClientAppDir, AppHtmlFileName);
-        InitializeTemplateFile(app.ClientIndexDir, IndexHtmlFileName);
+        InitializeTemplateFile(context.ClientAppPath, AppHtmlFileName);
+        InitializeTemplateFile(context.ClientPagesPath, HomeHtmlFileName);
+
+        await Task.CompletedTask;
     }
 
-    public void Build(bool releaseMode = false)
+    public async Task Build(bool releaseMode = false)
     {
         _routingMetadata = DetectRoutingConfiguration();
         var appTemplate = LoadAppTemplate();
-        
+
         if (releaseMode)
             appTemplate.Remove(@"<script src=""/refresh.js"" async></script>");
 
-        foreach (var pageDirectory in app.ClientPagesDir.GetDirectories())
-            ProcessPageDirectory(pageDirectory, appTemplate);
+        foreach (var page in context.ClientPagesPath.Folders())
+            ProcessPageDirectory(page, appTemplate);
+
+        await Task.CompletedTask;
     }
 
-    public void Publish()
+    public async Task Publish()
     {
-        // Publish root index.html
-        var rootIndexFile = app.ClientBuildDir.GetFiles(IndexHtmlFileName).FirstOrDefault();
-        if (rootIndexFile != null)
-            PublishHtmlFile(rootIndexFile, app.ClientDistDir.CombinePath(IndexHtmlFileName));
-
-        // Publish all page directories
-        foreach (var pageDirectory in app.ClientBuildDir.GetDirectories())
+        foreach (var page in context.ClientBuildPath.Folders())
         {
-            var htmlFile = pageDirectory.GetFiles(IndexHtmlFileName).FirstOrDefault();
+            string? htmlFile = page.Files(IndexHtmlFileName).SingleOrDefault();
             if (htmlFile != null)
             {
-                var distPageDirectory = app.ClientDistDir.CreateSubDirectory(pageDirectory.Name);
-                var destinationPath = distPageDirectory.CombinePath(IndexHtmlFileName);
+                var distPageDirectory = context.ClientDistPath.CreateSubDirectory(page.Name());
+                var destinationPath = distPageDirectory.Combine(HomeHtmlFileName);
                 PublishHtmlFile(htmlFile, destinationPath);
             }
         }
+
+        await Task.CompletedTask;
     }
 
-    public void AddPage(DirectoryInfo pageDirectory)
+    public async Task AddPage(DirectoryInfo pageDirectory)
     {
         if (!pageDirectory.Exists)
             throw new DirectoryNotFoundException($"Page directory '{pageDirectory.Name}' does not exist.");
 
         // Create index.html for the new page
         CreatePageTemplate(pageDirectory);
+
+        await Task.CompletedTask;
     }
 
-    public void AddPage(string pageName)
+    public async Task AddPage(string pageName)
     {
-        var pageDirectory = app.ClientPagesDir.CreateSubDirectory(pageName);
-        AddPage(pageDirectory);
+        var pageDirectory = context.ClientPagesPath.CreateSubDirectory(pageName);
+        await AddPage(pageDirectory);
     }
 
     private static void CreatePageTemplate(DirectoryInfo pageDirectory)
     {
         var pageName = pageDirectory.Name;
         var htmlContent = GeneratePageTemplate(pageName);
-        var outputPath = pageDirectory.CombinePath(IndexHtmlFileName);
+        var outputPath = pageDirectory.CombinePath(HomeHtmlFileName);
 
         File.WriteAllText(outputPath, htmlContent);
         Console.WriteLine($"MarkupWorker: Created HTML fragment for page '{pageName}' at {outputPath}");
     }
 
-    private static void InitializeTemplateFile(DirectoryInfo directory, string fileName)
+    private static void InitializeTemplateFile(string path, string fileName)
     {
-        var filePath = directory.CombinePath(fileName);
+        var filePath = path.Combine(fileName);
         if (!File.Exists(filePath))
-            AssemblyHelpers.WriteResourceToFile(App.Folders.Client, fileName, filePath);
+            AssemblyHelpers.WriteResourceToFile(Folders.Client, fileName, filePath);
     }
 
     private HtmlFile LoadAppTemplate()
     {
-        var appHtmlFilepath = app.ClientAppDir.CombinePath(AppHtmlFileName);
+        var appHtmlFilepath = context.ClientAppPath.Combine(AppHtmlFileName);
         if (!File.Exists(appHtmlFilepath))
             throw new FileNotFoundException($"Base application HTML file not found: {appHtmlFilepath}");
 
@@ -96,13 +98,13 @@ public class HtmlWorker(App app) : IClientWorker
     }
 
 
-    private void ProcessPageDirectory(DirectoryInfo pageDirectory, HtmlFile appTemplate)
+    private void ProcessPageDirectory(string pagePath, HtmlFile appTemplate)
     {
-        foreach (var pageHtmlFile in pageDirectory.GetFiles("*.html"))
+        foreach (var pageHtmlFile in pagePath.Files(AddHtmlExt("*")))
         {
             try
             {
-                ProcessPageFile(pageHtmlFile, pageDirectory.Name, appTemplate);
+                ProcessPageFile(pageHtmlFile, pagePath.Name(), appTemplate);
             }
             catch (Exception ex)
             {
@@ -112,10 +114,10 @@ public class HtmlWorker(App app) : IClientWorker
         }
     }
 
-    private void ProcessPageFile(FileInfo pageHtmlFile, string pageName, HtmlFile appTemplate)
+    private void ProcessPageFile(string pageHtmlFile, string pageName, HtmlFile appTemplate)
     {
-        if (!pageHtmlFile.Exists)
-            throw new FileNotFoundException($"Page HTML file not found: {pageHtmlFile.FullName}");
+        if (!pageHtmlFile.Exists())
+            throw new FileNotFoundException($"Page HTML file not found: {pageHtmlFile}");
 
         // Merge the app template with the page fragment
         var releaseMode = _routingMetadata.Pages.ContainsKey(pageName) && _routingMetadata.Pages[pageName].IsSpaEnabled;
@@ -123,30 +125,30 @@ public class HtmlWorker(App app) : IClientWorker
             return; // Skip if SPA mode is not enabled for this page
 
         Console.WriteLine($"Processing page: {pageName}");
-    
-        var pageFragment = new HtmlFile(pageHtmlFile.FullName);
+
+        var pageFragment = new HtmlFile(pageHtmlFile);
         var mergedHtml = appTemplate.Merge(pageFragment.Html);
-        
+
         if (_routingMetadata.HasSpaPages && !releaseMode)
             mergedHtml = InjectRoutingMetadata(mergedHtml);
-        
+
         string outputPath;
         if (pageName.Equals("index", StringComparison.OrdinalIgnoreCase))
         {
-            outputPath = app.ClientBuildDir.CombinePath(IndexHtmlFileName);
+            outputPath = context.ClientBuildPath.Combine(HomeHtmlFileName);
         }
         else
         {
-            var pageOutputDirectory = app.ClientBuildDir.CreateSubDirectory(pageName);
-            outputPath = pageOutputDirectory.CombinePath(IndexHtmlFileName);
+            var pageOutputPath = context.ClientBuildPath.CreateSubDirectory(pageName);
+            outputPath = pageOutputPath.Combine(HomeHtmlFileName);
         }
-        
+
         File.WriteAllText(outputPath, mergedHtml);
     }
 
-    private static void PublishHtmlFile(FileInfo sourceFile, string destinationPath)
+    private static void PublishHtmlFile(string sourceFilepath, string destinationPath)
     {
-        var htmlContent = File.ReadAllText(sourceFile.FullName);
+        var htmlContent = File.ReadAllText(sourceFilepath);
         var cleanedContent = RemoveHtmlComments(htmlContent);
         File.WriteAllText(destinationPath, cleanedContent);
     }
@@ -170,37 +172,37 @@ public class HtmlWorker(App app) : IClientWorker
     {
         var metadata = new RoutingMetadata();
 
-        foreach (var pageDirectory in app.ClientPagesDir.GetDirectories())
+        foreach (var page in context.ClientPagesPath.Folders())
         {
-            AnalyzePageForRouting(pageDirectory, metadata);
+            AnalyzePageForRouting(page, metadata);
         }
-        
+
         // Check for router.ts in app directory
-        var routerPath = Path.Combine(app.ClientAppDir.FullName, "router.ts");
+        var routerPath = Path.Combine(context.ClientAppPath, "router.ts");
         if (File.Exists(routerPath))
         {
             // Router detected - SPA mode will be enabled
         }
-        
+
         return metadata;
     }
 
-    private static void AnalyzePageForRouting(DirectoryInfo pageDirectory, RoutingMetadata metadata)
+    private static void AnalyzePageForRouting(string page, RoutingMetadata metadata)
     {
-        var pageName = pageDirectory.Name;
-        var typeScriptFiles = pageDirectory.GetFiles("*.ts");
-        
+        var pageName = Path.GetFileName(page);
+        var typeScriptFiles = Directory.GetFiles(page, "*.ts");
+
         foreach (var tsFile in typeScriptFiles)
         {
-            var content = File.ReadAllText(tsFile.FullName);
+            var content = File.ReadAllText(tsFile);
             var hasRouteHandler = DetectRouteHandlerExport(content);
-            
+
             metadata.Pages[pageName] = new PageRouteInfo
             {
                 PageName = pageName,
                 Route = $"/{pageName}",
                 IsSpaEnabled = hasRouteHandler,
-                TypeScriptPath = tsFile.FullName
+                TypeScriptPath = tsFile
             };
         }
     }
@@ -213,11 +215,11 @@ public class HtmlWorker(App app) : IClientWorker
             @"export\s+{[^}]*\brouteHandler\b[^}]*}",
             @"export\s+default\s+{[^}]*\brouteHandler\b[^}]*}"
         };
-        
-        return routeHandlerPatterns.Any(pattern => 
+
+        return routeHandlerPatterns.Any(pattern =>
             Regex.IsMatch(typeScriptContent, pattern, RegexOptions.Multiline));
     }
-    
+
     private string InjectRoutingMetadata(string html)
     {
         var metadataJson = JsonSerializer.Serialize(_routingMetadata, new JsonSerializerOptions
@@ -225,31 +227,36 @@ public class HtmlWorker(App app) : IClientWorker
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = true
         });
-        
+
         var metadataScript = $"""
             <script id="app-routing-metadata" type="application/json">
             {metadataJson}
             </script>
             """;
-        
+
         var bodyCloseIndex = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
-        return bodyCloseIndex > -1 
-            ? html.Insert(bodyCloseIndex, metadataScript) 
+        return bodyCloseIndex > -1
+            ? html.Insert(bodyCloseIndex, metadataScript)
             : html;
     }
-    
+
     private static string RemoveHtmlComments(string html)
     {
         const string commentLinePattern = @"^\s*<!--[\s\S]*?-->\s*\r?\n";
         const string inlineCommentPattern = @"<!--[\s\S]*?-->";
-        
+
         var withoutLineComments = Regex.Replace(
-            html, 
-            commentLinePattern, 
-            string.Empty, 
+            html,
+            commentLinePattern,
+            string.Empty,
             RegexOptions.Multiline
         );
-        
+
         return Regex.Replace(withoutLineComments, inlineCommentPattern, string.Empty);
+    }
+    
+    private static string AddHtmlExt(string filename)
+    {
+        return $"{filename}.html";
     }
 }

@@ -6,10 +6,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Engine.Servers;
 using Engine.Middleware;
+using Engine.Extensions;
 
 namespace Engine.Servers;
 
-public class WebServer(App _app) : IWebServer
+public class WebServer(AppContext _context) : IWebServer
 {
     private const string _apiServerUrl = "http://localhost:3001";
 
@@ -22,17 +23,17 @@ public class WebServer(App _app) : IWebServer
     public async Task StartAsync()
     {
         // Check for new structure first, fallback to legacy
-        if (_app.ClientBuildDir.Exists)
+        if (_context.ClientBuildPath.Exists())
         {
-            _webRootPath = _app.ClientBuildDir.FullName;
+            _webRootPath = _context.ClientBuildPath;
         }
-        else if (_app.BuildDir.Exists)
+        else if (_context.BuildPath.Exists())
         {
-            _webRootPath = _app.BuildDir.FullName;
+            _webRootPath = _context.BuildPath;
         }
         else
         {
-            throw new DirectoryNotFoundException($"No valid webroot found. Expected '{_app.ClientBuildDir.FullName}' or '{_app.BuildDir.FullName}'.");
+            throw new DirectoryNotFoundException($"No valid webroot found. Expected '{_context.ClientBuildPath}' or '{_context.BuildPath}'.");
         }
 
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions 

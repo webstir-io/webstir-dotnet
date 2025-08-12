@@ -6,7 +6,7 @@ namespace CLI;
 
 public class Runner(IServiceProvider serviceProvider)
 {
-    private App _app = null!;
+    private Engine.AppContext _context = null!;
     private IWorkflowFactory _workflowFactory = null!;
         
     public async Task Run(string[] args)
@@ -18,45 +18,46 @@ public class Runner(IServiceProvider serviceProvider)
         if (IsHelpRequested(command, args))
             return;
 
-        var (remainingArgs, workingDirectory) = ExtractWorkingDirectory(args);
+        var projectPath = args.Skip(1).FirstOrDefault(arg => !arg.StartsWith("--"));
+        var workingPath = GetWorkingPath(projectPath);
+        var workflowArgs = GetWorkflowArgs(args, projectPath);
 
         using var scope = serviceProvider.CreateScope();
-        _app = scope.ServiceProvider.GetRequiredService<App>();
+        _context = scope.ServiceProvider.GetRequiredService<Engine.AppContext>();
         _workflowFactory = scope.ServiceProvider.GetRequiredService<IWorkflowFactory>();
-        _app.Initialize(workingDirectory);
+        _context.Initialize(workingPath);
 
-        await ExecuteCommand(command, remainingArgs);
+        await ExecuteCommand(command, workflowArgs);
     }
 
-    private static (string[] args, string workingDirectory) ExtractWorkingDirectory(string[] args)
+    private static string GetWorkingPath(string? projectPath)
     {
-        // Check if the last argument is a path (not starting with -- or -)
-        if (args.Length > 0)
-        {
-            var lastArg = args[args.Length - 1];
-            
-            // If it's not an option and it's not a known command, treat it as a path
-            if (!lastArg.StartsWith('-') && args.Length > 1)
-            {
-                return (args.Take(args.Length - 1).ToArray(), lastArg);
-            }
-        }
+        var currentDir = Directory.GetCurrentDirectory();
+        return string.IsNullOrEmpty(projectPath) ? currentDir 
+            : Path.IsPathRooted(projectPath) ? projectPath 
+            : Path.Combine(currentDir, projectPath);
+    }
+
+    private static string[] GetWorkflowArgs(string[] args, string? projectPath)
+    {
+        if (!string.IsNullOrEmpty(projectPath))
+            return [.. args.Where(arg => arg != projectPath)];
         
-        return (args, Directory.GetCurrentDirectory());
+        return args;
     }
 
     private static bool IsHelpRequested(string command, string[] args)
     {
-        if (command == App.Commands.Help || command == App.Options.Help || command == App.Options.HelpShort)
+        if (command == Commands.Help || command == HelpOptions.Help || command == HelpOptions.HelpShort)
         {
-            if (args.Length > 1 && command == App.Commands.Help)
+            if (args.Length > 1 && command == Commands.Help)
                 Help.ShowCommandHelp(args[1]);
             else
                 Help.ShowGeneralHelp();
             return true;
         }
 
-        if (args.Length > 1 && (args[1] == App.Options.Help || args[1] == App.Options.HelpShort))
+        if (args.Length > 1 && (args[1] == HelpOptions.Help || args[1] == HelpOptions.HelpShort))
         {
             Help.ShowCommandHelp(command);
             return true;
@@ -67,7 +68,7 @@ public class Runner(IServiceProvider serviceProvider)
 
     private async Task ExecuteCommand(string command, string[] args)
     {
-        if (command == "" || command == App.Commands.Watch)
+        if (command == "" || command == Commands.Watch)
         {
             var watchService = serviceProvider.GetRequiredService<WatchService>();
             await watchService.Watch(args);

@@ -10,7 +10,7 @@ public class DemoTests : BaseTest
     public override Task<TestResult[]> RunAsync()
     {
         TestResult[] tests = [
-            RunTest($"{App.Commands.Demo} command creates project without errors", TestDemoCommandSuccess)
+            RunTest($"{Commands.Demo} command creates project without errors", TestDemoCommandSuccess)
         ];
         return Task.FromResult(tests);
     }
@@ -21,12 +21,12 @@ public class DemoTests : BaseTest
         CleanupDirectory(testDir);
         Directory.CreateDirectory(testDir);
 
-        var result = RunCliCommand($"{App.Commands.Demo} {testDir}", Directory.GetCurrentDirectory(), timeoutMs: 8000);
+        var result = RunCliCommand($"{Commands.Demo} {testDir}", Directory.GetCurrentDirectory(), timeoutMs: 8000);
     
         if (result.TimedOut)
-            Assert.Fail($"{App.Commands.Demo} command timed out");
+            Assert.Fail($"{Commands.Demo} command timed out");
         
-        Assert.AreEqual(0, result.ExitCode, $"{App.Commands.Demo} command failed. Error: {result.Error}");
+        Assert.AreEqual(0, result.ExitCode, $"{Commands.Demo} command failed. Error: {result.Error}");
         
         // Check if demo directory was created by the command
         Assert.IsTrue(Directory.Exists(testDir), "Demo directory not found");

@@ -8,13 +8,13 @@ public static class Help
     private static readonly Dictionary<string, CommandHelp> AppCommands = new()
     {
     
-        [App.Commands.Init] = GetInitCommand(),
-        [App.Commands.AddPage] = GetAddPageCommand(),
-        [App.Commands.Build] = GetBuildCommand(),
-        [App.Commands.Watch] = GetWatchCommand(),
-        [App.Commands.Publish] = GetPublishCommand(),
-        [App.Commands.Help] = GetHelpCommand(),
-        [App.Commands.Demo] = GetDemoCommand()
+        [Commands.Init] = GetInitCommand(),
+        [Commands.AddPage] = GetAddPageCommand(),
+        [Commands.Build] = GetBuildCommand(),
+        [Commands.Watch] = GetWatchCommand(),
+        [Commands.Publish] = GetPublishCommand(),
+        [Commands.Help] = GetHelpCommand(),
+        [Commands.Demo] = GetDemoCommand()
     };
 
     private static CommandHelp CreateCommand(
@@ -44,75 +44,74 @@ public static class Help
     private static string Example(string command, string description) => 
         $"{command,-40}# {description}";
 
-    private static CommandHelp GetInitCommand() => 
-        CreateCommand(App.Commands.Init, 
+    private static CommandHelp GetInitCommand() =>
+        CreateCommand(Commands.Init, 
             $"Initialize a new {App.Name} project",
             [
-                Example($"{App.Name} {App.Commands.Init}", "Create a full-stack project (default)"),
-                Example($"{App.Name} {App.Commands.Init} {App.Options.ClientOnly}", "Create a client-only project"),
-                Example($"{App.Name} {App.Commands.Init} {App.Options.ServerOnly}", "Create a server-only project")
+                Example($"{App.Name} {Commands.Init}", "Create a full-stack project (default)"),
+                Example($"{App.Name} {Commands.Init} {InitOptions.ClientOnly}", "Create a client-only project"),
+                Example($"{App.Name} {Commands.Init} {InitOptions.ServerOnly}", "Create a server-only project")
             ],
             [
-                Option(App.Options.ClientOnly, "Create a client-side only project"),
-                Option(App.Options.ServerOnly, "Create a server-side only project")
+                Option(InitOptions.ClientOnly, "Create a client-side only project"),
+                Option(InitOptions.ServerOnly, "Create a server-side only project")
             ],
             "[options]");
 
-    private static CommandHelp GetAddPageCommand() => 
-        CreateCommand(App.Commands.AddPage, 
+    private static CommandHelp GetAddPageCommand() =>
+        CreateCommand(Commands.AddPage, 
             "Add a new page to your project",
             [
-                Example($"{App.Name} {App.Commands.AddPage} home", "Create a new home page"),
-                Example($"{App.Name} {App.Commands.AddPage} about", "Create a new about page")
+                Example($"{App.Name} {Commands.AddPage} about", "Create a new about page")
             ],
             null,
             "<page-name>");
 
-    private static CommandHelp GetBuildCommand() => 
-        CreateCommand(App.Commands.Build, 
+    private static CommandHelp GetBuildCommand() =>
+        CreateCommand(Commands.Build, 
             "Build the project once",
             [
-                Example($"{App.Name} {App.Commands.Build}", "Build the project"),
-                Example($"{App.Name} {App.Commands.Build} {App.Options.Clean}", "Clean build (removes build directory first)"),
-                Example($"{App.Name} {App.Commands.Build} ./my-app", "Build project in ./my-app directory")
+                Example($"{App.Name} {Commands.Build}", "Build the project"),
+                Example($"{App.Name} {Commands.Build} {BuildOptions.Clean}", "Clean build (removes build directory first)"),
+                Example($"{App.Name} {Commands.Build} ./my-app", "Build project in ./my-app directory")
             ],
             [
-                Option(App.Options.Clean, "Clean build directory before building")
+                Option(BuildOptions.Clean, "Clean build directory before building")
             ],
             "[options]");
 
-    private static CommandHelp GetWatchCommand() => 
-        CreateCommand(App.Commands.Watch, 
+    private static CommandHelp GetWatchCommand() =>
+        CreateCommand(Commands.Watch, 
             "Build and watch for changes (default)",
             [
-                Example($"{App.Name} {App.Commands.Watch}", "Start development server with hot reload"),
-                Example(App.Name, $"Same as '{App.Name} {App.Commands.Watch}'"),
-                Example($"{App.Name} {App.Commands.Watch} ../project", "Watch project in parent directory")
+                Example($"{App.Name} {Commands.Watch}", "Start development server with hot reload"),
+                Example(App.Name, $"Same as '{App.Name} {Commands.Watch}'"),
+                Example($"{App.Name} {Commands.Watch} ../project", "Watch project in parent directory")
             ]);
 
-    private static CommandHelp GetPublishCommand() => 
-        CreateCommand(App.Commands.Publish, 
+    private static CommandHelp GetPublishCommand() =>
+        CreateCommand(Commands.Publish, 
             "Create production build",
             [
-                Example($"{App.Name} {App.Commands.Publish}", "Create optimized production build")
+                Example($"{App.Name} {Commands.Publish}", "Create optimized production build")
             ]);
 
-    private static CommandHelp GetHelpCommand() => 
-        CreateCommand(App.Commands.Help, 
+    private static CommandHelp GetHelpCommand() =>
+        CreateCommand(Commands.Help, 
             "Show help information",
             [
-                Example($"{App.Name} {App.Commands.Help}", "Show general help"),
-                Example($"{App.Name} {App.Commands.Help} {App.Commands.Init}", "Show help for init command")
+                Example($"{App.Name} {Commands.Help}", "Show general help"),
+                Example($"{App.Name} {Commands.Help} {Commands.Init}", "Show help for init command")
             ],
             null,
             "[command]");
 
-    private static CommandHelp GetDemoCommand() => 
-        CreateCommand(App.Commands.Demo, 
+    private static CommandHelp GetDemoCommand() =>
+        CreateCommand(Commands.Demo, 
             "Create a demo application showcasing all webstir features",
             [
-                Example($"{App.Name} {App.Commands.Demo}", "Create a demo app in the current directory"),
-                Example($"{App.Name} {App.Commands.Demo} my-demo", "Create a demo app in 'my-demo' directory")
+                Example($"{App.Name} {Commands.Demo}", "Create a demo app in the current directory"),
+                Example($"{App.Name} {Commands.Demo} my-demo", "Create a demo app in 'my-demo' directory")
             ],
             null,
             "[directory]");
@@ -134,7 +133,7 @@ public static class Help
         }
         
         Console.WriteLine();
-        Console.WriteLine($"Run '{App.Name} {App.Commands.Help} <command>' for more information on a specific command.");
+        Console.WriteLine($"Run '{App.Name} {Commands.Help} <command>' for more information on a specific command.");
         Console.WriteLine();
         Console.WriteLine("Path parameter:");
         Console.WriteLine("  You can specify a path as the last argument to run commands in a different directory.");

@@ -32,10 +32,10 @@ public abstract class BaseTest : TestSuite
         Directory.CreateDirectory(projectDir);
         
         // Use init command to create a proper project
-        var result = RunCliCommand(App.Commands.Init, projectDir, timeoutMs: 10000);
+        var result = RunCliCommand(Commands.Init, projectDir, timeoutMs: 10000);
         
         if (result.ExitCode != 0)
-            throw new InvalidOperationException($"Failed to setup project with {App.Commands.Init} command. Error: {result.Error}");
+            throw new InvalidOperationException($"Failed to setup project with {Commands.Init} command. Error: {result.Error}");
     }
     
     protected void CleanupDirectory(string directory)

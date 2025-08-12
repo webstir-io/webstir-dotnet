@@ -11,7 +11,7 @@ public class PublishTests : BaseTest
     public override Task<TestResult[]> RunAsync()
     {
         TestResult[] tests = [
-            RunTest($"{App.Commands.Publish} command runs without compilation errors", TestPublishCommandSuccess)
+            RunTest($"{Commands.Publish} command runs without compilation errors", TestPublishCommandSuccess)
         ];
         return Task.FromResult(tests);
     }
@@ -22,14 +22,14 @@ public class PublishTests : BaseTest
         CleanupDirectory(testDir);
         SetupProject(testDir);
         
-        var result = RunCliCommand(App.Commands.Publish, testDir, timeoutMs: 15000);
+        var result = RunCliCommand(Commands.Publish, testDir, timeoutMs: 15000);
         
         if (result.TimedOut)
-            Assert.Fail($"{App.Commands.Publish} command timed out");
+            Assert.Fail($"{Commands.Publish} command timed out");
         
         // Publish should complete without errors (exit code 0 or 1 both acceptable for basic validation)
         Assert.IsTrue(result.ExitCode == 0 || result.ExitCode == 1, 
-            $"{App.Commands.Publish} command failed with exit code {result.ExitCode}. Error: {result.Error}");
+            $"{Commands.Publish} command failed with exit code {result.ExitCode}. Error: {result.Error}");
         
         AssertNoCompilationErrors(result);
     }

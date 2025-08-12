@@ -2,22 +2,19 @@ namespace Engine.Extensions;
 
 public static class DirectoryExtensions
 {
+    public static string CreateSubDirectory(this string path, string subDirectory)
+    {
+        var fullPath = Path.Combine(path, subDirectory);
+        Directory.CreateDirectory(fullPath);
+        return fullPath;
+    }
+
     public static string CombinePath(this DirectoryInfo directoryInfo, params string[] paths)
     {
         var allPaths = new string[paths.Length + 1];
         allPaths[0] = directoryInfo.FullName;
         paths.CopyTo(allPaths, 1);
         return Path.Combine(allPaths);
-    }
-
-    public static DirectoryInfo CreateSubDirectory(this DirectoryInfo directoryInfo, string subDirectory)
-    {
-        return Directory.CreateDirectory(directoryInfo.CombinePath(subDirectory));
-    }
-
-    public static IEnumerable<FileInfo> GetFilesRecursively(this DirectoryInfo directoryInfo, string filter = "*")
-    {
-        return directoryInfo.EnumerateFiles(filter, SearchOption.AllDirectories);
     }
 
     public static void CopyTo(this DirectoryInfo sourceDirectory, string destPath, bool recursive = true)

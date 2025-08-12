@@ -5,63 +5,59 @@ using Engine.Models;
 
 namespace Engine.Workers.Server;
 
-public class ServerWorker(App app) : IModuleWorker
+public class ServerWorker(AppContext context) : IModuleWorker
 {
     private const string _tsConfigFile = "tsconfig.json";
     private const string _indexTsFile = "index.ts";
 
     public int BuildOrder => 3; // Depends on SharedWorker, can run with other fast operations
 
-    public void Init(ProjectMode mode = ProjectMode.Fullstack)
+    public async Task Init(ProjectMode mode = ProjectMode.Fullstack)
     {
-        string tsConfigPath = app.ServerDir.CombinePath(_tsConfigFile);
+        string tsConfigPath = context.ServerPath.Combine(_tsConfigFile);
         if (!File.Exists(tsConfigPath))
-            AssemblyHelpers.WriteResourceToFile(App.Folders.Server, _tsConfigFile, tsConfigPath);
+            AssemblyHelpers.WriteResourceToFile(Folders.Server, _tsConfigFile, tsConfigPath);
 
-        string indexTsPath = app.ServerDir.CombinePath(_indexTsFile);
+        string indexTsPath = context.ServerPath.Combine(_indexTsFile);
         if (!File.Exists(indexTsPath))
-            AssemblyHelpers.WriteResourceToFile(App.Folders.Server, _indexTsFile, indexTsPath);
+            AssemblyHelpers.WriteResourceToFile(Folders.Server, _indexTsFile, indexTsPath);
+
+        await Task.CompletedTask;
     }
 
-    public void Build(bool releaseMode = false)
+    public async Task Build(bool releaseMode = false)
     {
-        if (!app.ServerDir.Exists)
-            return;
-
         // Check if node_modules exists and package.json exists
-        var packageJsonPath = app.WorkingDir.CombinePath(App.Files.PackageJson);
-        if (File.Exists(packageJsonPath) && !app.NodeModulesDir.Exists)
+        var packageJsonPath = context.WorkingPath.Combine(Files.PackageJson);
+        if (File.Exists(packageJsonPath))
             RunNpmInstall();
 
         CompileTypeScriptFiles();
+
+        await Task.CompletedTask;
     }
 
-    public void Publish()
+    public async Task Publish()
     {
-        if (!app.ServerDir.Exists)
-            return;
-
-        Directory.CreateDirectory(app.ServerDistDir.FullName);
-
-        // Copy all .js files from server build to server dist
-        foreach (FileInfo jsFile in app.ServerBuildDir.GetFiles("*.js", SearchOption.AllDirectories))
+        foreach (string jsFilepath in Directory.GetFiles(context.ServerBuildPath, "*.js", SearchOption.AllDirectories))
         {
-            string relativePath = Path.GetRelativePath(app.ServerBuildDir.FullName, jsFile.FullName);
-            string targetFilePath = Path.Combine(app.ServerDistDir.FullName, relativePath);
+            string relativePath = Path.GetRelativePath(context.ServerBuildPath, jsFilepath);
+            string targetFilePath = Path.Combine(context.ServerDistPath, relativePath);
 
             Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!);
-            
-            // Read JS content and remove comments
-            string jsContent = File.ReadAllText(jsFile.FullName);
+
+            string jsContent = File.ReadAllText(jsFilepath);
             jsContent = RemoveJavaScriptComments(jsContent);
-            
+
             File.WriteAllText(targetFilePath, jsContent);
         }
+
+        await Task.CompletedTask;
     }
 
     private void CompileTypeScriptFiles()
     {
-        var tsConfigPath = app.ServerDir.CombinePath(_tsConfigFile);
+        var tsConfigPath = context.ServerPath.Combine(_tsConfigFile);
 
         var processInfo = new ProcessStartInfo
         {
@@ -94,7 +90,7 @@ public class ServerWorker(App app) : IModuleWorker
     private void RunNpmInstall()
     {
         // Check if package-lock.json exists to determine which npm command to use
-        var packageLockPath = app.WorkingDir.CombinePath("package-lock.json");
+        var packageLockPath = context.WorkingPath.Combine("package-lock.json");
         var npmCommand = File.Exists(packageLockPath) ? "ci" : "install";
         
         var processInfo = new ProcessStartInfo
@@ -105,7 +101,7 @@ public class ServerWorker(App app) : IModuleWorker
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
-            WorkingDirectory = app.WorkingDir.FullName
+            WorkingDirectory = context.WorkingPath
         };
 
         using var process = Process.Start(processInfo)
