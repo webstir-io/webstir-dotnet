@@ -4,7 +4,7 @@ using Engine.Modules;
 
 namespace Engine;
 
-public class AppContext(IEnumerable<IAppModule> modules)
+public class AppContext
 {
     private string _workingFolder = string.Empty;
 
@@ -37,9 +37,9 @@ public class AppContext(IEnumerable<IAppModule> modules)
 
     public string SharedPath => SrcPath.CreateSubDirectory(Folders.Shared);
 
-    public IEnumerable<IAppModule> ActiveModules(ProjectMode? mode = null)
+    public IEnumerable<IAppModule> FilterModules(IEnumerable<IAppModule> modules, ProjectMode? mode = null)
     {
-        var projectMode = mode ?? DetectProjectMode();
+        ProjectMode projectMode = mode ?? DetectProjectMode();
 
         return projectMode switch
         {

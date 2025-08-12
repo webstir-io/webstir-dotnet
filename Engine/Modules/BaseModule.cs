@@ -3,9 +3,6 @@ using Engine.Workers;
 
 namespace Engine.Modules;
 
-/// <summary>
-/// Base class for all modules providing common functionality
-/// </summary>
 public abstract class BaseModule(IEnumerable<IModuleWorker> workers) : IAppModule
 {
     public abstract string Name { get; }

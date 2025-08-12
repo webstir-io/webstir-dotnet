@@ -57,14 +57,14 @@ public class StylesWorker(AppContext context) : IClientWorker
     {
         foreach (string page in context.ClientPagesPath.Folders())
         {
-            string? pageCssFile = page.Files(ToCssFile(page.Name())).FirstOrDefault();
+            string? pageCssFile = page.Files(AddCssExt(page.Name())).FirstOrDefault();
             if (pageCssFile == null)
                 continue;
 
             string cssContent = File.ReadAllText(pageCssFile);
             string outputFilepath = context.ClientBuildPath
                     .CreateSubDirectory(page)
-                    .Combine(ToCssFile(page.Name()));
+                    .Combine(AddCssExt(page.Name()));
 
             cssContent = CssImportProcessor.ProcessForBuild(cssContent, pageCssFile, outputFilepath, context.ClientPath);
 
@@ -92,7 +92,7 @@ public class StylesWorker(AppContext context) : IClientWorker
 
             var distPageDirectory = context.ClientDistPath.CreateSubDirectory(page.Name());
 
-            foreach (var cssFile in page.Files(ToCssFile("*")))
+            foreach (var cssFile in page.Files(AddCssExt("*")))
             {
                 var cssContent = File.ReadAllText(cssFile);
 
@@ -120,11 +120,11 @@ public class StylesWorker(AppContext context) : IClientWorker
     public async Task AddPage(string pageName)
     {
         var cssContent = $"/* {pageName} Page Styles */\n@import \"@context/context.css\";\n\n/* Add your page-specific styles here */\n";
-        File.WriteAllText(context.ClientPagesPath.Combine(ToCssFile(pageName)), cssContent);
+        File.WriteAllText(context.ClientPagesPath.Combine(AddCssExt(pageName)), cssContent);
         await Task.CompletedTask;
     }
     
-    private static string ToCssFile(string pageName)
+    private static string AddCssExt(string pageName)
     {
         return $"{pageName}.css";
     }

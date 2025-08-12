@@ -7,7 +7,7 @@ namespace Engine.Workers.Client;
 
 public class ScriptsWorker(AppContext context) : IClientWorker
 {
-    public int BuildOrder => 1; // Heavy TypeScript compilation - let it use full CPU
+    public int BuildOrder => 1;
     private const string _tsConfigBaseFile = "base.tsconfig.json";
     private const string _tsConfigClientFile = "tsconfig.json";
     private const string _appTsFile = "context.ts";

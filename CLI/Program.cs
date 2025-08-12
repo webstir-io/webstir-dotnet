@@ -25,12 +25,12 @@ try
     services.AddTransient<IAppModule, ServerModule>();
     services.AddTransient<IAppModule, SharedModule>();
 
-    services.AddTransient<IModuleWorker, HtmlWorker>();
-    services.AddTransient<IModuleWorker, StylesWorker>();
-    services.AddTransient<IModuleWorker, ScriptsWorker>();
-    services.AddTransient<IModuleWorker, ImagesWorker>();
-    services.AddTransient<IModuleWorker, ServerWorker>();
-    services.AddTransient<IModuleWorker, SharedWorker>();
+    services.AddTransient<IClientWorker, HtmlWorker>();
+    services.AddTransient<IClientWorker, StylesWorker>();
+    services.AddTransient<IClientWorker, ScriptsWorker>();
+    services.AddTransient<IClientWorker, ImagesWorker>();
+    services.AddTransient<IServerWorker, ServerWorker>();
+    services.AddTransient<ISharedWorker, SharedWorker>();
 
     services.AddTransient<IWorkflow, InitWorkflow>();
     services.AddTransient<IWorkflow, BuildWorkflow>();

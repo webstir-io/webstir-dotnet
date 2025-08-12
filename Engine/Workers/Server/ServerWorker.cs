@@ -5,7 +5,7 @@ using Engine.Models;
 
 namespace Engine.Workers.Server;
 
-public class ServerWorker(AppContext context) : IModuleWorker
+public class ServerWorker(AppContext context) : IServerWorker
 {
     private const string _tsConfigFile = "tsconfig.json";
     private const string _indexTsFile = "index.ts";

@@ -1,10 +1,11 @@
 using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Models;
+using Engine.Modules;
 
 namespace Engine.Workflows;
 
-public class InitWorkflow(AppContext context) : BaseWorkflow(context)
+public class InitWorkflow(AppContext context, IEnumerable<IAppModule> modules) : BaseWorkflow(context, modules)
 {
     public override string WorkflowName => Commands.Init;
 

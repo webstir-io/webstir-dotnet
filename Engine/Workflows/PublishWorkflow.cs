@@ -1,8 +1,9 @@
 using Engine.Extensions;
+using Engine.Modules;
 
 namespace Engine.Workflows;
 
-public class PublishWorkflow(AppContext context) : BaseWorkflow(context)
+public class PublishWorkflow(AppContext context, IEnumerable<IAppModule> modules) : BaseWorkflow(context, modules)
 {
     public override string WorkflowName => Commands.Publish;
 

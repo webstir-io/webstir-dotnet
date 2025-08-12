@@ -1,9 +1,10 @@
 using Engine.Extensions;
 using Engine.Workers.Client;
+using Engine.Modules;
 
 namespace Engine.Workflows;
 
-public class AddPageWorkflow(AppContext context) : BaseWorkflow(context)
+public class AddPageWorkflow(AppContext context, IEnumerable<IAppModule> modules) : BaseWorkflow(context, modules)
 {
     public override string WorkflowName => Commands.AddPage;
 

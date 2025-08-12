@@ -1,6 +1,8 @@
+using Engine.Modules;
+
 namespace Engine.Workflows;
 
-public class BuildWorkflow(AppContext context) : BaseWorkflow(context)
+public class BuildWorkflow(AppContext context, IEnumerable<IAppModule> modules) : BaseWorkflow(context, modules)
 {
     public override string WorkflowName => Commands.Build;
 
