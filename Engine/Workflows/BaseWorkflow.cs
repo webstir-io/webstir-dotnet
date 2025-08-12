@@ -15,10 +15,6 @@ public abstract class BaseWorkflow(AppContext context, IEnumerable<IAppModule> m
 
     protected async Task ExecuteWorkersAsync(Func<IModuleWorker, Task> workerAction, ProjectMode? mode = null)
     {
-        // var activeWorkers = Context
-        //     .ActiveModules(mode)
-        //     .SelectMany(m => m.Workers);
-
         var activeModules = Context.FilterModules(Modules, mode);
         var workers = activeModules.SelectMany(m => m.Workers);
 

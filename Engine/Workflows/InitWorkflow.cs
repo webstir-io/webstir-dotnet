@@ -11,9 +11,10 @@ public class InitWorkflow(AppContext context, IEnumerable<IAppModule> modules) :
 
     public override async Task ExecuteAsync(string[] args)
     {
-        var mode = ParseProjectMode(args);
+        if (Context.WorkingPath == Directory.GetCurrentDirectory())
+            Context.Initialize(Context.WorkingPath.Combine(Folders.Seed));
 
-        // Mode must be spcecified in this spefic workflow because it initializes the project structure
+        var mode = ParseProjectMode(args);
         await ExecuteWorkersAsync(async worker => await worker.Init(mode), mode);
         await CreatePackageJson();
     }
