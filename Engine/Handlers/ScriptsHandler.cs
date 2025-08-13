@@ -3,53 +3,53 @@ using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Models;
 
-namespace Engine.Workers.Client;
+namespace Engine.Handlers;
 
-public class ScriptsWorker(AppContext context) : IClientWorker
+public class ScriptsHandler(AppContext context) : IHandler
 {
-    public int BuildOrder => 1;
-    private const string _tsConfigBaseFile = "base.tsconfig.json";
-    private const string _tsConfigClientFile = "tsconfig.json";
-    private const string _appTsFile = "context.ts";
+    private const string _baseTsConfigFile = "base.tsconfig.json";
+    private const string _tsConfigFile = "tsconfig.json";
+    private const string _appTsFile = "app.ts";
     private const string _indexTsFile = "index.ts";
     private const string _refreshJsFile = "refresh.js";
     private const string _routerTsFile = "router.ts";
     private const string _navigationTsFile = "navigation.ts";
 
-    public async Task Init(ProjectMode mode = ProjectMode.Fullstack)
+    public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
     {
-        var baseTsConfigPath = context.WorkingPath.Combine(_tsConfigBaseFile);
+        var baseTsConfigPath = context.WorkingPath.Combine(_baseTsConfigFile);
         if (!File.Exists(baseTsConfigPath))
-            AssemblyHelpers.WriteResourceToFile(_tsConfigBaseFile, baseTsConfigPath);
+            AssemblyHelpers.WriteResourceToFile(_baseTsConfigFile, baseTsConfigPath);
 
-        string clientTsConfigPath = context.ClientPath.Combine(_tsConfigClientFile);
-        if (!File.Exists(clientTsConfigPath))
-            AssemblyHelpers.WriteResourceToFile("client", _tsConfigClientFile, clientTsConfigPath);
+        string tsConfigPath = context.ClientPath.Combine(_tsConfigFile);
+        if (!File.Exists(tsConfigPath))
+            AssemblyHelpers.WriteResourceToFile(Folders.Client, _tsConfigFile, tsConfigPath);
 
-        string outputRefreshJsFilepath = context.ClientAppPath.Combine(_refreshJsFile);
-        if (!File.Exists(outputRefreshJsFilepath))
-            AssemblyHelpers.WriteResourceToFile("client", _refreshJsFile, outputRefreshJsFilepath);
+        string refreshJsFilepath = context.ClientAppPath.Combine(_refreshJsFile);
+        if (!File.Exists(refreshJsFilepath))
+            AssemblyHelpers.WriteResourceToFile(Folders.Client, _refreshJsFile, refreshJsFilepath);
 
-        string outputAppTsFilepath = context.ClientAppPath.Combine(_appTsFile);
-        if (!File.Exists(outputAppTsFilepath))
-            AssemblyHelpers.WriteResourceToFile("client", _appTsFile, outputAppTsFilepath);
-
-        string outputIndexTsFilepath = context.ClientPagesPath.Combine("home", _indexTsFile);
-        if (!File.Exists(outputIndexTsFilepath))
-            AssemblyHelpers.WriteResourceToFile("client", _indexTsFile, outputIndexTsFilepath);
+        string appTsFilepath = context.ClientAppPath.Combine(_appTsFile);
+        if (!File.Exists(appTsFilepath))
+            AssemblyHelpers.WriteResourceToFile(Folders.Client, _appTsFile, appTsFilepath);
 
         string routerFilePath = context.ClientAppPath.Combine(_routerTsFile);
         if (!File.Exists(routerFilePath))
-            AssemblyHelpers.WriteResourceToFile("client", _routerTsFile, routerFilePath);
+            AssemblyHelpers.WriteResourceToFile(Folders.Client, _routerTsFile, routerFilePath);
 
         string navigationFilePath = context.ClientAppPath.Combine(_navigationTsFile);
         if (!File.Exists(navigationFilePath))
-            AssemblyHelpers.WriteResourceToFile("client", _navigationTsFile, navigationFilePath);
+            AssemblyHelpers.WriteResourceToFile(Folders.Client, _navigationTsFile, navigationFilePath);
+
+        string clientHomePath = context.ClientPagesPath.CreateSubDirectory(Folders.Home);
+        string homeIndexTsFilepath = clientHomePath.Combine(_indexTsFile);
+        if (!File.Exists(homeIndexTsFilepath))
+            AssemblyHelpers.WriteResourceToFile(Folders.Client, _indexTsFile, homeIndexTsFilepath);
 
         await Task.CompletedTask;
     }
 
-    public async Task Build(bool releaseMode = false)
+    public async Task BuildAsync(bool releaseMode = false)
     {
         var packageJsonPath = context.WorkingPath.Combine(Files.PackageJson);
         if (File.Exists(packageJsonPath))
@@ -73,7 +73,7 @@ public class ScriptsWorker(AppContext context) : IClientWorker
         await Task.CompletedTask;
     }
 
-    public async Task Publish()
+    public async Task PublishAsync()
     {
         foreach (string jsFile in Directory.GetFiles(context.ClientBuildPath, "*.js", SearchOption.AllDirectories))
         {
@@ -97,7 +97,7 @@ public class ScriptsWorker(AppContext context) : IClientWorker
 
     private void CompileTypeScriptFiles()
     {
-        var clientTsConfigPath = context.ClientPath.Combine(_tsConfigClientFile);
+        var clientTsConfigPath = context.ClientPath.Combine(_tsConfigFile);
 
         var processInfo = new ProcessStartInfo
         {
@@ -256,23 +256,16 @@ public class ScriptsWorker(AppContext context) : IClientWorker
         return js.Trim();
     }
 
-    public async Task AddPage(DirectoryInfo pageDirectory)
+    public async Task AddPageAsync(string pageName)
     {
-        var pageName = pageDirectory.Name;
-        var tsFilePath = pageDirectory.CombinePath($"{pageName}.ts");
+        var pageDirectory = context.ClientPagesPath.CreateSubDirectory(pageName);
+        var tsFilePath = pageDirectory.Combine($"{pageName}.ts");
         var tsContent = $"""
             import '../../app/context.js';
 
             console.log('{pageName} page loaded');
             """;
         File.WriteAllText(tsFilePath, tsContent);
-
         await Task.CompletedTask;
-    }
-
-    public async Task AddPage(string name) 
-    {
-        var pageDirectory = context.ClientPagesPath.CreateSubDirectory(name);
-        await AddPage(pageDirectory);
     }
 }

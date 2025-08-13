@@ -5,14 +5,14 @@ using Engine.Models;
 
 namespace Engine.Workers.Server;
 
-public class ServerWorker(AppContext context) : IServerWorker
+public class ServerWorker(AppContext context) : IWorker
 {
     private const string _tsConfigFile = "tsconfig.json";
     private const string _indexTsFile = "index.ts";
 
-    public int BuildOrder => 3; // Depends on SharedWorker, can run with other fast operations
+    public int BuildOrder => 2; // Fast server compilation
 
-    public async Task Init(ProjectMode mode = ProjectMode.Fullstack)
+    public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
     {
         string tsConfigPath = context.ServerPath.Combine(_tsConfigFile);
         if (!File.Exists(tsConfigPath))
@@ -25,7 +25,7 @@ public class ServerWorker(AppContext context) : IServerWorker
         await Task.CompletedTask;
     }
 
-    public async Task Build(bool releaseMode = false)
+    public async Task BuildAsync(bool releaseMode = false)
     {
         // Check if node_modules exists and package.json exists
         var packageJsonPath = context.WorkingPath.Combine(Files.PackageJson);
@@ -37,7 +37,7 @@ public class ServerWorker(AppContext context) : IServerWorker
         await Task.CompletedTask;
     }
 
-    public async Task Publish()
+    public async Task PublishAsync()
     {
         foreach (string jsFilepath in Directory.GetFiles(context.ServerBuildPath, "*.js", SearchOption.AllDirectories))
         {
@@ -149,5 +149,8 @@ public class ServerWorker(AppContext context) : IServerWorker
         return js.Trim();
     }
 
-    public void AddPage(DirectoryInfo pageDirectory) { }
+    public async Task AddPageAsync(string pageName)
+    {
+        await Task.CompletedTask;
+    }
 }

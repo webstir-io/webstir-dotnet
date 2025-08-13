@@ -1,11 +1,17 @@
 using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Models;
-using Engine.Modules;
+using Engine.Workers;
+using Engine.Workers.Server;
+using Engine.Workers.Shared;
 
 namespace Engine.Workflows;
 
-public class InitWorkflow(AppContext context, IEnumerable<IAppModule> modules) : BaseWorkflow(context, modules)
+public class InitWorkflow(
+    AppContext context,
+    ClientWorker clientWorker,
+    ServerWorker serverWorker,
+    SharedWorker sharedWorker) : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
 {
     public override string WorkflowName => Commands.Init;
 
@@ -15,7 +21,11 @@ public class InitWorkflow(AppContext context, IEnumerable<IAppModule> modules) :
             Context.Initialize(Context.WorkingPath.Combine(Folders.Seed));
 
         var mode = ParseProjectMode(args);
-        await ExecuteWorkersAsync(async worker => await worker.Init(mode), mode);
+        
+        // Copy all embedded resources first
+        ResourceHelpers.CopyEmbeddedDirectory("src", Context.WorkingPath);
+        
+        await ExecuteWorkersAsync(async worker => await worker.InitAsync(mode), mode);
         await CreatePackageJson();
     }
 

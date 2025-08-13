@@ -1,23 +1,29 @@
 using Engine.Servers;
 using Engine.Models;
 using Engine.Workers;
-using Engine.Modules;
+using Engine.Workers.Server;
+using Engine.Workers.Shared;
 
 namespace Engine.Workflows;
 
-public abstract class BaseWorkflow(AppContext context, IEnumerable<IAppModule> modules) : IWorkflow
+public abstract class BaseWorkflow(
+    AppContext context,
+    ClientWorker clientWorker,
+    ServerWorker serverWorker,
+    SharedWorker sharedWorker) : IWorkflow
 {
     protected readonly AppContext Context = context;
-    protected readonly IEnumerable<IAppModule> Modules = modules;
+    protected readonly ClientWorker ClientWorker = clientWorker;
+    protected readonly ServerWorker ServerWorker = serverWorker;
+    protected readonly SharedWorker SharedWorker = sharedWorker;
     public abstract string WorkflowName { get; }
 
     public abstract Task ExecuteAsync(string[] args);
 
-    protected async Task ExecuteWorkersAsync(Func<IModuleWorker, Task> workerAction, ProjectMode? mode = null)
+    protected async Task ExecuteWorkersAsync(Func<IWorker, Task> workerAction, ProjectMode? mode = null)
     {
-        var activeModules = Context.FilterModules(Modules, mode);
-        var workers = activeModules.SelectMany(m => m.Workers);
-
+        var workers = GetFilteredWorkers(mode ?? Context.DetectProjectMode());
+        
         var workerGroups = workers
             .GroupBy(w => w.BuildOrder)
             .OrderBy(g => g.Key);
@@ -25,18 +31,25 @@ public abstract class BaseWorkflow(AppContext context, IEnumerable<IAppModule> m
         foreach (var group in workerGroups)
         {
             var workersInGroup = group.ToList();
-            // Temporarily running sequentially for debugging
             foreach (var worker in workersInGroup)
             {
                 await workerAction(worker);
             }
-            // await Task.WhenAll(workersInGroup.Select(workerAction));            
         }
     }
 
-    // TODO: Implement clean build logic
+    private IEnumerable<IWorker> GetFilteredWorkers(ProjectMode mode)
+    {
+        return mode switch
+        {
+            ProjectMode.ClientOnly => [ClientWorker],
+            ProjectMode.ServerOnly => [ServerWorker, SharedWorker],
+            _ => [ClientWorker, ServerWorker, SharedWorker]
+        };
+    }
+
     protected async Task ExecuteBuildAsync(bool releaseMode = false)
     {
-        await ExecuteWorkersAsync(async worker => await worker.Build(releaseMode));
+        await ExecuteWorkersAsync(async worker => await worker.BuildAsync(releaseMode));
     }
 }

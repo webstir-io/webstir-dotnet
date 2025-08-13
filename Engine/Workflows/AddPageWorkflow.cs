@@ -1,10 +1,15 @@
 using Engine.Extensions;
-using Engine.Workers.Client;
-using Engine.Modules;
+using Engine.Workers;
+using Engine.Workers.Server;
+using Engine.Workers.Shared;
 
 namespace Engine.Workflows;
 
-public class AddPageWorkflow(AppContext context, IEnumerable<IAppModule> modules) : BaseWorkflow(context, modules)
+public class AddPageWorkflow(
+    AppContext context,
+    ClientWorker clientWorker,
+    ServerWorker serverWorker,
+    SharedWorker sharedWorker) : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
 {
     public override string WorkflowName => Commands.AddPage;
 
@@ -20,10 +25,6 @@ public class AddPageWorkflow(AppContext context, IEnumerable<IAppModule> modules
 
         pagePath.Create();
 
-        await ExecuteWorkersAsync(async worker =>
-        {
-            if (worker is IClientWorker clientWorker)
-                await clientWorker.AddPage(pagePath);
-        });
+        await ExecuteWorkersAsync(async worker => await worker.AddPageAsync(pageName));
     }
 }

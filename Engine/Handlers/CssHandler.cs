@@ -3,43 +3,42 @@ using Engine.Helpers;
 using Engine.Models;
 using Engine.Processors.Css;
 
-namespace Engine.Workers.Client;
+namespace Engine.Handlers;
 
-public class StylesWorker(AppContext context) : IClientWorker
+public class CssHandler(AppContext context) : IHandler
 {
-    private const string _contextCssFile = "context.css";
-    private const string _homeCssFile = "home.css";
+    private const string _appCssFile = "app.css";
+    private const string _indexCssFile = "index.css";
     private const string _resetCssFile = "reset.css";
     private const string _baseCssFile = "base.css";
 
-    public int BuildOrder => 3;
-
-    public async Task Init(ProjectMode mode = ProjectMode.Fullstack)
+    public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
     {
         string stylesPath = context.ClientAppPath.CreateSubDirectory(Folders.Styles);
 
-        string contextCssFilepath = stylesPath.Combine(_contextCssFile);
-        if (!File.Exists(contextCssFilepath))
-            AssemblyHelpers.WriteResourceToFile(Folders.Client, _contextCssFile, contextCssFilepath);
+        string appCssFilepath = context.ClientAppPath.Combine(_appCssFile);
+        if (!File.Exists(appCssFilepath))
+            AssemblyHelpers.WriteResourceToFile(Resources.ClientResourcesPath, _appCssFile, appCssFilepath);
 
         string resetCssFilepath = stylesPath.Combine(_resetCssFile);
         if (!File.Exists(resetCssFilepath))
-            AssemblyHelpers.WriteResourceToFile($"{Folders.Client}.{Folders.Styles}", _resetCssFile, resetCssFilepath);
+            AssemblyHelpers.WriteResourceToFile(Resources.ClientResourcesPath, _resetCssFile, resetCssFilepath);
 
         string baseCssFilepath = stylesPath.Combine(_baseCssFile);
         if (!File.Exists(baseCssFilepath))
-            AssemblyHelpers.WriteResourceToFile($"{Folders.Client}.{Folders.Styles}", _baseCssFile, baseCssFilepath);
+            AssemblyHelpers.WriteResourceToFile(Resources.ClientResourcesPath, _baseCssFile, baseCssFilepath);
 
-        string homeCssOutputFilepath = context.ClientPagesPath.CreateSubDirectory(_homeCssFile);
-        if (!File.Exists(homeCssOutputFilepath))
-            AssemblyHelpers.WriteResourceToFile(Folders.Client, _homeCssFile, homeCssOutputFilepath);
+        string homeFilepath = context.ClientPagesPath.CreateSubDirectory(Folders.Home);
+        string indexCssOutputFilepath = homeFilepath.Combine(_indexCssFile);
+        if (!File.Exists(indexCssOutputFilepath))
+            AssemblyHelpers.WriteResourceToFile(Resources.ClientResourcesPath, _indexCssFile, indexCssOutputFilepath);
 
         await Task.CompletedTask;
     }
 
-    public async Task Build(bool releaseMode = false)
+    public async Task BuildAsync(bool releaseMode = false)
     {
-        string contextCssFilepath = context.ClientAppPath.Combine(_contextCssFile);
+        string contextCssFilepath = context.ClientAppPath.Combine(_appCssFile);
         if (File.Exists(contextCssFilepath))
         {
             string contextCssContent = File.ReadAllText(contextCssFilepath);
@@ -72,10 +71,10 @@ public class StylesWorker(AppContext context) : IClientWorker
         }
     }
 
-    public async Task Publish()
+    public async Task PublishAsync()
     {
         // Check if the project uses @import statements
-        var contextCssFilepath = context.ClientAppPath.Combine(_contextCssFile);
+        var contextCssFilepath = context.ClientAppPath.Combine(_appCssFile);
         var usesImports = false;
         if (File.Exists(contextCssFilepath))
         {
@@ -117,7 +116,7 @@ public class StylesWorker(AppContext context) : IClientWorker
         await Task.CompletedTask;
     }
 
-    public async Task AddPage(string pageName)
+    public async Task AddPageAsync(string pageName)
     {
         var cssContent = $"/* {pageName} Page Styles */\n@import \"@context/context.css\";\n\n/* Add your page-specific styles here */\n";
         File.WriteAllText(context.ClientPagesPath.Combine(AddCssExt(pageName)), cssContent);

@@ -1,15 +1,21 @@
 using Engine.Extensions;
-using Engine.Modules;
+using Engine.Workers;
+using Engine.Workers.Server;
+using Engine.Workers.Shared;
 
 namespace Engine.Workflows;
 
-public class PublishWorkflow(AppContext context, IEnumerable<IAppModule> modules) : BaseWorkflow(context, modules)
+public class PublishWorkflow(
+    AppContext context,
+    ClientWorker clientWorker,
+    ServerWorker serverWorker,
+    SharedWorker sharedWorker) : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
 {
     public override string WorkflowName => Commands.Publish;
 
     public override async Task ExecuteAsync(string[] args)
     {
         await ExecuteBuildAsync(releaseMode: true);
-        await ExecuteWorkersAsync(async worker => await worker.Publish());
+        await ExecuteWorkersAsync(async worker => await worker.PublishAsync());
     }
 }

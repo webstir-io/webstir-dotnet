@@ -1,30 +1,28 @@
 using Engine.Extensions;
 using Engine.Models;
 
-namespace Engine.Workers.Client;
+namespace Engine.Handlers;
 
-public class ImagesWorker(AppContext context) : IClientWorker
+public class ImagesHandler(AppContext context) : IHandler
 {
-    public int BuildOrder => 3; // Fast operations can run together after TS compilation
-
-    public async Task Init(ProjectMode mode = ProjectMode.Fullstack)
+    public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
     { 
         await Task.CompletedTask;
     }
 
-    public async Task Build(bool releaseMode = false)
+    public async Task BuildAsync(bool releaseMode = false)
     {
         context.ClientImagesPath.CopyTo(context.ClientBuildImagesPath);
         await Task.CompletedTask;
     }
 
-    public async Task Publish()
+    public async Task PublishAsync()
     {
         context.ClientBuildImagesPath.CopyTo(context.ClientDistImagesPath);
         await Task.CompletedTask;
     }
 
-    public async Task AddPage(string name)
+    public async Task AddPageAsync(string name)
     {
         await Task.CompletedTask;
     }

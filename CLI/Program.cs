@@ -1,13 +1,11 @@
 ﻿using CLI;
-using Engine;
 using Engine.Servers;
-using Engine.Modules;
 using Engine.Services;
-using Engine.Workers;
-using Engine.Workers.Client;
-using Engine.Workers.Shared;
 using Engine.Workflows;
+using Engine.Workers;
 using Engine.Workers.Server;
+using Engine.Workers.Shared;
+using Engine.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 
 try
@@ -21,16 +19,16 @@ try
     services.AddScoped<Engine.AppContext>();
     services.AddScoped<IWorkflowFactory, WorkflowFactory>();
 
-    services.AddTransient<IAppModule, ClientModule>();
-    services.AddTransient<IAppModule, ServerModule>();
-    services.AddTransient<IAppModule, SharedModule>();
+    // Register handlers
+    services.AddTransient<HtmlHandler>();
+    services.AddTransient<CssHandler>();
+    services.AddTransient<ScriptsHandler>();
+    services.AddTransient<ImagesHandler>();
 
-    services.AddTransient<IClientWorker, HtmlWorker>();
-    services.AddTransient<IClientWorker, StylesWorker>();
-    services.AddTransient<IClientWorker, ScriptsWorker>();
-    services.AddTransient<IClientWorker, ImagesWorker>();
-    services.AddTransient<IServerWorker, ServerWorker>();
-    services.AddTransient<ISharedWorker, SharedWorker>();
+    // Register workers
+    services.AddTransient<ClientWorker>();
+    services.AddTransient<ServerWorker>();
+    services.AddTransient<SharedWorker>();
 
     services.AddTransient<IWorkflow, InitWorkflow>();
     services.AddTransient<IWorkflow, BuildWorkflow>();

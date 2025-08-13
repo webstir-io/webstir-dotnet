@@ -1,8 +1,14 @@
-using Engine.Modules;
+using Engine.Workers;
+using Engine.Workers.Server;
+using Engine.Workers.Shared;
 
 namespace Engine.Workflows;
 
-public class BuildWorkflow(AppContext context, IEnumerable<IAppModule> modules) : BaseWorkflow(context, modules)
+public class BuildWorkflow(
+    AppContext context,
+    ClientWorker clientWorker,
+    ServerWorker serverWorker,
+    SharedWorker sharedWorker) : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
 {
     public override string WorkflowName => Commands.Build;
 

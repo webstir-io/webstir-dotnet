@@ -4,41 +4,48 @@ using Engine.Models;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace Engine.Workers.Client;
+namespace Engine.Handlers;
 
-public class HtmlWorker(AppContext context) : IClientWorker
+public class HtmlHandler(AppContext context) : IHandler
 {
     private const string AppHtmlFileName = "app.html";
-    private const string HomeHtmlFileName = "home.html";
     private const string IndexHtmlFileName = "index.html";
 
     private RoutingMetadata _routingMetadata = new();
 
-    public int BuildOrder => 3;
-
-    public async Task Init(ProjectMode mode = ProjectMode.Fullstack)
+    public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
     {
-        InitializeTemplateFile(context.ClientAppPath, AppHtmlFileName);
-        InitializeTemplateFile(context.ClientPagesPath, HomeHtmlFileName);
+        string appHtmlPath = context.ClientAppPath.Combine(AppHtmlFileName);
+        if (!File.Exists(appHtmlPath))
+            AssemblyHelpers.WriteResourceToFile(Folders.Client, AppHtmlFileName, appHtmlPath);
+
+        string clientHomePath = context.ClientPagesPath.CreateSubDirectory(Folders.Home);
+        string homeHtmlPath = clientHomePath.Combine(IndexHtmlFileName);
+        if (!File.Exists(homeHtmlPath))
+            AssemblyHelpers.WriteResourceToFile(Folders.Client, IndexHtmlFileName, homeHtmlPath);
 
         await Task.CompletedTask;
     }
 
-    public async Task Build(bool releaseMode = false)
+    public async Task BuildAsync(bool releaseMode = false)
     {
         _routingMetadata = DetectRoutingConfiguration();
-        var appTemplate = LoadAppTemplate();
+        string appHtmlFilepath =  context.ClientAppPath.Combine(AppHtmlFileName);
+        if (!File.Exists(appHtmlFilepath))
+            throw new FileNotFoundException($"Base application HTML file not found: {appHtmlFilepath}");
+
+        var appHtmlFile = new HtmlFile(appHtmlFilepath);
 
         if (releaseMode)
-            appTemplate.Remove(@"<script src=""/refresh.js"" async></script>");
+            appHtmlFile.Remove(@"<script src=""/refresh.js"" async></script>");
 
         foreach (var page in context.ClientPagesPath.Folders())
-            ProcessPageDirectory(page, appTemplate);
+            ProcessPageDirectory(page, appHtmlFile);
 
         await Task.CompletedTask;
     }
 
-    public async Task Publish()
+    public async Task PublishAsync()
     {
         foreach (var page in context.ClientBuildPath.Folders())
         {
@@ -46,7 +53,7 @@ public class HtmlWorker(AppContext context) : IClientWorker
             if (htmlFile != null)
             {
                 var distPageDirectory = context.ClientDistPath.CreateSubDirectory(page.Name());
-                var destinationPath = distPageDirectory.Combine(HomeHtmlFileName);
+                var destinationPath = distPageDirectory.Combine(htmlFile);
                 PublishHtmlFile(htmlFile, destinationPath);
             }
         }
@@ -54,47 +61,13 @@ public class HtmlWorker(AppContext context) : IClientWorker
         await Task.CompletedTask;
     }
 
-    public async Task AddPage(DirectoryInfo pageDirectory)
+    public async Task AddPageAsync(string pageName)
     {
-        if (!pageDirectory.Exists)
-            throw new DirectoryNotFoundException($"Page directory '{pageDirectory.Name}' does not exist.");
-
-        // Create index.html for the new page
-        CreatePageTemplate(pageDirectory);
-
-        await Task.CompletedTask;
-    }
-
-    public async Task AddPage(string pageName)
-    {
-        var pageDirectory = context.ClientPagesPath.CreateSubDirectory(pageName);
-        await AddPage(pageDirectory);
-    }
-
-    private static void CreatePageTemplate(DirectoryInfo pageDirectory)
-    {
-        var pageName = pageDirectory.Name;
+        var pagePath = context.ClientPagesPath.CreateSubDirectory(pageName);
         var htmlContent = GeneratePageTemplate(pageName);
-        var outputPath = pageDirectory.CombinePath(HomeHtmlFileName);
-
+        var outputPath = pagePath.Combine(IndexHtmlFileName);
         File.WriteAllText(outputPath, htmlContent);
-        Console.WriteLine($"MarkupWorker: Created HTML fragment for page '{pageName}' at {outputPath}");
-    }
-
-    private static void InitializeTemplateFile(string path, string fileName)
-    {
-        var filePath = path.Combine(fileName);
-        if (!File.Exists(filePath))
-            AssemblyHelpers.WriteResourceToFile(Folders.Client, fileName, filePath);
-    }
-
-    private HtmlFile LoadAppTemplate()
-    {
-        var appHtmlFilepath = context.ClientAppPath.Combine(AppHtmlFileName);
-        if (!File.Exists(appHtmlFilepath))
-            throw new FileNotFoundException($"Base application HTML file not found: {appHtmlFilepath}");
-
-        return new HtmlFile(appHtmlFilepath);
+        await Task.CompletedTask;
     }
 
 
@@ -135,12 +108,12 @@ public class HtmlWorker(AppContext context) : IClientWorker
         string outputPath;
         if (pageName.Equals("index", StringComparison.OrdinalIgnoreCase))
         {
-            outputPath = context.ClientBuildPath.Combine(HomeHtmlFileName);
+            outputPath = context.ClientBuildPath.Combine(IndexHtmlFileName);
         }
         else
         {
             var pageOutputPath = context.ClientBuildPath.CreateSubDirectory(pageName);
-            outputPath = pageOutputPath.Combine(HomeHtmlFileName);
+            outputPath = pageOutputPath.Combine(IndexHtmlFileName);
         }
 
         File.WriteAllText(outputPath, mergedHtml);

@@ -1,6 +1,5 @@
 using Engine.Extensions;
 using Engine.Models;
-using Engine.Modules;
 
 namespace Engine;
 
@@ -36,18 +35,6 @@ public class AppContext
     public string ServerDistPath => DistPath.CreateSubDirectory(Folders.Server);
 
     public string SharedPath => SrcPath.CreateSubDirectory(Folders.Shared);
-
-    public IEnumerable<IAppModule> FilterModules(IEnumerable<IAppModule> modules, ProjectMode? mode = null)
-    {
-        ProjectMode projectMode = mode ?? DetectProjectMode();
-
-        return projectMode switch
-        {
-            ProjectMode.ClientOnly => modules.Where(m => m.Name.Contains(Folders.Client)),
-            ProjectMode.ServerOnly => modules.Where(m => m.Name.Contains(Folders.Server)),
-            _ => modules
-        };
-    }
 
     public ProjectMode DetectProjectMode()
     {

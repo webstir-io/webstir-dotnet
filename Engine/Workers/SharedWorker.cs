@@ -4,15 +4,15 @@ using Engine.Models;
 
 namespace Engine.Workers.Shared;
 
-public class SharedWorker(AppContext context) : ISharedWorker
+public class SharedWorker(AppContext context) : IWorker
 {
     private const string _sharedFolder = "shared";
     private const string _typesFolder = "types";
     private const string _indexTsFile = "index.ts";
 
-    public int BuildOrder => 2; // Fast operation, run after heavy TypeScript compilation
+    public int BuildOrder => 3; // Fast operation, can run with other fast operations
 
-    public async Task Init(ProjectMode mode = ProjectMode.Fullstack)
+    public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
     {
         var sharedTypesDirectory = context.SharedPath.CreateSubDirectory(_typesFolder);
         var indexTsPath = sharedTypesDirectory.Combine(_indexTsFile);
@@ -29,12 +29,17 @@ public class SharedWorker(AppContext context) : ISharedWorker
         await Task.CompletedTask;
     }
 
-    public async Task Build(bool releaseMode = false)
+    public async Task BuildAsync(bool releaseMode = false)
     { 
         await Task.CompletedTask;
     }
 
-    public async Task Publish()
+    public async Task PublishAsync()
+    {
+        await Task.CompletedTask;
+    }
+
+    public async Task AddPageAsync(string pageName)
     {
         await Task.CompletedTask;
     }
