@@ -15,11 +15,14 @@ public class InitWorkflow(
 {
     public override string WorkflowName => Commands.Init;
 
-    public override async Task ExecuteAsync(string[] args)
+    protected override void InitializeWorkspace(string[] args)
     {
         if (Context.WorkingPath == Directory.GetCurrentDirectory())
             Context.Initialize(Context.WorkingPath.Combine(Folders.Seed));
+    }
 
+    protected override async Task ExecuteWorkflowAsync(string[] args)
+    {
         var mode = ParseProjectMode(args);
         await ResourceHelpers.CopyEmbeddedRootFilesAsync(Resources.ResourcesPath, Context.WorkingPath);     
         await ExecuteWorkersAsync(async worker => await worker.InitAsync(mode), mode);

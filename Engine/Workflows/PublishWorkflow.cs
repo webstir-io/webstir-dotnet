@@ -1,4 +1,3 @@
-using Engine.Extensions;
 using Engine.Workers;
 using Engine.Workers.Server;
 using Engine.Workers.Shared;
@@ -13,7 +12,7 @@ public class PublishWorkflow(
 {
     public override string WorkflowName => Commands.Publish;
 
-    public override async Task ExecuteAsync(string[] args)
+    protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         await ExecuteBuildAsync(releaseMode: true);
         await ExecuteWorkersAsync(async worker => await worker.PublishAsync());

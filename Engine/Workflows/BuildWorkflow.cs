@@ -8,14 +8,15 @@ public class BuildWorkflow(
     AppContext context,
     ClientWorker clientWorker,
     ServerWorker serverWorker,
-    SharedWorker sharedWorker) : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
+    SharedWorker sharedWorker) 
+    : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
 {
     public override string WorkflowName => Commands.Build;
 
-    public override async Task ExecuteAsync(string[] args)
+    protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         // TODO: Implement clean build logic
-        var cleanBuild = args.Contains(BuildOptions.Clean);
+        // var cleanBuild = args.Contains(BuildOptions.Clean);
         await ExecuteBuildAsync();
     }
 }
