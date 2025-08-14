@@ -14,7 +14,7 @@ public class HtmlHandler(AppContext context)
 
     public async Task BuildAsync(bool releaseMode = false)
     {
-        _routingMetadata = DetectRoutingConfiguration();
+        _routingMetadata = await DetectRoutingConfigurationAsync();
         string appHtmlFilepath =  context.ClientAppPath.Combine(AppHtmlFileName);
         if (!File.Exists(appHtmlFilepath))
             throw new FileNotFoundException($"Base application HTML file not found: {appHtmlFilepath}");
@@ -25,9 +25,7 @@ public class HtmlHandler(AppContext context)
             appHtmlFile.Remove(@"<script src=""/refresh.js"" async></script>");
 
         foreach (var page in context.ClientPagesPath.Folders())
-            ProcessPageDirectory(page, appHtmlFile);
-
-        await Task.CompletedTask;
+            await ProcessPageDirectoryAsync(page, appHtmlFile);
     }
 
     public async Task PublishAsync()
@@ -56,13 +54,13 @@ public class HtmlHandler(AppContext context)
     }
 
 
-    private void ProcessPageDirectory(string pagePath, HtmlFile appTemplate)
+    private async Task ProcessPageDirectoryAsync(string pagePath, HtmlFile appTemplate)
     {
         foreach (var pageHtmlFile in pagePath.Files(AddHtmlExt("*")))
         {
             try
             {
-                ProcessPageFile(pageHtmlFile, pagePath.Name(), appTemplate);
+                await ProcessPageFileAsync(pageHtmlFile, pagePath.Name(), appTemplate);
             }
             catch (Exception ex)
             {
@@ -72,36 +70,27 @@ public class HtmlHandler(AppContext context)
         }
     }
 
-    private void ProcessPageFile(string pageHtmlFile, string pageName, HtmlFile appTemplate)
+    private async Task ProcessPageFileAsync(string pageHtmlFile, string pageName, HtmlFile appTemplate)
     {
         if (!pageHtmlFile.Exists())
             throw new FileNotFoundException($"Page HTML file not found: {pageHtmlFile}");
 
         // Merge the app template with the page fragment
-        var releaseMode = _routingMetadata.Pages.ContainsKey(pageName) && _routingMetadata.Pages[pageName].IsSpaEnabled;
+        bool releaseMode = _routingMetadata.Pages.ContainsKey(pageName) && _routingMetadata.Pages[pageName].IsSpaEnabled;
         if (releaseMode && !_routingMetadata.HasSpaPages)
-            return; // Skip if SPA mode is not enabled for this page
+            return;
 
-        Console.WriteLine($"Processing page: {pageName}");
-
-        var pageFragment = new HtmlFile(pageHtmlFile);
-        var mergedHtml = appTemplate.Merge(pageFragment.Html);
+        HtmlFile pageFragment = new(pageHtmlFile);
+        string mergedHtml = appTemplate.Merge(pageFragment.Html);
 
         if (_routingMetadata.HasSpaPages && !releaseMode)
             mergedHtml = InjectRoutingMetadata(mergedHtml);
 
         string outputPath;
-        if (pageName.Equals("index", StringComparison.OrdinalIgnoreCase))
-        {
-            outputPath = context.ClientBuildPath.Combine(IndexHtmlFileName);
-        }
-        else
-        {
-            var pageOutputPath = context.ClientBuildPath.CreateSubDirectory(pageName);
-            outputPath = pageOutputPath.Combine(IndexHtmlFileName);
-        }
-
-        File.WriteAllText(outputPath, mergedHtml);
+        string pagesDirectory = context.ClientBuildPath.CreateSubDirectory("pages");
+        string pageOutputPath = pagesDirectory.CreateSubDirectory(pageName);
+        outputPath = pageOutputPath.Combine(IndexHtmlFileName);
+        await File.WriteAllTextAsync(outputPath, mergedHtml);
     }
 
     private static void PublishHtmlFile(string sourceFilepath, string destinationPath)
@@ -126,13 +115,13 @@ public class HtmlHandler(AppContext context)
         </body>
         """;
 
-    private RoutingMetadata DetectRoutingConfiguration()
+    private async Task<RoutingMetadata> DetectRoutingConfigurationAsync()
     {
         var metadata = new RoutingMetadata();
 
         foreach (var page in context.ClientPagesPath.Folders())
         {
-            AnalyzePageForRouting(page, metadata);
+            await AnalyzePageForRoutingAsync(page, metadata);
         }
 
         // Check for router.ts in app directory
@@ -145,14 +134,14 @@ public class HtmlHandler(AppContext context)
         return metadata;
     }
 
-    private static void AnalyzePageForRouting(string page, RoutingMetadata metadata)
+    private static async Task AnalyzePageForRoutingAsync(string page, RoutingMetadata metadata)
     {
         var pageName = Path.GetFileName(page);
         var typeScriptFiles = Directory.GetFiles(page, "*.ts");
 
         foreach (var tsFile in typeScriptFiles)
         {
-            var content = File.ReadAllText(tsFile);
+            var content = await File.ReadAllTextAsync(tsFile);
             var hasRouteHandler = DetectRouteHandlerExport(content);
 
             metadata.Pages[pageName] = new PageRouteInfo
