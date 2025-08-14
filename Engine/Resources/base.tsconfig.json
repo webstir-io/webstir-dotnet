@@ -1,4 +1,10 @@
 {
+  "files": [],
+  "references": [
+    { "path": "src/shared" },
+    { "path": "src/client" },
+    { "path": "src/server" }
+  ],
   "compilerOptions": {
     "target": "ES2022",
     "module": "esnext",

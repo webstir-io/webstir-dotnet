@@ -4,7 +4,8 @@
     "target": "ES2022",
     "module": "commonjs",
     "lib": ["ES2022"],
-    "outDir": "../../build",
+    "outDir": "../../build/server",
+    "rootDir": ".",
     "baseUrl": ".",
     "incremental": true,
     "tsBuildInfoFile": "../../build/server/.tsbuildinfo",
@@ -13,5 +14,8 @@
     }
   },
   "include": ["."],
-  "exclude": ["node_modules", "../../build", "../../dist"]
+  "exclude": ["node_modules", "../../build", "../../dist"],
+  "references": [
+    { "path": "../shared" }
+  ]
 }

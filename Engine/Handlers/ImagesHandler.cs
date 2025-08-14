@@ -1,15 +1,9 @@
 using Engine.Extensions;
-using Engine.Models;
 
 namespace Engine.Handlers;
 
-public class ImagesHandler(AppContext context) : IHandler
+public class ImagesHandler(AppContext context)
 {
-    public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
-    { 
-        await Task.CompletedTask;
-    }
-
     public async Task BuildAsync(bool releaseMode = false)
     {
         context.ClientImagesPath.CopyTo(context.ClientBuildImagesPath);

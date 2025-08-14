@@ -1,31 +1,16 @@
 using Engine.Extensions;
-using Engine.Helpers;
 using Engine.Models;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Engine.Handlers;
 
-public class HtmlHandler(AppContext context) : IHandler
+public class HtmlHandler(AppContext context)
 {
     private const string AppHtmlFileName = "app.html";
     private const string IndexHtmlFileName = "index.html";
 
     private RoutingMetadata _routingMetadata = new();
-
-    public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
-    {
-        string appHtmlPath = context.ClientAppPath.Combine(AppHtmlFileName);
-        if (!File.Exists(appHtmlPath))
-            AssemblyHelpers.WriteResourceToFile(Folders.Client, AppHtmlFileName, appHtmlPath);
-
-        string clientHomePath = context.ClientPagesPath.CreateSubDirectory(Folders.Home);
-        string homeHtmlPath = clientHomePath.Combine(IndexHtmlFileName);
-        if (!File.Exists(homeHtmlPath))
-            AssemblyHelpers.WriteResourceToFile(Folders.Client, IndexHtmlFileName, homeHtmlPath);
-
-        await Task.CompletedTask;
-    }
 
     public async Task BuildAsync(bool releaseMode = false)
     {

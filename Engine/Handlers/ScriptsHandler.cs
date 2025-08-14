@@ -1,74 +1,27 @@
 using System.Diagnostics;
 using Engine.Extensions;
-using Engine.Helpers;
-using Engine.Models;
 
 namespace Engine.Handlers;
 
-public class ScriptsHandler(AppContext context) : IHandler
+public class ScriptsHandler(AppContext context)
 {
-    private const string _baseTsConfigFile = "base.tsconfig.json";
-    private const string _tsConfigFile = "tsconfig.json";
-    private const string _appTsFile = "app.ts";
-    private const string _indexTsFile = "index.ts";
     private const string _refreshJsFile = "refresh.js";
-    private const string _routerTsFile = "router.ts";
-    private const string _navigationTsFile = "navigation.ts";
 
-    public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
-    {
-        var baseTsConfigPath = context.WorkingPath.Combine(_baseTsConfigFile);
-        if (!File.Exists(baseTsConfigPath))
-            AssemblyHelpers.WriteResourceToFile(_baseTsConfigFile, baseTsConfigPath);
-
-        string tsConfigPath = context.ClientPath.Combine(_tsConfigFile);
-        if (!File.Exists(tsConfigPath))
-            AssemblyHelpers.WriteResourceToFile(Folders.Client, _tsConfigFile, tsConfigPath);
-
-        string refreshJsFilepath = context.ClientAppPath.Combine(_refreshJsFile);
-        if (!File.Exists(refreshJsFilepath))
-            AssemblyHelpers.WriteResourceToFile(Folders.Client, _refreshJsFile, refreshJsFilepath);
-
-        string appTsFilepath = context.ClientAppPath.Combine(_appTsFile);
-        if (!File.Exists(appTsFilepath))
-            AssemblyHelpers.WriteResourceToFile(Folders.Client, _appTsFile, appTsFilepath);
-
-        string routerFilePath = context.ClientAppPath.Combine(_routerTsFile);
-        if (!File.Exists(routerFilePath))
-            AssemblyHelpers.WriteResourceToFile(Folders.Client, _routerTsFile, routerFilePath);
-
-        string navigationFilePath = context.ClientAppPath.Combine(_navigationTsFile);
-        if (!File.Exists(navigationFilePath))
-            AssemblyHelpers.WriteResourceToFile(Folders.Client, _navigationTsFile, navigationFilePath);
-
-        string clientHomePath = context.ClientPagesPath.CreateSubDirectory(Folders.Home);
-        string homeIndexTsFilepath = clientHomePath.Combine(_indexTsFile);
-        if (!File.Exists(homeIndexTsFilepath))
-            AssemblyHelpers.WriteResourceToFile(Folders.Client, _indexTsFile, homeIndexTsFilepath);
-
-        await Task.CompletedTask;
-    }
-
-    public async Task BuildAsync(bool releaseMode = false)
+    public async Task BuildAsync()
     {
         var packageJsonPath = context.WorkingPath.Combine(Files.PackageJson);
         if (File.Exists(packageJsonPath))
             RunNpmInstall();
 
         CompileTypeScriptFiles();
-        FlattenBuildOutput();
 
         string sourceRefreshJsApp = context.ClientAppPath.Combine(_refreshJsFile);
         string targetRefreshJs = context.ClientBuildPath.Combine(_refreshJsFile);
 
         if (File.Exists(sourceRefreshJsApp))
-        {
             File.Copy(sourceRefreshJsApp, targetRefreshJs, true);
-        }
         else
-        {
             Console.WriteLine($"Warning: {_refreshJsFile} not found in {sourceRefreshJsApp}");
-        }
 
         await Task.CompletedTask;
     }
@@ -97,12 +50,12 @@ public class ScriptsHandler(AppContext context) : IHandler
 
     private void CompileTypeScriptFiles()
     {
-        var clientTsConfigPath = context.ClientPath.Combine(_tsConfigFile);
+        var baseTsConfigPath = context.WorkingPath.Combine("base.tsconfig.json");
 
         var processInfo = new ProcessStartInfo
         {
             FileName = "tsc",
-            Arguments = $"-p \"{clientTsConfigPath}\"",
+            Arguments = $"--build \"{baseTsConfigPath}\"",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -127,75 +80,6 @@ public class ScriptsHandler(AppContext context) : IHandler
         }
     }
 
-    private void FlattenBuildOutput()
-    {
-        // First, move everything from client/client/* up one level
-        var nestedClientDirectory = context.ClientBuildPath.CreateSubDirectory("client");
-        if (Directory.Exists(nestedClientDirectory))
-        {
-            // Move all contents up one level
-            foreach (var item in Directory.GetDirectories(nestedClientDirectory))
-            {
-                var targetPath = context.ClientBuildPath.Combine(Path.GetFileName(item));
-                if (Directory.Exists(targetPath))
-                {
-                    // If target exists, we need to merge contents
-                    foreach (var file in Directory.GetFiles(item, "*", SearchOption.AllDirectories))
-                    {
-                        var relativePath = Path.GetRelativePath(item, file);
-                        var targetFilePath = Path.Combine(targetPath, relativePath);
-                        Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!);
-                        File.Move(file, targetFilePath, overwrite: true);
-                    }
-                    Directory.Delete(item, recursive: true);
-                }
-                else
-                {
-                    Directory.Move(item, targetPath);
-                }
-            }
-
-            foreach (var file in Directory.GetFiles(nestedClientDirectory))
-            {
-                var targetPath = context.ClientBuildPath.Combine(Path.GetFileName(file));
-                File.Move(file, targetPath, overwrite: true);
-            }
-
-            Directory.Delete(nestedClientDirectory, recursive: true);
-        }
-        
-        // Then flatten pages as before
-        var pagesDirectory = context.ClientBuildPath.CreateSubDirectory("pages");
-
-        foreach (var pageDirectory in Directory.GetDirectories(pagesDirectory))
-        {
-            string pageName = Path.GetFileName(pageDirectory);
-            string targetDirectory;
-
-            if (pageName.Equals("index", StringComparison.OrdinalIgnoreCase))
-            {
-                targetDirectory = context.ClientBuildPath;
-            }
-            else
-            {
-                targetDirectory = context.ClientBuildPath.CreateSubDirectory(pageName);
-            }
-
-            foreach (var jsFile in Directory.GetFiles(pageDirectory, "*.js"))
-            {
-                var targetPath = targetDirectory.Combine(jsFile);
-                File.Move(jsFile, targetPath, overwrite: true);
-            }
-
-            foreach (var mapFile in Directory.GetFiles(pageDirectory, "*.js.map"))
-            {
-                var targetPath = targetDirectory.Combine(mapFile);
-                File.Move(mapFile, targetPath, overwrite: true);
-            }
-        }
-
-        Directory.Delete(pagesDirectory, recursive: true);
-    }
 
     private void RunNpmInstall()
     {

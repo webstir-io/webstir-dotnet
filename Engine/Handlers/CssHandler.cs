@@ -1,40 +1,11 @@
 using Engine.Extensions;
-using Engine.Helpers;
-using Engine.Models;
 using Engine.Processors.Css;
 
 namespace Engine.Handlers;
 
-public class CssHandler(AppContext context) : IHandler
+public class CssHandler(AppContext context)
 {
     private const string _appCssFile = "app.css";
-    private const string _indexCssFile = "index.css";
-    private const string _resetCssFile = "reset.css";
-    private const string _baseCssFile = "base.css";
-
-    public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
-    {
-        string stylesPath = context.ClientAppPath.CreateSubDirectory(Folders.Styles);
-
-        string appCssFilepath = context.ClientAppPath.Combine(_appCssFile);
-        if (!File.Exists(appCssFilepath))
-            AssemblyHelpers.WriteResourceToFile(Resources.ClientResourcesPath, _appCssFile, appCssFilepath);
-
-        string resetCssFilepath = stylesPath.Combine(_resetCssFile);
-        if (!File.Exists(resetCssFilepath))
-            AssemblyHelpers.WriteResourceToFile(Resources.ClientResourcesPath, _resetCssFile, resetCssFilepath);
-
-        string baseCssFilepath = stylesPath.Combine(_baseCssFile);
-        if (!File.Exists(baseCssFilepath))
-            AssemblyHelpers.WriteResourceToFile(Resources.ClientResourcesPath, _baseCssFile, baseCssFilepath);
-
-        string homeFilepath = context.ClientPagesPath.CreateSubDirectory(Folders.Home);
-        string indexCssOutputFilepath = homeFilepath.Combine(_indexCssFile);
-        if (!File.Exists(indexCssOutputFilepath))
-            AssemblyHelpers.WriteResourceToFile(Resources.ClientResourcesPath, _indexCssFile, indexCssOutputFilepath);
-
-        await Task.CompletedTask;
-    }
 
     public async Task BuildAsync(bool releaseMode = false)
     {

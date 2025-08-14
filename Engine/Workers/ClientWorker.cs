@@ -20,11 +20,11 @@ public class ClientWorker(
 
     public async Task BuildAsync(bool releaseMode)
     {
-        await scriptsHandler.BuildAsync(releaseMode);        
+        await scriptsHandler.BuildAsync();        
         await Task.WhenAll(
-            htmlHandler.BuildAsync(releaseMode),
-            cssHandler.BuildAsync(releaseMode),
-            imagesHandler.BuildAsync(releaseMode)
+            htmlHandler.BuildAsync(),
+            cssHandler.BuildAsync(),
+            imagesHandler.BuildAsync()
         );
     }
 
