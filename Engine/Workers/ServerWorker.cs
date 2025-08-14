@@ -8,21 +8,12 @@ namespace Engine.Workers.Server;
 public class ServerWorker(AppContext context) : IWorker
 {
     private const string _tsConfigFile = "tsconfig.json";
-    private const string _indexTsFile = "index.ts";
 
     public int BuildOrder => 2; // Fast server compilation
 
     public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
     {
-        string tsConfigPath = context.ServerPath.Combine(_tsConfigFile);
-        if (!File.Exists(tsConfigPath))
-            AssemblyHelpers.WriteResourceToFile(Folders.Server, _tsConfigFile, tsConfigPath);
-
-        string indexTsPath = context.ServerPath.Combine(_indexTsFile);
-        if (!File.Exists(indexTsPath))
-            AssemblyHelpers.WriteResourceToFile(Folders.Server, _indexTsFile, indexTsPath);
-
-        await Task.CompletedTask;
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.ServerResourcesPath, context.ServerPath);
     }
 
     public async Task BuildAsync(bool releaseMode = false)

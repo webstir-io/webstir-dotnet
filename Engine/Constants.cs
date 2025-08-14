@@ -34,7 +34,8 @@ public static class Files
 
 public static class Resources
 {
-    public const string SrcResourcesPath = $"{Folders.Src}";
+    public const string ResourcesPath = "Engine.Resources";
+    public const string SrcResourcesPath = $"{ResourcesPath}.{Folders.Src}";
     public const string ClientResourcesPath = $"{SrcResourcesPath}.{Folders.Client}";
     public const string ServerResourcesPath = $"{SrcResourcesPath}.{Folders.Server}";
     public const string SharedResourcesPath = $"{SrcResourcesPath}.{Folders.Shared}";

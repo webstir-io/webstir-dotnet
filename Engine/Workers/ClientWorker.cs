@@ -1,9 +1,11 @@
 using Engine.Handlers;
+using Engine.Helpers;
 using Engine.Models;
 
 namespace Engine.Workers;
 
 public class ClientWorker(
+    AppContext context,
     HtmlHandler htmlHandler,
     CssHandler cssHandler,
     ScriptsHandler scriptsHandler,
@@ -13,20 +15,12 @@ public class ClientWorker(
 
     public async Task InitAsync(ProjectMode mode)
     {
-        await Task.WhenAll(
-            htmlHandler.InitAsync(mode),
-            cssHandler.InitAsync(mode),
-            scriptsHandler.InitAsync(mode),
-            imagesHandler.InitAsync(mode)
-        );
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.ClientResourcesPath, context.ClientPath);
     }
 
     public async Task BuildAsync(bool releaseMode)
     {
-        // Scripts first (heavy TypeScript compilation)
-        await scriptsHandler.BuildAsync(releaseMode);
-        
-        // Then parallel execution of fast handlers
+        await scriptsHandler.BuildAsync(releaseMode);        
         await Task.WhenAll(
             htmlHandler.BuildAsync(releaseMode),
             cssHandler.BuildAsync(releaseMode),

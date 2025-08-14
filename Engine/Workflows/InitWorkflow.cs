@@ -21,19 +21,8 @@ public class InitWorkflow(
             Context.Initialize(Context.WorkingPath.Combine(Folders.Seed));
 
         var mode = ParseProjectMode(args);
-        
-        // Copy all embedded resources first
-        ResourceHelpers.CopyEmbeddedDirectory("src", Context.WorkingPath);
-        
+        await ResourceHelpers.CopyEmbeddedRootFilesAsync(Resources.ResourcesPath, Context.WorkingPath);     
         await ExecuteWorkersAsync(async worker => await worker.InitAsync(mode), mode);
-        await CreatePackageJson();
-    }
-
-    private async Task CreatePackageJson()
-    {
-        var packageJsonPath = Context.WorkingPath.Combine(Files.PackageJson);        
-        if (!File.Exists(packageJsonPath))
-            await Task.Run(() => AssemblyHelpers.WriteResourceToFile(Files.PackageJson, packageJsonPath));
     }
 
     private static ProjectMode ParseProjectMode(string[] args)
