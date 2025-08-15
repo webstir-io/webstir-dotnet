@@ -50,9 +50,9 @@ public abstract class BaseWorkflow(
         };
     }
 
-    protected async Task ExecuteBuildAsync(bool releaseMode = false)
+    protected async Task ExecuteBuildAsync()
     {
-        await ExecuteWorkersAsync(async worker => await worker.BuildAsync(releaseMode));
+        await ExecuteWorkersAsync(async worker => await worker.BuildAsync());
     }
 
     protected virtual void InitializeWorkspace(string[] args)

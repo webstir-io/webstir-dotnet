@@ -18,7 +18,7 @@ public class ClientWorker(
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.ClientResourcesPath, context.ClientPath);
     }
 
-    public async Task BuildAsync(bool releaseMode)
+    public async Task BuildAsync()
     {
         await scriptsHandler.BuildAsync();        
         await Task.WhenAll(

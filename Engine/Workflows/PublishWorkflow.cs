@@ -14,7 +14,7 @@ public class PublishWorkflow(
 
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
-        await ExecuteBuildAsync(releaseMode: true);
+        await ExecuteBuildAsync();
         await ExecuteWorkersAsync(async worker => await worker.PublishAsync());
     }
 }

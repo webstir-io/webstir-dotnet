@@ -13,7 +13,7 @@ public class SharedWorker(AppContext context) : IWorker
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.SharedResourcesPath, context.SharedPath);
     }
 
-    public async Task BuildAsync(bool releaseMode = false)
+    public async Task BuildAsync()
     { 
         await Task.CompletedTask;
     }

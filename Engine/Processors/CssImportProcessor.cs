@@ -11,7 +11,7 @@ public static class CssImportProcessor
         return ImportRegex.IsMatch(cssContent);
     }
     
-    public static string ProcessForBuild(string cssContent, string sourceFilePath, string outputPath, string clientDirectory, bool releaseMode = false)
+    public static string ProcessForBuild(string cssContent, string sourceFilePath, string outputPath, string clientDirectory)
     {
         var sourceDir = Path.GetDirectoryName(sourceFilePath) ?? "";
         var outputDir = Path.GetDirectoryName(outputPath) ?? "";
@@ -23,10 +23,10 @@ public static class CssImportProcessor
             var resolvedPath = CssPathResolver.ResolvePath(importPath, sourceDir, clientDirectory);
             
             if (string.IsNullOrEmpty(resolvedPath) || !File.Exists(resolvedPath))
-                return releaseMode ? "" : $"/* ERROR: Import file not found: {importPath} */";
+                return $"/* ERROR: Import file not found: {importPath} */";
             
             if (processedImports.Contains(resolvedPath))
-                return releaseMode ? "" : $"/* ERROR: Circular import detected: {importPath} */";
+                return $"/* ERROR: Circular import detected: {importPath} */";
             
             processedImports.Add(resolvedPath);
             

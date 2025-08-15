@@ -12,7 +12,7 @@ public class HtmlHandler(AppContext context)
 
     private RoutingMetadata _routingMetadata = new();
 
-    public async Task BuildAsync(bool releaseMode = false)
+    public async Task BuildAsync()
     {
         _routingMetadata = await DetectRoutingConfigurationAsync();
         string appHtmlFilepath =  context.ClientAppPath.Combine(AppHtmlFileName);
@@ -20,9 +20,6 @@ public class HtmlHandler(AppContext context)
             throw new FileNotFoundException($"Base application HTML file not found: {appHtmlFilepath}");
 
         var appHtmlFile = new HtmlFile(appHtmlFilepath);
-
-        if (releaseMode)
-            appHtmlFile.Remove(@"<script src=""/refresh.js"" async></script>");
 
         foreach (var page in context.ClientPagesPath.Folders())
             await ProcessPageDirectoryAsync(page, appHtmlFile);
@@ -96,7 +93,12 @@ public class HtmlHandler(AppContext context)
     private static void PublishHtmlFile(string sourceFilepath, string destinationPath)
     {
         var htmlContent = File.ReadAllText(sourceFilepath);
-        var cleanedContent = RemoveHtmlComments(htmlContent);
+        var htmlFile = new HtmlFile(htmlContent);
+        
+        // Remove development artifacts for production
+        htmlFile.Remove(@"<script src=""/refresh.js"" async></script>");
+        
+        var cleanedContent = RemoveHtmlComments(htmlFile.Html);
         File.WriteAllText(destinationPath, cleanedContent);
     }
 

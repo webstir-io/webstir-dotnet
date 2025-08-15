@@ -7,7 +7,7 @@ public class CssHandler(AppContext context)
 {
     private const string _appCssFile = "app.css";
 
-    public async Task BuildAsync(bool releaseMode = false)
+    public async Task BuildAsync()
     {
         string[] allCssFiles = context.ClientPath.Files(AddCssExt("*"), SearchOption.AllDirectories);
         

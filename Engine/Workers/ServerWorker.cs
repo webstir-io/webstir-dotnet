@@ -16,7 +16,7 @@ public class ServerWorker(AppContext context) : IWorker
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.ServerResourcesPath, context.ServerPath);
     }
 
-    public async Task BuildAsync(bool releaseMode = false)
+    public async Task BuildAsync()
     {
         // Check if node_modules exists and package.json exists
         var packageJsonPath = context.WorkingPath.Combine(Files.PackageJson);
