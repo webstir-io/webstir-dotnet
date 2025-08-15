@@ -18,7 +18,6 @@ public static class Folders
     public const string Styles = "styles";
     public const string Scripts = "scripts";
     public const string Images = "images";
-    public const string Index = "index";
     public const string Home = "home";
     public const string NodeModules = "node_modules";
     public const string Seed = "seed";
@@ -28,7 +27,9 @@ public static class Folders
 public static class Files
 {
     public const string PackageJson = "package.json";
-    public const string tsBuildInfo = ".tsbuildinfo";
+    public const string PackageLockJson = "package-lock.json";
+    public const string TsBuildInfo = ".tsbuildinfo";
+    public const string Index = "index";
 
 }
 

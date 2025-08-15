@@ -67,7 +67,9 @@ public class CssHandler(AppContext context)
     public async Task AddPageAsync(string pageName)
     {
         var cssContent = $"/* {pageName} Page Styles */\n@import \"@context/context.css\";\n\n/* Add your page-specific styles here */\n";
-        File.WriteAllText(context.ClientPagesPath.Combine(AddCssExt(pageName)), cssContent);
+        var pageDirectory = context.ClientPagesPath.Combine(pageName);
+        var cssFilePath = pageDirectory.Combine(AddCssExt(Files.Index));
+        File.WriteAllText(cssFilePath, cssContent);
         await Task.CompletedTask;
     }
     

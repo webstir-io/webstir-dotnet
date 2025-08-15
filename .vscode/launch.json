@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/CLI/bin/Debug/net9.0/CLI.dll",
-            "args": ["build"],
+            "args": ["init"],
             "cwd": "${workspaceFolder}/CLI/out",
             "stopAtEntry": false,
             "console": "internalConsole",

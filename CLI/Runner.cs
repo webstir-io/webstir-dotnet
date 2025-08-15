@@ -18,9 +18,9 @@ public class Runner(IServiceProvider serviceProvider)
         if (IsHelpRequested(command, args))
             return;
 
-        var projectPath = args.Skip(1).FirstOrDefault(arg => !arg.StartsWith("--"));
-        var workingPath = GetWorkingPath(projectPath);
-        var workflowArgs = GetWorkflowArgs(args, projectPath);
+        // Runner doesn't interpret args - just passes them to workflows
+        var workingPath = Directory.GetCurrentDirectory();
+        var workflowArgs = args;
 
         using var scope = serviceProvider.CreateScope();
         _context = scope.ServiceProvider.GetRequiredService<Engine.AppContext>();
@@ -30,21 +30,6 @@ public class Runner(IServiceProvider serviceProvider)
         await ExecuteCommand(command, workflowArgs);
     }
 
-    private static string GetWorkingPath(string? projectPath)
-    {
-        var currentDir = Directory.GetCurrentDirectory();
-        return string.IsNullOrEmpty(projectPath) ? currentDir 
-            : Path.IsPathRooted(projectPath) ? projectPath 
-            : Path.Combine(currentDir, projectPath);
-    }
-
-    private static string[] GetWorkflowArgs(string[] args, string? projectPath)
-    {
-        if (!string.IsNullOrEmpty(projectPath))
-            return [.. args.Where(arg => arg != projectPath)];
-        
-        return args;
-    }
 
     private static bool IsHelpRequested(string command, string[] args)
     {

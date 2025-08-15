@@ -37,8 +37,7 @@ public static class ResourceHelpers
         var prefixWithDot = $"{resourcePrefix}.";
         
         var resources = assembly.GetManifestResourceNames()
-            .Where(name => name.StartsWith(prefixWithDot) && 
-                          !name.StartsWith($"{prefixWithDot}src."))
+            .Where(name => name.StartsWith(prefixWithDot) && !name.StartsWith($"{prefixWithDot}{Folders.Src}."))
             .ToArray();
 
         foreach (var resourceName in resources)

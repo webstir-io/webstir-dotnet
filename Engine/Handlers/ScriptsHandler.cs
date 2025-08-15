@@ -84,7 +84,7 @@ public class ScriptsHandler(AppContext context)
     private void RunNpmInstall()
     {
         // Check if package-lock.json exists to determine which npm command to use
-        var packageLockPath = context.WorkingPath.Combine("package-lock.json");
+        var packageLockPath = context.WorkingPath.Combine(Files.PackageLockJson);
         var npmCommand = File.Exists(packageLockPath) ? "ci" : "install";
         
         var processInfo = new ProcessStartInfo
@@ -143,7 +143,7 @@ public class ScriptsHandler(AppContext context)
     public async Task AddPageAsync(string pageName)
     {
         var pageDirectory = context.ClientPagesPath.CreateSubDirectory(pageName);
-        var tsFilePath = pageDirectory.Combine($"{pageName}.ts");
+        var tsFilePath = pageDirectory.Combine($"{Files.Index}.ts");
         var tsContent = $"""
             import '../../app/context.js';
 

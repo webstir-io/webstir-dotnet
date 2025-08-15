@@ -17,6 +17,12 @@ public static class HelpOptions
     public const string HelpShort = "-h";
 }
 
+public static class ProjectOptions
+{
+    public const string ProjectName = "--project-name";
+    public const string ProjectNameShort = "-p";
+}   
+
 public static class InitOptions
 {
     public const string ClientOnly = "--client-only";

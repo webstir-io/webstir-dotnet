@@ -57,8 +57,8 @@ public abstract class BaseWorkflow(
 
     protected virtual void InitializeWorkspace(string[] args)
     {
-        var filteredArgs = args.Where(arg => arg != WorkflowName).ToArray();
-        var projectName = filteredArgs.FirstOrDefault();
+        var filteredArgs = args.Where(arg => arg != WorkflowName).ToArray();        
+        var projectName = GetProjectFromFlags(filteredArgs);
         
         if (!string.IsNullOrEmpty(projectName))
         {
@@ -87,7 +87,17 @@ public abstract class BaseWorkflow(
         var projectNames = validProjects.Select(Path.GetFileName);
         throw new InvalidOperationException(
             $"Multiple projects found: {string.Join(", ", projectNames)}. " +
-            $"Please specify which project to use: {WorkflowName} <project-name>");
+            $"Please specify which project to use: {WorkflowName} <project-name> or {WorkflowName} --project-name <project-name>");
     }
 
+    protected static string? GetProjectFromFlags(string[] args)
+    {
+        for (int i = 0; i < args.Length; i++)
+        {
+            if ((args[i] == ProjectOptions.ProjectName || args[i] == ProjectOptions.ProjectNameShort) && i + 1 < args.Length)
+                return args[i + 1];
+        }
+
+        return null;
+    }
 }
