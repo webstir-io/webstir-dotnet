@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Engine.Processors.Css;
+namespace Engine.Processors;
 
 /// <summary>
 /// Handles CSS minification by removing comments, collapsing whitespace, and optimizing syntax

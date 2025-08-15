@@ -23,12 +23,12 @@ public static class PathExtensions
         return Directory.GetDirectories(path);
     }
 
-    public static string[] Files(this string path, string searchPattern = "*.*")
+    public static string[] Files(this string path, string searchPattern = "*.*", SearchOption searchOption = SearchOption.TopDirectoryOnly)
     {
         if (!Directory.Exists(path))
             throw new DirectoryNotFoundException($"Directory not found: {path}");
 
-        return Directory.GetFiles(path, searchPattern);
+        return Directory.GetFiles(path, searchPattern, searchOption);
     }
 
     public static string Name(this string path)

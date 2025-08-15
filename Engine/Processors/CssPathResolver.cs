@@ -3,7 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using Engine.Helpers;
 
-namespace Engine.Processors.Css;
+namespace Engine.Processors;
 
 /// <summary>
 /// Handles path resolution for CSS files, including namespace mappings and relative paths

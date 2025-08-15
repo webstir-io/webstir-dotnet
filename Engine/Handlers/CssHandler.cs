@@ -1,5 +1,5 @@
 using Engine.Extensions;
-using Engine.Processors.Css;
+using Engine.Processors;
 
 namespace Engine.Handlers;
 
@@ -9,37 +9,20 @@ public class CssHandler(AppContext context)
 
     public async Task BuildAsync(bool releaseMode = false)
     {
-        string contextCssFilepath = context.ClientAppPath.Combine(_appCssFile);
-        if (File.Exists(contextCssFilepath))
+        string[] allCssFiles = context.ClientPath.Files(AddCssExt("*"), SearchOption.AllDirectories);
+        
+        foreach (string srcFile in allCssFiles)
         {
-            string contextCssContent = File.ReadAllText(contextCssFilepath);
-            if (CssImportProcessor.HasImportStatements(contextCssContent))
-            {
-                BuildWithImports();
-                return;
-            }
+            string cssContent = File.ReadAllText(srcFile);
+            string relativePath = Path.GetRelativePath(context.ClientPath, srcFile);
+            string buildFilePath = context.ClientBuildPath.Combine(relativePath);
+            Path.GetDirectoryName(buildFilePath)!.Create();
+
+            cssContent = CssImportProcessor.ProcessForBuild(cssContent, srcFile, buildFilePath, context.ClientPath);
+            File.WriteAllText(buildFilePath, cssContent);
         }
 
         await Task.CompletedTask;
-    }
-
-    private void BuildWithImports()
-    {
-        foreach (string page in context.ClientPagesPath.Folders())
-        {
-            string? pageCssFile = page.Files(AddCssExt(page.Name())).FirstOrDefault();
-            if (pageCssFile == null)
-                continue;
-
-            string cssContent = File.ReadAllText(pageCssFile);
-            string outputFilepath = context.ClientBuildPath
-                    .CreateSubDirectory(page)
-                    .Combine(AddCssExt(page.Name()));
-
-            cssContent = CssImportProcessor.ProcessForBuild(cssContent, pageCssFile, outputFilepath, context.ClientPath);
-
-            File.WriteAllText(outputFilepath, cssContent);
-        }
     }
 
     public async Task PublishAsync()

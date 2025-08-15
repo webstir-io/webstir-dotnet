@@ -24,6 +24,7 @@ public class AppContext
     public string ClientPagesPath => ClientPath.CreateSubDirectory(Folders.Pages);
     public string ClientImagesPath => ClientPath.CreateSubDirectory(Folders.Images);
     public string ClientBuildPath => BuildPath.CreateSubDirectory(Folders.Client);
+    public string ClientBuildAppPath => ClientBuildPath.CreateSubDirectory(Folders.App);
     public string ClientBuildPagesPath => ClientBuildPath.CreateSubDirectory(Folders.Pages);
     public string ClientBuildImagesPath => ClientBuildPath.CreateSubDirectory(Folders.Images);
     public string ClientDistPath => DistPath.CreateSubDirectory(Folders.Client);
