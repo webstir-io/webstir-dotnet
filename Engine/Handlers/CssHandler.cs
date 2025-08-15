@@ -36,35 +36,29 @@ public class CssHandler(AppContext context)
             usesImports = CssImportProcessor.HasImportStatements(contextCssContent);
         }
 
-
-        // Process CSS files in page directories
-        foreach (var page in context.ClientBuildPath.Folders())
+        // Process all CSS files from build directory, preserving structure
+        string[] allCssFiles = context.ClientBuildPath.Files(AddCssExt("*"), SearchOption.AllDirectories);
+        
+        foreach (string srcFile in allCssFiles)
         {
-            if (page.Name() == "context" || page.Name() == "images")
-                continue;
+            string cssContent = File.ReadAllText(srcFile);
+            string relativePath = Path.GetRelativePath(context.ClientBuildPath, srcFile);
+            string distFilePath = context.ClientDistPath.Combine(relativePath);
+            Path.GetDirectoryName(distFilePath)!.Create();
 
-            var distPageDirectory = context.ClientDistPath.CreateSubDirectory(page.Name());
-
-            foreach (var cssFile in page.Files(AddCssExt("*")))
+            if (usesImports)
             {
-                var cssContent = File.ReadAllText(cssFile);
-
-                if (usesImports)
+                // Process imports for publish mode (inline all imports)
+                var sourceFilePath = context.ClientPath.Combine(relativePath);
+                if (File.Exists(sourceFilePath))
                 {
-                    // Process imports for publish mode (inline all imports)
-                    var sourcePagePath = context.ClientPagesPath.Combine(page.Name(), cssFile.Name());
-                    if (File.Exists(sourcePagePath))
-                    {
-                        cssContent = File.ReadAllText(sourcePagePath);
-                        cssContent = CssImportProcessor.ProcessForPublish(cssContent, sourcePagePath, context.ClientPath);
-                    }
+                    cssContent = File.ReadAllText(sourceFilePath);
+                    cssContent = CssImportProcessor.ProcessForPublish(cssContent, sourceFilePath, context.ClientPath);
                 }
-
-                cssContent = CssMinifier.Minify(cssContent);
-
-                var targetPath = distPageDirectory.Combine(cssFile.Name());
-                File.WriteAllText(targetPath, cssContent);
             }
+
+            cssContent = CssMinifier.Minify(cssContent);
+            File.WriteAllText(distFilePath, cssContent);
         }
 
         await Task.CompletedTask;
