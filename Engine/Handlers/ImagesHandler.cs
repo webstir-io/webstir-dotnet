@@ -4,16 +4,14 @@ namespace Engine.Handlers;
 
 public class ImagesHandler(AppContext context)
 {
-    public async Task BuildAsync(bool releaseMode = false)
+    public async Task BuildAsync()
     {
-        context.ClientImagesPath.CopyTo(context.ClientBuildImagesPath);
-        await Task.CompletedTask;
+        await context.ClientImagesPath.CopyToAsync(context.ClientBuildImagesPath);
     }
 
     public async Task PublishAsync()
     {
-        context.ClientBuildImagesPath.CopyTo(context.ClientDistImagesPath);
-        await Task.CompletedTask;
+        await context.ClientBuildImagesPath.CopyToAsync(context.ClientDistImagesPath);
     }
 
     public async Task AddPageAsync(string name)

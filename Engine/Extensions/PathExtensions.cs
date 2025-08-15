@@ -41,7 +41,7 @@ public static class PathExtensions
         return Path.Exists(path);
     }
 
-    public static void CopyTo(this string sourcePath, string destPath, bool recursive = true)
+    public static async Task CopyToAsync(this string sourcePath, string destPath, bool recursive = true)
     {
         if (!sourcePath.Exists())
             throw new DirectoryNotFoundException($"Source directory not found: {sourcePath}");
@@ -52,20 +52,32 @@ public static class PathExtensions
         if (sourcePath.Equals(destDir.FullName, StringComparison.OrdinalIgnoreCase))
             return;
 
+        var fileTasks = new List<Task>();
         foreach (var file in sourcePath.Files())
         {
-            var targetFilePath = destPath.Combine(file);
-            // Using CopyTo with overwrite flag to avoid FileSystemWatcher issues
-            file.CopyTo(targetFilePath);
+            var targetFilePath = destPath.Combine(file.Name());
+            fileTasks.Add(CopyFileAsync(file, targetFilePath));
         }
+
+        await Task.WhenAll(fileTasks);
 
         if (recursive)
         {
+            var directoryTasks = new List<Task>();
             foreach (var subDirectory in sourcePath.Folders())
             {
-                var destDirectory = destPath.Combine(subDirectory);
-                subDirectory.CopyTo(destDirectory, recursive);
+                var destDirectory = destPath.Combine(subDirectory.Name());
+                directoryTasks.Add(subDirectory.CopyToAsync(destDirectory, recursive));
             }
+
+            await Task.WhenAll(directoryTasks);
         }
+    }
+
+    private static async Task CopyFileAsync(string sourceFile, string destFile)
+    {
+        using var sourceStream = new FileStream(sourceFile, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096, useAsync: true);
+        using var destStream = new FileStream(destFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 4096, useAsync: true);
+        await sourceStream.CopyToAsync(destStream);
     }
 }
