@@ -22,6 +22,19 @@ public class WebServer : IWebServer
 
     public async Task StartAsync(AppContext? context = null)
     {
+        ValidateWebRoot(context);
+        
+        var builder = CreateWebApplicationBuilder();
+        ConfigureServices(builder.Services);
+        
+        _webApp = builder.Build();
+        ConfigureMiddleware(_webApp);
+        
+        await RunServerAsync();
+    }
+
+    private void ValidateWebRoot(AppContext? context)
+    {
         if (context?.ClientBuildPath.Exists() == true)
         {
             _webRootPath = context.ClientBuildPath;
@@ -30,41 +43,92 @@ public class WebServer : IWebServer
         {
             throw new DirectoryNotFoundException($"No valid webroot found. Expected '{context?.ClientBuildPath}'.");
         }
+    }
 
-        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+    private WebApplicationBuilder CreateWebApplicationBuilder()
+    {
+        return WebApplication.CreateBuilder(new WebApplicationOptions
         {
             WebRootPath = _webRootPath
         });
+    }
 
-        builder.Services.Configure<HostOptions>(opts => opts.ShutdownTimeout = TimeSpan.FromSeconds(5));
-        builder.Services.AddDirectoryBrowser();
-        builder.Services.AddHttpClient("ApiProxy", client =>
+    private static void ConfigureServices(IServiceCollection services)
+    {
+        services.Configure<HostOptions>(opts => opts.ShutdownTimeout = TimeSpan.FromSeconds(5));
+        services.AddDirectoryBrowser();
+        services.AddHttpClient("ApiProxy", client =>
         {
             client.BaseAddress = new Uri(_apiServerUrl);
             client.Timeout = TimeSpan.FromSeconds(30);
         });
+    }
 
-        _webApp = builder.Build();
-        _webApp.Use(HandleServerSentEvents);
-        _webApp.UseMiddleware<ApiProxyMiddleware>();
+    private void ConfigureMiddleware(WebApplication app)
+    {
+        app.Use(HandleServerSentEvents);
+        app.UseMiddleware<ApiProxyMiddleware>();
+        app.Use(RewriteCleanUrls);
 
         var defaultFilesOptions = new DefaultFilesOptions();
         defaultFilesOptions.DefaultFileNames.Clear();
         defaultFilesOptions.DefaultFileNames.Add("index.html");
-        _webApp.UseDefaultFiles(defaultFilesOptions);
+        app.UseDefaultFiles(defaultFilesOptions);
 
-        _webApp.UseStaticFiles();
-        _webApp.UseFileServer(new FileServerOptions
+        app.UseStaticFiles();
+        app.UseFileServer(new FileServerOptions
         {
             FileProvider = new PhysicalFileProvider(_webRootPath),
-            EnableDirectoryBrowsing = true
+            EnableDirectoryBrowsing = false
         });
+    }
 
+    private async Task RewriteCleanUrls(HttpContext context, Func<Task> next)
+    {
+        var path = context.Request.Path.Value;
+        var referer = context.Request.Headers["Referer"].ToString();
+        
+        if (!string.IsNullOrEmpty(path))
+        {
+            // Map root to home
+            if (path == "/")
+            {
+                path = "/home";
+            }
+            
+            // Handle root-level assets that should come from home page
+            if (path.StartsWith("/index.") && !path.StartsWith("/index.html"))
+            {
+                context.Request.Path = $"/pages/home{path}";
+            }
+            // Rewrite clean URLs to pages/{name}/index.html
+            else if (!path.Contains('.') && 
+                !path.StartsWith("/images") && 
+                !path.StartsWith("/pages") &&
+                !path.StartsWith("/api") && 
+                !path.StartsWith("/events"))
+            {
+                var pageName = path.TrimStart('/');
+                var indexPath = $"/pages/{pageName}/index.html";
+                
+                var fullPath = Path.Combine(_webRootPath, indexPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                if (File.Exists(fullPath))
+                {
+                    context.Request.Path = indexPath;
+                }
+            }
+        }
+        
+        await next();
+    }
+
+    private async Task RunServerAsync()
+    {
         _ = Task.Run(async () =>
         {
             try
             {
-                await _webApp.RunAsync("http://0.0.0.0:8088");
+                await _webApp!.RunAsync("http://0.0.0.0:8088");
             }
             catch (Exception ex)
             {

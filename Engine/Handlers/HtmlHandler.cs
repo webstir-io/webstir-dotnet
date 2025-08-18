@@ -106,8 +106,8 @@ public class HtmlHandler(AppContext context)
         $"""
         <head>
             <title>{pageName}</title>
-            <link rel="stylesheet" href="{pageName}.css" />
-            <script type="module" src="{pageName}.js" async></script>
+            <link rel="stylesheet" href="{Files.Index}.css" />
+            <script type="module" src="{Files.Index}.js" async></script>
         </head>
         <body>
             <main>
