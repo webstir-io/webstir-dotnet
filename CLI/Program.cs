@@ -34,6 +34,7 @@ try
     services.AddTransient<IWorkflow, BuildWorkflow>();
     services.AddTransient<IWorkflow, PublishWorkflow>();
     services.AddTransient<IWorkflow, AddPageWorkflow>();
+    services.AddTransient<IWorkflow, WatchWorkflow>();
 
     using ServiceProvider provider = services.BuildServiceProvider();
     await provider.GetService<Runner>()!.Run(args);

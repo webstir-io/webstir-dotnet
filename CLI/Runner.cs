@@ -18,7 +18,6 @@ public class Runner(IServiceProvider serviceProvider)
         if (IsHelpRequested(command, args))
             return;
 
-        // Runner doesn't interpret args - just passes them to workflows
         var workingPath = Directory.GetCurrentDirectory();
         var workflowArgs = args;
 
@@ -53,12 +52,8 @@ public class Runner(IServiceProvider serviceProvider)
 
     private async Task ExecuteCommand(string command, string[] args)
     {
-        if (command == "" || command == Commands.Watch)
-        {
-            var watchService = serviceProvider.GetRequiredService<WatchService>();
-            await watchService.Watch(args);
-            return;
-        }
+        if (command == "")
+            command = Commands.Watch;
         
         await _workflowFactory.ExecuteAsync(command, args);
     }

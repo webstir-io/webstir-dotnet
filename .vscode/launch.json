@@ -10,10 +10,10 @@
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/CLI/bin/Debug/net9.0/CLI.dll",
-            "args": ["init"],
+            "args": ["watch"],
             "cwd": "${workspaceFolder}/CLI/out",
             "stopAtEntry": false,
-            "console": "internalConsole",
+            "console": "integratedTerminal",
         },
         {
             "name": "Tests",
@@ -23,7 +23,7 @@
             "program": "${workspaceFolder}/Tests/bin/Debug/net9.0/Tests.dll",
             "args": ["test", "demo"],
             "cwd": "${workspaceFolder}/Tests",
-            "console": "internalConsole",
+            "console": "integratedTerminal",
             "stopAtEntry": false
         }
     ]

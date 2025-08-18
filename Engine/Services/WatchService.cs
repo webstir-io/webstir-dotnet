@@ -1,45 +1,33 @@
-using Engine;
 using Engine.Servers;
 
 namespace Engine.Services;
 
-public class WatchService(AppContext _context, IWebServer _webServer, INodeServer _nodeServer, IWorkflowFactory _workflowFactory)
+public class WatchService(IWebServer _webServer, INodeServer _nodeServer)
 {
     private static readonly string[] IgnoredFiles = ["Thumbs.db", ".DS_Store"];
     private static readonly string[] IgnoredExtensions = [".tmp"];
     
-    private Action<bool>? _onChangeAction;
+    private Func<bool, Task>? _onChangeAction;
+    private AppContext? _context;
     private DateTime _lastChangeTime = DateTime.MinValue;
     private readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(200);
 
-    public async Task Watch(string[]? args = null, Action<bool>? onChangeAction = null)
+    public async Task Watch(AppContext context, Func<bool, Task>? onChangeAction = null)
     {
-        if (args != null)
-        {
-            await _workflowFactory.ExecuteAsync(Commands.Build, args);
-            _onChangeAction = cleanBuild => 
-            {
-                var buildArgs = cleanBuild ? [BuildOptions.Clean] : Array.Empty<string>();
-                _workflowFactory.ExecuteAsync(Commands.Build, buildArgs);
-            };
-        }
-        else
-        {
-            _onChangeAction = onChangeAction;
-        }
-
-        await StartFileWatching();
+        _context = context;
+        _onChangeAction = onChangeAction;
+        await StartFileWatching(context);
     }
 
-    private async Task StartFileWatching()
+    private async Task StartFileWatching(AppContext context)
     {
         Console.WriteLine("Watching for changes...");
 
-        using var watcher = CreateFileSystemWatcher();
+        using var watcher = CreateFileSystemWatcher(context);
         
         try
         {
-            await StartServers();
+            await StartServers(context);
             await WaitForExit();
         }
         catch (Exception ex)
@@ -55,9 +43,9 @@ public class WatchService(AppContext _context, IWebServer _webServer, INodeServe
         }
     }
 
-    private FileSystemWatcher CreateFileSystemWatcher()
+    private FileSystemWatcher CreateFileSystemWatcher(AppContext context)
     {
-        var watcher = new FileSystemWatcher(_context.SrcPath)
+        var watcher = new FileSystemWatcher(context.SrcPath)
         {
             NotifyFilter = NotifyFilters.CreationTime
                 | NotifyFilters.DirectoryName
@@ -76,10 +64,10 @@ public class WatchService(AppContext _context, IWebServer _webServer, INodeServe
         return watcher;
     }
 
-    private async Task StartServers()
+    private async Task StartServers(AppContext context)
     {
-        await _webServer.StartAsync();
-        await _nodeServer.StartAsync();
+        await _webServer.StartAsync(context);
+        await _nodeServer.StartAsync(context);
     }
 
     private async Task WaitForExit()
@@ -128,15 +116,15 @@ public class WatchService(AppContext _context, IWebServer _webServer, INodeServe
         var now = DateTime.UtcNow;
         if (now - _lastChangeTime < _debounceInterval)
             return;
+
         _lastChangeTime = now;
 
         try
         {
             Console.WriteLine($"Detected file change: {e.FullPath}");
             await WaitForFileAsync(e.FullPath);
-            _onChangeAction!.Invoke(false);
+            await _onChangeAction!.Invoke(false);
             
-            // If server files changed, restart Node.js server
             if (IsServerFile(e.FullPath))
             {
                 Console.WriteLine("Server files changed, restarting Node.js server...");
@@ -159,7 +147,7 @@ public class WatchService(AppContext _context, IWebServer _webServer, INodeServe
         try
         {
             Console.WriteLine($"File deleted: {e.Name}");
-            _onChangeAction!.Invoke(false);
+            await _onChangeAction!.Invoke(false);
             await _webServer.UpdateClientsAsync();
         }
         catch (Exception ex)
@@ -212,14 +200,14 @@ public class WatchService(AppContext _context, IWebServer _webServer, INodeServe
     {
         var fileName = Path.GetFileName(filePath);
         
-        return fileName.StartsWith('.') || // Hidden files
-               fileName.EndsWith('~') || // Backup files
+        return fileName.StartsWith('.') ||
+               fileName.EndsWith('~') ||
                IgnoredFiles.Contains(fileName) ||
                IgnoredExtensions.Any(fileName.EndsWith);
     }
 
     private bool IsServerFile(string filePath)
     {
-        return filePath.StartsWith(_context.ServerPath, StringComparison.OrdinalIgnoreCase);
+        return filePath.StartsWith(_context!.ServerPath, StringComparison.OrdinalIgnoreCase);
     }
 }

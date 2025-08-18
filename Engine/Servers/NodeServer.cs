@@ -3,7 +3,7 @@ using Engine.Extensions;
 
 namespace Engine.Servers;
 
-public class NodeServer(AppContext _context) : INodeServer, IDisposable
+public class NodeServer : INodeServer, IDisposable
 {
     private Process? _nodeProcess;
     private readonly SemaphoreSlim _processLock = new(1, 1);
@@ -11,7 +11,7 @@ public class NodeServer(AppContext _context) : INodeServer, IDisposable
     public bool IsRunning => _nodeProcess != null && !_nodeProcess.HasExited;
     public event EventHandler<string>? OutputReceived;
 
-    public async Task StartAsync()
+    public async Task StartAsync(AppContext? context = null)
     {
         await _processLock.WaitAsync();
         try
@@ -22,25 +22,31 @@ public class NodeServer(AppContext _context) : INodeServer, IDisposable
                 return;
             }
 
-            var serverIndexPath = _context.ServerBuildPath.Combine("index.js");
-            if (!File.Exists(serverIndexPath))
+            var serverIndexPath = context?.ServerBuildPath.Combine("index.js");
+            if (serverIndexPath == null || !File.Exists(serverIndexPath))
             {
                 Console.WriteLine("Server build not found. Skipping Node.js server startup.");
                 return;
             }
+
 
             _nodeProcess = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "node",
-                    Arguments = _context.ServerBuildPath.Combine("index.js"),
+                    Arguments = serverIndexPath,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
-                    WorkingDirectory = _context.WorkingPath
-                }
+                    WorkingDirectory = context?.WorkingPath ?? Directory.GetCurrentDirectory()
+                },
+                EnableRaisingEvents = true
+            };
+
+            AppDomain.CurrentDomain.ProcessExit += (s, e) => {
+                _nodeProcess?.Kill(entireProcessTree: true);
             };
 
             _nodeProcess.OutputDataReceived += (sender, e) =>
@@ -64,13 +70,8 @@ public class NodeServer(AppContext _context) : INodeServer, IDisposable
             _nodeProcess.BeginOutputReadLine();
             _nodeProcess.BeginErrorReadLine();
 
-            // Wait a bit for the server to start
-            await Task.Delay(500);
-            
             if (!IsRunning)
-            {
                 throw new InvalidOperationException("Node.js server failed to start");
-            }
         }
         catch (Exception ex)
         {
@@ -96,9 +97,7 @@ public class NodeServer(AppContext _context) : INodeServer, IDisposable
 
             Console.WriteLine("Stopping Node.js server...");
             
-            // Try graceful shutdown first
             _nodeProcess.Kill(entireProcessTree: true);
-            
             await _nodeProcess.WaitForExitAsync();
             _nodeProcess.Dispose();
             _nodeProcess = null;

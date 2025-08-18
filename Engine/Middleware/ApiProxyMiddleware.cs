@@ -4,16 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Engine.Middleware;
 
-public class ApiProxyMiddleware
+public class ApiProxyMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
-    private readonly string _apiServerUrl;
-
-    public ApiProxyMiddleware(RequestDelegate next, string apiServerUrl = "http://localhost:3001")
-    {
-        _next = next;
-        _apiServerUrl = apiServerUrl;
-    }
+    private readonly RequestDelegate _next = next;
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -26,7 +19,7 @@ public class ApiProxyMiddleware
         await ProxyApiRequest(context);
     }
 
-    private async Task ProxyApiRequest(HttpContext context)
+    private static async Task ProxyApiRequest(HttpContext context)
     {
         var httpClientFactory = context.RequestServices.GetRequiredService<IHttpClientFactory>();
         var httpClient = httpClientFactory.CreateClient("ApiProxy");
@@ -56,16 +49,12 @@ public class ApiProxyMiddleware
             RequestUri = new Uri(httpClient.BaseAddress!, targetUrl)
         };
         
-        // Copy request headers
         foreach (var header in context.Request.Headers)
         {
             if (!header.Key.StartsWith("Host", StringComparison.OrdinalIgnoreCase))
-            {
                 requestMessage.Headers.TryAddWithoutValidation(header.Key, [.. header.Value]);
-            }
         }
         
-        // Copy request body if present
         if (context.Request.ContentLength > 0)
         {
             requestMessage.Content = new StreamContent(context.Request.Body);
@@ -80,18 +69,12 @@ public class ApiProxyMiddleware
     {
         context.Response.StatusCode = (int)response.StatusCode;
         
-        // Copy response headers
         foreach (var header in response.Headers)
-        {
             context.Response.Headers[header.Key] = header.Value.ToArray();
-        }
         
         foreach (var header in response.Content.Headers)
-        {
             context.Response.Headers[header.Key] = header.Value.ToArray();
-        }
         
-        // Copy response body
         await response.Content.CopyToAsync(context.Response.Body);
     }
 
@@ -105,8 +88,8 @@ public class ApiProxyMiddleware
 
 public static class ApiProxyMiddlewareExtensions
 {
-    public static IApplicationBuilder UseApiProxy(this IApplicationBuilder builder, string apiServerUrl = "http://localhost:3001")
+    public static IApplicationBuilder UseApiProxy(this IApplicationBuilder builder)
     {
-        return builder.UseMiddleware<ApiProxyMiddleware>(apiServerUrl);
+        return builder.UseMiddleware<ApiProxyMiddleware>();
     }
 }

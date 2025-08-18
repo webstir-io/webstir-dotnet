@@ -4,15 +4,15 @@ using Microsoft.Extensions.FileProviders;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
-using Engine.Servers;
 using Engine.Middleware;
 using Engine.Extensions;
 
 namespace Engine.Servers;
 
-public class WebServer(AppContext _context) : IWebServer
+//TODO: This needs lots of work
+public class WebServer : IWebServer
 {
-    private const string _apiServerUrl = "http://localhost:3001";
+    private const string _apiServerUrl = "http://localhost:8000";
 
     private readonly List<HttpContext> _sseClients = [];
     private WebApplication? _webApp;
@@ -20,32 +20,24 @@ public class WebServer(AppContext _context) : IWebServer
 
     public bool IsRunning => _webApp != null;
 
-    public async Task StartAsync()
+    public async Task StartAsync(AppContext? context = null)
     {
-        // Check for new structure first, fallback to legacy
-        if (_context.ClientBuildPath.Exists())
+        if (context?.ClientBuildPath.Exists() == true)
         {
-            _webRootPath = _context.ClientBuildPath;
-        }
-        else if (_context.BuildPath.Exists())
-        {
-            _webRootPath = _context.BuildPath;
+            _webRootPath = context.ClientBuildPath;
         }
         else
         {
-            throw new DirectoryNotFoundException($"No valid webroot found. Expected '{_context.ClientBuildPath}' or '{_context.BuildPath}'.");
+            throw new DirectoryNotFoundException($"No valid webroot found. Expected '{context?.ClientBuildPath}'.");
         }
 
-        var builder = WebApplication.CreateBuilder(new WebApplicationOptions 
-        { 
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
             WebRootPath = _webRootPath
         });
 
-        // Configure host shutdown timeout
         builder.Services.Configure<HostOptions>(opts => opts.ShutdownTimeout = TimeSpan.FromSeconds(5));
         builder.Services.AddDirectoryBrowser();
-        
-        // Add HttpClient for API proxy
         builder.Services.AddHttpClient("ApiProxy", client =>
         {
             client.BaseAddress = new Uri(_apiServerUrl);
@@ -53,14 +45,9 @@ public class WebServer(AppContext _context) : IWebServer
         });
 
         _webApp = builder.Build();
-        
-        // Configure middleware pipeline
         _webApp.Use(HandleServerSentEvents);
+        _webApp.UseMiddleware<ApiProxyMiddleware>();
 
-        // Add API proxy middleware
-        _webApp.UseMiddleware<ApiProxyMiddleware>(_apiServerUrl);
-
-        // Configure default files to look for index.html
         var defaultFilesOptions = new DefaultFilesOptions();
         defaultFilesOptions.DefaultFileNames.Clear();
         defaultFilesOptions.DefaultFileNames.Add("index.html");
@@ -72,9 +59,8 @@ public class WebServer(AppContext _context) : IWebServer
             FileProvider = new PhysicalFileProvider(_webRootPath),
             EnableDirectoryBrowsing = true
         });
-        
-        // Start the server asynchronously without blocking
-        _ = Task.Run(async () => 
+
+        _ = Task.Run(async () =>
         {
             try
             {
@@ -85,19 +71,17 @@ public class WebServer(AppContext _context) : IWebServer
                 Console.WriteLine($"Server error: {ex.Message}");
             }
         });
-        
-        // Give the server a moment to start
+
+        // TODO: Seriously claude?!
         await Task.Delay(100);
     }
 
     public async Task StopAsync()
     {
-        // Forcefully abort all SSE connections
         foreach (var context in _sseClients.ToList())
         {
             try
             {
-                // Abort the connection immediately
                 context.Abort();
             }
             catch
@@ -106,8 +90,7 @@ public class WebServer(AppContext _context) : IWebServer
             }
         }
         _sseClients.Clear();
-        
-        // Now stop the app with a short timeout
+
         if (_webApp != null)
         {
             try
@@ -117,7 +100,6 @@ public class WebServer(AppContext _context) : IWebServer
             }
             catch (OperationCanceledException)
             {
-                // If graceful shutdown times out, that's okay
                 Console.WriteLine("Server shutdown timed out, forcing exit");
             }
         }
@@ -126,7 +108,7 @@ public class WebServer(AppContext _context) : IWebServer
     public async Task UpdateClientsAsync()
     {
         var deadClients = new List<HttpContext>();
-        
+
         foreach (var context in _sseClients.ToList())
         {
             try
@@ -141,8 +123,7 @@ public class WebServer(AppContext _context) : IWebServer
                 deadClients.Add(context);
             }
         }
-        
-        // Remove disconnected clients
+
         foreach (var client in deadClients)
         {
             _sseClients.Remove(client);
@@ -156,15 +137,15 @@ public class WebServer(AppContext _context) : IWebServer
             context.Response.Headers.ContentType = "text/event-stream";
             context.Response.Headers.CacheControl = "no-cache";
             context.Response.Headers.Connection = "keep-alive";
-            
+
             _sseClients.Add(context);
-            
+
             // Send initial connection message
             var message = "data: connected\n\n";
             var bytes = Encoding.UTF8.GetBytes(message);
             await context.Response.Body.WriteAsync(bytes);
             await context.Response.Body.FlushAsync();
-            
+
             try
             {
                 // Keep connection open

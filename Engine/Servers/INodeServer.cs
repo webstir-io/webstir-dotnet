@@ -2,7 +2,7 @@ namespace Engine.Servers;
 
 public interface INodeServer
 {
-    Task StartAsync();
+    Task StartAsync(AppContext? context = null);
     Task StopAsync();
     Task RestartAsync();
     bool IsRunning { get; }
