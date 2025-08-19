@@ -9,14 +9,12 @@ using Engine.Extensions;
 
 namespace Engine.Servers;
 
-//TODO: This needs lots of work
 public class WebServer : IWebServer
 {
-    private const string _apiServerUrl = "http://localhost:8000";
-
     private readonly List<HttpContext> _sseClients = [];
     private WebApplication? _webApp;
-    private string _webRootPath = "build";
+    private string _webRootPath = Folders.Build;
+    private Task? _runTask;
 
     public bool IsRunning => _webApp != null;
 
@@ -36,13 +34,9 @@ public class WebServer : IWebServer
     private void ValidateWebRoot(AppContext? context)
     {
         if (context?.ClientBuildPath.Exists() == true)
-        {
             _webRootPath = context.ClientBuildPath;
-        }
         else
-        {
             throw new DirectoryNotFoundException($"No valid webroot found. Expected '{context?.ClientBuildPath}'.");
-        }
     }
 
     private WebApplicationBuilder CreateWebApplicationBuilder()
@@ -57,9 +51,11 @@ public class WebServer : IWebServer
     {
         services.Configure<HostOptions>(opts => opts.ShutdownTimeout = TimeSpan.FromSeconds(5));
         services.AddDirectoryBrowser();
-        services.AddHttpClient("ApiProxy", client =>
+        services.AddSingleton<AppSettings>();
+        services.AddHttpClient("ApiProxy", (serviceProvider, client) =>
         {
-            client.BaseAddress = new Uri(_apiServerUrl);
+            var appSettings = serviceProvider.GetRequiredService<AppSettings>();
+            client.BaseAddress = new Uri(appSettings.ApiServerUrl);
             client.Timeout = TimeSpan.FromSeconds(30);
         });
     }
@@ -86,22 +82,16 @@ public class WebServer : IWebServer
     private async Task RewriteCleanUrls(HttpContext context, Func<Task> next)
     {
         var path = context.Request.Path.Value;
-        var referer = context.Request.Headers["Referer"].ToString();
         
         if (!string.IsNullOrEmpty(path))
         {
-            // Map root to home
             if (path == "/")
-            {
                 path = "/home";
-            }
             
-            // Handle root-level assets that should come from home page
             if (path.StartsWith("/index.") && !path.StartsWith("/index.html"))
             {
                 context.Request.Path = $"/pages/home{path}";
             }
-            // Rewrite clean URLs to pages/{name}/index.html
             else if (!path.Contains('.') && 
                 !path.StartsWith("/images") && 
                 !path.StartsWith("/pages") &&
@@ -113,9 +103,7 @@ public class WebServer : IWebServer
                 
                 var fullPath = Path.Combine(_webRootPath, indexPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
                 if (File.Exists(fullPath))
-                {
                     context.Request.Path = indexPath;
-                }
             }
         }
         
@@ -124,20 +112,9 @@ public class WebServer : IWebServer
 
     private async Task RunServerAsync()
     {
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await _webApp!.RunAsync("http://0.0.0.0:8088");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Server error: {ex.Message}");
-            }
-        });
-
-        // TODO: Seriously claude?!
-        await Task.Delay(100);
+        var appSettings = _webApp!.Services.GetRequiredService<AppSettings>();
+        _runTask = _webApp.RunAsync(appSettings.WebServerUrl);
+        await _runTask;
     }
 
     public async Task StopAsync()
@@ -204,7 +181,6 @@ public class WebServer : IWebServer
 
             _sseClients.Add(context);
 
-            // Send initial connection message
             var message = "data: connected\n\n";
             var bytes = Encoding.UTF8.GetBytes(message);
             await context.Response.Body.WriteAsync(bytes);
@@ -212,7 +188,6 @@ public class WebServer : IWebServer
 
             try
             {
-                // Keep connection open
                 await Task.Delay(Timeout.Infinite, context.RequestAborted);
             }
             catch (OperationCanceledException)
