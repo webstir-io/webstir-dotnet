@@ -1,11 +1,10 @@
+using System.Text;
+using Engine.Extensions;
+using Engine.Middleware;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
-using System.Text;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
-using Engine.Middleware;
-using Engine.Extensions;
 
 namespace Engine.Servers;
 
@@ -14,11 +13,10 @@ public class WebServer : IWebServer
     private readonly List<HttpContext> _sseClients = [];
     private WebApplication? _webApp;
     private string _webRootPath = Folders.Build;
-    private Task? _runTask;
 
     public bool IsRunning => _webApp != null;
 
-    public async Task StartAsync(AppContext? context = null)
+    public Task StartAsync(AppContext? context = null)
     {
         ValidateWebRoot(context);
         
@@ -28,7 +26,9 @@ public class WebServer : IWebServer
         _webApp = builder.Build();
         ConfigureMiddleware(_webApp);
         
-        await RunServerAsync();
+        Task.Run(RunServerAsync);
+        
+        return Task.CompletedTask;
     }
 
     private void ValidateWebRoot(AppContext? context)
@@ -49,7 +49,6 @@ public class WebServer : IWebServer
 
     private static void ConfigureServices(IServiceCollection services)
     {
-        services.Configure<HostOptions>(opts => opts.ShutdownTimeout = TimeSpan.FromSeconds(5));
         services.AddDirectoryBrowser();
         services.AddSingleton<AppSettings>();
         services.AddHttpClient("ApiProxy", (serviceProvider, client) =>
@@ -113,8 +112,7 @@ public class WebServer : IWebServer
     private async Task RunServerAsync()
     {
         var appSettings = _webApp!.Services.GetRequiredService<AppSettings>();
-        _runTask = _webApp.RunAsync(appSettings.WebServerUrl);
-        await _runTask;
+        await _webApp.RunAsync(appSettings.WebServerUrl);
     }
 
     public async Task StopAsync()

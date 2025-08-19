@@ -25,10 +25,20 @@ public class WatchService(IWebServer _webServer, INodeServer _nodeServer)
 
         using var watcher = CreateFileSystemWatcher(context);
         
+        // Set up exit handler BEFORE starting servers
+        // This ensures our handler runs before ASP.NET's handler
+        var exitEvent = new TaskCompletionSource<bool>();
+        Console.CancelKeyPress += (sender, e) =>
+        {
+            e.Cancel = true;
+            exitEvent.SetResult(true);
+        };
+        
         try
         {
             await StartServers(context);
-            await WaitForExit();
+            Console.WriteLine("Press Ctrl+C to exit.");
+            await exitEvent.Task;
         }
         catch (Exception ex)
         {
@@ -70,27 +80,6 @@ public class WatchService(IWebServer _webServer, INodeServer _nodeServer)
         await _nodeServer.StartAsync(context);
     }
 
-    private async Task WaitForExit()
-    {
-        Console.WriteLine("Press Ctrl+C to exit.");
-        
-        var exitEvent = new TaskCompletionSource<bool>();
-        Console.CancelKeyPress += async (sender, e) =>
-        {
-            e.Cancel = true;
-            try
-            {
-                await StopServersAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error stopping servers during exit: {ex.Message}");
-            }
-            exitEvent.SetResult(true);
-        };
-        
-        await exitEvent.Task;
-    }
 
     private async Task StopServersAsync()
     {
