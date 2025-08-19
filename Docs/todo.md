@@ -1,3 +1,2 @@
-- Make ports configurable
 - Use latest TypeScript
 - Use latest Node

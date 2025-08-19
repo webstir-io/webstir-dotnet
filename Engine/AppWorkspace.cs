@@ -3,7 +3,7 @@ using Engine.Models;
 
 namespace Engine;
 
-public class AppContext
+public class AppWorkspace
 {
     private string _workingFolder = string.Empty;
 

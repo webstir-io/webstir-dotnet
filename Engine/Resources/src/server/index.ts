@@ -2,11 +2,14 @@ import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { URL } from 'url';
 import type { ApiResponse } from '@shared/types';
 
+const apiPort = parseInt(process.env.PORT!);
+const webServerUrl = process.env.WEB_SERVER_URL!;
+
 const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   const url = new URL(req.url!, `http://${req.headers.host}`);
   
   // Set CORS headers for development
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8088');
+  res.setHeader('Access-Control-Allow-Origin', webServerUrl);
   res.setHeader('Content-Type', 'application/json');
   
   if (req.method === 'GET' && url.pathname === '/api/health') {
@@ -24,6 +27,6 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   }
 });
 
-server.listen(8000, () => {
-  console.log('API server running on port 8000');
+server.listen(apiPort, () => {
+  console.log(`API server running on port ${apiPort}`);
 });

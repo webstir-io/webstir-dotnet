@@ -2,13 +2,11 @@ using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Models;
 using Engine.Workers;
-using Engine.Workers.Server;
-using Engine.Workers.Shared;
 
 namespace Engine.Workflows;
 
 public class InitWorkflow(
-    AppContext context,
+    AppWorkspace context,
     ClientWorker clientWorker,
     ServerWorker serverWorker,
     SharedWorker sharedWorker) : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)

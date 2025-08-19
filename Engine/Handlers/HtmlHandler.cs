@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace Engine.Handlers;
 
-public class HtmlHandler(AppContext context)
+public class HtmlHandler(AppWorkspace workspace)
 {
     private const string AppHtmlFileName = "app.html";
     private const string IndexHtmlFileName = "index.html";
@@ -15,24 +15,24 @@ public class HtmlHandler(AppContext context)
     public async Task BuildAsync()
     {
         _routingMetadata = await DetectRoutingConfigurationAsync();
-        string appHtmlFilepath =  context.ClientAppPath.Combine(AppHtmlFileName);
+        string appHtmlFilepath =  workspace.ClientAppPath.Combine(AppHtmlFileName);
         if (!File.Exists(appHtmlFilepath))
             throw new FileNotFoundException($"Base application HTML file not found: {appHtmlFilepath}");
 
         var appHtmlFile = new HtmlFile(appHtmlFilepath);
 
-        foreach (var page in context.ClientPagesPath.Folders())
+        foreach (var page in workspace.ClientPagesPath.Folders())
             await ProcessPageDirectoryAsync(page, appHtmlFile);
     }
 
     public async Task PublishAsync()
     {
-        foreach (var page in context.ClientBuildPath.Folders())
+        foreach (var page in workspace.ClientBuildPath.Folders())
         {
             string? htmlFile = page.Files(IndexHtmlFileName).SingleOrDefault();
             if (htmlFile != null)
             {
-                var distPageDirectory = context.ClientDistPath.CreateSubDirectory(page.Name());
+                var distPageDirectory = workspace.ClientDistPath.CreateSubDirectory(page.Name());
                 var destinationPath = distPageDirectory.Combine(htmlFile);
                 PublishHtmlFile(htmlFile, destinationPath);
             }
@@ -43,7 +43,7 @@ public class HtmlHandler(AppContext context)
 
     public async Task AddPageAsync(string pageName)
     {
-        var pagePath = context.ClientPagesPath.CreateSubDirectory(pageName);
+        var pagePath = workspace.ClientPagesPath.CreateSubDirectory(pageName);
         var htmlContent = GeneratePageTemplate(pageName);
         var outputPath = pagePath.Combine(IndexHtmlFileName);
         File.WriteAllText(outputPath, htmlContent);
@@ -84,7 +84,7 @@ public class HtmlHandler(AppContext context)
             mergedHtml = InjectRoutingMetadata(mergedHtml);
 
         string outputPath;
-        string pagesDirectory = context.ClientBuildPath.CreateSubDirectory("pages");
+        string pagesDirectory = workspace.ClientBuildPath.CreateSubDirectory("pages");
         string pageOutputPath = pagesDirectory.CreateSubDirectory(pageName);
         outputPath = pageOutputPath.Combine(IndexHtmlFileName);
         await File.WriteAllTextAsync(outputPath, mergedHtml);
@@ -121,13 +121,13 @@ public class HtmlHandler(AppContext context)
     {
         var metadata = new RoutingMetadata();
 
-        foreach (var page in context.ClientPagesPath.Folders())
+        foreach (var page in workspace.ClientPagesPath.Folders())
         {
             await AnalyzePageForRoutingAsync(page, metadata);
         }
 
         // Check for router.ts in app directory
-        var routerPath = Path.Combine(context.ClientAppPath, "router.ts");
+        var routerPath = Path.Combine(workspace.ClientAppPath, "router.ts");
         if (File.Exists(routerPath))
         {
             // Router detected - SPA mode will be enabled

@@ -3,22 +3,22 @@ using Engine.Processors;
 
 namespace Engine.Handlers;
 
-public class CssHandler(AppContext context)
+public class CssHandler(AppWorkspace workspace)
 {
     private const string _appCssFile = "app.css";
 
     public async Task BuildAsync()
     {
-        string[] allCssFiles = context.ClientPath.Files(AddCssExt("*"), SearchOption.AllDirectories);
+        string[] allCssFiles = workspace.ClientPath.Files(AddCssExt("*"), SearchOption.AllDirectories);
         
         foreach (string srcFile in allCssFiles)
         {
             string cssContent = File.ReadAllText(srcFile);
-            string relativePath = Path.GetRelativePath(context.ClientPath, srcFile);
-            string buildFilePath = context.ClientBuildPath.Combine(relativePath);
+            string relativePath = Path.GetRelativePath(workspace.ClientPath, srcFile);
+            string buildFilePath = workspace.ClientBuildPath.Combine(relativePath);
             Path.GetDirectoryName(buildFilePath)!.Create();
 
-            cssContent = CssImportProcessor.ProcessForBuild(cssContent, srcFile, buildFilePath, context.ClientPath);
+            cssContent = CssImportProcessor.ProcessForBuild(cssContent, srcFile, buildFilePath, workspace.ClientPath);
             File.WriteAllText(buildFilePath, cssContent);
         }
 
@@ -27,8 +27,7 @@ public class CssHandler(AppContext context)
 
     public async Task PublishAsync()
     {
-        // Check if the project uses @import statements
-        var contextCssFilepath = context.ClientAppPath.Combine(_appCssFile);
+        var contextCssFilepath = workspace.ClientAppPath.Combine(_appCssFile);
         var usesImports = false;
         if (File.Exists(contextCssFilepath))
         {
@@ -36,24 +35,22 @@ public class CssHandler(AppContext context)
             usesImports = CssImportProcessor.HasImportStatements(contextCssContent);
         }
 
-        // Process all CSS files from build directory, preserving structure
-        string[] allCssFiles = context.ClientBuildPath.Files(AddCssExt("*"), SearchOption.AllDirectories);
+        string[] allCssFiles = workspace.ClientBuildPath.Files(AddCssExt("*"), SearchOption.AllDirectories);
         
         foreach (string srcFile in allCssFiles)
         {
             string cssContent = File.ReadAllText(srcFile);
-            string relativePath = Path.GetRelativePath(context.ClientBuildPath, srcFile);
-            string distFilePath = context.ClientDistPath.Combine(relativePath);
+            string relativePath = Path.GetRelativePath(workspace.ClientBuildPath, srcFile);
+            string distFilePath = workspace.ClientDistPath.Combine(relativePath);
             Path.GetDirectoryName(distFilePath)!.Create();
 
             if (usesImports)
             {
-                // Process imports for publish mode (inline all imports)
-                var sourceFilePath = context.ClientPath.Combine(relativePath);
+                var sourceFilePath = workspace.ClientPath.Combine(relativePath);
                 if (File.Exists(sourceFilePath))
                 {
                     cssContent = File.ReadAllText(sourceFilePath);
-                    cssContent = CssImportProcessor.ProcessForPublish(cssContent, sourceFilePath, context.ClientPath);
+                    cssContent = CssImportProcessor.ProcessForPublish(cssContent, sourceFilePath, workspace.ClientPath);
                 }
             }
 
@@ -67,7 +64,7 @@ public class CssHandler(AppContext context)
     public async Task AddPageAsync(string pageName)
     {
         var cssContent = $"/* {pageName} Page Styles */\n@import \"@app/app.css\";\n\n/* Add your page-specific styles here */\n";
-        var pageDirectory = context.ClientPagesPath.Combine(pageName);
+        var pageDirectory = workspace.ClientPagesPath.Combine(pageName);
         var cssFilePath = pageDirectory.Combine(AddCssExt(Files.Index));
         File.WriteAllText(cssFilePath, cssContent);
         await Task.CompletedTask;

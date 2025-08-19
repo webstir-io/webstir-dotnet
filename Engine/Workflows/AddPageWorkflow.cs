@@ -1,12 +1,10 @@
 using Engine.Extensions;
 using Engine.Workers;
-using Engine.Workers.Server;
-using Engine.Workers.Shared;
 
 namespace Engine.Workflows;
 
 public class AddPageWorkflow(
-    AppContext context,
+    AppWorkspace context,
     ClientWorker clientWorker,
     ServerWorker serverWorker,
     SharedWorker sharedWorker) 

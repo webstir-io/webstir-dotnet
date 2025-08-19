@@ -1,19 +1,17 @@
 using Engine.Servers;
 using Engine.Models;
 using Engine.Workers;
-using Engine.Workers.Server;
-using Engine.Workers.Shared;
 using Engine.Extensions;
 
 namespace Engine.Workflows;
 
 public abstract class BaseWorkflow(
-    AppContext context,
+    AppWorkspace context,
     ClientWorker clientWorker,
     ServerWorker serverWorker,
     SharedWorker sharedWorker) : IWorkflow
 {
-    protected readonly AppContext Context = context;
+    protected readonly AppWorkspace Context = context;
     public abstract string WorkflowName { get; }
 
     public virtual async Task ExecuteAsync(string[] args)

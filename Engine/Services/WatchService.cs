@@ -8,20 +8,20 @@ public class WatchService(WebServer _webServer, NodeServer _nodeServer)
     private static readonly string[] IgnoredExtensions = [".tmp"];
     
     private Func<bool, Task>? _onChangeAction;
-    private AppContext? _context;
+    private AppWorkspace? _workspace;
     private DateTime _lastChangeTime = DateTime.MinValue;
     private readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(200);
 
-    public async Task Watch(AppContext context, Func<bool, Task>? onChangeAction = null)
+    public async Task Watch(AppWorkspace workspace, Func<bool, Task>? onChangeAction = null)
     {
-        _context = context;
+        _workspace = workspace;
         _onChangeAction = onChangeAction;
-        await StartFileWatching(context);
+        await StartFileWatching(workspace);
     }
 
-    private async Task StartFileWatching(AppContext context)
+    private async Task StartFileWatching(AppWorkspace workspace)
     {
-        using var watcher = CreateFileSystemWatcher(context);
+        using var watcher = CreateFileSystemWatcher(workspace);
         
         // Set up exit handler BEFORE starting servers
         // This ensures our handler runs before ASP.NET's handler
@@ -34,7 +34,7 @@ public class WatchService(WebServer _webServer, NodeServer _nodeServer)
         
         try
         {
-            await StartServers(context);
+            await StartServers(workspace);
             Console.WriteLine("Watching for file changes. Press Ctrl+C to exit.");
             await exitEvent.Task;
         }
@@ -50,9 +50,9 @@ public class WatchService(WebServer _webServer, NodeServer _nodeServer)
         }
     }
 
-    private FileSystemWatcher CreateFileSystemWatcher(AppContext context)
+    private FileSystemWatcher CreateFileSystemWatcher(AppWorkspace workspace)
     {
-        var watcher = new FileSystemWatcher(context.SrcPath)
+        var watcher = new FileSystemWatcher(workspace.SrcPath)
         {
             NotifyFilter = NotifyFilters.CreationTime
                 | NotifyFilters.DirectoryName
@@ -71,10 +71,10 @@ public class WatchService(WebServer _webServer, NodeServer _nodeServer)
         return watcher;
     }
 
-    private async Task StartServers(AppContext context)
+    private async Task StartServers(AppWorkspace workspace)
     {
-        await _webServer.StartAsync(context);
-        await _nodeServer.StartAsync(context);
+        await _webServer.StartAsync(workspace);
+        await _nodeServer.StartAsync(workspace);
     }
 
 
@@ -115,7 +115,7 @@ public class WatchService(WebServer _webServer, NodeServer _nodeServer)
             {
                 Console.WriteLine("Server files changed, restarting Node.js server...");
                 await _nodeServer.StopAsync();
-                await _nodeServer.StartAsync(_context!);
+                await _nodeServer.StartAsync(_workspace!);
             }
             
             await _webServer.UpdateClientsAsync();
@@ -195,6 +195,6 @@ public class WatchService(WebServer _webServer, NodeServer _nodeServer)
 
     private bool IsServerFile(string filePath)
     {
-        return filePath.StartsWith(_context!.ServerPath, StringComparison.OrdinalIgnoreCase);
+        return filePath.StartsWith(_workspace!.ServerPath, StringComparison.OrdinalIgnoreCase);
     }
 }

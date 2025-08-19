@@ -2,22 +2,24 @@ using System.Text;
 using Engine.Extensions;
 using Engine.Middleware;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Engine.Servers;
 
-public class WebServer(AppSettings settings)
+public class WebServer(IOptions<AppSettings> options)
 {
+    private readonly AppSettings _settings = options.Value;
     private readonly List<HttpContext> _sseClients = [];
     private WebApplication? _app;
 
-    public async Task StartAsync(AppContext context)
+    public async Task StartAsync(AppWorkspace workspace)
     {
-        if (!context.ClientBuildPath.Exists())
+        if (!workspace.ClientBuildPath.Exists())
         {
             Console.WriteLine("Client build path does not exist. Skipping web server.");
             return;
@@ -25,18 +27,18 @@ public class WebServer(AppSettings settings)
 
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
-            WebRootPath = context.ClientBuildPath
+            WebRootPath = workspace.ClientBuildPath
         });
 
-        builder.Logging.SetMinimumLevel(LogLevel.Warning); // Only show warnings and errors
-        builder.WebHost.UseUrls(settings.WebServerUrl);
+        builder.Logging.SetMinimumLevel(LogLevel.Warning);
+        builder.WebHost.UseUrls(_settings.WebServerUrl);
         ConfigureServices(builder.Services);
         
         _app = builder.Build();
-        ConfigureMiddleware(_app, context.ClientBuildPath);
+        ConfigureMiddleware(_app, workspace.ClientBuildPath);
         
         await _app.StartAsync();
-        Console.WriteLine($"Web server running at {settings.WebServerUrl}");
+        Console.WriteLine($"Web server running at {_settings.WebServerUrl}");
     }
 
     public async Task StopAsync()
@@ -92,7 +94,7 @@ public class WebServer(AppSettings settings)
         services.AddDirectoryBrowser();
         services.AddHttpClient("ApiProxy", client =>
         {
-            client.BaseAddress = new Uri(settings.ApiServerUrl);
+            client.BaseAddress = new Uri(_settings.ApiServerUrl);
             client.Timeout = TimeSpan.FromSeconds(30);
         });
     }

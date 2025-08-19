@@ -2,24 +2,25 @@ using System.Diagnostics;
 using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Models;
+using Microsoft.Extensions.Options;
 
-namespace Engine.Workers.Server;
+namespace Engine.Workers;
 
-public class ServerWorker(AppContext context) : IWorker
+public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options) : IWorker
 {
+    private readonly AppSettings _settings = options.Value;
     private const string _tsConfigFile = "tsconfig.json";
 
-    public int BuildOrder => 2; // Fast server compilation
+    public int BuildOrder => 2;
 
     public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
     {
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.ServerResourcesPath, context.ServerPath);
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.ServerResourcesPath, workspace.ServerPath);
     }
 
     public async Task BuildAsync()
     {
-        // Check if node_modules exists and package.json exists
-        var packageJsonPath = context.WorkingPath.Combine(Files.PackageJson);
+        var packageJsonPath = workspace.WorkingPath.Combine(Files.PackageJson);
         if (File.Exists(packageJsonPath))
             RunNpmInstall();
 
@@ -30,10 +31,10 @@ public class ServerWorker(AppContext context) : IWorker
 
     public async Task PublishAsync()
     {
-        foreach (string jsFilepath in Directory.GetFiles(context.ServerBuildPath, "*.js", SearchOption.AllDirectories))
+        foreach (string jsFilepath in Directory.GetFiles(workspace.ServerBuildPath, "*.js", SearchOption.AllDirectories))
         {
-            string relativePath = Path.GetRelativePath(context.ServerBuildPath, jsFilepath);
-            string targetFilePath = Path.Combine(context.ServerDistPath, relativePath);
+            string relativePath = Path.GetRelativePath(workspace.ServerBuildPath, jsFilepath);
+            string targetFilePath = Path.Combine(workspace.ServerDistPath, relativePath);
 
             Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!);
 
@@ -48,7 +49,7 @@ public class ServerWorker(AppContext context) : IWorker
 
     private void CompileTypeScriptFiles()
     {
-        var tsConfigPath = context.ServerPath.Combine(_tsConfigFile);
+        var tsConfigPath = workspace.ServerPath.Combine(_tsConfigFile);
 
         var processInfo = new ProcessStartInfo
         {
@@ -59,6 +60,9 @@ public class ServerWorker(AppContext context) : IWorker
             UseShellExecute = false,
             CreateNoWindow = true
         };
+        
+        processInfo.Environment["API_PORT"] = _settings.ApiServerPort.ToString();
+        processInfo.Environment["WEB_PORT"] = _settings.WebServerPort.ToString();
 
         using var process = Process.Start(processInfo)
             ?? throw new Exception("Failed to start TypeScript compiler process for server.");
@@ -80,8 +84,7 @@ public class ServerWorker(AppContext context) : IWorker
 
     private void RunNpmInstall()
     {
-        // Check if package-lock.json exists to determine which npm command to use
-        var packageLockPath = context.WorkingPath.Combine("package-lock.json");
+        var packageLockPath = workspace.WorkingPath.Combine("package-lock.json");
         var npmCommand = File.Exists(packageLockPath) ? "ci" : "install";
         
         var processInfo = new ProcessStartInfo
@@ -92,7 +95,7 @@ public class ServerWorker(AppContext context) : IWorker
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
-            WorkingDirectory = context.WorkingPath
+            WorkingDirectory = workspace.WorkingPath
         };
 
         using var process = Process.Start(processInfo)
@@ -115,7 +118,6 @@ public class ServerWorker(AppContext context) : IWorker
 
     private static string RemoveJavaScriptComments(string js)
     {
-        // Remove single-line comments (// ...) but preserve URLs
         var singleLinePattern = @"(?<!:)//.*$";
         js = System.Text.RegularExpressions.Regex.Replace(
             js, 
@@ -124,11 +126,9 @@ public class ServerWorker(AppContext context) : IWorker
             System.Text.RegularExpressions.RegexOptions.Multiline
         );
         
-        // Remove multi-line comments (/* ... */)
         var multiLinePattern = @"/\*[\s\S]*?\*/";
         js = System.Text.RegularExpressions.Regex.Replace(js, multiLinePattern, string.Empty);
         
-        // Remove empty lines left by comment removal
         var emptyLinePattern = @"^\s*\r?\n";
         js = System.Text.RegularExpressions.Regex.Replace(
             js, 

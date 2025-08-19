@@ -1,12 +1,12 @@
+using Engine;
 using Engine.Services;
 using Microsoft.Extensions.DependencyInjection;
-using Engine;
 
 namespace CLI;
 
 public class Runner(IServiceProvider serviceProvider)
 {
-    private Engine.AppContext _context = null!;
+    private AppWorkspace _workspace = null!;
     private IWorkflowFactory _workflowFactory = null!;
         
     public async Task Run(string[] args)
@@ -22,9 +22,9 @@ public class Runner(IServiceProvider serviceProvider)
         var workflowArgs = args;
 
         using var scope = serviceProvider.CreateScope();
-        _context = scope.ServiceProvider.GetRequiredService<Engine.AppContext>();
+        _workspace = scope.ServiceProvider.GetRequiredService<Engine.AppWorkspace>();
         _workflowFactory = scope.ServiceProvider.GetRequiredService<IWorkflowFactory>();
-        _context.Initialize(workingPath);
+        _workspace.Initialize(workingPath);
 
         await ExecuteCommand(command, workflowArgs);
     }

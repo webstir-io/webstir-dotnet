@@ -5,7 +5,7 @@ using Engine.Models;
 namespace Engine.Workers;
 
 public class ClientWorker(
-    AppContext context,
+    AppWorkspace workspace,
     HtmlHandler htmlHandler,
     CssHandler cssHandler,
     ScriptsHandler scriptsHandler,
@@ -15,7 +15,7 @@ public class ClientWorker(
 
     public async Task InitAsync(ProjectMode mode)
     {
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.ClientResourcesPath, context.ClientPath);
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.ClientResourcesPath, workspace.ClientPath);
     }
 
     public async Task BuildAsync()

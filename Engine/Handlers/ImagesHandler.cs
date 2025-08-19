@@ -2,16 +2,16 @@ using Engine.Extensions;
 
 namespace Engine.Handlers;
 
-public class ImagesHandler(AppContext context)
+public class ImagesHandler(AppWorkspace workspace)
 {
     public async Task BuildAsync()
     {
-        await context.ClientImagesPath.CopyToAsync(context.ClientBuildImagesPath);
+        await workspace.ClientImagesPath.CopyToAsync(workspace.ClientBuildImagesPath);
     }
 
     public async Task PublishAsync()
     {
-        await context.ClientBuildImagesPath.CopyToAsync(context.ClientDistImagesPath);
+        await workspace.ClientBuildImagesPath.CopyToAsync(workspace.ClientDistImagesPath);
     }
 
     public async Task AddPageAsync(string name)

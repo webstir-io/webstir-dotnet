@@ -1,16 +1,15 @@
-using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Models;
 
-namespace Engine.Workers.Shared;
+namespace Engine.Workers;
 
-public class SharedWorker(AppContext context) : IWorker
+public class SharedWorker(AppWorkspace workspace) : IWorker
 {
     public int BuildOrder => 3; // Fast operation, can run with other fast operations
 
     public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
     {
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.SharedResourcesPath, context.SharedPath);
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.SharedResourcesPath, workspace.SharedPath);
     }
 
     public async Task BuildAsync()

@@ -3,20 +3,20 @@ using Engine.Extensions;
 
 namespace Engine.Handlers;
 
-public class ScriptsHandler(AppContext context)
+public class ScriptsHandler(AppWorkspace workspace)
 {
     private const string _refreshJsFile = "refresh.js";
 
     public async Task BuildAsync()
     {
-        var packageJsonPath = context.WorkingPath.Combine(Files.PackageJson);
+        var packageJsonPath = workspace.WorkingPath.Combine(Files.PackageJson);
         if (File.Exists(packageJsonPath))
             RunNpmInstall();
 
         CompileTypeScriptFiles();
 
-        string sourceRefreshJsApp = context.ClientAppPath.Combine(_refreshJsFile);
-        string targetRefreshJs = context.ClientBuildPath.Combine(_refreshJsFile);
+        string sourceRefreshJsApp = workspace.ClientAppPath.Combine(_refreshJsFile);
+        string targetRefreshJs = workspace.ClientBuildPath.Combine(_refreshJsFile);
 
         if (File.Exists(sourceRefreshJsApp))
             File.Copy(sourceRefreshJsApp, targetRefreshJs, true);
@@ -28,14 +28,14 @@ public class ScriptsHandler(AppContext context)
 
     public async Task PublishAsync()
     {
-        foreach (string jsFile in Directory.GetFiles(context.ClientBuildPath, "*.js", SearchOption.AllDirectories))
+        foreach (string jsFile in Directory.GetFiles(workspace.ClientBuildPath, "*.js", SearchOption.AllDirectories))
         {
             // Skip refresh.js as it's only for development
             if (Path.GetFileName(jsFile).Equals(_refreshJsFile, StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            string relativePath = Path.GetRelativePath(context.ClientBuildPath, jsFile);
-            string targetFilePath = Path.Combine(context.ClientDistPath, relativePath);
+            string relativePath = Path.GetRelativePath(workspace.ClientBuildPath, jsFile);
+            string targetFilePath = Path.Combine(workspace.ClientDistPath, relativePath);
 
             Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!);
 
@@ -50,7 +50,7 @@ public class ScriptsHandler(AppContext context)
 
     private void CompileTypeScriptFiles()
     {
-        var baseTsConfigPath = context.WorkingPath.Combine("base.tsconfig.json");
+        var baseTsConfigPath = workspace.WorkingPath.Combine("base.tsconfig.json");
 
         var processInfo = new ProcessStartInfo
         {
@@ -84,7 +84,7 @@ public class ScriptsHandler(AppContext context)
     private void RunNpmInstall()
     {
         // Check if package-lock.json exists to determine which npm command to use
-        var packageLockPath = context.WorkingPath.Combine(Files.PackageLockJson);
+        var packageLockPath = workspace.WorkingPath.Combine(Files.PackageLockJson);
         var npmCommand = File.Exists(packageLockPath) ? "ci" : "install";
         
         var processInfo = new ProcessStartInfo
@@ -95,7 +95,7 @@ public class ScriptsHandler(AppContext context)
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
-            WorkingDirectory = context.WorkingPath
+            WorkingDirectory = workspace.WorkingPath
         };
 
         using var process = Process.Start(processInfo)
@@ -142,10 +142,10 @@ public class ScriptsHandler(AppContext context)
 
     public async Task AddPageAsync(string pageName)
     {
-        var pageDirectory = context.ClientPagesPath.CreateSubDirectory(pageName);
+        var pageDirectory = workspace.ClientPagesPath.CreateSubDirectory(pageName);
         var tsFilePath = pageDirectory.Combine($"{Files.Index}.ts");
         var tsContent = $"""
-            import '../../app/context.js';
+            import '../../app/workspace.js';
 
             console.log('{pageName} page loaded');
             """;
