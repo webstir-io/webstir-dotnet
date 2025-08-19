@@ -1,4 +1,5 @@
 ﻿using CLI;
+using Engine;
 using Engine.Servers;
 using Engine.Services;
 using Engine.Workflows;
@@ -12,9 +13,10 @@ try
 {
     ServiceCollection services = new();
     services.AddSingleton<Runner>();
+    services.AddSingleton<AppSettings>();
     services.AddSingleton<WatchService>();
-    services.AddSingleton<IWebServer, WebServer>();
-    services.AddSingleton<INodeServer, NodeServer>();
+    services.AddSingleton<WebServer>();
+    services.AddSingleton<NodeServer>();
 
     services.AddScoped<Engine.AppContext>();
     services.AddScoped<IWorkflowFactory, WorkflowFactory>();

@@ -3,128 +3,77 @@ using Engine.Extensions;
 
 namespace Engine.Servers;
 
-public class NodeServer : INodeServer, IDisposable
+public class NodeServer(AppSettings settings)
 {
-    private Process? _nodeProcess;
-    private readonly SemaphoreSlim _processLock = new(1, 1);
+    private Process? _process;
     
-    public bool IsRunning => _nodeProcess != null && !_nodeProcess.HasExited;
-    public event EventHandler<string>? OutputReceived;
-
-    public async Task StartAsync(AppContext? context = null)
+    public async Task StartAsync(AppContext context)
     {
-        await _processLock.WaitAsync();
-        try
+        var serverIndexPath = context.ServerBuildPath.Combine("index.js");
+        
+        if (!File.Exists(serverIndexPath))
         {
-            if (IsRunning)
+            Console.WriteLine("Server build not found. Skipping Node.js server.");
+            return;
+        }
+        
+        var startupComplete = new TaskCompletionSource<bool>();
+        
+        _process = new Process
+        {
+            StartInfo = new ProcessStartInfo
             {
-                Console.WriteLine("Node.js server is already running");
-                return;
+                FileName = "node",
+                Arguments = serverIndexPath,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+                WorkingDirectory = context.WorkingPath
             }
-
-            var serverIndexPath = context?.ServerBuildPath.Combine("index.js");
-            if (serverIndexPath == null || !File.Exists(serverIndexPath))
+        };
+        
+        _process.StartInfo.Environment["NODE_ENV"] = "development";
+        _process.StartInfo.Environment["PORT"] = settings.ApiServerPort.ToString();
+        
+        _process.OutputDataReceived += (_, e) =>
+        {
+            if (!string.IsNullOrEmpty(e.Data))
             {
-                Console.WriteLine("Server build not found. Skipping Node.js server startup.");
-                return;
+                // Filter out the SIGINT shutdown message
+                if (!e.Data.Contains("SIGINT received"))
+                {
+                    Console.WriteLine(e.Data);
+                }
+                
+                if (e.Data.Contains("API server running"))
+                {
+                    startupComplete.TrySetResult(true);
+                }
             }
-
-
-            _nodeProcess = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "node",
-                    Arguments = serverIndexPath,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                    WorkingDirectory = context?.WorkingPath ?? Directory.GetCurrentDirectory()
-                },
-                EnableRaisingEvents = true
-            };
-
-            AppDomain.CurrentDomain.ProcessExit += (s, e) => {
-                _nodeProcess?.Kill(entireProcessTree: true);
-            };
-
-            _nodeProcess.OutputDataReceived += (sender, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data))
-                {
-                    Console.WriteLine($"[Node] {e.Data}");
-                    OutputReceived?.Invoke(this, e.Data);
-                }
-            };
-
-            _nodeProcess.ErrorDataReceived += (sender, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data))
-                {
-                    Console.WriteLine($"[Node Error] {e.Data}");
-                }
-            };
-
-            _nodeProcess.Start();
-            _nodeProcess.BeginOutputReadLine();
-            _nodeProcess.BeginErrorReadLine();
-
-            if (!IsRunning)
-                throw new InvalidOperationException("Node.js server failed to start");
-        }
-        catch (Exception ex)
+        };
+        
+        _process.ErrorDataReceived += (_, e) =>
         {
-            Console.WriteLine($"Failed to start Node.js server: {ex.Message}");
-            _nodeProcess?.Dispose();
-            _nodeProcess = null;
-        }
-        finally
-        {
-            _processLock.Release();
-        }
+            if (!string.IsNullOrEmpty(e.Data))
+                Console.WriteLine($"Error: {e.Data}");
+        };
+        
+        _process.Start();
+        _process.BeginOutputReadLine();
+        _process.BeginErrorReadLine();
+        
+        await startupComplete.Task;
     }
-
+    
     public async Task StopAsync()
     {
-        await _processLock.WaitAsync();
-        try
+        if (_process != null && !_process.HasExited)
         {
-            if (_nodeProcess == null || _nodeProcess.HasExited)
-            {
-                return;
-            }
-
-            Console.WriteLine("Stopping Node.js server...");
-            
-            _nodeProcess.Kill(entireProcessTree: true);
-            await _nodeProcess.WaitForExitAsync();
-            _nodeProcess.Dispose();
-            _nodeProcess = null;
-            
-            Console.WriteLine("Node.js server stopped");
+            _process.Kill(entireProcessTree: true);
+            await _process.WaitForExitAsync();
+            _process.Dispose();
+            _process = null;
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error stopping Node.js server: {ex.Message}");
-        }
-        finally
-        {
-            _processLock.Release();
-        }
-    }
-
-    public async Task RestartAsync()
-    {
-        Console.WriteLine("Restarting Node.js server...");
-        await StopAsync();
-        await StartAsync();
-    }
-
-    public void Dispose()
-    {
-        StopAsync().Wait(5000);
-        _processLock.Dispose();
-        GC.SuppressFinalize(this);
     }
 }

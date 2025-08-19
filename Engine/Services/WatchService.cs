@@ -2,7 +2,7 @@ using Engine.Servers;
 
 namespace Engine.Services;
 
-public class WatchService(IWebServer _webServer, INodeServer _nodeServer)
+public class WatchService(WebServer _webServer, NodeServer _nodeServer)
 {
     private static readonly string[] IgnoredFiles = ["Thumbs.db", ".DS_Store"];
     private static readonly string[] IgnoredExtensions = [".tmp"];
@@ -21,8 +21,6 @@ public class WatchService(IWebServer _webServer, INodeServer _nodeServer)
 
     private async Task StartFileWatching(AppContext context)
     {
-        Console.WriteLine("Watching for changes...");
-
         using var watcher = CreateFileSystemWatcher(context);
         
         // Set up exit handler BEFORE starting servers
@@ -37,7 +35,7 @@ public class WatchService(IWebServer _webServer, INodeServer _nodeServer)
         try
         {
             await StartServers(context);
-            Console.WriteLine("Press Ctrl+C to exit.");
+            Console.WriteLine("Watching for file changes. Press Ctrl+C to exit.");
             await exitEvent.Task;
         }
         catch (Exception ex)
@@ -49,7 +47,6 @@ public class WatchService(IWebServer _webServer, INodeServer _nodeServer)
         {
             Console.WriteLine("Stopping servers...");
             await StopServersAsync();
-            Console.WriteLine("Stopped watching");
         }
     }
 
@@ -117,7 +114,8 @@ public class WatchService(IWebServer _webServer, INodeServer _nodeServer)
             if (IsServerFile(e.FullPath))
             {
                 Console.WriteLine("Server files changed, restarting Node.js server...");
-                await _nodeServer.RestartAsync();
+                await _nodeServer.StopAsync();
+                await _nodeServer.StartAsync(_context!);
             }
             
             await _webServer.UpdateClientsAsync();

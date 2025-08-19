@@ -27,17 +27,3 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
 server.listen(8000, () => {
   console.log('API server running on port 8000');
 });
-
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    process.exit(0);
-  });
-});

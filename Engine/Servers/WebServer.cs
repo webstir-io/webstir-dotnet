@@ -3,63 +3,101 @@ using Engine.Extensions;
 using Engine.Middleware;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging;
 
 namespace Engine.Servers;
 
-public class WebServer : IWebServer
+public class WebServer(AppSettings settings)
 {
     private readonly List<HttpContext> _sseClients = [];
-    private WebApplication? _webApp;
-    private string _webRootPath = Folders.Build;
+    private WebApplication? _app;
 
-    public bool IsRunning => _webApp != null;
-
-    public Task StartAsync(AppContext? context = null)
+    public async Task StartAsync(AppContext context)
     {
-        ValidateWebRoot(context);
-        
-        var builder = CreateWebApplicationBuilder();
+        if (!context.ClientBuildPath.Exists())
+        {
+            Console.WriteLine("Client build path does not exist. Skipping web server.");
+            return;
+        }
+
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            WebRootPath = context.ClientBuildPath
+        });
+
+        builder.Logging.SetMinimumLevel(LogLevel.Warning); // Only show warnings and errors
+        builder.WebHost.UseUrls(settings.WebServerUrl);
         ConfigureServices(builder.Services);
         
-        _webApp = builder.Build();
-        ConfigureMiddleware(_webApp);
+        _app = builder.Build();
+        ConfigureMiddleware(_app, context.ClientBuildPath);
         
-        Task.Run(RunServerAsync);
-        
-        return Task.CompletedTask;
+        await _app.StartAsync();
+        Console.WriteLine($"Web server running at {settings.WebServerUrl}");
     }
 
-    private void ValidateWebRoot(AppContext? context)
+    public async Task StopAsync()
     {
-        if (context?.ClientBuildPath.Exists() == true)
-            _webRootPath = context.ClientBuildPath;
-        else
-            throw new DirectoryNotFoundException($"No valid webroot found. Expected '{context?.ClientBuildPath}'.");
-    }
-
-    private WebApplicationBuilder CreateWebApplicationBuilder()
-    {
-        return WebApplication.CreateBuilder(new WebApplicationOptions
+        var shutdownMessage = Encoding.UTF8.GetBytes("data: shutdown\n\n");
+        var tasks = _sseClients.Select(async client =>
         {
-            WebRootPath = _webRootPath
+            try
+            {
+                await client.Response.Body.WriteAsync(shutdownMessage);
+                await client.Response.Body.FlushAsync();
+            }
+            catch { }
         });
+        await Task.WhenAll(tasks);
+        
+        foreach (var client in _sseClients.ToList())
+        {
+            try { client.Abort(); }
+            catch { }
+        }
+        _sseClients.Clear();
+        
+        if (_app != null)
+        {
+            await _app.StopAsync();
+            await _app.DisposeAsync();
+            _app = null;
+        }
     }
 
-    private static void ConfigureServices(IServiceCollection services)
+    public async Task UpdateClientsAsync()
+    {
+        var message = "data: reload\n\n";
+        var bytes = Encoding.UTF8.GetBytes(message);
+        
+        foreach (var client in _sseClients.ToList())
+        {
+            try
+            {
+                await client.Response.Body.WriteAsync(bytes);
+                await client.Response.Body.FlushAsync();
+            }
+            catch
+            {
+                _sseClients.Remove(client);
+            }
+        }
+    }
+
+    private void ConfigureServices(IServiceCollection services)
     {
         services.AddDirectoryBrowser();
-        services.AddSingleton<AppSettings>();
-        services.AddHttpClient("ApiProxy", (serviceProvider, client) =>
+        services.AddHttpClient("ApiProxy", client =>
         {
-            var appSettings = serviceProvider.GetRequiredService<AppSettings>();
-            client.BaseAddress = new Uri(appSettings.ApiServerUrl);
+            client.BaseAddress = new Uri(settings.ApiServerUrl);
             client.Timeout = TimeSpan.FromSeconds(30);
         });
     }
 
-    private void ConfigureMiddleware(WebApplication app)
+    private void ConfigureMiddleware(WebApplication app, string webRootPath)
     {
         app.Use(HandleServerSentEvents);
         app.UseMiddleware<ApiProxyMiddleware>();
@@ -69,13 +107,37 @@ public class WebServer : IWebServer
         defaultFilesOptions.DefaultFileNames.Clear();
         defaultFilesOptions.DefaultFileNames.Add("index.html");
         app.UseDefaultFiles(defaultFilesOptions);
-
+        
         app.UseStaticFiles();
         app.UseFileServer(new FileServerOptions
         {
-            FileProvider = new PhysicalFileProvider(_webRootPath),
+            FileProvider = new PhysicalFileProvider(webRootPath),
             EnableDirectoryBrowsing = false
         });
+    }
+
+    private async Task HandleServerSentEvents(HttpContext context, Func<Task> next)
+    {
+        if (context.Request.Path == "/sse")
+        {
+            context.Response.Headers.Append("Content-Type", "text/event-stream");
+            context.Response.Headers.Append("Cache-Control", "no-cache");
+            context.Response.Headers.Append("Connection", "keep-alive");
+            
+            _sseClients.Add(context);
+            
+            await context.Response.Body.FlushAsync();
+            
+            var tcs = new TaskCompletionSource();
+            context.RequestAborted.Register(() => tcs.SetResult());
+            await tcs.Task;
+            
+            _sseClients.Remove(context);
+        }
+        else
+        {
+            await next();
+        }
     }
 
     private async Task RewriteCleanUrls(HttpContext context, Func<Task> next)
@@ -95,12 +157,13 @@ public class WebServer : IWebServer
                 !path.StartsWith("/images") && 
                 !path.StartsWith("/pages") &&
                 !path.StartsWith("/api") && 
-                !path.StartsWith("/events"))
+                !path.StartsWith("/sse"))
             {
                 var pageName = path.TrimStart('/');
                 var indexPath = $"/pages/{pageName}/index.html";
                 
-                var fullPath = Path.Combine(_webRootPath, indexPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                var webRoot = context.RequestServices.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+                var fullPath = Path.Combine(webRoot, indexPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
                 if (File.Exists(fullPath))
                     context.Request.Path = indexPath;
             }
@@ -108,99 +171,4 @@ public class WebServer : IWebServer
         
         await next();
     }
-
-    private async Task RunServerAsync()
-    {
-        var appSettings = _webApp!.Services.GetRequiredService<AppSettings>();
-        await _webApp.RunAsync(appSettings.WebServerUrl);
-    }
-
-    public async Task StopAsync()
-    {
-        foreach (var context in _sseClients.ToList())
-        {
-            try
-            {
-                context.Abort();
-            }
-            catch
-            {
-                // Ignore errors during shutdown
-            }
-        }
-        _sseClients.Clear();
-
-        if (_webApp != null)
-        {
-            try
-            {
-                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-                await _webApp.StopAsync(timeoutCts.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                Console.WriteLine("Server shutdown timed out, forcing exit");
-            }
-        }
-    }
-
-    public async Task UpdateClientsAsync()
-    {
-        var deadClients = new List<HttpContext>();
-
-        foreach (var context in _sseClients.ToList())
-        {
-            try
-            {
-                var message = "data: reload\n\n";
-                var bytes = Encoding.UTF8.GetBytes(message);
-                await context.Response.Body.WriteAsync(bytes);
-                await context.Response.Body.FlushAsync();
-            }
-            catch
-            {
-                deadClients.Add(context);
-            }
-        }
-
-        foreach (var client in deadClients)
-        {
-            _sseClients.Remove(client);
-        }
-    }
-
-    private async Task HandleServerSentEvents(HttpContext context, Func<Task> next)
-    {
-        if (context.Request.Path == "/events")
-        {
-            context.Response.Headers.ContentType = "text/event-stream";
-            context.Response.Headers.CacheControl = "no-cache";
-            context.Response.Headers.Connection = "keep-alive";
-
-            _sseClients.Add(context);
-
-            var message = "data: connected\n\n";
-            var bytes = Encoding.UTF8.GetBytes(message);
-            await context.Response.Body.WriteAsync(bytes);
-            await context.Response.Body.FlushAsync();
-
-            try
-            {
-                await Task.Delay(Timeout.Infinite, context.RequestAborted);
-            }
-            catch (OperationCanceledException)
-            {
-                // Client disconnected - this is expected
-            }
-            finally
-            {
-                _sseClients.Remove(context);
-            }
-        }
-        else
-        {
-            await next();
-        }
-    }
-
 }
