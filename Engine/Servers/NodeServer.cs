@@ -1,13 +1,15 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Engine.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Engine.Servers;
 
-public class NodeServer(IOptions<AppSettings> options)
+public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logger)
 {
     private readonly AppSettings _settings = options.Value;
+    private readonly ILogger<NodeServer> _logger = logger;
     private Process? _process;
     
     public async Task StartAsync(AppWorkspace workspace)
@@ -17,7 +19,7 @@ public class NodeServer(IOptions<AppSettings> options)
         var serverIndexPath = workspace.ServerBuildPath.Combine("index.js");        
         if (!File.Exists(serverIndexPath))
         {
-            Console.WriteLine("Server build not found. Skipping Node.js server.");
+            _logger.LogWarning("Server build not found. Skipping Node.js server.");
             return;
         }
         
@@ -40,13 +42,14 @@ public class NodeServer(IOptions<AppSettings> options)
         _process.StartInfo.Environment["NODE_ENV"] = "development";
         _process.StartInfo.Environment["PORT"] = _settings.ApiServerPort.ToString();
         _process.StartInfo.Environment["WEB_SERVER_URL"] = _settings.WebServerUrl;
+        _process.StartInfo.Environment["API_SERVER_URL"] = _settings.ApiServerUrl;
         
         _process.OutputDataReceived += (_, e) =>
         {
             if (!string.IsNullOrEmpty(e.Data))
             {
                 if (!e.Data.Contains("SIGINT received"))
-                    Console.WriteLine(e.Data);
+                    _logger.LogInformation("{NodeOutput}", e.Data);
                 
                 if (e.Data.Contains("API server running"))
                     startupComplete.TrySetResult(true);
@@ -56,7 +59,7 @@ public class NodeServer(IOptions<AppSettings> options)
         _process.ErrorDataReceived += (_, e) =>
         {
             if (!string.IsNullOrEmpty(e.Data))
-                Console.WriteLine($"Error: {e.Data}");
+                _logger.LogError("Node server error: {ErrorData}", e.Data);
         };
         
         _process.Start();
@@ -77,7 +80,7 @@ public class NodeServer(IOptions<AppSettings> options)
         }
     }
     
-    private static async Task KillProcessOnPort(int port)
+    private async Task KillProcessOnPort(int port)
     {
         try
         {
@@ -116,7 +119,7 @@ public class NodeServer(IOptions<AppSettings> options)
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Warning: Could not kill process on port {port}: {ex.Message}");
+            _logger.LogWarning("Could not kill process on port {Port}: {Message}", port, ex.Message);
         }
     }
     

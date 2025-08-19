@@ -1,16 +1,18 @@
 using Engine.Servers;
+using Microsoft.Extensions.Logging;
 
 namespace Engine.Services;
 
-public class WatchService(WebServer _webServer, NodeServer _nodeServer)
+public class WatchService(WebServer webServer, NodeServer nodeServer, ILogger<WatchService> logger)
 {
+    private readonly WebServer _webServer = webServer;
+    private readonly NodeServer _nodeServer = nodeServer;
+    private readonly ILogger<WatchService> _logger = logger;
     private static readonly string[] IgnoredFiles = ["Thumbs.db", ".DS_Store"];
     private static readonly string[] IgnoredExtensions = [".tmp"];
     
     private Func<bool, Task>? _onChangeAction;
     private AppWorkspace? _workspace;
-    private DateTime _lastChangeTime = DateTime.MinValue;
-    private readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(200);
 
     public async Task Watch(AppWorkspace workspace, Func<bool, Task>? onChangeAction = null)
     {
@@ -21,10 +23,7 @@ public class WatchService(WebServer _webServer, NodeServer _nodeServer)
 
     private async Task StartFileWatching(AppWorkspace workspace)
     {
-        using var watcher = CreateFileSystemWatcher(workspace);
-        
-        // Set up exit handler BEFORE starting servers
-        // This ensures our handler runs before ASP.NET's handler
+        using var watcher = CreateFileSystemWatcher(workspace);        
         var exitEvent = new TaskCompletionSource<bool>();
         Console.CancelKeyPress += (sender, e) =>
         {
@@ -35,17 +34,17 @@ public class WatchService(WebServer _webServer, NodeServer _nodeServer)
         try
         {
             await StartServers(workspace);
-            Console.WriteLine("Watching for file changes. Press Ctrl+C to exit.");
+            _logger.LogInformation("Watching for file changes. Press Ctrl+C to exit.");
             await exitEvent.Task;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error during file watching: {ex.Message}");
+            _logger.LogError(ex, "Error during file watching: {Message}", ex.Message);
             throw;
         }
         finally
         {
-            Console.WriteLine("Stopping servers...");
+            _logger.LogInformation("Stopping servers...");
             await StopServersAsync();
         }
     }
@@ -89,7 +88,7 @@ public class WatchService(WebServer _webServer, NodeServer _nodeServer)
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error stopping servers: {ex.Message}");
+            _logger.LogError(ex, "Error stopping servers: {Message}", ex.Message);
         }
     }
 
@@ -98,22 +97,16 @@ public class WatchService(WebServer _webServer, NodeServer _nodeServer)
         if (ShouldIgnoreFile(e.FullPath))
             return;
 
-        // Debounce rapid changes
-        var now = DateTime.UtcNow;
-        if (now - _lastChangeTime < _debounceInterval)
-            return;
-
-        _lastChangeTime = now;
 
         try
         {
-            Console.WriteLine($"Detected file change: {e.FullPath}");
+            _logger.LogInformation("Detected file change: {FullPath}", e.FullPath);
             await WaitForFileAsync(e.FullPath);
             await _onChangeAction!.Invoke(false);
             
             if (IsServerFile(e.FullPath))
             {
-                Console.WriteLine("Server files changed, restarting Node.js server...");
+                _logger.LogInformation("Server files changed, restarting Node.js server...");
                 await _nodeServer.StopAsync();
                 await _nodeServer.StartAsync(_workspace!);
             }
@@ -122,7 +115,7 @@ public class WatchService(WebServer _webServer, NodeServer _nodeServer)
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error handling file change: {ex.Message}");
+            _logger.LogError(ex, "Error handling file change: {Message}", ex.Message);
         }
     }
 
@@ -133,54 +126,46 @@ public class WatchService(WebServer _webServer, NodeServer _nodeServer)
 
         try
         {
-            Console.WriteLine($"File deleted: {e.Name}");
+            _logger.LogInformation("File deleted: {Name}", e.Name);
             await _onChangeAction!.Invoke(false);
             await _webServer.UpdateClientsAsync();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error handling file deletion: {ex.Message}");
+            _logger.LogError(ex, "Error handling file deletion: {Message}", ex.Message);
         }
     }
 
-    private static void OnError(object sender, ErrorEventArgs e) =>
-        PrintException(e.GetException());
+    private void OnError(object sender, ErrorEventArgs e) =>
+        LogException(e.GetException());
 
-    private static void PrintException(Exception? ex)
+    private void LogException(Exception? ex)
     {
         if (ex != null)
         {
-            Console.WriteLine($"Message: {ex.Message}");
-            Console.WriteLine("Stacktrace:");
-            Console.WriteLine(ex.StackTrace);
-            Console.WriteLine();
-            PrintException(ex.InnerException);
+            _logger.LogError(ex, "FileSystemWatcher error: {Message}", ex.Message);
+            LogException(ex.InnerException);
         }
     }
 
-    private static async Task WaitForFileAsync(string filePath, int timeoutMs = 10000, int checkIntervalMs = 500)
+    private async Task WaitForFileAsync(string filePath, int timeoutMs = 10000, int checkIntervalMs = 500)
     {
-        Console.Write("Waiting for file...");
-
         var timeElapsed = 0;
         while (timeElapsed < timeoutMs)
         {
             try
             {
-                // Try to open the file with FileShare.None to check if it's still locked
                 using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.None);
-                Console.WriteLine("Done");
                 return;
             }
             catch (IOException)
             {
-                // The file is still locked, so we need to wait and try again
                 await Task.Delay(checkIntervalMs);
                 timeElapsed += checkIntervalMs;
             }
         }
 
-        Console.WriteLine("Warning: timeout waiting for file");
+        _logger.LogWarning("Timeout waiting for file to be ready");
     }
 
     private static bool ShouldIgnoreFile(string filePath)

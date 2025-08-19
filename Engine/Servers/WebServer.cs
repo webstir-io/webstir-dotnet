@@ -11,9 +11,10 @@ using Microsoft.Extensions.Options;
 
 namespace Engine.Servers;
 
-public class WebServer(IOptions<AppSettings> options)
+public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
 {
     private readonly AppSettings _settings = options.Value;
+    private readonly ILogger<WebServer> _logger = logger;
     private readonly List<HttpContext> _sseClients = [];
     private WebApplication? _app;
 
@@ -21,7 +22,7 @@ public class WebServer(IOptions<AppSettings> options)
     {
         if (!workspace.ClientBuildPath.Exists())
         {
-            Console.WriteLine("Client build path does not exist. Skipping web server.");
+            _logger.LogWarning("Client build path does not exist. Skipping web server.");
             return;
         }
 
@@ -38,7 +39,7 @@ public class WebServer(IOptions<AppSettings> options)
         ConfigureMiddleware(_app, workspace.ClientBuildPath);
         
         await _app.StartAsync();
-        Console.WriteLine($"Web server running at {_settings.WebServerUrl}");
+        _logger.LogInformation("Web server running at {WebServerUrl}", _settings.WebServerUrl);
     }
 
     public async Task StopAsync()

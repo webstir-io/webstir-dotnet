@@ -1,10 +1,12 @@
 using System.Diagnostics;
 using Engine.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Engine.Handlers;
 
-public class ScriptsHandler(AppWorkspace workspace)
+public class ScriptsHandler(AppWorkspace workspace, ILogger<ScriptsHandler> logger)
 {
+    private readonly ILogger<ScriptsHandler> _logger = logger;
     private const string _refreshJsFile = "refresh.js";
 
     public async Task BuildAsync()
@@ -21,7 +23,7 @@ public class ScriptsHandler(AppWorkspace workspace)
         if (File.Exists(sourceRefreshJsApp))
             File.Copy(sourceRefreshJsApp, targetRefreshJs, true);
         else
-            Console.WriteLine($"Warning: {_refreshJsFile} not found in {sourceRefreshJsApp}");
+            _logger.LogWarning("{RefreshJsFile} not found in {SourcePath}", _refreshJsFile, sourceRefreshJsApp);
 
         await Task.CompletedTask;
     }
@@ -30,7 +32,6 @@ public class ScriptsHandler(AppWorkspace workspace)
     {
         foreach (string jsFile in Directory.GetFiles(workspace.ClientBuildPath, "*.js", SearchOption.AllDirectories))
         {
-            // Skip refresh.js as it's only for development
             if (Path.GetFileName(jsFile).Equals(_refreshJsFile, StringComparison.OrdinalIgnoreCase))
                 continue;
 

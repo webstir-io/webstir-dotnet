@@ -4,9 +4,10 @@ import type { ApiResponse } from '@shared/types';
 
 const apiPort = parseInt(process.env.PORT!);
 const webServerUrl = process.env.WEB_SERVER_URL!;
+const apiServerUrl = process.env.API_SERVER_URL!;
 
 const server = createServer((req: IncomingMessage, res: ServerResponse) => {
-  const url = new URL(req.url!, `http://${req.headers.host}`);
+  const url = new URL(req.url!, apiServerUrl);
   
   // Set CORS headers for development
   res.setHeader('Access-Control-Allow-Origin', webServerUrl);
@@ -28,5 +29,5 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
 });
 
 server.listen(apiPort, () => {
-  console.log(`API server running on port ${apiPort}`);
+  console.log(`API server running at ${apiServerUrl}`);
 });

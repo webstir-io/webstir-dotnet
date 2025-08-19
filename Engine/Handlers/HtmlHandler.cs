@@ -1,12 +1,14 @@
 using Engine.Extensions;
 using Engine.Models;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Engine.Handlers;
 
-public class HtmlHandler(AppWorkspace workspace)
+public class HtmlHandler(AppWorkspace workspace, ILogger<HtmlHandler> logger)
 {
+    private readonly ILogger<HtmlHandler> _logger = logger;
     private const string AppHtmlFileName = "app.html";
     private const string IndexHtmlFileName = "index.html";
 
@@ -61,7 +63,7 @@ public class HtmlHandler(AppWorkspace workspace)
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error processing {pageHtmlFile.Name}: {ex.Message}");
+                _logger.LogError(ex, "Error processing {FileName}", pageHtmlFile.Name());
                 throw;
             }
         }
@@ -72,7 +74,6 @@ public class HtmlHandler(AppWorkspace workspace)
         if (!pageHtmlFile.Exists())
             throw new FileNotFoundException($"Page HTML file not found: {pageHtmlFile}");
 
-        // Merge the app template with the page fragment
         bool releaseMode = _routingMetadata.Pages.ContainsKey(pageName) && _routingMetadata.Pages[pageName].IsSpaEnabled;
         if (releaseMode && !_routingMetadata.HasSpaPages)
             return;
@@ -93,9 +94,7 @@ public class HtmlHandler(AppWorkspace workspace)
     private static void PublishHtmlFile(string sourceFilepath, string destinationPath)
     {
         var htmlContent = File.ReadAllText(sourceFilepath);
-        var htmlFile = new HtmlFile(htmlContent);
-        
-        // Remove development artifacts for production
+        var htmlFile = new HtmlFile(htmlContent);    
         htmlFile.Remove(@"<script src=""/refresh.js"" async></script>");
         
         var cleanedContent = RemoveHtmlComments(htmlFile.Html);

@@ -7,6 +7,11 @@ using Engine.Workers;
 using Engine.Handlers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+
+var logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateLogger();
 
 try
 {
@@ -17,10 +22,11 @@ try
         .Build();
 
     ServiceCollection services = new();
-    services.AddSingleton<IConfiguration>(configuration); 
+    services.AddSingleton<IConfiguration>(configuration);
+    services.AddLogging(builder => builder.AddSerilog(logger)); 
     services.Configure<AppSettings>(options =>
     {
-        var section = configuration.GetSection("AppSettings");
+        var section = configuration.GetSection(nameof(AppSettings));
         if (section.Exists())
             section.Bind(options);
     });
@@ -54,5 +60,5 @@ try
 }
 catch (Exception ex)
 {
-    Console.WriteLine($"Error: {ex.Message}; Stack: {ex.StackTrace}");
+    logger.Error(ex, "Fatal error occurred");
 }
