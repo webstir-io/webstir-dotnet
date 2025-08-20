@@ -3,6 +3,7 @@ namespace Engine;
 public static class App
 {
     public const string Name = "webstir";
+    public const string DevService = "Dev Service";
 }
 
 public static class Folders

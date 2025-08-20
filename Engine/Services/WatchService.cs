@@ -7,41 +7,24 @@ public class WatchService(ChangeService changeService, ILogger<WatchService> log
     private readonly ChangeService _changeService = changeService;
     private readonly ILogger<WatchService> _logger = logger;
 
-    public async Task Watch(AppWorkspace workspace, Func<bool, Task>? onChangeAction = null)
+    private FileSystemWatcher? _watcher;
+
+    public Task Watch(AppWorkspace workspace)
     {
-        await _changeService.Initialize(workspace, onChangeAction);
-        await _changeService.StartAsync(CancellationToken.None);
-        
-        try
-        {
-            await StartFileWatching(workspace);
-        }
-        finally
-        {
-            await _changeService.StopAsync(CancellationToken.None);
-        }
+        StartFileWatching(workspace);
+        return Task.CompletedTask;
     }
 
-    private async Task StartFileWatching(AppWorkspace workspace)
+    public void Stop()
     {
-        using var watcher = CreateFileSystemWatcher(workspace);        
-        var exitEvent = new TaskCompletionSource<bool>();
-        Console.CancelKeyPress += (sender, e) =>
-        {
-            e.Cancel = true;
-            exitEvent.SetResult(true);
-        };
-        
-        try
-        {
-            _logger.LogInformation("Watching for file changes. Press Ctrl+C to exit.");
-            await exitEvent.Task;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during file watching: {Message}", ex.Message);
-            throw;
-        }
+        _watcher?.Dispose();
+        _watcher = null;
+    }
+
+    private void StartFileWatching(AppWorkspace workspace)
+    {
+        _watcher = CreateFileSystemWatcher(workspace);        
+        _logger.LogInformation("Started watching for file changes in {SrcPath}", workspace.SrcPath);
     }
 
     private FileSystemWatcher CreateFileSystemWatcher(AppWorkspace workspace)
@@ -68,7 +51,7 @@ public class WatchService(ChangeService changeService, ILogger<WatchService> log
 
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
-        _changeService.EnqueueChange(e.FullPath, FileChangeType.Changed);
+        _changeService.EnqueueChange(e.FullPath, FileChangeType.Modified);
     }
 
     private void OnCreated(object sender, FileSystemEventArgs e)

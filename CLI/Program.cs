@@ -34,6 +34,7 @@ try
     services.AddSingleton<Runner>();
     services.AddSingleton<WatchService>();
     services.AddSingleton<ChangeService>();
+    services.AddSingleton<DevService>();
     services.AddSingleton<WebServer>();
     services.AddSingleton<NodeServer>();
 

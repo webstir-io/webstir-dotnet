@@ -8,7 +8,7 @@ public class WatchWorkflow(
     ClientWorker clientWorker,
     ServerWorker serverWorker,
     SharedWorker sharedWorker,
-    WatchService watchService) 
+    DevService devService) 
     : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
 {
     public override string WorkflowName => Commands.Watch;
@@ -16,6 +16,6 @@ public class WatchWorkflow(
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         await ExecuteBuildAsync();
-        await watchService.Watch(Context, _ => ExecuteBuildAsync());
+        await devService.StartAsync(Context, _ => ExecuteBuildAsync());
     }
 }

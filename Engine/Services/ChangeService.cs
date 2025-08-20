@@ -1,12 +1,11 @@
 using System.Threading.Channels;
-using Engine.Servers;
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Services;
 
 public enum FileChangeType
 {
-    Changed,
+    Modified,
     Created,
     Deleted,
     Renamed
@@ -18,13 +17,8 @@ public record FileChangeEvent(
     DateTime Timestamp
 );
 
-public class ChangeService(
-    NodeServer nodeServer,
-    WebServer webServer,
-    ILogger<ChangeService> logger)
+public class ChangeService(ILogger<ChangeService> logger)
 {
-    private readonly NodeServer _nodeServer = nodeServer;
-    private readonly WebServer _webServer = webServer;
     private readonly ILogger<ChangeService> _logger = logger;
     
     private static readonly string[] IgnoredFiles = ["Thumbs.db", ".DS_Store"];
@@ -35,55 +29,39 @@ public class ChangeService(
     private Task? _processingTask;
 
     private Func<bool, Task>? _onChangeAction;
+    private Func<AppWorkspace, Task>? _onServerRestart;
+    private Func<Task>? _onClientNotification;
     private AppWorkspace? _workspace;
 
-    public async Task Initialize(AppWorkspace workspace, Func<bool, Task>? onChangeAction = null)
+    public async Task Initialize(AppWorkspace workspace, Func<bool, Task>? onChangeAction = null, 
+        Func<AppWorkspace, Task>? onServerRestart = null, Func<Task>? onClientNotification = null)
     {
         _workspace = workspace;
         _onChangeAction = onChangeAction;
+        _onServerRestart = onServerRestart;
+        _onClientNotification = onClientNotification;        
         
-        // Start the servers
-        await _webServer.StartAsync(workspace);
-        await _nodeServer.StartAsync(workspace);
+        await Task.CompletedTask;
     }
 
     public void EnqueueChange(string filePath, FileChangeType changeType)
     {
         if (IsIgnored(filePath))
+        {
+            _logger.LogDebug("Ignoring file change: {FilePath}", filePath);
             return;
+        }
             
-        var changeEvent = new FileChangeEvent(filePath, changeType, DateTime.UtcNow);        
+        var changeEvent = new FileChangeEvent(filePath, changeType, DateTime.UtcNow);
+        
         if (!_channel.Writer.TryWrite(changeEvent))
             _logger.LogWarning("Failed to enqueue file change: {FilePath}", filePath);
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync()
     {
         _processingTask = ProcessChangesAsync(_cancellationTokenSource.Token);
-        await Task.CompletedTask;
-    }
-
-    public async Task StopAsync(CancellationToken cancellationToken)
-    {
-        _channel.Writer.Complete();
-        _cancellationTokenSource.Cancel();
-
-        if (_processingTask != null)
-            await _processingTask;
-
-        try
-        {
-            await Task.WhenAll(
-                _webServer.StopAsync(),
-                _nodeServer.StopAsync()
-            );
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error stopping servers: {Message}", ex.Message);
-        }
-
-        _cancellationTokenSource.Dispose();
+        return Task.CompletedTask;
     }
 
     private async Task ProcessChangesAsync(CancellationToken cancellationToken)
@@ -92,54 +70,60 @@ public class ChangeService(
         {
             await foreach (var changeEvent in _channel.Reader.ReadAllAsync(cancellationToken))
             {
-                _logger.LogInformation("Processing change event from queue: {FilePath}", changeEvent.FilePath);                
-                await ProcessChangeEventAsync(changeEvent);
+                _logger.LogInformation("File change detected: {FilePath} ({ChangeType})", 
+                    changeEvent.FilePath, changeEvent.ChangeType);
+
+                switch (changeEvent.ChangeType)
+                {
+                    case FileChangeType.Modified:
+                    case FileChangeType.Created:
+                    case FileChangeType.Renamed:
+                        await WaitForFileAsync(changeEvent.FilePath);
+                        await _onChangeAction?.Invoke(false)!;
+
+                        if (IsServerFile(changeEvent.FilePath))
+                        {
+                            _logger.LogInformation("Server files changed, requesting server restart...");
+                            if (_onServerRestart != null)
+                                await _onServerRestart(_workspace!);
+                        }
+
+                        if (_onClientNotification != null)
+                            await _onClientNotification();
+                        break;
+
+                    case FileChangeType.Deleted:
+                        _logger.LogInformation("File deleted: {FileName}", Path.GetFileName(changeEvent.FilePath));
+                        await _onChangeAction?.Invoke(false)!;
+                        
+                        if (_onClientNotification != null)
+                            await _onClientNotification();
+                        break;
+                }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Change processing stopped");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Background processing task failed");
             throw;
-        }        
-    }
-
-    private async Task ProcessChangeEventAsync(FileChangeEvent changeEvent)
-    {
-        switch (changeEvent.ChangeType)
-        {
-            case FileChangeType.Changed:
-            case FileChangeType.Created:
-            case FileChangeType.Renamed:
-                await HandleFileModification(changeEvent.FilePath);
-                break;
-
-            case FileChangeType.Deleted:
-                await HandleFileDeletion(changeEvent.FilePath);
-                break;
         }
     }
 
-    private async Task HandleFileModification(string filePath)
+    public async Task StopAsync()
     {
-        await WaitForFileAsync(filePath);
-        await _onChangeAction?.Invoke(false)!;
+        _channel.Writer.Complete();
+        _cancellationTokenSource.Cancel();
 
-        if (IsServerFile(filePath))
-        {
-            _logger.LogInformation("Server files changed, restarting Node.js server...");
-            await _nodeServer.StopAsync();
-            await _nodeServer.StartAsync(_workspace!);
-        }
+        if (_processingTask != null)
+            await _processingTask;
 
-        await _webServer.UpdateClientsAsync();
+        _cancellationTokenSource.Dispose();
     }
 
-    private async Task HandleFileDeletion(string filePath)
-    {
-        _logger.LogInformation("File deleted: {FileName}", Path.GetFileName(filePath));
-        await _onChangeAction?.Invoke(false)!;
-        await _webServer.UpdateClientsAsync();
-    }
 
     private async Task WaitForFileAsync(string filePath, int timeoutMs = 10000, int checkIntervalMs = 500)
     {
