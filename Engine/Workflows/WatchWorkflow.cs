@@ -16,6 +16,6 @@ public class WatchWorkflow(
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         await ExecuteBuildAsync();
-        await devService.StartAsync(Context, _ => ExecuteBuildAsync());
+        await devService.StartAsync(Context, (filePath, _) => ExecuteBuildAsync(filePath));
     }
 }

@@ -18,8 +18,11 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.ServerResourcesPath, workspace.ServerPath);
     }
 
-    public async Task BuildAsync()
+    public async Task BuildAsync(string? changedFilePath = null)
     {
+        if (!string.IsNullOrEmpty(changedFilePath) && !BuildHelpers.ContainsBuildFolder(changedFilePath, Folders.Server))
+            return;
+
         var packageJsonPath = workspace.WorkingPath.Combine(Files.PackageJson);
         if (File.Exists(packageJsonPath))
             RunNpmInstall();

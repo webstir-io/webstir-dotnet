@@ -16,7 +16,7 @@ public class DevService(
     private readonly NodeServer _nodeServer = nodeServer;
     private readonly ILogger<DevService> _logger = logger;
 
-    public async Task StartAsync(AppWorkspace workspace, Func<bool, Task>? onChangeAction = null)
+    public async Task StartAsync(AppWorkspace workspace, Func<string?, bool, Task>? onChangeAction = null)
     {
         _logger.LogInformation("Starting {DevService} for {WorkspacePath}", App.DevService, workspace.WorkingPath);
         

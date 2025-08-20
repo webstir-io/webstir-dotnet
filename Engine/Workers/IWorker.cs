@@ -6,7 +6,7 @@ public interface IWorker
 {
     int BuildOrder { get; }
     Task InitAsync(ProjectMode mode);
-    Task BuildAsync();
+    Task BuildAsync(string? changedFilePath = null);
     Task PublishAsync();
     Task AddPageAsync(string pageName);
 }

@@ -53,6 +53,11 @@ public abstract class BaseWorkflow(
         await ExecuteWorkersAsync(async worker => await worker.BuildAsync());
     }
 
+    protected async Task ExecuteBuildAsync(string? changedFilePath)
+    {
+        await ExecuteWorkersAsync(async worker => await worker.BuildAsync(changedFilePath));
+    }
+
     protected virtual void InitializeWorkspace(string[] args)
     {
         var filteredArgs = args.Where(arg => arg != WorkflowName).ToArray();        

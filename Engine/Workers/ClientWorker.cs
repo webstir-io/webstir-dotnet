@@ -18,10 +18,13 @@ public class ClientWorker(
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.ClientResourcesPath, workspace.ClientPath);
     }
 
-    public async Task BuildAsync()
+    public async Task BuildAsync(string? changedFilePath = null)
     {
-        await scriptsHandler.BuildAsync();        
-        await Task.WhenAll(
+        if (!string.IsNullOrEmpty(changedFilePath) && !BuildHelpers.ContainsBuildFolder(changedFilePath, Folders.Client))
+            return;
+        
+        await scriptsHandler.BuildAsync();
+        await Task.WhenAll(            
             htmlHandler.BuildAsync(),
             cssHandler.BuildAsync(),
             imagesHandler.BuildAsync()

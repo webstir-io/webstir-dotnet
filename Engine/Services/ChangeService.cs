@@ -28,12 +28,12 @@ public class ChangeService(ILogger<ChangeService> logger)
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private Task? _processingTask;
 
-    private Func<bool, Task>? _onChangeAction;
+    private Func<string?, bool, Task>? _onChangeAction;
     private Func<AppWorkspace, Task>? _onServerRestart;
     private Func<Task>? _onClientNotification;
     private AppWorkspace? _workspace;
 
-    public async Task Initialize(AppWorkspace workspace, Func<bool, Task>? onChangeAction = null, 
+    public async Task Initialize(AppWorkspace workspace, Func<string?, bool, Task>? onChangeAction = null, 
         Func<AppWorkspace, Task>? onServerRestart = null, Func<Task>? onClientNotification = null)
     {
         _workspace = workspace;
@@ -79,7 +79,7 @@ public class ChangeService(ILogger<ChangeService> logger)
                     case FileChangeType.Created:
                     case FileChangeType.Renamed:
                         await WaitForFileAsync(changeEvent.FilePath);
-                        await _onChangeAction?.Invoke(false)!;
+                        await _onChangeAction?.Invoke(changeEvent.FilePath, false)!;
 
                         if (IsServerFile(changeEvent.FilePath))
                         {
@@ -94,7 +94,7 @@ public class ChangeService(ILogger<ChangeService> logger)
 
                     case FileChangeType.Deleted:
                         _logger.LogInformation("File deleted: {FileName}", Path.GetFileName(changeEvent.FilePath));
-                        await _onChangeAction?.Invoke(false)!;
+                        await _onChangeAction?.Invoke(changeEvent.FilePath, false)!;
                         
                         if (_onClientNotification != null)
                             await _onClientNotification();
