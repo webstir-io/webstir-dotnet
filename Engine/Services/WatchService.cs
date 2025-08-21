@@ -8,6 +8,7 @@ public class WatchService(ChangeService changeService, ILogger<WatchService> log
     private readonly ILogger<WatchService> _logger = logger;
 
     private FileSystemWatcher? _watcher;
+    private readonly Dictionary<string, List<DateTime>> _pendingEvents = new();
 
     public Task Watch(AppWorkspace workspace)
     {
@@ -31,10 +32,7 @@ public class WatchService(ChangeService changeService, ILogger<WatchService> log
     {
         var watcher = new FileSystemWatcher(workspace.SrcPath)
         {
-            NotifyFilter = NotifyFilters.CreationTime
-                | NotifyFilters.DirectoryName
-                | NotifyFilters.FileName
-                | NotifyFilters.LastWrite,
+            NotifyFilter = NotifyFilters.LastWrite,
             IncludeSubdirectories = true,
             EnableRaisingEvents = true
         };
@@ -42,7 +40,7 @@ public class WatchService(ChangeService changeService, ILogger<WatchService> log
         watcher.Changed += OnChanged;
         watcher.Created += OnCreated;
         watcher.Deleted += OnDeleted;
-        watcher.Renamed += OnChanged;
+        watcher.Renamed += OnRenamed;
         watcher.Error += OnError;
 
         return watcher;
@@ -51,7 +49,19 @@ public class WatchService(ChangeService changeService, ILogger<WatchService> log
 
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
-        _changeService.EnqueueChange(e.FullPath, FileChangeType.Modified);
+        var fileInfo = new FileInfo(e.FullPath);
+        if (!fileInfo.Exists) return;
+        
+        var currentTimestamp = fileInfo.LastWriteTime;
+        var pendingForFile = _pendingEvents.GetValueOrDefault(e.FullPath, []);
+    
+        if (!pendingForFile.Contains(currentTimestamp))
+        {
+            _changeService.EnqueueChange(e.FullPath, FileChangeType.Modified);            
+            pendingForFile.Clear();
+            pendingForFile.Add(currentTimestamp);
+            _pendingEvents[e.FullPath] = pendingForFile;
+        }
     }
 
     private void OnCreated(object sender, FileSystemEventArgs e)
@@ -62,6 +72,11 @@ public class WatchService(ChangeService changeService, ILogger<WatchService> log
     private void OnDeleted(object sender, FileSystemEventArgs e)
     {
         _changeService.EnqueueChange(e.FullPath, FileChangeType.Deleted);
+    }
+
+    private void OnRenamed(object sender, RenamedEventArgs e)
+    {
+        _changeService.EnqueueChange(e.FullPath, FileChangeType.Renamed);
     }
 
     private void OnError(object sender, ErrorEventArgs e) =>
