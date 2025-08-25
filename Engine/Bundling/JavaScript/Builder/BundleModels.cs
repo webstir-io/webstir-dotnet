@@ -1,4 +1,4 @@
-namespace Engine.Bundling.Builder;
+namespace Engine.Bundling.JavaScript.Builder;
 
 public class BundleOptions
 {

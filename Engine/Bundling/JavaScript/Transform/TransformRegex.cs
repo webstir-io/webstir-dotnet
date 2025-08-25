@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Engine.Bundling.Transform;
+namespace Engine.Bundling.JavaScript.Transform;
 
 public static partial class TransformRegex
 {

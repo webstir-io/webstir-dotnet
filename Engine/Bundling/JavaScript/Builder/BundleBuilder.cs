@@ -1,8 +1,8 @@
-using Engine.Bundling.Graph;
-using Engine.Bundling.Transform;
-using Engine.Bundling.SourceMaps;
+using Engine.Bundling.JavaScript.Graph;
+using Engine.Bundling.JavaScript.Transform;
+using Engine.Bundling.JavaScript.SourceMaps;
 
-namespace Engine.Bundling.Builder;
+namespace Engine.Bundling.JavaScript.Builder;
 
 public class BundleBuilder(
     ModuleGraphBuilder graphBuilder,

@@ -1,4 +1,4 @@
-namespace Engine.Bundling.Graph;
+namespace Engine.Bundling.JavaScript.Graph;
 
 public class ModuleGraph
 {

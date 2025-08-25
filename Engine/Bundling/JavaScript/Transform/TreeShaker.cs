@@ -1,7 +1,7 @@
-using Engine.Bundling.Graph;
+using Engine.Bundling.JavaScript.Graph;
 using System.Text.RegularExpressions;
 
-namespace Engine.Bundling.Transform;
+namespace Engine.Bundling.JavaScript.Transform;
 
 public class TreeShaker
 {

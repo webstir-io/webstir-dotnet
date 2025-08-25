@@ -1,4 +1,4 @@
-namespace Engine.Bundling.SourceMaps;
+namespace Engine.Bundling.JavaScript.SourceMaps;
 
 public class SourceMap
 {

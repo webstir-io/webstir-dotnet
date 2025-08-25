@@ -1,8 +1,8 @@
-using Engine.Bundling.Graph;
+using Engine.Bundling.JavaScript.Graph;
 using System.Text;
 using System.Text.Json;
 
-namespace Engine.Bundling.SourceMaps;
+namespace Engine.Bundling.JavaScript.SourceMaps;
 
 public class SourceMapGenerator
 {

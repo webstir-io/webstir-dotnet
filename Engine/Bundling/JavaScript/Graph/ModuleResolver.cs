@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Engine.Extensions;
 
-namespace Engine.Bundling.Graph;
+namespace Engine.Bundling.JavaScript.Graph;
 
 public class ModuleResolver(AppWorkspace workspace)
 {

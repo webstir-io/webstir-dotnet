@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Engine.Bundling.Graph;
+namespace Engine.Bundling.JavaScript.Graph;
 
 public static class ModuleParser
 {

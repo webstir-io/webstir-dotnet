@@ -1,4 +1,4 @@
-namespace Engine.Bundling.Transform;
+namespace Engine.Bundling.JavaScript.Transform;
 
 public static class TransformConstants
 {
