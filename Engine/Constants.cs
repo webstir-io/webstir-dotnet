@@ -31,7 +31,38 @@ public static class Files
     public const string PackageLockJson = "package-lock.json";
     public const string TsBuildInfo = ".tsbuildinfo";
     public const string Index = "index";
+    public const string IndexHtml = "index.html";
+    public const string RefreshJs = "refresh.js";
+}
 
+public static class Routes
+{
+    public const string Sse = "/sse";
+    public const string Api = "/api";
+    public const string Home = "/home";
+}
+
+public static class FileExtensions
+{
+    public const string Html = ".html";
+    public const string Css = ".css";
+    public const string Js = ".js";
+    public const string Png = ".png";
+    public const string Jpg = ".jpg";
+    public const string Jpeg = ".jpeg";
+    public const string Gif = ".gif";
+    public const string Svg = ".svg";
+    public const string Webp = ".webp";
+    public const string Ico = ".ico";
+}
+
+public static class CacheHeaders
+{
+    public const string NoCache = "no-cache, no-store, must-revalidate";
+    public const string NoCacheMustRevalidate = "no-cache, must-revalidate";
+    public const string LongCache = "public, max-age=31536000, immutable";
+    public const string PragmaNoCache = "no-cache";
+    public const string ExpiresZero = "0";
 }
 
 public static class Resources

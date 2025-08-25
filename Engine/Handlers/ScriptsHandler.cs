@@ -1,44 +1,59 @@
-using System.Diagnostics;
 using Engine.Extensions;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace Engine.Handlers;
 
-public class ScriptsHandler(AppWorkspace workspace, ILogger<ScriptsHandler> logger)
+public partial class ScriptsHandler(AppWorkspace workspace, ILogger<ScriptsHandler> logger)
 {
-    private readonly ILogger<ScriptsHandler> _logger = logger;
-    private const string _refreshJsFile = "refresh.js";
+    private const string RefreshJsFile = "refresh.js";
+    private const string BaseTsConfig = "base.tsconfig.json";
+    
+    [GeneratedRegex(@"\.\d{10}$")]
+    private static partial Regex TimestampPattern();
+    
+    [GeneratedRegex(@"(?<!:)//.*$", RegexOptions.Multiline)]
+    private static partial Regex SingleLineCommentPattern();
+    
+    [GeneratedRegex(@"/\*[\s\S]*?\*/")]
+    private static partial Regex MultiLineCommentPattern();
+    
+    [GeneratedRegex(@"^\s*\r?\n", RegexOptions.Multiline)]
+    private static partial Regex EmptyLinePattern();
 
     public async Task BuildAsync()
     {
-        var packageJsonPath = workspace.WorkingPath.Combine(Files.PackageJson);
-        if (File.Exists(packageJsonPath))
+        string packageJsonPath = workspace.WorkingPath.Combine(Files.PackageJson);
+        if (packageJsonPath.Exists())
             RunNpmInstall();
 
         CompileTypeScriptFiles();
 
-        string sourceRefreshJsApp = workspace.ClientAppPath.Combine(_refreshJsFile);
-        string targetRefreshJs = workspace.ClientBuildPath.Combine(_refreshJsFile);
+        // JS files are already in place after TypeScript compilation
 
-        if (File.Exists(sourceRefreshJsApp))
+        string sourceRefreshJsApp = workspace.ClientAppPath.Combine(RefreshJsFile);
+        string targetRefreshJs = workspace.ClientBuildPath.Combine(RefreshJsFile);
+
+        if (sourceRefreshJsApp.Exists())
             File.Copy(sourceRefreshJsApp, targetRefreshJs, true);
         else
-            _logger.LogWarning("{RefreshJsFile} not found in {SourcePath}", _refreshJsFile, sourceRefreshJsApp);
+            logger.LogWarning("{RefreshJsFile} not found in {SourcePath}", RefreshJsFile, sourceRefreshJsApp);
 
         await Task.CompletedTask;
     }
 
     public async Task PublishAsync()
     {
-        foreach (string jsFile in Directory.GetFiles(workspace.ClientBuildPath, "*.js", SearchOption.AllDirectories))
+        string[] jsFiles = workspace.ClientBuildPath.Files("*.js", SearchOption.AllDirectories)
+            .Where(f => !f.Filename().Equals(RefreshJsFile, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        foreach (string jsFile in jsFiles)
         {
-            if (Path.GetFileName(jsFile).Equals(_refreshJsFile, StringComparison.OrdinalIgnoreCase))
-                continue;
-
             string relativePath = Path.GetRelativePath(workspace.ClientBuildPath, jsFile);
-            string targetFilePath = Path.Combine(workspace.ClientDistPath, relativePath);
-
-            Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!);
+            string targetFilePath = workspace.ClientDistPath.Combine(relativePath);
+            targetFilePath.DirectoryName().Create();
 
             string jsContent = File.ReadAllText(jsFile);
             jsContent = RemoveJavaScriptComments(jsContent);
@@ -51,9 +66,9 @@ public class ScriptsHandler(AppWorkspace workspace, ILogger<ScriptsHandler> logg
 
     private void CompileTypeScriptFiles()
     {
-        var baseTsConfigPath = workspace.WorkingPath.Combine("base.tsconfig.json");
+        string baseTsConfigPath = workspace.WorkingPath.Combine(BaseTsConfig);
 
-        var processInfo = new ProcessStartInfo
+        ProcessStartInfo processInfo = new()
         {
             FileName = "tsc",
             Arguments = $"--build \"{baseTsConfigPath}\"",
@@ -72,7 +87,7 @@ public class ScriptsHandler(AppWorkspace workspace, ILogger<ScriptsHandler> logg
         {
             string errors = process.StandardError.ReadToEnd();
             string output = process.StandardOutput.ReadToEnd();
-            var errorMessage = $"TypeScript compilation failed (Exit Code: {process.ExitCode})";
+            string errorMessage = $"TypeScript compilation failed (Exit Code: {process.ExitCode})";
             if (!string.IsNullOrWhiteSpace(errors))
                 errorMessage += $"\nErrors:\n{errors}";
             if (!string.IsNullOrWhiteSpace(output))
@@ -84,11 +99,10 @@ public class ScriptsHandler(AppWorkspace workspace, ILogger<ScriptsHandler> logg
 
     private void RunNpmInstall()
     {
-        // Check if package-lock.json exists to determine which npm command to use
-        var packageLockPath = workspace.WorkingPath.Combine(Files.PackageLockJson);
-        var npmCommand = File.Exists(packageLockPath) ? "ci" : "install";
+        string packageLockPath = workspace.WorkingPath.Combine(Files.PackageLockJson);
+        string npmCommand = packageLockPath.Exists() ? "ci" : "install";
         
-        var processInfo = new ProcessStartInfo
+        ProcessStartInfo processInfo = new()
         {
             FileName = "npm",
             Arguments = npmCommand,
@@ -108,7 +122,7 @@ public class ScriptsHandler(AppWorkspace workspace, ILogger<ScriptsHandler> logg
         {
             string errors = process.StandardError.ReadToEnd();
             string output = process.StandardOutput.ReadToEnd();
-            var errorMessage = $"npm install failed (Exit Code: {process.ExitCode})";
+            string errorMessage = $"npm install failed (Exit Code: {process.ExitCode})";
             if (!string.IsNullOrWhiteSpace(errors))
                 errorMessage += $"\nErrors:\n{errors}";
             if (!string.IsNullOrWhiteSpace(output))
@@ -119,34 +133,18 @@ public class ScriptsHandler(AppWorkspace workspace, ILogger<ScriptsHandler> logg
 
     private static string RemoveJavaScriptComments(string js)
     {
-        var singleLinePattern = @"(?<!:)//.*$";
-        js = System.Text.RegularExpressions.Regex.Replace(
-            js, 
-            singleLinePattern, 
-            string.Empty, 
-            System.Text.RegularExpressions.RegexOptions.Multiline
-        );
-        
-        var multiLinePattern = @"/\*[\s\S]*?\*/";
-        js = System.Text.RegularExpressions.Regex.Replace(js, multiLinePattern, string.Empty);
-        
-        var emptyLinePattern = @"^\s*\r?\n";
-        js = System.Text.RegularExpressions.Regex.Replace(
-            js, 
-            emptyLinePattern, 
-            string.Empty, 
-            System.Text.RegularExpressions.RegexOptions.Multiline
-        );
-        
+        js = SingleLineCommentPattern().Replace(js, string.Empty);
+        js = MultiLineCommentPattern().Replace(js, string.Empty);
+        js = EmptyLinePattern().Replace(js, string.Empty);
         return js.Trim();
     }
 
     public async Task AddPageAsync(string pageName)
     {
-        var pageDirectory = workspace.ClientPagesPath.CreateSubDirectory(pageName);
-        var tsFilePath = pageDirectory.Combine($"{Files.Index}.ts");
-        var tsContent = $"""
-            import '../../app/workspace.js';
+        string pageDirectory = workspace.ClientPagesPath.CreateSubDirectory(pageName);
+        string tsFilePath = pageDirectory.Combine($"{Files.Index}.ts");
+        string tsContent = $"""
+            import '../../{Folders.App}/workspace.js';
 
             console.log('{pageName} page loaded');
             """;

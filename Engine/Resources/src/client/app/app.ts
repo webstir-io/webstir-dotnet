@@ -1,8 +1,6 @@
 import type { RoutingMetadata, PageRouteInfo } from '@shared/router-types.js';
 import type { Router } from './router.js';
 
-console.log('App initialized');
-
 initializeRoutingIfNeeded();
 
 function initializeRoutingIfNeeded() {
@@ -29,7 +27,6 @@ function loadRoutingMetadata(): RoutingMetadata | null {
 
 async function enableSpaRouting(routingMetadata: RoutingMetadata) {
   const { router } = await import('./router.js');
-  console.log('Router enabled for SPA pages');
   
   for (const [pageName, pageInfo] of Object.entries(routingMetadata.pages)) {
     if (pageInfo.isSpaEnabled) {
@@ -46,7 +43,6 @@ async function registerPageRoute(router: Router, pageName: string, _pageInfo: Pa
     const pageModule = await import(moduleUrl);
     if (pageModule.routeHandler) {
       router.registerRoute(routePath, pageModule.routeHandler);
-      console.log(`Registered SPA route: ${routePath}`);
     }
   } catch (error) {
     console.warn(`Failed to load route handler for ${pageName}:`, error);

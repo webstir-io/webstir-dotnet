@@ -33,7 +33,6 @@ export class Router {
     
     try {
       const metadata: RoutingMetadata = JSON.parse(metadataElement.textContent);
-      console.log('Router initialized with metadata:', metadata);
     } catch (error) {
       console.warn('Failed to parse routing metadata:', error);
     }

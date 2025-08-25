@@ -38,7 +38,6 @@ eventSource.onopen = () => {
 };
 
 eventSource.onmessage = (event) => {
-    console.log('Received:', event.data);
     if (event.data === 'reload') {
         location.reload();
     } else if (event.data === 'shutdown') {

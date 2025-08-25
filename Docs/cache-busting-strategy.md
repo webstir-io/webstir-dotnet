@@ -168,6 +168,57 @@ utils.1724339200.js
 - Must be before any `<script type="module">` tags
 - Similar to existing `InjectRoutingMetadata()` method
 
+**Webstir-Specific Fallback Implementation:**
+```csharp
+// In HtmlHandler.cs
+private string GenerateModuleScripts(List<string> scripts, long timestamp)
+{
+    var sb = new StringBuilder();
+    
+    // Feature detection with proper fallback
+    sb.AppendLine(@"<script>
+    (function() {
+        if (typeof HTMLScriptElement.supports === 'undefined' || 
+            !HTMLScriptElement.supports('importmap')) {
+            // Browsers without Import Map support (12% of users)");
+    
+    foreach (var script in scripts)
+    {
+        var name = Path.GetFileNameWithoutExtension(script);
+        sb.AppendLine($"            document.write('<script type=\"module\" src=\"/{name}.{timestamp}.js\"><\\/script>');");
+    }
+    
+    sb.AppendLine(@"            return; // Skip Import Map injection
+        }
+        
+        // Modern browsers with Import Map support (88% of users)
+        const importMap = { imports: {");
+    
+    foreach (var script in scripts)
+    {
+        var name = Path.GetFileNameWithoutExtension(script);
+        sb.AppendLine($"            '/{name}.js': '/{name}.{timestamp}.js',");
+    }
+    
+    sb.AppendLine(@"        }};
+        const mapScript = document.createElement('script');
+        mapScript.type = 'importmap';
+        mapScript.textContent = JSON.stringify(importMap);
+        document.currentScript.after(mapScript);
+    })();
+    </script>");
+    
+    // Clean references (Import Map resolves these for modern browsers)
+    foreach (var script in scripts)
+    {
+        var name = Path.GetFileNameWithoutExtension(script);
+        sb.AppendLine($"<script type=\"module\" src=\"/{name}.js\"></script>");
+    }
+    
+    return sb.ToString();
+}
+```
+
 **CSS vs JS difference:**
 - **CSS:** Direct filename updates in `<link href>`
 - **JS:** Import Maps for module resolution in `<script type="module">`
@@ -304,14 +355,62 @@ This integrates perfectly with your existing `ChangeService` architecture and ma
 
 ## Browser Compatibility & Considerations
 
-### Import Maps Support
-- **Modern browsers:** Full support (Chrome 89+, Firefox 108+, Safari 16.4+)
+### Import Maps Support (2025)
+- **88% global browser support** for Import Maps natively
+- **Modern browsers:** Full support (Chrome 89+, Edge 89+, Firefox 108+, Safari 16.4+)
 - **Legacy browsers:** Need polyfill or fallback
-- **Fallback strategy:** Direct timestamped filenames in `<script src>`
+- **Why fallback still matters:** 12% of users, enterprise environments, older mobile devices
 
-### Compatibility Implementation
+### Proper Feature Detection
+```javascript
+// Correct: Check if HTMLScriptElement.supports exists AND supports 'importmap'
+if (typeof HTMLScriptElement.supports === 'undefined' || 
+    !HTMLScriptElement.supports('importmap')) {
+    // No Import Map support - use fallback
+} else {
+    // Import Maps are supported
+}
+```
+
+### Fallback Implementation Options
+
+#### Option 1: Feature Detection with Dynamic Loading (Recommended)
 ```html
-<!-- Modern: Import Maps -->
+<script>
+// Check for Import Map support
+(function() {
+    if (typeof HTMLScriptElement.supports === 'undefined' || 
+        !HTMLScriptElement.supports('importmap')) {
+        // Fallback: Load timestamped files directly
+        document.write('<script type="module" src="/index.1724339200.js"><\/script>');
+        document.write('<script type="module" src="/utils.1724339200.js"><\/script>');
+        return;
+    }
+    
+    // Modern: Create and inject Import Map
+    const importMap = {
+        imports: {
+            "/index.js": "/index.1724339200.js",
+            "/utils.js": "/utils.1724339200.js"
+        }
+    };
+    const script = document.createElement('script');
+    script.type = 'importmap';
+    script.textContent = JSON.stringify(importMap);
+    document.currentScript.after(script);
+})();
+</script>
+
+<!-- These load only if Import Maps are supported -->
+<script type="module" src="/index.js"></script>
+<script type="module" src="/utils.js"></script>
+```
+
+#### Option 2: ES Module Shims Polyfill (94% coverage)
+```html
+<!-- Polyfill adds Import Map support to browsers with ES modules -->
+<script async src="https://ga.jspm.io/npm:es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+
 <script type="importmap">
 {
   "imports": {
@@ -319,11 +418,15 @@ This integrates perfectly with your existing `ChangeService` architecture and ma
   }
 }
 </script>
-<script type="module" src="/index.js"></script>
 
-<!-- Fallback: Direct timestamped references -->
-<script nomodule src="/index.1724339200.js"></script>
+<!-- Use module-shim for polyfilled loading -->
+<script type="module-shim" src="/index.js"></script>
 ```
+
+**Note:** The incorrect `nomodule` approach from earlier doesn't work because:
+- `nomodule` only checks for ES6 module support (2017+)
+- Import Maps require module support PLUS Import Map support (2021+)
+- Browsers can support modules but NOT Import Maps (e.g., Chrome 61-88)
 
 ### Browser Cache Behavior Notes
 - **Safari:** More aggressive HTML caching, ensure strong cache headers
@@ -332,11 +435,13 @@ This integrates perfectly with your existing `ChangeService` architecture and ma
 - **Mobile browsers:** Often have limited cache space, test thoroughly
 
 ### Testing Recommendations
-1. **Test in all target browsers** - cache behavior varies
-2. **Test on mobile devices** - different cache constraints
-3. **Test with slow connections** - ensure cache efficiency
-4. **Use DevTools Network tab** - verify cache headers and timestamps
-5. **Test hard refresh vs normal refresh** - both should work correctly
+1. **Test feature detection** - verify fallback works in older browsers
+2. **Test in all target browsers** - cache behavior varies
+3. **Test on mobile devices** - different cache constraints
+4. **Test with slow connections** - ensure cache efficiency
+5. **Use DevTools Network tab** - verify cache headers and timestamps
+6. **Test hard refresh vs normal refresh** - both should work correctly
+7. **Test with/without Import Map support** - use Firefox 107 or older for testing fallback
 
 ## Summary
 

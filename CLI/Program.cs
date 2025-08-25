@@ -8,6 +8,7 @@ using Engine.Handlers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using System.Text.Json;
 
 var logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -36,11 +37,15 @@ try
     services.AddSingleton<ChangeService>();
     services.AddSingleton<DevService>();
     services.AddSingleton<WebServer>();
-    services.AddSingleton<NodeServer>();
+    services.AddSingleton<NodeServer>();    
+    services.AddSingleton(new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true
+    });
 
     services.AddScoped<AppWorkspace>();
     services.AddScoped<IWorkflowFactory, WorkflowFactory>();
-
     services.AddTransient<HtmlHandler>();
     services.AddTransient<CssHandler>();
     services.AddTransient<ScriptsHandler>();

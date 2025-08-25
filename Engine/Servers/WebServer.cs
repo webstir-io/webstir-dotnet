@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using Engine.Extensions;
 using Engine.Middleware;
 using Microsoft.AspNetCore.Builder;
@@ -11,18 +12,26 @@ using Microsoft.Extensions.Options;
 
 namespace Engine.Servers;
 
-public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
+public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
 {
-    private readonly AppSettings _settings = options.Value;
-    private readonly ILogger<WebServer> _logger = logger;
     private readonly List<HttpContext> _sseClients = [];
     private WebApplication? _app;
+
+    [GeneratedRegex(@"\.\d{10}\.(css|js|png|jpg|jpeg|gif|svg|webp|ico)$")]
+    private static partial Regex TimestampedAssetPattern();
+
+    private static bool IsStaticAsset(string path) =>
+        path.EndsWith(FileExtensions.Css) || path.EndsWith(FileExtensions.Js) || 
+        path.EndsWith(FileExtensions.Png) || path.EndsWith(FileExtensions.Jpg) || 
+        path.EndsWith(FileExtensions.Jpeg) || path.EndsWith(FileExtensions.Gif) || 
+        path.EndsWith(FileExtensions.Svg) || path.EndsWith(FileExtensions.Webp) || 
+        path.EndsWith(FileExtensions.Ico);
 
     public async Task StartAsync(AppWorkspace workspace)
     {
         if (!workspace.ClientBuildPath.Exists())
         {
-            _logger.LogWarning("Client build path does not exist. Skipping web server.");
+            logger.LogWarning("Client build path does not exist. Skipping web server.");
             return;
         }
 
@@ -32,20 +41,20 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
         });
 
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
-        builder.WebHost.UseUrls(_settings.WebServerUrl);
+        builder.WebHost.UseUrls(options.Value.WebServerUrl);
         ConfigureServices(builder.Services);
         
         _app = builder.Build();
         ConfigureMiddleware(_app, workspace.ClientBuildPath);
         
         await _app.StartAsync();
-        _logger.LogInformation("Web server running at {WebServerUrl}", _settings.WebServerUrl);
+        logger.LogInformation("Web server running at {WebServerUrl}", options.Value.WebServerUrl);
     }
 
     public async Task StopAsync()
     {
-        var shutdownMessage = Encoding.UTF8.GetBytes("data: shutdown\n\n");
-        var tasks = _sseClients.Select(async client =>
+        byte[] shutdownMessage = Encoding.UTF8.GetBytes("data: shutdown\n\n");
+        Task[] tasks = [.. _sseClients.Select(async client =>
         {
             try
             {
@@ -53,7 +62,7 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
                 await client.Response.Body.FlushAsync();
             }
             catch { }
-        });
+        })];
         await Task.WhenAll(tasks);
         
         foreach (var client in _sseClients.ToList())
@@ -73,8 +82,8 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
 
     public async Task UpdateClientsAsync()
     {
-        var message = "data: reload\n\n";
-        var bytes = Encoding.UTF8.GetBytes(message);
+        string message = "data: reload\n\n";
+        byte[] bytes = Encoding.UTF8.GetBytes(message);
         
         foreach (var client in _sseClients.ToList())
         {
@@ -95,7 +104,7 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
         services.AddDirectoryBrowser();
         services.AddHttpClient("ApiProxy", client =>
         {
-            client.BaseAddress = new Uri(_settings.ApiServerUrl);
+            client.BaseAddress = new Uri(options.Value.ApiServerUrl);
             client.Timeout = TimeSpan.FromSeconds(30);
         });
     }
@@ -104,11 +113,12 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
     {
         app.Use(HandleServerSentEvents);
         app.UseMiddleware<ApiProxyMiddleware>();
+        app.Use(SetCacheHeaders);
         app.Use(RewriteCleanUrls);
 
-        var defaultFilesOptions = new DefaultFilesOptions();
+        DefaultFilesOptions defaultFilesOptions = new();
         defaultFilesOptions.DefaultFileNames.Clear();
-        defaultFilesOptions.DefaultFileNames.Add("index.html");
+        defaultFilesOptions.DefaultFileNames.Add(Files.IndexHtml);
         app.UseDefaultFiles(defaultFilesOptions);
         
         app.UseStaticFiles();
@@ -121,7 +131,7 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
 
     private async Task HandleServerSentEvents(HttpContext context, Func<Task> next)
     {
-        if (context.Request.Path == "/sse")
+        if (context.Request.Path == Routes.Sse)
         {
             context.Response.Headers.Append("Content-Type", "text/event-stream");
             context.Response.Headers.Append("Cache-Control", "no-cache");
@@ -131,8 +141,8 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
             
             await context.Response.Body.FlushAsync();
             
-            var tcs = new TaskCompletionSource();
-            context.RequestAborted.Register(() => tcs.SetResult());
+            TaskCompletionSource tcs = new();
+            context.RequestAborted.Register(tcs.SetResult);
             await tcs.Task;
             
             _sseClients.Remove(context);
@@ -143,30 +153,61 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
         }
     }
 
+    private async Task SetCacheHeaders(HttpContext context, Func<Task> next)
+    {
+        await next();
+        
+        if (context.Response.HasStarted)
+            return;
+            
+        string path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
+        
+        if (TimestampedAssetPattern().IsMatch(path))
+        {
+            context.Response.Headers.CacheControl = CacheHeaders.LongCache;
+        }
+        else if (path.EndsWith(Files.RefreshJs))
+        {
+            context.Response.Headers.CacheControl = CacheHeaders.NoCache;
+            context.Response.Headers.Pragma = CacheHeaders.PragmaNoCache;
+            context.Response.Headers.Expires = CacheHeaders.ExpiresZero;
+        }
+        else if (path.EndsWith(FileExtensions.Html) || !path.Contains('.'))
+        {
+            context.Response.Headers.CacheControl = CacheHeaders.NoCache;
+            context.Response.Headers.Pragma = CacheHeaders.PragmaNoCache;
+            context.Response.Headers.Expires = CacheHeaders.ExpiresZero;
+        }
+        else if (IsStaticAsset(path))
+        {
+            context.Response.Headers.CacheControl = CacheHeaders.NoCacheMustRevalidate;
+        }
+    }
+
     private async Task RewriteCleanUrls(HttpContext context, Func<Task> next)
     {
-        var path = context.Request.Path.Value;
+        string? path = context.Request.Path.Value;
         
         if (!string.IsNullOrEmpty(path))
         {
             if (path == "/")
-                path = "/home";
+                path = Routes.Home;
             
-            if (path.StartsWith("/index.") && !path.StartsWith("/index.html"))
+            if (path.StartsWith("/" + Files.Index + ".") && !path.StartsWith("/" + Files.IndexHtml))
             {
-                context.Request.Path = $"/pages/home{path}";
+                context.Request.Path = $"/{Folders.Pages}/{Folders.Home}{path}";
             }
             else if (!path.Contains('.') && 
-                !path.StartsWith("/images") && 
-                !path.StartsWith("/pages") &&
-                !path.StartsWith("/api") && 
-                !path.StartsWith("/sse"))
+                !path.StartsWith("/" + Folders.Images) && 
+                !path.StartsWith("/" + Folders.Pages) &&
+                !path.StartsWith(Routes.Api) && 
+                !path.StartsWith(Routes.Sse))
             {
-                var pageName = path.TrimStart('/');
-                var indexPath = $"/pages/{pageName}/index.html";
+                string pageName = path.TrimStart('/');
+                string indexPath = $"/{Folders.Pages}/{pageName}/{Files.IndexHtml}";
                 
-                var webRoot = context.RequestServices.GetRequiredService<IWebHostEnvironment>().WebRootPath;
-                var fullPath = Path.Combine(webRoot, indexPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                string webRoot = context.RequestServices.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+                string fullPath = Path.Combine(webRoot, indexPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
                 if (File.Exists(fullPath))
                     context.Request.Path = indexPath;
             }

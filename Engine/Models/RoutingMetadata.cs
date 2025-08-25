@@ -3,7 +3,8 @@ namespace Engine.Models;
 public class RoutingMetadata
 {
     public Dictionary<string, PageRouteInfo> Pages { get; set; } = [];
-    public bool HasSpaPages => Pages.Any(p => p.Value.IsSpaEnabled);
+    public bool HasGlobalRouter { get; set; }
+    public bool HasSpaPages => HasGlobalRouter || Pages.Any(p => p.Value.IsSpaEnabled);
 }
 
 public class PageRouteInfo

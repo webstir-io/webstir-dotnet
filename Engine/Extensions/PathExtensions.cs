@@ -31,9 +31,14 @@ public static class PathExtensions
         return Directory.GetFiles(path, searchPattern, searchOption);
     }
 
-    public static string Name(this string path)
+    public static string Filename(this string path)
     {
         return Path.GetFileName(path);
+    }
+
+    public static string DirectoryName(this string path)
+    {
+        return Path.GetDirectoryName(path) ?? string.Empty;
     }
 
     public static bool Exists(this string path)
@@ -55,7 +60,7 @@ public static class PathExtensions
         var fileTasks = new List<Task>();
         foreach (var file in sourcePath.Files())
         {
-            var targetFilePath = destPath.Combine(file.Name());
+            var targetFilePath = destPath.Combine(file.Filename());
             fileTasks.Add(CopyFileAsync(file, targetFilePath));
         }
 
@@ -66,7 +71,7 @@ public static class PathExtensions
             var directoryTasks = new List<Task>();
             foreach (var subDirectory in sourcePath.Folders())
             {
-                var destDirectory = destPath.Combine(subDirectory.Name());
+                var destDirectory = destPath.Combine(subDirectory.Filename());
                 directoryTasks.Add(subDirectory.CopyToAsync(destDirectory, recursive));
             }
 

@@ -47,7 +47,7 @@ public class ClientWorker(
             htmlHandler.AddPageAsync(pageName),
             cssHandler.AddPageAsync(pageName),
             scriptsHandler.AddPageAsync(pageName),
-            imagesHandler.AddPageAsync(pageName)
+            ImagesHandler.AddPageAsync(pageName)
         );
     }
 }

@@ -1,5 +1,57 @@
 # Webstir Code Patterns & Conventions
 
+## Code Style Philosophy
+- Write self-documenting code with clear method names instead of comments
+- Extract complex logic into small, focused methods (Single Responsibility Principle)
+- Main methods should read like high-level outlines
+- Avoid dense lambdas - extract to named methods for clarity
+- Only write comments for WHY, not WHAT (code should explain what)
+- Prefer foreach over complex LINQ when it improves readability
+- Group related functionality using SOLID principles
+- Use try/catch sparingly - only at boundaries or when adding context
+- Let exceptions bubble up - don't catch just to log and rethrow
+- Omit braces for single-line if statements and loops
+- Apply all IDE diagnostic suggestions to keep code clean and optimized
+- Keep spacing tight and consistent - similar code blocks should look uniform
+- Avoid excessive blank lines that break visual flow
+- Always use explicit types - no var (except anonymous types)
+- Use target-typed new() to avoid redundancy
+
+## Spacing & Visual Consistency
+- Keep related operations together without blank lines
+- Consistent patterns should look the same (e.g., similar lambdas)
+- Use blank lines only between distinct logical groups
+- No random gaps that break visual flow
+- Code should "look pretty" - uniform and cohesive
+
+## Diagnostic Optimizations
+Always apply these common diagnostic suggestions:
+- Use `GeneratedRegex` for compile-time regex generation
+- Use `string.StartsWith(char)` instead of `string.StartsWith(string)` for single chars
+- Use `Count == 0` instead of `Any()` for performance
+- Cache `JsonSerializerOptions` instances instead of creating new ones
+- Use collection expressions `[..]` instead of `.ToArray()`
+- Mark classes as `partial` when using source generators
+- Remove unused parameters or use discard `_`
+- Simplify collection initialization where possible
+
+## Type Declaration Pattern
+```csharp
+// GOOD - Explicit types, readable without IDE
+int count = items.Count;
+string name = user.Name;
+List<string> names = new();
+Dictionary<string, User> userMap = new();
+
+// BAD - Requires hovering to understand
+var count = items.Count;
+var name = user.Name;
+var names = new List<string>();
+
+// Exception: Anonymous types (no choice)
+var result = new { Name = "John", Age = 30 };
+```
+
 ## Naming Conventions
 - **Files**: PascalCase for classes (e.g., `HtmlHandler.cs`)
 - **Directories**: PascalCase for code, lowercase for content
@@ -83,11 +135,22 @@ await Task.WhenAll(
 
 ## Error Handling
 ```csharp
-// Log and rethrow for visibility
+// ONLY catch when you can add value:
+// 1. At application boundaries (controllers, workflows)
+// 2. When adding specific context before rethrowing
+// 3. When you can actually handle/recover
+
+// GOOD: Adds context about which file failed
 catch (Exception ex)
 {
     _logger.LogError(ex, "Error processing {File}", fileName);
-    throw; // Let workflow handle
+    throw; // Still bubbles up with added context
+}
+
+// BAD: Pointless catch
+catch (Exception ex)
+{
+    throw; // Just let it bubble naturally
 }
 ```
 
