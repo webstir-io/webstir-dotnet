@@ -1,22 +1,15 @@
 using Engine.Extensions;
 using Engine.Models;
-using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace Engine.Handlers;
 
-public partial class HtmlHandler(
-    AppWorkspace workspace,
-    JsonSerializerOptions jsonOptions)
+public class HtmlHandler(AppWorkspace workspace)
 {
     private const string AppHtmlFileName = "app.html";
     private const string IndexHtmlFileName = "index.html";
 
-    private RoutingMetadata _routingMetadata = new();
-
     public async Task BuildAsync()
     {
-        _routingMetadata = await DetectRoutingConfigurationAsync();
         string appHtmlFilepath =  workspace.ClientAppPath.Combine(AppHtmlFileName);
         if (!File.Exists(appHtmlFilepath))
             throw new FileNotFoundException($"Base application HTML file not found: {appHtmlFilepath}");
@@ -66,17 +59,8 @@ public partial class HtmlHandler(
         if (!pageHtmlFile.Exists())
             throw new FileNotFoundException($"Page HTML file not found: {pageHtmlFile}");
 
-        bool releaseMode = _routingMetadata.Pages.ContainsKey(pageName) && _routingMetadata.Pages[pageName].IsSpaEnabled;
-        if (releaseMode && !_routingMetadata.HasSpaPages)
-            return;
-
         HtmlFile pageFragment = new(pageHtmlFile);
         string mergedHtml = appTemplate.Merge(pageFragment.Html);
-
-        if (_routingMetadata.HasSpaPages && !releaseMode)
-            mergedHtml = InjectRoutingMetadata(mergedHtml);
-
-        mergedHtml = UpdateAssetReferences(mergedHtml);
 
         string outputPath = workspace.ClientBuildPath
             .CreateSubDirectory(Folders.Pages)
@@ -96,7 +80,7 @@ public partial class HtmlHandler(
         File.WriteAllText(destinationPath, cleanedContent);
     }
 
-    private string GeneratePageTemplate(string pageName)
+    private static string GeneratePageTemplate(string pageName)
     {
         return $"""
         <head>
@@ -113,89 +97,13 @@ public partial class HtmlHandler(
         """;
     }
 
-    private async Task<RoutingMetadata> DetectRoutingConfigurationAsync()
-    {
-        RoutingMetadata metadata = new();
 
-        foreach (string page in workspace.ClientPagesPath.Folders())
-            await AnalyzePageForRoutingAsync(page, metadata);
-
-        string routerPath = Path.Combine(workspace.ClientAppPath, "router.ts");
-        if (File.Exists(routerPath))
-            metadata.HasGlobalRouter = true;
-
-        return metadata;
-    }
-
-    private static async Task AnalyzePageForRoutingAsync(string page, RoutingMetadata metadata)
-    {
-        string pageName = Path.GetFileName(page);
-        string[] typeScriptFiles = Directory.GetFiles(page, "*.ts");
-
-        foreach (string tsFile in typeScriptFiles)
-        {
-            string content = await File.ReadAllTextAsync(tsFile);
-            bool hasRouteHandler = DetectRouteHandlerExport(content);
-
-            metadata.Pages[pageName] = new PageRouteInfo
-            {
-                PageName = pageName,
-                Route = $"/{pageName}",
-                IsSpaEnabled = hasRouteHandler,
-                TypeScriptPath = tsFile
-            };
-        }
-    }
-
-    private static bool DetectRouteHandlerExport(string typeScriptContent)
-    {
-        return RouteHandlerExportRegex().IsMatch(typeScriptContent) ||
-               RouteHandlerNamedExportRegex().IsMatch(typeScriptContent) ||
-               RouteHandlerDefaultExportRegex().IsMatch(typeScriptContent);
-    }
-
-    private string InjectRoutingMetadata(string html)
-    {
-        string metadataJson = JsonSerializer.Serialize(_routingMetadata, jsonOptions);
-
-        string metadataScript = $"""
-            <script id="app-routing-metadata" type="application/json">
-            {metadataJson}
-            </script>
-            """;
-
-        int bodyCloseIndex = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
-        return bodyCloseIndex > -1
-            ? html.Insert(bodyCloseIndex, metadataScript)
-            : html;
-    }
 
     private static string RemoveHtmlComments(string html)
     {
-        string withoutLineComments = CommentLineRegex().Replace(html, string.Empty);
-        return InlineCommentRegex().Replace(withoutLineComments, string.Empty);
+        return html;
     }
     
     private static string AddHtmlExt(string filename) => $"{filename}.html";
 
-    private string UpdateAssetReferences(string html)
-    {
-        return html;
-    }
-
-
-    [GeneratedRegex(@"^\s*<!--[\s\S]*?-->\s*\r?\n", RegexOptions.Multiline)]
-    private static partial Regex CommentLineRegex();
-
-    [GeneratedRegex(@"<!--[\s\S]*?-->")]
-    private static partial Regex InlineCommentRegex();
-
-    [GeneratedRegex(@"export\s+(const|let|var)\s+routeHandler\s*=", RegexOptions.Multiline)]
-    private static partial Regex RouteHandlerExportRegex();
-
-    [GeneratedRegex(@"export\s+{[^}]*\brouteHandler\b[^}]*}", RegexOptions.Multiline)]
-    private static partial Regex RouteHandlerNamedExportRegex();
-
-    [GeneratedRegex(@"export\s+default\s+{[^}]*\brouteHandler\b[^}]*}", RegexOptions.Multiline)]
-    private static partial Regex RouteHandlerDefaultExportRegex();
 }
