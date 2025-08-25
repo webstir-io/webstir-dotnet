@@ -17,6 +17,16 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
     private readonly List<HttpContext> _sseClients = [];
     private WebApplication? _app;
 
+    private const string NoCache = "no-cache, no-store, must-revalidate";
+    private const string NoCacheMustRevalidate = "no-cache, must-revalidate";
+    private const string LongCache = "public, max-age=31536000, immutable";
+    private const string PragmaNoCache = "no-cache";
+    private const string ExpiresZero = "0";
+    
+    private const string SseRoute = "/sse";
+    private const string ApiRoute = "/api";
+    private const string HomeRoute = "/home";
+
     [GeneratedRegex(@"\.\d{10}\.(css|js|png|jpg|jpeg|gif|svg|webp|ico)$")]
     private static partial Regex TimestampedAssetPattern();
 
@@ -131,7 +141,7 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
 
     private async Task HandleServerSentEvents(HttpContext context, Func<Task> next)
     {
-        if (context.Request.Path == Routes.Sse)
+        if (context.Request.Path == SseRoute)
         {
             context.Response.Headers.Append("Content-Type", "text/event-stream");
             context.Response.Headers.Append("Cache-Control", "no-cache");
@@ -164,23 +174,23 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
         
         if (TimestampedAssetPattern().IsMatch(path))
         {
-            context.Response.Headers.CacheControl = CacheHeaders.LongCache;
+            context.Response.Headers.CacheControl = LongCache;
         }
         else if (path.EndsWith(Files.RefreshJs))
         {
-            context.Response.Headers.CacheControl = CacheHeaders.NoCache;
-            context.Response.Headers.Pragma = CacheHeaders.PragmaNoCache;
-            context.Response.Headers.Expires = CacheHeaders.ExpiresZero;
+            context.Response.Headers.CacheControl = NoCache;
+            context.Response.Headers.Pragma = PragmaNoCache;
+            context.Response.Headers.Expires = ExpiresZero;
         }
         else if (path.EndsWith(FileExtensions.Html) || !path.Contains('.'))
         {
-            context.Response.Headers.CacheControl = CacheHeaders.NoCache;
-            context.Response.Headers.Pragma = CacheHeaders.PragmaNoCache;
-            context.Response.Headers.Expires = CacheHeaders.ExpiresZero;
+            context.Response.Headers.CacheControl = NoCache;
+            context.Response.Headers.Pragma = PragmaNoCache;
+            context.Response.Headers.Expires = ExpiresZero;
         }
         else if (IsStaticAsset(path))
         {
-            context.Response.Headers.CacheControl = CacheHeaders.NoCacheMustRevalidate;
+            context.Response.Headers.CacheControl = NoCacheMustRevalidate;
         }
     }
 
@@ -191,7 +201,7 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
         if (!string.IsNullOrEmpty(path))
         {
             if (path == "/")
-                path = Routes.Home;
+                path = HomeRoute;
             
             if (path.StartsWith("/" + Files.Index + ".") && !path.StartsWith("/" + Files.IndexHtml))
             {
@@ -200,8 +210,8 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
             else if (!path.Contains('.') && 
                 !path.StartsWith("/" + Folders.Images) && 
                 !path.StartsWith("/" + Folders.Pages) &&
-                !path.StartsWith(Routes.Api) && 
-                !path.StartsWith(Routes.Sse))
+                !path.StartsWith(ApiRoute) && 
+                !path.StartsWith(SseRoute))
             {
                 string pageName = path.TrimStart('/');
                 string indexPath = $"/{Folders.Pages}/{pageName}/{Files.IndexHtml}";

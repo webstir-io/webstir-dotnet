@@ -1,6 +1,7 @@
 # Webstir Code Patterns & Conventions
 
 ## Code Style Philosophy
+- **YAGNI (You Aren't Gonna Need It)** - Don't add functionality until it's actually needed
 - Write self-documenting code with clear method names instead of comments
 - Extract complex logic into small, focused methods (Single Responsibility Principle)
 - Main methods should read like high-level outlines
@@ -17,12 +18,29 @@
 - Always use explicit types - no var (except anonymous types)
 - Use target-typed new() to avoid redundancy
 
+## YAGNI Examples
+- Don't create abstractions for "future flexibility" - wait until you have 2+ real use cases
+- Don't add optional parameters that aren't being used yet
+- Don't create base classes until you have multiple implementations
+- Keep constants/helpers close to where they're used until needed elsewhere
+- Example: ModuleConstants stays in ModuleGraph namespace until other code needs it
+
+## Method Design
+- **Single vs Multiple: Always handle both with one method**
+- Don't create separate methods for single item vs collection
+- A single item is just a collection of one
+- BAD: `ProcessFile(string file)` AND `ProcessFiles(string[] files)` 
+- GOOD: `ProcessFiles(params string[] files)` - handles both cases
+- BAD: Special logic for count == 1 unless there's a performance reason
+- GOOD: Let the same loop handle 1 or N items uniformly
+
 ## Spacing & Visual Consistency
 - Keep related operations together without blank lines
 - Consistent patterns should look the same (e.g., similar lambdas)
 - Use blank lines only between distinct logical groups
 - No random gaps that break visual flow
 - Code should "look pretty" - uniform and cohesive
+- **Always add a blank line before the final return statement of a method**
 
 ## Diagnostic Optimizations
 Always apply these common diagnostic suggestions:
@@ -152,7 +170,29 @@ catch (Exception ex)
 {
     throw; // Just let it bubble naturally
 }
+
+// BAD: Silent fallbacks that hide errors
+try
+{
+    return ParseConfig(path);
+}
+catch 
+{
+    return DefaultConfig(); // Makes debugging impossible
+}
 ```
+
+**IMPORTANT: Fail hard, fail fast**
+- No silent fallbacks - they make debugging a nightmare
+- If something is wrong, let it crash with a clear error
+- Better to fix the root cause than mask it with fallbacks
+- Users prefer clear errors over mysterious behavior
+
+## Logging
+- **NO LOGGING unless explicitly requested**
+- Don't add log statements speculatively
+- Logging decisions should be made when the system is complete
+- Premature logging clutters code and makes assumptions about what needs tracking
 
 ## Template/Resource Embedding
 ```csharp

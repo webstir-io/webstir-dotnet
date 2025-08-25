@@ -35,13 +35,6 @@ public static class Files
     public const string RefreshJs = "refresh.js";
 }
 
-public static class Routes
-{
-    public const string Sse = "/sse";
-    public const string Api = "/api";
-    public const string Home = "/home";
-}
-
 public static class FileExtensions
 {
     public const string Html = ".html";
@@ -56,15 +49,6 @@ public static class FileExtensions
     public const string Ico = ".ico";
 }
 
-public static class CacheHeaders
-{
-    public const string NoCache = "no-cache, no-store, must-revalidate";
-    public const string NoCacheMustRevalidate = "no-cache, must-revalidate";
-    public const string LongCache = "public, max-age=31536000, immutable";
-    public const string PragmaNoCache = "no-cache";
-    public const string ExpiresZero = "0";
-}
-
 public static class Templates
 {
     public const string Path = "Engine.Templates";
@@ -73,3 +57,4 @@ public static class Templates
     public const string ServerPath = $"{SrcPath}.{Folders.Server}";
     public const string SharedPath = $"{SrcPath}.{Folders.Shared}";
 }
+
