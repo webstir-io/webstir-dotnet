@@ -8,7 +8,7 @@ public static class AssemblyHelpers
     {
         var assembly = Assembly.GetExecutingAssembly();
         var resourceNames = assembly.GetManifestResourceNames();
-        var fullResourceName = $"Engine.Resources.{resourcePath}.{filename}";
+        var fullResourceName = $"Engine.Templates.{resourcePath}.{filename}";
         var resourceName = resourceNames.SingleOrDefault(p => p == fullResourceName) 
             ?? throw new Exception($"Embedded resource '{fullResourceName}' not found");
         

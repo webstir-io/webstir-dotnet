@@ -15,7 +15,7 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
 
     public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
     {
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.ServerResourcesPath, workspace.ServerPath);
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Templates.ServerPath, workspace.ServerPath);
     }
 
     public async Task BuildAsync(string? changedFilePath = null)

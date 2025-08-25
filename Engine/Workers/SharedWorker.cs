@@ -9,7 +9,7 @@ public class SharedWorker(AppWorkspace workspace) : IWorker
 
     public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
     {
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.SharedResourcesPath, workspace.SharedPath);
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Templates.SharedPath, workspace.SharedPath);
     }
 
     public async Task BuildAsync(string? changedFilePath = null)

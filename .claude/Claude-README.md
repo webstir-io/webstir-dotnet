@@ -15,6 +15,7 @@ A fullstack TypeScript framework built with .NET Core that supports client-only,
   /Handlers            → File processors (Html, Css, Scripts, Images)
   /Services            → Core services (Watch, Change, Dev, WorkflowFactory)
   /Servers             → Dev servers (WebServer, NodeServer)
+  /Templates           → Project templates copied during 'init' command
   AppWorkspace.cs      → Project directory management
   
 /src (user project)    → Your application code

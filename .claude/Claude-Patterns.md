@@ -154,12 +154,13 @@ catch (Exception ex)
 }
 ```
 
-## Resource Embedding
+## Template/Resource Embedding
 ```csharp
-// Templates embedded in assembly
+// Templates from Engine/Templates/ are embedded in assembly
+// During init, they're copied to the new project
 await ResourceHelpers.CopyEmbeddedDirectoryAsync(
-    Resources.ClientResourcesPath, 
-    workspace.ClientPath
+    Templates.ClientTemplatesPath,  // Engine.Templates.src.client
+    workspace.ClientPath            // Project's src/client/
 );
 ```
 

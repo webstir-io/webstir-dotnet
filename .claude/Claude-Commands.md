@@ -15,8 +15,9 @@ All commands follow this pattern:
 - `--server-only`: Server-side only project
 **Process**:
 1. Creates project directory
-2. Copies templates from embedded resources
+2. Copies templates from `Engine/Templates/` (embedded as resources)
 3. Initializes based on mode
+**Templates Location**: `Engine/Templates/` contains all starter files
 
 ## build
 **File**: `Engine/Workflows/BuildWorkflow.cs`

@@ -91,3 +91,21 @@ await ProcessRunner.RunAsync("npx", "tsc -p src/client/tsconfig.json");
     _ => ProjectMode.Legacy
 }
 ```
+
+## Templates Folder Structure
+```
+Engine/Templates/        → Embedded project templates
+  ├── package.json       → Root package.json for new projects
+  ├── base.tsconfig.json → Base TypeScript configuration
+  └── src/
+      ├── client/        → Client-side templates
+      │   ├── app/       → Main app files (app.ts, app.html, app.css)
+      │   ├── pages/     → Example page templates
+      │   └── tsconfig.json
+      ├── server/        → Server-side templates
+      │   ├── index.ts   → Server entry point
+      │   └── tsconfig.json
+      └── shared/        → Shared code templates
+          └── types/     → Shared TypeScript types
+```
+These templates are embedded as resources and copied to new projects during `init`.

@@ -65,11 +65,11 @@ public static class CacheHeaders
     public const string ExpiresZero = "0";
 }
 
-public static class Resources
+public static class Templates
 {
-    public const string ResourcesPath = "Engine.Resources";
-    public const string SrcResourcesPath = $"{ResourcesPath}.{Folders.Src}";
-    public const string ClientResourcesPath = $"{SrcResourcesPath}.{Folders.Client}";
-    public const string ServerResourcesPath = $"{SrcResourcesPath}.{Folders.Server}";
-    public const string SharedResourcesPath = $"{SrcResourcesPath}.{Folders.Shared}";
+    public const string Path = "Engine.Templates";
+    public const string SrcPath = $"{Path}.{Folders.Src}";
+    public const string ClientPath = $"{SrcPath}.{Folders.Client}";
+    public const string ServerPath = $"{SrcPath}.{Folders.Server}";
+    public const string SharedPath = $"{SrcPath}.{Folders.Shared}";
 }

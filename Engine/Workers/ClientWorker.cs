@@ -15,7 +15,7 @@ public class ClientWorker(
 
     public async Task InitAsync(ProjectMode mode)
     {
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.ClientResourcesPath, workspace.ClientPath);
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Templates.ClientPath, workspace.ClientPath);
     }
 
     public async Task BuildAsync(string? changedFilePath = null)
