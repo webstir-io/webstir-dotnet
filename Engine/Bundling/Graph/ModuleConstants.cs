@@ -1,4 +1,4 @@
-namespace Engine.Bundler.ModuleGraph;
+namespace Engine.Bundling.Graph;
 
 public static class ModuleConstants
 {

@@ -1,23 +1,28 @@
-namespace Engine.Bundler.ModuleGraph;
+namespace Engine.Bundling.Graph;
 
 public class ModuleGraph
 {
     private readonly Dictionary<string, ModuleNode> _nodes = [];
+    private readonly Dictionary<string, ModuleInfo> _moduleInfos = [];
 
     public void AddModule(string filePath, ModuleInfo moduleInfo, IEnumerable<string> resolvedDependencies)
     {
+        _moduleInfos[filePath] = moduleInfo;
+        
         if (!_nodes.TryGetValue(filePath, out ModuleNode? node))
         {
             node = new ModuleNode
             {
                 FilePath = filePath,
-                Type = moduleInfo.Type
+                Type = moduleInfo.Type,
+                Info = moduleInfo
             };
             _nodes[filePath] = node;
         }
         else
         {
             node.Type = moduleInfo.Type;
+            node.Info = moduleInfo;
         }
 
         node.Dependencies.Clear();
@@ -36,8 +41,10 @@ public class ModuleGraph
 
     public void MarkAsEntryPoint(string filePath)
     {
-        if (_nodes.TryGetValue(filePath, out ModuleNode? node))
-            node.IsEntryPoint = true;
+        if (!_nodes.TryGetValue(filePath, out ModuleNode? node))
+            throw new InvalidOperationException($"Cannot mark non-existent module '{filePath}' as entry point");
+        
+        node.IsEntryPoint = true;
     }
 
     public List<List<string>> FindAllCircularDependencies()
@@ -85,5 +92,20 @@ public class ModuleGraph
 
         currentPath.RemoveAt(currentPath.Count - 1);
         recursionStack.Remove(module);
+    }
+    
+    public IEnumerable<string> GetEntryPoints()
+    {
+        return _nodes.Where(n => n.Value.IsEntryPoint).Select(n => n.Key);
+    }
+    
+    public ModuleNode? GetModule(string filePath)
+    {
+        return _nodes.TryGetValue(filePath, out ModuleNode? node) ? node : null;
+    }
+    
+    public ModuleInfo? GetModuleInfo(string filePath)
+    {
+        return _moduleInfos.TryGetValue(filePath, out ModuleInfo? info) ? info : null;
     }
 }

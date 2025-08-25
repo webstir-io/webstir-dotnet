@@ -1,8 +1,9 @@
-namespace Engine.Bundler.ModuleGraph;
+namespace Engine.Bundling.Graph;
 
 public class ModuleInfo
 {
     public required string FilePath { get; set; }
+    public required string Content { get; set; }
     public ModuleType Type { get; set; }
     public List<ImportStatement> Imports { get; set; } = [];
     public List<ExportStatement> Exports { get; set; } = [];
@@ -19,6 +20,7 @@ public enum ModuleType
 public class ImportStatement
 {
     public required string Source { get; set; }
+    public string? ResolvedPath { get; set; }
     public ImportType Type { get; set; }
     public List<string> Specifiers { get; set; } = [];
     public bool IsDynamic { get; set; }
@@ -61,6 +63,7 @@ public class ModuleNode
     public HashSet<string> Dependents { get; set; } = [];
     public ModuleType Type { get; set; }
     public bool IsEntryPoint { get; set; }
+    public ModuleInfo? Info { get; set; }
 }
 
 public class CircularDependency

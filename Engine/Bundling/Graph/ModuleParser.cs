@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Engine.Bundler.ModuleGraph;
+namespace Engine.Bundling.Graph;
 
 public static class ModuleParser
 {
@@ -10,6 +10,7 @@ public static class ModuleParser
         ModuleInfo module = new()
         {
             FilePath = filePath,
+            Content = content,
             Type = DetectModuleType(filePath, content)
         };
 

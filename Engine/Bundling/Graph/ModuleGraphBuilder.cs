@@ -1,4 +1,4 @@
-namespace Engine.Bundler.ModuleGraph;
+namespace Engine.Bundling.Graph;
 
 public class ModuleGraphBuilder(
     ModuleResolver resolver,
@@ -16,8 +16,7 @@ public class ModuleGraphBuilder(
         List<Task> tasks = [];
         foreach (string entryPoint in entryPoints)
         {
-            tasks.Add(ProcessModuleAsync(entryPoint));
-            graph.MarkAsEntryPoint(entryPoint);
+            tasks.Add(ProcessModuleAsync(entryPoint, isEntryPoint: true));
         }
         
         await Task.WhenAll(tasks);
@@ -25,7 +24,7 @@ public class ModuleGraphBuilder(
         return graph;
     }
 
-    private async Task ProcessModuleAsync(string filePath)
+    private async Task ProcessModuleAsync(string filePath, bool isEntryPoint = false)
     {
         if (!_processedFiles.Add(filePath))
             return;
@@ -40,13 +39,18 @@ public class ModuleGraphBuilder(
             string? resolvedPath = resolver.ResolvePath(import.Source, filePath)
                 ?? throw new InvalidOperationException($"Cannot resolve import '{import.Source}' from {filePath}");
 
+            import.ResolvedPath = resolvedPath;
             resolvedDependencies.Add(resolvedPath);
             
-            if (!ModuleResolver.IsNodeModule(resolvedPath) && !_processedFiles.Contains(resolvedPath))
+            if (!resolvedPath.Contains(Folders.NodeModules) && !_processedFiles.Contains(resolvedPath))
                 dependencyTasks.Add(ProcessModuleAsync(resolvedPath));
         }
         
         graph.AddModule(filePath, moduleInfo, resolvedDependencies);
+        
+        if (isEntryPoint)
+            graph.MarkAsEntryPoint(filePath);
+        
         await Task.WhenAll(dependencyTasks);
     }
 }

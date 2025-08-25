@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Engine.Extensions;
 
-namespace Engine.Bundler.ModuleGraph;
+namespace Engine.Bundling.Graph;
 
 public class ModuleResolver(AppWorkspace workspace)
 {
@@ -10,23 +10,13 @@ public class ModuleResolver(AppWorkspace workspace)
 
     public string? ResolvePath(string importPath, string fromFile)
     {
-        if (IsRelativePath(importPath))
+        if (importPath.StartsWith(ModuleConstants.Prefixes.Relative) || importPath.StartsWith(ModuleConstants.Prefixes.ParentRelative))
             return ResolveRelativePath(importPath, fromFile);
         
-        if (IsAbsolutePath(importPath))
+        if (importPath.StartsWith('/'))
             return ResolveAbsolutePath(importPath);
         
         return ResolveBareImport(importPath);
-    }
-
-    private static bool IsRelativePath(string path)
-    {
-        return path.StartsWith(ModuleConstants.Prefixes.Relative) || path.StartsWith(ModuleConstants.Prefixes.ParentRelative);
-    }
-
-    private static bool IsAbsolutePath(string path)
-    {
-        return path.StartsWith('/');
     }
 
     private static string? ResolveRelativePath(string importPath, string fromFile)
@@ -143,10 +133,5 @@ public class ModuleResolver(AppWorkspace workspace)
             return moduleElement.GetString();
         
         return null;
-    }
-
-    public static bool IsNodeModule(string filePath)
-    {
-        return filePath.Contains(Folders.NodeModules);
     }
 }

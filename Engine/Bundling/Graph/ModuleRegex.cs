@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Engine.Bundler.ModuleGraph;
+namespace Engine.Bundling.Graph;
 
 public static partial class ModuleRegex
 {

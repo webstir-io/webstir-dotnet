@@ -6,7 +6,6 @@ Implement a JavaScript/TypeScript bundler that concatenates ES modules, performs
 ## Goals
 - Concatenate ES modules into single bundle
 - Implement scope hoisting for smaller output
-- Support CommonJS interop
 - Generate accurate source maps
 - Enable tree shaking for dead code elimination
 
@@ -74,7 +73,6 @@ public class ModuleTransformer
 
 ## Success Criteria
 - ✅ Bundle ES6 modules correctly
-- ✅ Support CommonJS interop
 - ✅ Generate accurate source maps
 - ✅ Scope hoisting reduces size by 30%
 - ✅ Tree shaking removes unused code
