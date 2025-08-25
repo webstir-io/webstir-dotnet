@@ -5,6 +5,10 @@ using Engine.Services;
 using Engine.Workflows;
 using Engine.Workers;
 using Engine.Handlers;
+using Engine.Building.Css;
+using Engine.Building.JavaScript;
+using Engine.Bundling.Css;
+using Engine.Bundling.JavaScript;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -46,10 +50,15 @@ try
 
     services.AddScoped<AppWorkspace>();
     services.AddScoped<IWorkflowFactory, WorkflowFactory>();
-    services.AddTransient<HtmlHandler>();
-    services.AddTransient<CssHandler>();
+    services.AddTransient<MarkupHandler>();
+    services.AddTransient<StylesHandler>();
     services.AddTransient<ScriptsHandler>();
     services.AddTransient<ImagesHandler>();
+
+    services.AddTransient<CssBuilder>();
+    services.AddTransient<JsBuilder>();
+    services.AddTransient<CssBundler>();
+    services.AddTransient<JsBundler>();
 
     services.AddTransient<ClientWorker>();
     services.AddTransient<ServerWorker>();

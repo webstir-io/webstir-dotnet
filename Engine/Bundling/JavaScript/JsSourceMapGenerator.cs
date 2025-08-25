@@ -1,10 +1,10 @@
-using Engine.Bundling.JavaScript.Graph;
+using Engine.Bundling.JavaScript.Models;
 using System.Text;
 using System.Text.Json;
 
-namespace Engine.Bundling.JavaScript.SourceMaps;
+namespace Engine.Bundling.JavaScript;
 
-public class SourceMapGenerator
+public class JsSourceMapGenerator
 {
     private readonly List<MappingSegment> _mappings = [];
     private readonly List<string> _sources = [];

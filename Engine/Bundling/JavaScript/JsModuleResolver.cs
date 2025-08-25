@@ -1,16 +1,17 @@
 using System.Text.Json;
 using Engine.Extensions;
+using Engine.Bundling.JavaScript.Models;
 
-namespace Engine.Bundling.JavaScript.Graph;
+namespace Engine.Bundling.JavaScript;
 
-public class ModuleResolver(AppWorkspace workspace)
+public class JsModuleResolver(AppWorkspace workspace)
 {
-    private static readonly string[] Extensions = [ModuleConstants.Extensions.TypeScript, ModuleConstants.Extensions.JavaScript, ModuleConstants.Extensions.ModuleJs, ModuleConstants.Extensions.Json];
-    private static readonly string[] IndexFiles = [$"{Files.Index}{ModuleConstants.Extensions.TypeScript}", $"{Files.Index}{ModuleConstants.Extensions.JavaScript}", $"{Files.Index}{ModuleConstants.Extensions.ModuleJs}"];
+    private static readonly string[] Extensions = [JsConstants.Extensions.TypeScript, JsConstants.Extensions.JavaScript, JsConstants.Extensions.ModuleJs, JsConstants.Extensions.Json];
+    private static readonly string[] IndexFiles = [$"{Files.Index}{JsConstants.Extensions.TypeScript}", $"{Files.Index}{JsConstants.Extensions.JavaScript}", $"{Files.Index}{JsConstants.Extensions.ModuleJs}"];
 
     public string? ResolvePath(string importPath, string fromFile)
     {
-        if (importPath.StartsWith(ModuleConstants.Prefixes.Relative) || importPath.StartsWith(ModuleConstants.Prefixes.ParentRelative))
+        if (importPath.StartsWith(JsConstants.Prefixes.Relative) || importPath.StartsWith(JsConstants.Prefixes.ParentRelative))
             return ResolveRelativePath(importPath, fromFile);
         
         if (importPath.StartsWith('/'))
@@ -126,10 +127,10 @@ public class ModuleResolver(AppWorkspace workspace)
         string content = File.ReadAllText(packageJsonPath);
         JsonDocument doc = JsonDocument.Parse(content);
         
-        if (doc.RootElement.TryGetProperty(ModuleConstants.PackageJsonFields.Main, out JsonElement mainElement))
+        if (doc.RootElement.TryGetProperty(JsConstants.PackageJsonFields.Main, out JsonElement mainElement))
             return mainElement.GetString();
         
-        if (doc.RootElement.TryGetProperty(ModuleConstants.PackageJsonFields.Module, out JsonElement moduleElement))
+        if (doc.RootElement.TryGetProperty(JsConstants.PackageJsonFields.Module, out JsonElement moduleElement))
             return moduleElement.GetString();
         
         return null;

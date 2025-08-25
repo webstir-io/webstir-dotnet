@@ -1,8 +1,9 @@
 using System.Text.RegularExpressions;
+using Engine.Bundling.JavaScript.Models;
 
-namespace Engine.Bundling.JavaScript.Graph;
+namespace Engine.Bundling.JavaScript;
 
-public static class ModuleParser
+public static class JsModuleParser
 {
 
     public static ModuleInfo ParseModule(string filePath, string content)
@@ -24,7 +25,7 @@ public static class ModuleParser
 
     private static ModuleType DetectModuleType(string filePath, string content)
     {
-        if (filePath.EndsWith(ModuleConstants.Extensions.TypeScript, StringComparison.Ordinal))
+        if (filePath.EndsWith(JsConstants.Extensions.TypeScript, StringComparison.Ordinal))
             return ModuleType.TypeScript;
         
         if (content.Contains("import ") || content.Contains("export "))
@@ -38,8 +39,8 @@ public static class ModuleParser
 
     private static string RemoveComments(string content)
     {
-        string result = ModuleRegex.MultiLineComment().Replace(content, string.Empty);
-        result = ModuleRegex.SingleLineComment().Replace(result, string.Empty);
+        string result = JsRegex.MultiLineComment().Replace(content, string.Empty);
+        result = JsRegex.SingleLineComment().Replace(result, string.Empty);
 
         return result;
     }
@@ -58,7 +59,7 @@ public static class ModuleParser
 
     private static void ParseMixedImports(string content, ModuleInfo module)
     {
-        foreach (Match match in ModuleRegex.MixedImport().Matches(content))
+        foreach (Match match in JsRegex.MixedImport().Matches(content))
         {
             ImportStatement import = new()
             {
@@ -76,9 +77,9 @@ public static class ModuleParser
 
     private static void ParseDefaultImports(string content, string[] lines, ModuleInfo module)
     {
-        foreach (Match match in ModuleRegex.DefaultImport().Matches(content))
+        foreach (Match match in JsRegex.DefaultImport().Matches(content))
         {
-            if (ModuleRegex.MixedImport().IsMatch(lines[GetLineNumber(content, match.Index) - 1]))
+            if (JsRegex.MixedImport().IsMatch(lines[GetLineNumber(content, match.Index) - 1]))
                 continue;
             
             module.Imports.Add(new ImportStatement
@@ -93,9 +94,9 @@ public static class ModuleParser
 
     private static void ParseNamedImports(string content, string[] lines, ModuleInfo module)
     {
-        foreach (Match match in ModuleRegex.NamedImports().Matches(content))
+        foreach (Match match in JsRegex.NamedImports().Matches(content))
         {
-            if (ModuleRegex.MixedImport().IsMatch(lines[GetLineNumber(content, match.Index) - 1]))
+            if (JsRegex.MixedImport().IsMatch(lines[GetLineNumber(content, match.Index) - 1]))
                 continue;
             
             ImportStatement import = new()
@@ -113,7 +114,7 @@ public static class ModuleParser
 
     private static void ParseNamespaceImports(string content, ModuleInfo module)
     {
-        foreach (Match match in ModuleRegex.NamespaceImport().Matches(content))
+        foreach (Match match in JsRegex.NamespaceImport().Matches(content))
         {
             module.Imports.Add(new ImportStatement
             {
@@ -127,7 +128,7 @@ public static class ModuleParser
 
     private static void ParseSideEffectImports(string content, ModuleInfo module)
     {
-        foreach (Match match in ModuleRegex.SideEffectImport().Matches(content))
+        foreach (Match match in JsRegex.SideEffectImport().Matches(content))
         {
             if (IsPartOfOtherImport(content, match.Index))
                 continue;
@@ -143,7 +144,7 @@ public static class ModuleParser
 
     private static void ParseDynamicImports(string content, ModuleInfo module)
     {
-        foreach (Match match in ModuleRegex.DynamicImport().Matches(content))
+        foreach (Match match in JsRegex.DynamicImport().Matches(content))
         {
             module.Imports.Add(new ImportStatement
             {
@@ -166,7 +167,7 @@ public static class ModuleParser
 
     private static void ParseDefaultExports(string content, ModuleInfo module)
     {
-        foreach (Match match in ModuleRegex.DefaultExport().Matches(content))
+        foreach (Match match in JsRegex.DefaultExport().Matches(content))
         {
             module.Exports.Add(new ExportStatement
             {
@@ -179,7 +180,7 @@ public static class ModuleParser
 
     private static void ParseReexportNamed(string content, ModuleInfo module)
     {
-        foreach (Match match in ModuleRegex.ReexportNamed().Matches(content))
+        foreach (Match match in JsRegex.ReexportNamed().Matches(content))
         {
             ExportStatement export = new()
             {
@@ -196,7 +197,7 @@ public static class ModuleParser
 
     private static void ParseReexportAll(string content, ModuleInfo module)
     {
-        foreach (Match match in ModuleRegex.ReexportAll().Matches(content))
+        foreach (Match match in JsRegex.ReexportAll().Matches(content))
         {
             module.Exports.Add(new ExportStatement
             {
@@ -209,7 +210,7 @@ public static class ModuleParser
 
     private static void ParseReexportNamespace(string content, ModuleInfo module)
     {
-        foreach (Match match in ModuleRegex.ReexportNamespace().Matches(content))
+        foreach (Match match in JsRegex.ReexportNamespace().Matches(content))
         {
             module.Exports.Add(new ExportStatement
             {
@@ -223,11 +224,11 @@ public static class ModuleParser
 
     private static void ParseNamedExports(string content, ModuleInfo module)
     {
-        foreach (Match match in ModuleRegex.NamedExports().Matches(content))
+        foreach (Match match in JsRegex.NamedExports().Matches(content))
         {
             int start = Math.Max(0, match.Index - 50);
             int end = Math.Min(content.Length, match.Index + 50);
-            if (ModuleRegex.ReexportNamed().IsMatch(content[start..end]))
+            if (JsRegex.ReexportNamed().IsMatch(content[start..end]))
                 continue;
             
             ExportStatement export = new()

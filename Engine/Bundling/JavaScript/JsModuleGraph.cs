@@ -1,6 +1,8 @@
-namespace Engine.Bundling.JavaScript.Graph;
+using Engine.Bundling.JavaScript.Models;
 
-public class ModuleGraph
+namespace Engine.Bundling.JavaScript;
+
+public class JsModuleGraph
 {
     private readonly Dictionary<string, ModuleNode> _nodes = [];
     private readonly Dictionary<string, ModuleInfo> _moduleInfos = [];
@@ -107,5 +109,92 @@ public class ModuleGraph
     public ModuleInfo? GetModuleInfo(string filePath)
     {
         return _moduleInfos.TryGetValue(filePath, out ModuleInfo? info) ? info : null;
+    }
+    
+    public List<CircularDependency> FindCircularDependencies()
+    {
+        List<List<string>> cycles = FindAllCircularDependencies();
+        List<CircularDependency> result = [];
+
+        foreach (List<string> cycle in cycles)
+        {
+            result.Add(new CircularDependency
+            {
+                Modules = cycle,
+                Path = BuildCyclePath(cycle)
+            });
+        }
+
+        return result;
+    }
+
+    private static string BuildCyclePath(List<string> cycle)
+    {
+        if (cycle.Count == 0)
+            return string.Empty;
+
+        List<string> relativePaths = [.. cycle.Select(GetRelativePath)];
+        return string.Join(" → ", relativePaths);
+    }
+
+    private static string GetRelativePath(string fullPath)
+    {
+        string srcFolder = Path.DirectorySeparatorChar + Folders.Src + Path.DirectorySeparatorChar;
+        int srcIndex = fullPath.IndexOf(srcFolder, StringComparison.OrdinalIgnoreCase);
+        
+        if (srcIndex >= 0)
+            return fullPath[(srcIndex + 1)..];
+        
+        return Path.GetFileName(fullPath);
+    }
+
+    public static async Task<JsModuleGraph> BuildAsync(JsModuleResolver resolver, params string[] entryPoints)
+    {
+        JsModuleGraph graph = new();
+        
+        if (entryPoints.Length == 0)
+            return graph;
+        
+        HashSet<string> processedFiles = [];
+        
+        List<Task> tasks = [];
+        foreach (string entryPoint in entryPoints)
+        {
+            tasks.Add(ProcessModuleAsync(graph, resolver, processedFiles, entryPoint, isEntryPoint: true));
+        }
+        
+        await Task.WhenAll(tasks);
+        
+        return graph;
+    }
+
+    private static async Task ProcessModuleAsync(JsModuleGraph graph, JsModuleResolver resolver, HashSet<string> processedFiles, string filePath, bool isEntryPoint = false)
+    {
+        if (!processedFiles.Add(filePath))
+            return;
+        
+        string content = await File.ReadAllTextAsync(filePath);
+        ModuleInfo moduleInfo = JsModuleParser.ParseModule(filePath, content);
+        List<string> resolvedDependencies = [];
+        List<Task> dependencyTasks = [];
+        
+        foreach (ImportStatement import in moduleInfo.Imports)
+        {
+            string? resolvedPath = resolver.ResolvePath(import.Source, filePath)
+                ?? throw new InvalidOperationException($"Cannot resolve import '{import.Source}' from {filePath}");
+
+            import.ResolvedPath = resolvedPath;
+            resolvedDependencies.Add(resolvedPath);
+            
+            if (!resolvedPath.Contains(Folders.NodeModules) && !processedFiles.Contains(resolvedPath))
+                dependencyTasks.Add(ProcessModuleAsync(graph, resolver, processedFiles, resolvedPath));
+        }
+        
+        graph.AddModule(filePath, moduleInfo, resolvedDependencies);
+        
+        if (isEntryPoint)
+            graph.MarkAsEntryPoint(filePath);
+        
+        await Task.WhenAll(dependencyTasks);
     }
 }

@@ -1,5 +1,13 @@
-namespace Engine.Bundling.JavaScript.Graph;
+namespace Engine.Bundling.JavaScript.Models;
 
+public class BundleResult
+{
+    public required string Code { get; init; }
+    public string? SourceMap { get; init; }
+    public required string[] ModulePaths { get; init; }
+}
+
+// Module models
 public class ModuleInfo
 {
     public required string FilePath { get; set; }
@@ -70,4 +78,39 @@ public class CircularDependency
 {
     public List<string> Modules { get; set; } = [];
     public string Path { get; set; } = string.Empty;
+}
+
+// Source map models
+public class SourceMap
+{
+    public required int Version { get; init; }
+    public required string[] Sources { get; init; }
+    public required string[] Names { get; init; }
+    public required string Mappings { get; init; }
+}
+
+public class MappingSegment
+{
+    public required int GeneratedLine { get; init; }
+    public required int GeneratedColumn { get; init; }
+    public required int SourceIndex { get; init; }
+    public required int OriginalLine { get; init; }
+    public required int OriginalColumn { get; init; }
+    public int? NameIndex { get; init; }
+}
+
+// Transform models
+public class TransformedModule
+{
+    public required int Id { get; init; }
+    public required string Code { get; init; }
+    public string? SourceMap { get; init; }
+}
+
+public class TransformContext
+{
+    public required int ModuleId { get; init; }
+    public required string FilePath { get; init; }
+    public required bool EnableScopeHoisting { get; init; }
+    public required bool EnableTreeShaking { get; init; }
 }

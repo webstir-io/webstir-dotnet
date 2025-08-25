@@ -3,7 +3,7 @@ using Engine.Models;
 
 namespace Engine.Handlers;
 
-public class HtmlHandler(AppWorkspace workspace)
+public class MarkupHandler(AppWorkspace workspace)
 {
     private const string AppHtmlFileName = "app.html";
     private const string IndexHtmlFileName = "index.html";

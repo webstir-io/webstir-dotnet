@@ -6,8 +6,8 @@ namespace Engine.Workers;
 
 public class ClientWorker(
     AppWorkspace workspace,
-    HtmlHandler htmlHandler,
-    CssHandler cssHandler,
+    MarkupHandler htmlHandler,
+    StylesHandler cssHandler,
     ScriptsHandler scriptsHandler,
     ImagesHandler imagesHandler) : IWorker
 {
