@@ -1,28 +1,30 @@
-﻿using CLI;
+﻿using System.Text.Json;
+using CLI;
 using Engine;
+using Engine.Pipelines.Assets;
+using Engine.Pipelines.Css;
+using Engine.Pipelines.Css.Build;
+using Engine.Pipelines.Css.Publish;
+using Engine.Pipelines.Html;
+using Engine.Pipelines.JavaScript;
+using Engine.Pipelines.JavaScript.Build;
+using Engine.Pipelines.JavaScript.Publish;
 using Engine.Servers;
 using Engine.Services;
-using Engine.Workflows;
 using Engine.Workers;
-using Engine.Handlers;
-using Engine.Building.Css;
-using Engine.Building.Html;
-using Engine.Building.JavaScript;
-using Engine.Bundling.Css;
-using Engine.Bundling.Html;
-using Engine.Bundling.JavaScript;
+using Engine.Workflows;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
-using System.Text.Json;
+using Serilog.Core;
 
-var logger = new LoggerConfiguration()
+Logger logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateLogger();
 
 try
 {
-    var configuration = new ConfigurationBuilder()
+    IConfigurationRoot configuration = new ConfigurationBuilder()
         .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
         .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
         .AddEnvironmentVariables()
@@ -52,17 +54,16 @@ try
 
     services.AddScoped<AppWorkspace>();
     services.AddScoped<IWorkflowFactory, WorkflowFactory>();
-    services.AddTransient<MarkupHandler>();
-    services.AddTransient<StylesHandler>();
-    services.AddTransient<ScriptsHandler>();
-    services.AddTransient<ImagesHandler>();
+    services.AddTransient<HtmlHandler>();
+    services.AddTransient<CssHandler>();
+    services.AddTransient<JsHandler>();
+    services.AddTransient<AssetHandler>();
 
     services.AddTransient<CssBuilder>();
     services.AddTransient<JsBuilder>();
-    services.AddTransient<HtmlBuilder>();
     services.AddTransient<CssBundler>();
     services.AddTransient<JsBundler>();
-    services.AddTransient<HtmlBundler>();
+
 
     services.AddTransient<ClientWorker>();
     services.AddTransient<ServerWorker>();

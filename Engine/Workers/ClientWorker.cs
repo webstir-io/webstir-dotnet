@@ -1,15 +1,18 @@
-using Engine.Handlers;
 using Engine.Helpers;
 using Engine.Models;
+using Engine.Pipelines.Assets;
+using Engine.Pipelines.Css;
+using Engine.Pipelines.Html;
+using Engine.Pipelines.JavaScript;
 
 namespace Engine.Workers;
 
 public class ClientWorker(
     AppWorkspace workspace,
-    MarkupHandler htmlHandler,
-    StylesHandler cssHandler,
-    ScriptsHandler scriptsHandler,
-    ImagesHandler imagesHandler) : IWorker
+    HtmlHandler htmlHandler,
+    CssHandler cssHandler,
+    JsHandler scriptsHandler,
+    AssetHandler imagesHandler) : IWorker
 {
     public int BuildOrder => 1;
 
@@ -52,7 +55,7 @@ public class ClientWorker(
             htmlHandler.AddPageAsync(pageName),
             cssHandler.AddPageAsync(pageName),
             scriptsHandler.AddPageAsync(pageName),
-            ImagesHandler.AddPageAsync(pageName)
+            AssetHandler.AddPageAsync(pageName)
         );
     }
 }
