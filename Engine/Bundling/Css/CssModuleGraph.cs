@@ -17,6 +17,11 @@ public class CssModuleGraph
     {
         return _modules.GetValueOrDefault(filePath);
     }
+    
+    public void Clear()
+    {
+        _modules.Clear();
+    }
 
     public List<CssModule> GetModulesInOrder(params string[] entryPoints)
     {

@@ -33,6 +33,11 @@ public class ClientWorker(
 
     public async Task PublishAsync()
     {
+        if (Directory.Exists(workspace.ClientDistPath))
+            Directory.Delete(workspace.ClientDistPath, recursive: true);
+        
+        Directory.CreateDirectory(workspace.ClientDistPath);
+        
         await Task.WhenAll(
             htmlHandler.PublishAsync(),
             cssHandler.PublishAsync(),

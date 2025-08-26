@@ -5,26 +5,37 @@ namespace Engine.Bundling.JavaScript;
 
 public class JsBundler(AppWorkspace workspace)
 {
-    private const string AppJsFile = "app.js";
     private readonly JsModuleResolver _resolver = new(workspace);
     
     public async Task BundleAsync()
     {
-        string entryPoint = workspace.ClientAppPath.Combine(AppJsFile);
+        await BundlePageScriptsAsync();
+    }
+    
+    private async Task BundlePageScriptsAsync()
+    {
+        string pagesPath = workspace.ClientBuildPath.Combine(Folders.Pages);
+        if (!pagesPath.Exists())
+            return;
         
-        if (!File.Exists(entryPoint))
-            throw new FileNotFoundException($"JavaScript entry point not found: {entryPoint}");
-
-        JsModuleGraph graph = await JsModuleGraph.BuildAsync(_resolver, entryPoint);
-        
-        List<ModuleInfo> modules = GetModulesInOrder(graph);
-        
-        string bundleCode = ConcatenateModules(modules, graph);
-        bundleCode = JsTransformer.Minify(bundleCode);
-        
-        string distPath = workspace.ClientDistPath.Combine(AppJsFile);
-        Path.GetDirectoryName(distPath)!.Create();
-        await File.WriteAllTextAsync(distPath, bundleCode);
+        foreach (string pageDir in pagesPath.Folders())
+        {
+            string pageName = pageDir.Filename();
+            string pageScript = pageDir.Combine($"{Files.Index}{FileExtensions.Js}");
+            
+            if (!pageScript.Exists())
+                continue;
+            
+            JsModuleGraph graph = await JsModuleGraph.BuildAsync(_resolver, pageScript);
+            List<ModuleInfo> modules = GetModulesInOrder(graph);
+            
+            string bundleCode = ConcatenateModules(modules, graph);
+            bundleCode = JsTransformer.Minify(bundleCode);
+            
+            string distPagePath = workspace.ClientDistPath.Combine(Folders.Pages, pageName, $"{Files.Index}{FileExtensions.Js}");
+            distPagePath.DirectoryName().Create();
+            await File.WriteAllTextAsync(distPagePath, bundleCode);
+        }
     }
 
     private static List<ModuleInfo> GetModulesInOrder(JsModuleGraph graph)
@@ -34,7 +45,7 @@ public class JsBundler(AppWorkspace workspace)
         
         foreach (string entryPoint in graph.GetEntryPoints())
             VisitModule(entryPoint, graph, visited, result);
-        
+
         return result;
     }
 
@@ -53,7 +64,7 @@ public class JsBundler(AppWorkspace workspace)
         result.Add(node.Info);
     }
 
-    private string ConcatenateModules(List<ModuleInfo> modules, JsModuleGraph graph)
+    private static string ConcatenateModules(List<ModuleInfo> modules, JsModuleGraph graph)
     {
         Dictionary<string, int> moduleIdMap = [];
         for (int i = 0; i < modules.Count; i++)
@@ -74,8 +85,7 @@ public class JsBundler(AppWorkspace workspace)
             
             transformedModules.Add(transformed.Code);
         }
-        
+
         return string.Join("\n\n", transformedModules);
     }
-
 }

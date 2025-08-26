@@ -6,8 +6,10 @@ using Engine.Workflows;
 using Engine.Workers;
 using Engine.Handlers;
 using Engine.Building.Css;
+using Engine.Building.Html;
 using Engine.Building.JavaScript;
 using Engine.Bundling.Css;
+using Engine.Bundling.Html;
 using Engine.Bundling.JavaScript;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -57,8 +59,10 @@ try
 
     services.AddTransient<CssBuilder>();
     services.AddTransient<JsBuilder>();
+    services.AddTransient<HtmlBuilder>();
     services.AddTransient<CssBundler>();
     services.AddTransient<JsBundler>();
+    services.AddTransient<HtmlBundler>();
 
     services.AddTransient<ClientWorker>();
     services.AddTransient<ServerWorker>();
