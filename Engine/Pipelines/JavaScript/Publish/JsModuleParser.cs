@@ -1,5 +1,7 @@
 using Engine.Pipelines.JavaScript.Models;
+using Engine.Pipelines.Core.Parsing;
 using System.Text.RegularExpressions;
+using System.Linq;
 
 namespace Engine.Pipelines.JavaScript.Publish;
 
@@ -16,9 +18,95 @@ public static class JsModuleParser
         };
 
         string cleanContent = RemoveComments(content);
-        
-        ParseImports(cleanContent, module);
-        ParseExports(cleanContent, module);
+
+        // Prefer tokenizer-based parsing for robustness
+        try
+        {
+            JavaScriptParser parser = new(content, filePath);
+            List<ImportDeclaration> imports = parser.ParseImports();
+            List<ExportDeclaration> exports = parser.ParseExports();
+
+            // Map imports
+            foreach (ImportDeclaration imp in imports)
+            {
+                JsImportStatement item = new()
+                {
+                    Source = imp.Source,
+                    LineNumber = imp.Line,
+                    IsDynamic = imp.IsDynamic
+                };
+
+                if (imp.IsSideEffect)
+                {
+                    item.Type = JsImportType.SideEffect;
+                }
+                else if (imp.IsDynamic)
+                {
+                    item.Type = JsImportType.Dynamic;
+                }
+                else if (imp.DefaultImport != null && imp.NamedImports != null && imp.NamedImports.Count > 0)
+                {
+                    item.Type = JsImportType.Mixed;
+                    item.DefaultSpecifier = imp.DefaultImport;
+                    item.Specifiers = imp.NamedImports.Select(n => n.Local).ToList();
+                }
+                else if (imp.DefaultImport != null)
+                {
+                    item.Type = JsImportType.Default;
+                    item.DefaultSpecifier = imp.DefaultImport;
+                }
+                else if (imp.NamespaceImport != null)
+                {
+                    item.Type = JsImportType.Namespace;
+                    item.NamespaceSpecifier = imp.NamespaceImport;
+                }
+                else if (imp.NamedImports != null && imp.NamedImports.Count > 0)
+                {
+                    item.Type = JsImportType.Named;
+                    item.Specifiers = imp.NamedImports.Select(n => n.Local).ToList();
+                }
+
+                module.Imports.Add(item);
+            }
+
+            // Map exports
+            foreach (ExportDeclaration ex in exports)
+            {
+                JsExportStatement item = new()
+                {
+                    IsDefault = ex.IsDefault,
+                    LineNumber = ex.Line,
+                    Source = ex.Source
+                };
+
+                if (ex.IsDefault)
+                {
+                    item.Type = JsExportType.Default;
+                }
+                else if (ex.All && ex.IsReExport)
+                {
+                    item.Type = JsExportType.AllReexport;
+                }
+                else if (ex.Named != null && ex.Named.Count > 0 && ex.IsReExport)
+                {
+                    item.Type = JsExportType.Named;
+                    item.Specifiers = ex.Named;
+                }
+                else if (ex.Named != null && ex.Named.Count > 0)
+                {
+                    item.Type = JsExportType.Named;
+                    item.Specifiers = ex.Named;
+                }
+
+                module.Exports.Add(item);
+            }
+        }
+        catch
+        {
+            // Fallback to regex if tokenizer path fails
+            ParseImports(cleanContent, module);
+            ParseExports(cleanContent, module);
+        }
 
         return module;
     }

@@ -6,6 +6,8 @@ using Engine.Pipelines.Css;
 using Engine.Pipelines.Css.Build;
 using Engine.Pipelines.Css.Publish;
 using Engine.Pipelines.Html;
+using Engine.Pipelines.Html.Build;
+using Engine.Pipelines.Html.Publish;
 using Engine.Pipelines.JavaScript;
 using Engine.Pipelines.JavaScript.Build;
 using Engine.Pipelines.JavaScript.Publish;
@@ -55,6 +57,8 @@ try
     services.AddScoped<AppWorkspace>();
     services.AddScoped<IWorkflowFactory, WorkflowFactory>();
     services.AddTransient<HtmlHandler>();
+    services.AddTransient<HtmlBuilder>();
+    services.AddTransient<HtmlBundler>();
     services.AddTransient<CssHandler>();
     services.AddTransient<JsHandler>();
     services.AddTransient<AssetHandler>();

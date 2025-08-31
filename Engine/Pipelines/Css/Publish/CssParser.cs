@@ -1,4 +1,5 @@
 using Engine.Pipelines.Css.Models;
+using Engine.Pipelines.Core.Parsing;
 using System.Text.RegularExpressions;
 
 namespace Engine.Pipelines.Css.Publish;
@@ -8,13 +9,12 @@ public static class Parser
     public static List<CssImport> ExtractImports(string content, string baseDirectory)
     {
         List<CssImport> imports = [];
-        MatchCollection matches = CssRegex.Import().Matches(content);
-
-        foreach (Match match in matches)
+        CssImportParser parser = new(content, baseDirectory);
+        List<CssImportRule> parsed = parser.ParseImports();
+        foreach (CssImportRule item in parsed)
         {
-            string importPath = match.Groups[1].Value;
-            string? media = match.Groups[2].Success ? match.Groups[2].Value.Trim() : null;
-            
+            string importPath = item.Path;
+            string? media = item.Media;
             imports.Add(new CssImport
             {
                 Path = importPath,
@@ -23,7 +23,6 @@ public static class Parser
                 IsModuleImport = importPath.EndsWith(Css.ModuleExt)
             });
         }
-
         return imports;
     }
 
