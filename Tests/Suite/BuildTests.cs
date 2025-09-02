@@ -8,15 +8,18 @@ public class BuildTests : BaseTest
     
     public override Task<TestResult[]> RunAsync()
     {
-        TestResult[] tests = [
-            RunTest($"{Commands.Build} command runs without compilation errors", TestBuildCommandSuccess)
-        ];
-        return Task.FromResult(tests);
+        List<TestResult> tests = [];
+        tests.Add(RunTest($"{Commands.Build} command runs without compilation errors", TestBuildCommandSuccess));
+        if (Tests.Framework.TestMode.IsFull)
+        {
+            tests.Add(RunTest("Build surfaces error when app.html is missing", TestBuildMissingAppHtmlShowsError));
+        }
+        return Task.FromResult(tests.ToArray());
     }
     
     private void TestBuildCommandSuccess()
     {        
-        string testDir = Directories.OutDirectory.FullName;
+        string testDir = Paths.OutPath;
         Directory.CreateDirectory(testDir);
         string seedDir = Path.Combine(testDir, Folders.Seed);
         if (!Directory.Exists(Path.Combine(seedDir, Folders.Src)))
@@ -68,4 +71,32 @@ public class BuildTests : BaseTest
     // - Test build with CSS import errors  
     // - Test build output validation
     // - Test build performance benchmarks
+
+    private void TestBuildMissingAppHtmlShowsError()
+    {
+        string testDir = Paths.OutPath;
+        Directory.CreateDirectory(testDir);
+        string projectName = "seed-missing-app";
+        string projectDir = Path.Combine(testDir, projectName);
+        if (!Directory.Exists(Path.Combine(projectDir, Folders.Src)))
+        {
+            ProcessRunner.ProcessResult init = RunCliCommand($"{Commands.Init} --project-name {projectName}", testDir, timeoutMs: 10000);
+            Assert.AreEqual(0, init.ExitCode, $"{Commands.Init} command failed. Error: {init.Error}");
+        }
+
+        string appHtml = Path.Combine(projectDir, Folders.Src, Folders.Client, Folders.App, "app.html");
+        if (File.Exists(appHtml))
+        {
+            try { File.Delete(appHtml); } catch { }
+        }
+
+        ProcessRunner.ProcessResult result = RunCliCommand($"{Commands.Build} {ProjectOptions.ProjectName} {projectName}", testDir, timeoutMs: 10000);
+
+        Assert.AreEqual(0, result.ExitCode, $"{Commands.Build} command failed. Error: {result.Error}");
+        string combined = (result.Output ?? string.Empty) + "\n" + (result.Error ?? string.Empty);
+        Assert.IsTrue(
+            combined.Contains("Base application HTML file not found", StringComparison.OrdinalIgnoreCase),
+            "Build output should contain an error about missing app.html"
+        );
+    }
 }

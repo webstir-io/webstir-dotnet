@@ -10,15 +10,18 @@ public class WatchTests : BaseTest
     
     public override Task<TestResult[]> RunAsync()
     {
-        TestResult[] tests = [
-            RunTest($"{Commands.Watch} command starts without compilation errors", TestWatchCommandStartup)
-        ];
+        if (!Tests.Framework.TestMode.IsFull)
+        {
+            return Task.FromResult(Array.Empty<TestResult>());
+        }
+        
+        TestResult[] tests = [ RunTest($"{Commands.Watch} command starts without compilation errors", TestWatchCommandStartup) ];
         return Task.FromResult(tests);
     }
     
     private void TestWatchCommandStartup()
     {        
-        string testDir = Directories.OutDirectory.FullName;
+        string testDir = Paths.OutPath;
         Directory.CreateDirectory(testDir);
         string seedDir = Path.Combine(testDir, Folders.Seed);
         if (!Directory.Exists(Path.Combine(seedDir, Folders.Src)))

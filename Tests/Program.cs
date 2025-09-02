@@ -9,6 +9,7 @@ public class TestOptions
 {
     public bool ShowHelp { get; set; }
     public List<string> TestSuites { get; set; } = [];
+    public bool? RunFull { get; set; }
 }
 
 public class Program
@@ -24,6 +25,12 @@ public class Program
             return;
         }
         
+        // Set test mode (CLI overrides env)
+        if (options.RunFull.HasValue)
+        {
+            Tests.Framework.TestMode.SetFull(options.RunFull.Value);
+        }
+
         // Setup dependency injection
         ServiceCollection services = new();
         ConfigureServices(services);
@@ -64,6 +71,12 @@ public class Program
                         options.TestSuites.Add(args[++index]);
                     }
                     break;
+                case "--full" or "full":
+                    options.RunFull = true;
+                    break;
+                case "--quick" or "quick":
+                    options.RunFull = false;
+                    break;
                 default:
                     // Ignore unknown arguments
                     break;
@@ -80,7 +93,9 @@ public class Program
         Console.WriteLine("Usage: dotnet run [command]");
         Console.WriteLine();
         Console.WriteLine("Commands:");
-        Console.WriteLine("  (none)               Run all tests (default)");
+        Console.WriteLine("  (none)               Run quick tests (init, build, publish)");
+        Console.WriteLine("  --full               Run full test suite (includes watch, help, extras)");
+        Console.WriteLine("  --quick              Force quick mode even if env is set to full");
         Console.WriteLine("  test <suite>         Run specific test suite");
         Console.WriteLine("  help                 Show this help message");
         Console.WriteLine();
@@ -93,7 +108,8 @@ public class Program
         Console.WriteLine("  help                 - Tests the help command");
         Console.WriteLine();
         Console.WriteLine("Examples:");
-        Console.WriteLine("  dotnet run                    # Run all tests");
+        Console.WriteLine("  dotnet run                    # Run quick tests");
+        Console.WriteLine("  dotnet run -- --full          # Run full suite");
         Console.WriteLine("  dotnet run help               # Show this help");
         Console.WriteLine("  dotnet run test init          # Run only init tests");
         Console.WriteLine("  dotnet run test build         # Run only build tests");

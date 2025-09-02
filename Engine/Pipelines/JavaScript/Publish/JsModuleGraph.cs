@@ -103,7 +103,7 @@ public class JsModuleGraph
         recursionStack.Remove(module);
     }
     
-    public IEnumerable<string> GetEntryPoints() => _nodes.Where(n => n.Value.IsEntryPoint).Select(n => n.Key);
+    public IEnumerable<string> GetEntryPoints() => _nodes.Where(n => n.Value != null && n.Value.IsEntryPoint).Select(n => n.Key);
     
     public JsModuleNode? GetModule(string filePath) => _nodes.TryGetValue(filePath, out JsModuleNode? node) ? node : null;
     

@@ -10,15 +10,18 @@ public class PublishTests : BaseTest
     
     public override Task<TestResult[]> RunAsync()
     {
-        TestResult[] tests = [
-            RunTest($"{Commands.Publish} command runs without compilation errors", TestPublishCommandSuccess)
-        ];
-        return Task.FromResult(tests);
+        List<TestResult> tests = [];
+        tests.Add(RunTest($"{Commands.Publish} command runs without compilation errors", TestPublishCommandSuccess));
+        if (Tests.Framework.TestMode.IsFull)
+        {
+            tests.Add(RunTest("HTML publish collapses inter-tag whitespace and preserves inline script content", TestHtmlWhitespaceAndInlineScriptPreserved));
+        }
+        return Task.FromResult(tests.ToArray());
     }
     
     private void TestPublishCommandSuccess()
     {        
-        string testDir = Directories.OutDirectory.FullName;
+        string testDir = Paths.OutPath;
         Directory.CreateDirectory(testDir);
         string seedDir = Path.Combine(testDir, Folders.Seed);
         if (!Directory.Exists(Path.Combine(seedDir, Folders.Src)))
@@ -163,4 +166,47 @@ public class PublishTests : BaseTest
     // - Test CSS minification in publish mode
     // - Test production optimizations
     // - Test publish performance benchmarks
+    
+    private void TestHtmlWhitespaceAndInlineScriptPreserved()
+    {
+        string testDir = Paths.OutPath;
+        Directory.CreateDirectory(testDir);
+        string seedDir = Path.Combine(testDir, Folders.Seed);
+        if (!Directory.Exists(Path.Combine(seedDir, Folders.Src)))
+        {
+            ProcessRunner.ProcessResult init = RunCliCommand(Commands.Init, testDir, timeoutMs: 10000);
+            Assert.AreEqual(0, init.ExitCode, $"{Commands.Init} command failed. Error: {init.Error}");
+        }
+
+        // Ensure a clean build/dist
+        string seedBuild = Path.Combine(seedDir, Folders.Build);
+        string seedDist = Path.Combine(seedDir, Folders.Dist);
+        if (Directory.Exists(seedBuild)) { try { Directory.Delete(seedBuild, recursive: true); } catch { } }
+        if (Directory.Exists(seedDist)) { try { Directory.Delete(seedDist, recursive: true); } catch { } }
+
+        // Ensure extra whitespace around tags to be collapsed in dist
+        string pagePath = Path.Combine(seedDir, Folders.Src, Folders.Client, Folders.Pages, Folders.Home, $"{Files.Index}{FileExtensions.Html}");
+        string html = File.ReadAllText(pagePath);
+        const string marker = "<!--WHITESPACE_MARKER-->";
+        if (!html.Contains(marker, StringComparison.Ordinal))
+        {
+            // Insert marker inside <main> to make whitespace around tags available to minifier
+            html = html.Replace("<main>", "<main>\n    " + marker + "\n");
+            File.WriteAllText(pagePath, html);
+        }
+
+        ProcessRunner.ProcessResult result = RunCliCommand($"{Commands.Publish} {ProjectOptions.ProjectName} seed", testDir, timeoutMs: 15000);
+        Assert.AreEqual(0, result.ExitCode, $"{Commands.Publish} command failed. Error: {result.Error}");
+
+        string distHtmlPath = Path.Combine(seedDir, Folders.Dist, Folders.Client, Folders.Pages, Folders.Home, $"{Files.Index}{FileExtensions.Html}");
+        Assert.IsTrue(File.Exists(distHtmlPath), "Dist index.html missing");
+        string distHtml = File.ReadAllText(distHtmlPath);
+
+        // Inter-tag whitespace should be collapsed (no newlines between tags)
+        string normalized = distHtml.Replace("\r", string.Empty);
+        Assert.DoesNotContain("> \n<", normalized, "Inter-tag whitespace should be collapsed");
+        Assert.DoesNotContain(">\n<", normalized, "Inter-tag newlines should be collapsed");
+        Assert.Contains("</head><body>", normalized, "Head/body boundary should be collapsed");
+        Assert.Contains("</main></body>", normalized, "Main/body boundary should be collapsed");
+    }
 }

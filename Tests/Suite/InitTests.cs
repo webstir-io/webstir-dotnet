@@ -9,16 +9,18 @@ public class InitTests : BaseTest
     
     public override Task<TestResult[]> RunAsync()
     {
-        TestResult[] tests = [
-            RunTest($"{Commands.Init} command creates default project", TestInitDefault),
-            RunTest($"{Commands.Init} command creates named project", TestInitNamed)
-        ];
-        return Task.FromResult(tests);
+        List<TestResult> tests = [];
+        tests.Add(RunTest($"{Commands.Init} command creates default project", TestInitDefault));
+        if (Tests.Framework.TestMode.IsFull)
+        {
+            tests.Add(RunTest($"{Commands.Init} command creates named project", TestInitNamed));
+        }
+        return Task.FromResult(tests.ToArray());
     }
     
     private void TestInitDefault()
     {
-        string testDir = Directories.OutDirectory.FullName;
+        string testDir = Paths.OutPath;
         Directory.CreateDirectory(testDir);
 
         // Clean only the seed project to avoid removing other outputs
@@ -45,7 +47,7 @@ public class InitTests : BaseTest
     
     private void TestInitNamed()
     {
-        string testDir = Directories.OutDirectory.FullName;
+        string testDir = Paths.OutPath;
         Directory.CreateDirectory(testDir);
 
         string projectName = "my-app";

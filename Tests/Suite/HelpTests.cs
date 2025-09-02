@@ -9,6 +9,10 @@ public class HelpTests : BaseTest
     
     public override Task<TestResult[]> RunAsync()
     {
+        if (!Tests.Framework.TestMode.IsFull)
+        {
+            return Task.FromResult(Array.Empty<TestResult>());
+        }
         TestResult[] tests = [
             RunTest($"{HelpOptions.Help} command shows available commands", TestHelpCommandOutput)
         ];
