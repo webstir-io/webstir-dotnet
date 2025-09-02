@@ -16,11 +16,11 @@ public class BuildTests : BaseTest
     
     private void TestBuildCommandSuccess()
     {        
-        var testDir = Directories.GetTestDirectory("build");
+        string testDir = Directories.GetTestDirectory("build");
         CleanupDirectory(testDir);
         SetupProject(testDir);
         
-        var result = RunCliCommand(Commands.Build, testDir, timeoutMs: 10000);
+        ProcessRunner.ProcessResult result = RunCliCommand(Commands.Build, testDir, timeoutMs: 10000);
         
         if (result.TimedOut)
             Assert.Fail($"{Commands.Build} command timed out");
@@ -28,7 +28,7 @@ public class BuildTests : BaseTest
         Assert.AreEqual(0, result.ExitCode, $"{Commands.Build} command failed. Error: {result.Error}");
         
         // Verify build outputs exist
-        var buildDir = Path.Combine(testDir, "build");
+        string buildDir = Path.Combine(testDir, "build");
         Assert.IsTrue(Directory.Exists(buildDir), "Build directory does not exist");
     }
     

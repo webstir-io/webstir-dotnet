@@ -9,7 +9,7 @@ public class InitTests : BaseTest
     
     public override Task<TestResult[]> RunAsync()
     {
-        var testDir = Directories.GetTestDirectory("init");
+        string testDir = Directories.GetTestDirectory("init");
         CleanupDirectory(testDir);        
 
         TestResult[] tests = [
@@ -21,10 +21,10 @@ public class InitTests : BaseTest
     
     private void TestInitDefault()
     {
-        var testDir = Directories.GetTestDirectory(Path.Combine("init", "default"));
+        string testDir = Directories.GetTestDirectory(Path.Combine("init", "default"));
         Directory.CreateDirectory(testDir);
         
-        var result = RunCliCommand(Commands.Init, testDir, timeoutMs: 10000);
+        ProcessRunner.ProcessResult result = RunCliCommand(Commands.Init, testDir, timeoutMs: 10000);
         
         if (result.TimedOut)
             Assert.Fail($"{Commands.Init} command timed out");
@@ -43,10 +43,10 @@ public class InitTests : BaseTest
     
     private void TestInitNamed()
     {
-        var testDir = Directories.GetTestDirectory(Path.Combine("init", "named"));
+        string testDir = Directories.GetTestDirectory(Path.Combine("init", "named"));
         Directory.CreateDirectory(testDir);
 
-        var result = RunCliCommand($"{Commands.Init}", testDir, timeoutMs: 10000);
+        ProcessRunner.ProcessResult result = RunCliCommand($"{Commands.Init}", testDir, timeoutMs: 10000);
 
         if (result.TimedOut)
             Assert.Fail($"{Commands.Init} named command timed out");

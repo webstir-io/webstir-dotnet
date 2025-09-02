@@ -15,5 +15,5 @@ public class TestSummary
     public int PassedTests { get; set; }
     public int FailedTests { get; set; }
     public TimeSpan TotalDuration { get; set; }
-    public List<TestResult> Results { get; set; } = new();
+    public List<TestResult> Results { get; set; } = [];
 }

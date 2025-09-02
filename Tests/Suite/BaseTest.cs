@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Tests.Framework;
 using Engine;
 
@@ -32,7 +31,7 @@ public abstract class BaseTest : TestSuite
         Directory.CreateDirectory(projectDir);
         
         // Use init command to create a proper project
-        var result = RunCliCommand(Commands.Init, projectDir, timeoutMs: 10000);
+        ProcessRunner.ProcessResult result = RunCliCommand(Commands.Init, projectDir, timeoutMs: 10000);
         
         if (result.ExitCode != 0)
             throw new InvalidOperationException($"Failed to setup project with {Commands.Init} command. Error: {result.Error}");
@@ -48,8 +47,8 @@ public abstract class BaseTest : TestSuite
     
     protected void AssertNoCompilationErrors(ProcessRunner.ProcessResult result)
     {
+        ArgumentNullException.ThrowIfNull(result);
         Assert.DoesNotContain("error CS", result.Output, "Has C# compilation errors");
         Assert.DoesNotContain("error TS", result.Output, "Has TypeScript compilation errors");
     }
 }
-

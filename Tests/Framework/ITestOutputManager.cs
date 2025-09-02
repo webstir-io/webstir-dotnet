@@ -35,7 +35,7 @@ public class TestOutputManager : ITestOutputManager
         if (!string.IsNullOrEmpty(outputPath))
         {
             // Resolve full path relative to Tests directory
-            var fullPath = ResolveOutputPath(outputPath, summary);
+            string fullPath = ResolveOutputPath(outputPath, summary);
             
             // Auto-detect format from file extension if not specified
             if (string.IsNullOrEmpty(format))
@@ -47,12 +47,12 @@ public class TestOutputManager : ITestOutputManager
                 }
             }
             
-            if (_formatters.TryGetValue(format, out var formatter))
+            if (_formatters.TryGetValue(format, out ITestResultFormatter? formatter))
             {
-                var content = formatter.Format(summary);
+                string content = formatter.Format(summary);
                 
                 // Ensure directory exists
-                var directory = Path.GetDirectoryName(fullPath);
+                string? directory = Path.GetDirectoryName(fullPath);
                 if (!string.IsNullOrEmpty(directory))
                 {
                     Directory.CreateDirectory(directory);
@@ -77,7 +77,7 @@ public class TestOutputManager : ITestOutputManager
         if (Path.IsPathRooted(outputPath))
             return outputPath;
         
-        var timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
+        string timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
         
         // If just a filename, organize by timestamp
         if (!outputPath.Contains('/') && !outputPath.Contains('\\'))
@@ -91,8 +91,8 @@ public class TestOutputManager : ITestOutputManager
     
     public void WriteConsoleOutput(TestSummary summary)
     {
-        var consoleFormatter = _formatters["console"];
-        var output = consoleFormatter.Format(summary);
+        ITestResultFormatter consoleFormatter = _formatters["console"];
+        string output = consoleFormatter.Format(summary);
         Console.WriteLine(output);
     }
     

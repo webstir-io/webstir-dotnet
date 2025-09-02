@@ -12,7 +12,8 @@ public class ConsoleFormatter : ITestResultFormatter
     
     public string Format(TestSummary summary)
     {
-        var result = new System.Text.StringBuilder();
+        ArgumentNullException.ThrowIfNull(summary);
+        System.Text.StringBuilder result = new();
         
         if (summary.FailedTests == 0)
         {
@@ -22,7 +23,7 @@ public class ConsoleFormatter : ITestResultFormatter
         {
             result.AppendLine($"\n❌ {summary.FailedTests} of {summary.TotalTests} tests failed ({summary.TotalDuration.TotalMilliseconds:F0}ms)");
             result.AppendLine();
-            foreach (var failedTest in summary.Results.Where(r => !r.Passed))
+            foreach (TestResult failedTest in summary.Results.Where(r => !r.Passed))
             {
                 result.AppendLine($"✗ {failedTest.TestName}: {failedTest.Message}");
             }
@@ -38,6 +39,7 @@ public class JsonFormatter : ITestResultFormatter
     
     public string Format(TestSummary summary)
     {
+        ArgumentNullException.ThrowIfNull(summary);
         var result = new
         {
             t = summary.TotalTests,
@@ -64,11 +66,12 @@ public class XmlFormatter : ITestResultFormatter
     
     public string Format(TestSummary summary)
     {
-        var xml = new System.Text.StringBuilder();
+        ArgumentNullException.ThrowIfNull(summary);
+        System.Text.StringBuilder xml = new();
         xml.AppendLine($"<ts t=\"{summary.TotalTests}\" f=\"{summary.FailedTests}\" d=\"{summary.TotalDuration.TotalMilliseconds:F0}\">");
         
         // Only include failed tests and slow tests (>1ms) to reduce size
-        foreach (var result in summary.Results.Where(r => !r.Passed || r.Duration.TotalMilliseconds > 1))
+        foreach (TestResult result in summary.Results.Where(r => !r.Passed || r.Duration.TotalMilliseconds > 1))
         {
             if (!result.Passed)
             {
@@ -94,20 +97,21 @@ public class MarkdownFormatter : ITestResultFormatter
     
     public string Format(TestSummary summary)
     {
-        var md = new System.Text.StringBuilder();
+        ArgumentNullException.ThrowIfNull(summary);
+        System.Text.StringBuilder md = new();
         
         md.AppendLine($"# Tests: {summary.PassedTests}/{summary.TotalTests} ({summary.TotalDuration.TotalMilliseconds:F0}ms)");
         
         // Only show failed tests and slow tests to minimize size
-        var notableResults = summary.Results.Where(r => !r.Passed || r.Duration.TotalMilliseconds > 1).ToList();
+        List<TestResult> notableResults = [.. summary.Results.Where(r => !r.Passed || r.Duration.TotalMilliseconds > 1)];
         
         if (notableResults.Any())
         {
             md.AppendLine();
-            foreach (var result in notableResults)
+            foreach (TestResult result in notableResults)
             {
-                var status = result.Passed ? "🐌" : "❌";
-                var detail = result.Passed ? $"{result.Duration.TotalMilliseconds:F0}ms" : result.Message;
+                string status = result.Passed ? "🐌" : "❌";
+                string detail = result.Passed ? $"{result.Duration.TotalMilliseconds:F0}ms" : result.Message;
                 md.AppendLine($"- {status} {result.TestName}: {detail}");
             }
         }

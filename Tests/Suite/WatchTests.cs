@@ -18,11 +18,11 @@ public class WatchTests : BaseTest
     
     private void TestWatchCommandStartup()
     {        
-        var testDir = Directories.GetTestDirectory("watch");
+        string testDir = Directories.GetTestDirectory("watch");
         CleanupDirectory(testDir);
         SetupProject(testDir);
         
-        var result = RunCliCommand(
+        ProcessRunner.ProcessResult result = RunCliCommand(
             Commands.Watch, 
             testDir, 
             timeoutMs: 8000,

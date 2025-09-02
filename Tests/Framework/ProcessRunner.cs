@@ -16,9 +16,10 @@ public class ProcessRunner
     
     public static ProcessResult Run(ProcessRunOptions options)
     {
-        var process = new Process
+        ArgumentNullException.ThrowIfNull(options);
+        Process process = new()
         {
-            StartInfo = new ProcessStartInfo
+            StartInfo = new()
             {
                 FileName = options.FileName,
                 Arguments = options.Arguments,
@@ -30,9 +31,9 @@ public class ProcessRunner
             }
         };
         
-        var output = new StringBuilder();
-        var error = new StringBuilder();
-        var readySignalReceived = options.WaitForSignal == null ? null : new TaskCompletionSource<bool>();
+        StringBuilder output = new();
+        StringBuilder error = new();
+        TaskCompletionSource<bool>? readySignalReceived = options.WaitForSignal == null ? null : new();
         
         process.OutputDataReceived += (sender, e) =>
         {
@@ -102,7 +103,7 @@ public class ProcessRunner
                 if (!OperatingSystem.IsWindows())
                 {
                     // Send SIGINT (Ctrl+C) on Unix-like systems
-                    using var killProcess = Process.Start(new ProcessStartInfo
+                    using Process? killProcess = Process.Start(new ProcessStartInfo
                     {
                         FileName = "kill",
                         Arguments = $"-INT {process.Id}",
@@ -132,7 +133,7 @@ public class ProcessRunner
             if (!OperatingSystem.IsWindows())
             {
                 // Kill the process group on Unix
-                using var killProcess = Process.Start(new ProcessStartInfo
+                using Process? killProcess = Process.Start(new ProcessStartInfo
                 {
                     FileName = "kill",
                     Arguments = $"-TERM -{process.Id}",
@@ -144,7 +145,7 @@ public class ProcessRunner
             else
             {
                 // Kill process tree on Windows
-                using var killProcess = Process.Start(new ProcessStartInfo
+                using Process? killProcess = Process.Start(new ProcessStartInfo
                 {
                     FileName = "taskkill",
                     Arguments = $"/F /T /PID {process.Id}",

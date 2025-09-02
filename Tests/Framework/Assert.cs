@@ -40,18 +40,23 @@ public static class Assert
     
     public static void Contains(string expectedSubstring, string actualString, string message = "")
     {
-        if (!actualString.Contains(expectedSubstring))
+        ArgumentNullException.ThrowIfNull(actualString);
+        ArgumentNullException.ThrowIfNull(expectedSubstring);
+        if (!actualString.Contains(expectedSubstring, StringComparison.Ordinal))
             throw new AssertionException($"Expected string to contain '{expectedSubstring}' but was '{actualString}'. {message}");
     }
     
     public static void DoesNotContain(string expectedSubstring, string actualString, string message = "")
     {
-        if (actualString.Contains(expectedSubstring))
+        ArgumentNullException.ThrowIfNull(actualString);
+        ArgumentNullException.ThrowIfNull(expectedSubstring);
+        if (actualString.Contains(expectedSubstring, StringComparison.Ordinal))
             throw new AssertionException($"Expected string not to contain '{expectedSubstring}' but was '{actualString}'. {message}");
     }
     
     public static void Throws<T>(Action action, string message = "") where T : Exception
     {
+        ArgumentNullException.ThrowIfNull(action);
         try
         {
             action();
@@ -81,6 +86,7 @@ public static class Assert
     
     public static void DoesNotThrow(Action action, string message = "")
     {
+        ArgumentNullException.ThrowIfNull(action);
         try
         {
             action();
@@ -91,13 +97,7 @@ public static class Assert
         }
     }
     
-    public static void Fail(string message)
-    {
-        throw new AssertionException(message);
-    }
+    public static void Fail(string message) => throw new AssertionException(message);
 }
 
-public class AssertionException : Exception
-{
-    public AssertionException(string message) : base(message) { }
-}
+public class AssertionException(string message) : Exception(message);

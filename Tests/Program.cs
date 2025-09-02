@@ -8,15 +8,15 @@ namespace Tests;
 public class TestOptions
 {
     public bool ShowHelp { get; set; }
-    public List<string> TestSuites { get; set; } = new();
+    public List<string> TestSuites { get; set; } = [];
 }
 
-class Program
+public class Program
 {
-    static async Task Main(string[] args)
+    private static async Task Main(string[] args)
     {
         // Parse command line arguments
-        var options = ParseArguments(args);
+        TestOptions options = ParseArguments(args);
         
         if (options.ShowHelp)
         {
@@ -25,17 +25,17 @@ class Program
         }
         
         // Setup dependency injection
-        var services = new ServiceCollection();
+        ServiceCollection services = new();
         ConfigureServices(services);
         
-        using var serviceProvider = services.BuildServiceProvider();
+        using ServiceProvider serviceProvider = services.BuildServiceProvider();
         
         // Get services from DI container
-        var testRunner = serviceProvider.GetRequiredService<ITestRunner>();
-        var outputManager = serviceProvider.GetRequiredService<ITestOutputManager>();
+        ITestRunner testRunner = serviceProvider.GetRequiredService<ITestRunner>();
+        ITestOutputManager outputManager = serviceProvider.GetRequiredService<ITestOutputManager>();
         
         // Run tests
-        var summary = options.TestSuites.Any() 
+        TestSummary summary = options.TestSuites.Any() 
             ? await testRunner.RunTestsAsync(options.TestSuites)
             : await testRunner.RunAllTestsAsync();
         
@@ -48,7 +48,7 @@ class Program
     
     private static TestOptions ParseArguments(string[] args)
     {
-        TestOptions options = new TestOptions();
+        TestOptions options = new();
         
         for (int index = 0; index < args.Length; index++)
         {
@@ -114,7 +114,6 @@ class Program
         services.AddTransient<ITestSuite, BuildTests>();
         services.AddTransient<ITestSuite, WatchTests>();
         services.AddTransient<ITestSuite, PublishTests>();
-        services.AddTransient<ITestSuite, DemoTests>();
         services.AddTransient<ITestSuite, HelpTests>();
         
         // Register test runner and output manager

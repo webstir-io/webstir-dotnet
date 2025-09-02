@@ -13,7 +13,8 @@ public abstract class TestSuite : ITestSuite
     
     protected TestResult RunTest(string testName, Action testAction)
     {
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        ArgumentNullException.ThrowIfNull(testAction);
+        System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             testAction();

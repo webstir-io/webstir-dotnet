@@ -8,25 +8,16 @@ public interface ITestRunner
     Task<TestSummary> RunTestsAsync(IEnumerable<string> testSuiteNames);
 }
 
-public class TestRunner : ITestRunner
+public class TestRunner(IEnumerable<ITestSuite> testSuites, ILogger<TestRunner> logger) : ITestRunner
 {
-    private readonly IEnumerable<ITestSuite> _testSuites;
-    private readonly ILogger<TestRunner> _logger;
+    private readonly IEnumerable<ITestSuite> _testSuites = testSuites;
+    private readonly ILogger<TestRunner> _logger = logger;
     
-    public TestRunner(IEnumerable<ITestSuite> testSuites, ILogger<TestRunner> logger)
-    {
-        _testSuites = testSuites;
-        _logger = logger;
-    }
-    
-    public async Task<TestSummary> RunAllTestsAsync()
-    {
-        return await RunTestsInternalAsync(_testSuites);
-    }
+    public Task<TestSummary> RunAllTestsAsync() => RunTestsInternalAsync(_testSuites);
     
     public async Task<TestSummary> RunTestsAsync(IEnumerable<string> testSuiteNames)
     {
-        var filteredSuites = _testSuites.Where(suite => 
+        IEnumerable<ITestSuite> filteredSuites = _testSuites.Where(suite => 
             testSuiteNames.Any(name => suite.Name.Contains(name, StringComparison.OrdinalIgnoreCase)));
         
         if (!filteredSuites.Any())
@@ -39,18 +30,18 @@ public class TestRunner : ITestRunner
     
     private async Task<TestSummary> RunTestsInternalAsync(IEnumerable<ITestSuite> suitesToRun)
     {
-        var allResults = new List<TestResult>();
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        List<TestResult> allResults = [];
+        System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
         
-        foreach (var suite in suitesToRun)
+        foreach (ITestSuite suite in suitesToRun)
         {
             _logger.LogInformation("Running {SuiteName}", suite.Name);
             
-            var results = await suite.RunAsync();
+            TestResult[] results = await suite.RunAsync();
             allResults.AddRange(results);
             
             // Log failures immediately
-            foreach (var result in results.Where(r => !r.Passed))
+            foreach (TestResult result in results.Where(r => !r.Passed))
             {
                 _logger.LogError("Test failed: {TestName} - {Message}", result.TestName, result.Message);
             }

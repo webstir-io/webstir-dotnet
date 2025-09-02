@@ -18,17 +18,17 @@ public class PublishTests : BaseTest
     
     private void TestPublishCommandSuccess()
     {        
-        var testDir = Directories.GetTestDirectory("publish");
+        string testDir = Directories.GetTestDirectory("publish");
         CleanupDirectory(testDir);
         SetupProject(testDir);
         
-        var result = RunCliCommand(Commands.Publish, testDir, timeoutMs: 15000);
+        ProcessRunner.ProcessResult result = RunCliCommand(Commands.Publish, testDir, timeoutMs: 15000);
         
         if (result.TimedOut)
             Assert.Fail($"{Commands.Publish} command timed out");
         
         // Publish should complete without errors (exit code 0 or 1 both acceptable for basic validation)
-        Assert.IsTrue(result.ExitCode == 0 || result.ExitCode == 1, 
+        Assert.IsTrue(result.ExitCode is 0 or 1, 
             $"{Commands.Publish} command failed with exit code {result.ExitCode}. Error: {result.Error}");
         
         AssertNoCompilationErrors(result);
