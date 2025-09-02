@@ -7,15 +7,9 @@ namespace Engine.Pipelines.Html;
 public class HtmlHandler(AppWorkspace workspace, HtmlBuilder htmlBuilder, HtmlBundler htmlBundler)
 {
 
-    public async Task BuildAsync()
-    {
-        await htmlBuilder.BuildAsync();
-    }
+    public async Task BuildAsync() => await htmlBuilder.BuildAsync();
 
-    public async Task PublishAsync()
-    {
-        await htmlBundler.BundleAsync();
-    }
+    public async Task PublishAsync() => await htmlBundler.BundleAsync();
 
     public async Task AddPageAsync(string pageName)
     {

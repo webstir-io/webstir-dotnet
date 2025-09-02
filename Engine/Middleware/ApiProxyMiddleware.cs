@@ -10,6 +10,7 @@ public class ApiProxyMiddleware(RequestDelegate next)
 
     public async Task InvokeAsync(HttpContext context)
     {
+        ArgumentNullException.ThrowIfNull(context);
         if (!context.Request.Path.StartsWithSegments("/api"))
         {
             await _next(context);
@@ -21,13 +22,13 @@ public class ApiProxyMiddleware(RequestDelegate next)
 
     private static async Task ProxyApiRequest(HttpContext context)
     {
-        var httpClientFactory = context.RequestServices.GetRequiredService<IHttpClientFactory>();
-        var httpClient = httpClientFactory.CreateClient("ApiProxy");
+        IHttpClientFactory httpClientFactory = context.RequestServices.GetRequiredService<IHttpClientFactory>();
+        HttpClient httpClient = httpClientFactory.CreateClient("ApiProxy");
         
         try
         {
-            var requestMessage = CreateProxyRequest(context, httpClient);
-            var response = await httpClient.SendAsync(requestMessage);
+            HttpRequestMessage requestMessage = CreateProxyRequest(context, httpClient);
+            HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
             await CopyProxyResponse(context, response);
         }
         catch (HttpRequestException ex)
@@ -42,17 +43,19 @@ public class ApiProxyMiddleware(RequestDelegate next)
 
     private static HttpRequestMessage CreateProxyRequest(HttpContext context, HttpClient httpClient)
     {
-        var targetUrl = context.Request.Path + context.Request.QueryString;
-        var requestMessage = new HttpRequestMessage
+        string targetUrl = context.Request.Path + context.Request.QueryString;
+        HttpRequestMessage requestMessage = new()
         {
             Method = new HttpMethod(context.Request.Method),
             RequestUri = new Uri(httpClient.BaseAddress!, targetUrl)
         };
         
-        foreach (var header in context.Request.Headers)
+        foreach (KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues> header in context.Request.Headers)
         {
             if (!header.Key.StartsWith("Host", StringComparison.OrdinalIgnoreCase))
+            {
                 requestMessage.Headers.TryAddWithoutValidation(header.Key, [.. header.Value]);
+            }
         }
         
         if (context.Request.ContentLength > 0)
@@ -69,11 +72,15 @@ public class ApiProxyMiddleware(RequestDelegate next)
     {
         context.Response.StatusCode = (int)response.StatusCode;
         
-        foreach (var header in response.Headers)
+        foreach (KeyValuePair<string, IEnumerable<string>> header in response.Headers)
+        {
             context.Response.Headers[header.Key] = header.Value.ToArray();
+        }
         
-        foreach (var header in response.Content.Headers)
+        foreach (KeyValuePair<string, IEnumerable<string>> header in response.Content.Headers)
+        {
             context.Response.Headers[header.Key] = header.Value.ToArray();
+        }
         
         await response.Content.CopyToAsync(context.Response.Body);
     }
@@ -88,8 +95,6 @@ public class ApiProxyMiddleware(RequestDelegate next)
 
 public static class ApiProxyMiddlewareExtensions
 {
-    public static IApplicationBuilder UseApiProxy(this IApplicationBuilder builder)
-    {
-        return builder.UseMiddleware<ApiProxyMiddleware>();
-    }
+    public static IApplicationBuilder UseApiProxy(this IApplicationBuilder builder) =>
+        builder.UseMiddleware<ApiProxyMiddleware>();
 }

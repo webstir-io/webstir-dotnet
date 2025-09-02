@@ -48,20 +48,20 @@ class Program
     
     private static TestOptions ParseArguments(string[] args)
     {
-        var options = new TestOptions();
+        TestOptions options = new TestOptions();
         
-        for (int i = 0; i < args.Length; i++)
+        for (int index = 0; index < args.Length; index++)
         {
-            switch (args[i].ToLowerInvariant())
+            switch (args[index].ToLowerInvariant())
             {
                 case "help" or "--help" or "-h":
                     options.ShowHelp = true;
                     break;
                 case "test":
                     // Take only the next argument as the test suite name
-                    if (i + 1 < args.Length)
+                    if (index + 1 < args.Length)
                     {
-                        options.TestSuites.Add(args[++i]);
+                        options.TestSuites.Add(args[++index]);
                     }
                     break;
                 default:

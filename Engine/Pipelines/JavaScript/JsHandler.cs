@@ -6,15 +6,15 @@ namespace Engine.Pipelines.JavaScript;
 
 public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bundler)
 {
-    public async Task BuildAsync()
+    public Task BuildAsync()
     {
         builder.Build();
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
-    public async Task PublishAsync() => await bundler.BundleAsync();
+    public Task PublishAsync() => bundler.BundleAsync();
 
-    public async Task AddPageAsync(string pageName)
+    public Task AddPageAsync(string pageName)
     {
         string pageDirectory = workspace.ClientPagesPath.CreateSubDirectory(pageName);
         string tsFilePath = pageDirectory.Combine($"{Files.Index}.ts");
@@ -25,7 +25,6 @@ public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bund
             """;
         
         File.WriteAllText(tsFilePath, tsContent);
-        
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }

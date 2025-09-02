@@ -9,6 +9,8 @@ public class JsModuleGraph
 
     public void AddModule(string filePath, JsModuleInfo moduleInfo, IEnumerable<string> resolvedDependencies)
     {
+        ArgumentNullException.ThrowIfNull(moduleInfo);
+        ArgumentNullException.ThrowIfNull(resolvedDependencies);
         _moduleInfos[filePath] = moduleInfo;
         
         if (!_nodes.TryGetValue(filePath, out JsModuleNode? node))
@@ -59,7 +61,9 @@ public class JsModuleGraph
         foreach (string module in _nodes.Keys)
         {
             if (!visited.Contains(module))
+            {
                 FindCyclesRecursive(module, visited, recursionStack, currentPath, cycles);
+            }
         }
 
         return cycles;
@@ -96,20 +100,11 @@ public class JsModuleGraph
         recursionStack.Remove(module);
     }
     
-    public IEnumerable<string> GetEntryPoints()
-    {
-        return _nodes.Where(n => n.Value.IsEntryPoint).Select(n => n.Key);
-    }
+    public IEnumerable<string> GetEntryPoints() => _nodes.Where(n => n.Value.IsEntryPoint).Select(n => n.Key);
     
-    public JsModuleNode? GetModule(string filePath)
-    {
-        return _nodes.TryGetValue(filePath, out JsModuleNode? node) ? node : null;
-    }
+    public JsModuleNode? GetModule(string filePath) => _nodes.TryGetValue(filePath, out JsModuleNode? node) ? node : null;
     
-    public JsModuleInfo? GetModuleInfo(string filePath)
-    {
-        return _moduleInfos.TryGetValue(filePath, out JsModuleInfo? info) ? info : null;
-    }
+    public JsModuleInfo? GetModuleInfo(string filePath) => _moduleInfos.TryGetValue(filePath, out JsModuleInfo? info) ? info : null;
     
     public List<JsCircularDependency> FindCircularDependencies()
     {
@@ -131,7 +126,9 @@ public class JsModuleGraph
     private static string BuildCyclePath(List<string> cycle)
     {
         if (cycle.Count == 0)
+        {
             return string.Empty;
+        }
 
         List<string> relativePaths = [.. cycle.Select(GetRelativePath)];
         return string.Join(" → ", relativePaths);
@@ -143,17 +140,23 @@ public class JsModuleGraph
         int srcIndex = fullPath.IndexOf(srcFolder, StringComparison.OrdinalIgnoreCase);
         
         if (srcIndex >= 0)
+        {
             return fullPath[(srcIndex + 1)..];
+        }
         
         return Path.GetFileName(fullPath);
     }
 
     public static async Task<JsModuleGraph> BuildAsync(JsModuleResolver resolver, params string[] entryPoints)
     {
+        ArgumentNullException.ThrowIfNull(resolver);
+        ArgumentNullException.ThrowIfNull(entryPoints);
         JsModuleGraph graph = new();
         
         if (entryPoints.Length == 0)
+        {
             return graph;
+        }
         
         HashSet<string> processedFiles = [];
         
@@ -171,7 +174,9 @@ public class JsModuleGraph
     private static async Task ProcessModuleAsync(JsModuleGraph graph, JsModuleResolver resolver, HashSet<string> processedFiles, string filePath, bool isEntryPoint = false)
     {
         if (!processedFiles.Add(filePath))
+        {
             return;
+        }
         
         string content = await File.ReadAllTextAsync(filePath);
         JsModuleInfo moduleInfo = JsModuleParser.ParseModule(filePath, content);
@@ -186,14 +191,18 @@ public class JsModuleGraph
             import.ResolvedPath = resolvedPath;
             resolvedDependencies.Add(resolvedPath);
             
-            if (!resolvedPath.Contains(Folders.NodeModules) && !processedFiles.Contains(resolvedPath))
+            if (!resolvedPath.Contains(Folders.NodeModules, StringComparison.Ordinal) && !processedFiles.Contains(resolvedPath))
+            {
                 dependencyTasks.Add(ProcessModuleAsync(graph, resolver, processedFiles, resolvedPath));
+            }
         }
         
         graph.AddModule(filePath, moduleInfo, resolvedDependencies);
         
         if (isEntryPoint)
+        {
             graph.MarkAsEntryPoint(filePath);
+        }
         
         await Task.WhenAll(dependencyTasks);
     }

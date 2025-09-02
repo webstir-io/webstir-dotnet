@@ -11,18 +11,19 @@ public class Runner(IServiceProvider serviceProvider)
         
     public async Task Run(string[] args)
     {
-        var command = args.Length != 0
+        ArgumentNullException.ThrowIfNull(args);
+        string command = args.Length != 0
             ? args.First()
             : string.Empty;
 
         if (IsHelpRequested(command, args))
             return;
 
-        var workingPath = Directory.GetCurrentDirectory();
-        var workflowArgs = args;
+        string workingPath = Directory.GetCurrentDirectory();
+        string[] workflowArgs = args;
 
-        using var scope = serviceProvider.CreateScope();
-        _workspace = scope.ServiceProvider.GetRequiredService<Engine.AppWorkspace>();
+        using IServiceScope scope = serviceProvider.CreateScope();
+        _workspace = scope.ServiceProvider.GetRequiredService<AppWorkspace>();
         _workflowFactory = scope.ServiceProvider.GetRequiredService<IWorkflowFactory>();
         _workspace.Initialize(workingPath);
 
@@ -32,7 +33,7 @@ public class Runner(IServiceProvider serviceProvider)
 
     private static bool IsHelpRequested(string command, string[] args)
     {
-        if (command == Commands.Help || command == HelpOptions.Help || command == HelpOptions.HelpShort)
+        if (command is Commands.Help or HelpOptions.Help or HelpOptions.HelpShort)
         {
             if (args.Length > 1 && command == Commands.Help)
                 Help.ShowCommandHelp(args[1]);
@@ -41,7 +42,7 @@ public class Runner(IServiceProvider serviceProvider)
             return true;
         }
 
-        if (args.Length > 1 && (args[1] == HelpOptions.Help || args[1] == HelpOptions.HelpShort))
+        if (args.Length > 1 && args[1] is HelpOptions.Help or HelpOptions.HelpShort)
         {
             Help.ShowCommandHelp(command);
             return true;
@@ -52,8 +53,10 @@ public class Runner(IServiceProvider serviceProvider)
 
     private async Task ExecuteCommand(string command, string[] args)
     {
-        if (command == "")
+        if (command is "")
+        {
             command = Commands.Watch;
+        }
         
         await _workflowFactory.ExecuteAsync(command, args);
     }

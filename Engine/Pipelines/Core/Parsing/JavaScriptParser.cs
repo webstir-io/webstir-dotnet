@@ -1,5 +1,3 @@
-using Engine.Pipelines.Core;
-
 namespace Engine.Pipelines.Core.Parsing;
 
 public class JavaScriptParser
@@ -24,10 +22,16 @@ public class JavaScriptParser
         {
             if (Match(TokenType.Import))
             {
-                var imp = ParseImport();
-                if (imp != null) list.Add(imp);
+                ImportDeclaration? imp = ParseImport();
+                if (imp != null)
+                {
+                    list.Add(imp);
+                }
             }
-            else Advance();
+            else
+            {
+                Advance();
+            }
         }
         return list;
     }
@@ -40,10 +44,16 @@ public class JavaScriptParser
         {
             if (Match(TokenType.Export))
             {
-                var ex = ParseExport();
-                if (ex != null) list.Add(ex);
+                ExportDeclaration? ex = ParseExport();
+                if (ex != null)
+                {
+                    list.Add(ex);
+                }
             }
-            else Advance();
+            else
+            {
+                Advance();
+            }
         }
         return list;
     }
@@ -61,16 +71,32 @@ public class JavaScriptParser
             {
                 string src = StripQuotes(Advance().Value);
                 // consume until ')'
-                while (!IsAtEnd() && !Match(TokenType.CloseParen)) Advance();
+                while (!IsAtEnd() && !Match(TokenType.CloseParen))
+                {
+                    Advance();
+                }
                 return new ImportDeclaration { Source = src, IsDynamic = true, Line = tImport.Line, Column = tImport.Column };
             }
             return null;
+        }
+
+        // import type { X } from 'mod' — ignore for runtime graph
+        bool typeOnly = false;
+        if (Check(TokenType.Identifier) && Current().Value == "type")
+        {
+            typeOnly = true;
+            Advance();
+            SkipTrivia();
         }
 
         // side-effect import: import "x";
         if (Check(TokenType.String))
         {
             string src = StripQuotes(Advance().Value);
+            if (typeOnly)
+            {
+                return null;
+            }
             return new ImportDeclaration { Source = src, IsSideEffect = true, Line = tImport.Line, Column = tImport.Column };
         }
 
@@ -79,7 +105,9 @@ public class JavaScriptParser
         if (Match(TokenType.Star))
         {
             if (Match(TokenType.As) && Check(TokenType.Identifier))
+            {
                 imp.NamespaceImport = Advance().Value;
+            }
         }
         else if (Check(TokenType.Identifier))
         {
@@ -111,6 +139,10 @@ public class JavaScriptParser
             return null;
         }
         imp.Source = StripQuotes(Advance().Value);
+        if (typeOnly)
+        {
+            return null;
+        }
         return imp;
     }
 
@@ -125,10 +157,15 @@ public class JavaScriptParser
                 string imported = Advance().Value;
                 string local = imported;
                 if (Match(TokenType.As) && Check(TokenType.Identifier))
+                {
                     local = Advance().Value;
+                }
                 list.Add(new NamedImport { Imported = imported, Local = local });
             }
-            if (!Match(TokenType.Comma)) break;
+            if (!Match(TokenType.Comma))
+            {
+                break;
+            }
         }
         return list;
     }
@@ -144,10 +181,21 @@ public class JavaScriptParser
             return new ExportDeclaration { IsDefault = true, Line = tExport.Line, Column = tExport.Column };
         }
 
-        // export * from "x"
+        // export * as NS from "x" OR export * from "x"
         if (Match(TokenType.Star))
         {
             SkipTrivia();
+            if (Match(TokenType.As) && Check(TokenType.Identifier))
+            {
+                string ns = Advance().Value;
+                SkipTrivia();
+                if (Match(TokenType.From) && Check(TokenType.String))
+                {
+                    return new ExportDeclaration { Source = StripQuotes(Advance().Value), IsReExport = true, Line = tExport.Line, Column = tExport.Column, Namespace = ns };
+                }
+                return null;
+            }
+
             if (Match(TokenType.From) && Check(TokenType.String))
             {
                 return new ExportDeclaration { Source = StripQuotes(Advance().Value), IsReExport = true, Line = tExport.Line, Column = tExport.Column, All = true };
@@ -166,10 +214,15 @@ public class JavaScriptParser
                     string name = Advance().Value;
                     // optional "as local"; export surface is still the local
                     if (Match(TokenType.As) && Check(TokenType.Identifier))
+                    {
                         name = Advance().Value;
+                    }
                     names.Add(name);
                 }
-                if (!Match(TokenType.Comma)) break;
+                if (!Match(TokenType.Comma))
+                {
+                    break;
+                }
             }
             Match(TokenType.CloseBrace);
             SkipTrivia();
@@ -187,19 +240,21 @@ public class JavaScriptParser
 
     private void SkipTrivia()
     {
-        while (Match(TokenType.Whitespace, TokenType.Newline, TokenType.SingleLineComment, TokenType.MultiLineComment)) { }
+        while (Match(TokenType.Whitespace, TokenType.Newline, TokenType.SingleLineComment, TokenType.MultiLineComment))
+        {
+        }
     }
 
     private bool Match(params TokenType[] types)
     {
-        foreach (var t in types)
+        foreach (TokenType tokenType in types)
         {
-            if (Check(t)) { Advance(); return true; }
+            if (Check(tokenType)) { Advance(); return true; }
         }
         return false;
     }
 
-    private bool Check(TokenType t) => !IsAtEnd() && Current().Type == t;
+    private bool Check(TokenType type) => !IsAtEnd() && Current().Type == type;
     private Token Advance() => _tokens[_current++];
     private Token Current() => _tokens[_current];
     private Token Previous() => _tokens[_current - 1];
@@ -225,13 +280,18 @@ public class ImportDeclaration
     public int Column { get; set; }
 }
 
-public class NamedImport { public required string Imported { get; set; } public required string Local { get; set; } }
+public class NamedImport
+{
+    public required string Imported { get; set; }
+    public required string Local { get; set; }
+}
 
 public class ExportDeclaration
 {
     public bool IsDefault { get; set; }
     public bool IsReExport { get; set; }
     public bool All { get; set; }
+    public string? Namespace { get; set; }
     public List<string>? Named { get; set; }
     public string? Source { get; set; }
     public int Line { get; set; }

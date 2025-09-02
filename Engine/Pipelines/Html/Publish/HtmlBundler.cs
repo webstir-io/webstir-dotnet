@@ -6,16 +6,15 @@ namespace Engine.Pipelines.Html.Publish;
 public class HtmlBundler(AppWorkspace workspace)
 {
     
-    public async Task BundleAsync()
-    {
-        await BundlePageHtmlAsync();
-    }
+    public async Task BundleAsync() => await BundlePageHtmlAsync();
     
     private async Task BundlePageHtmlAsync()
     {
         string pagesPath = workspace.ClientBuildPath.Combine(Folders.Pages);
         if (!pagesPath.Exists())
+        {
             return;
+        }
         
         foreach (string pageDir in pagesPath.Folders())
         {
@@ -23,7 +22,9 @@ public class HtmlBundler(AppWorkspace workspace)
             string pageHtml = pageDir.Combine($"{Files.Index}{FileExtensions.Html}");
             
             if (!pageHtml.Exists())
+            {
                 continue;
+            }
             
             await ProcessHtmlFileAsync(pageHtml, pageName);
         }

@@ -10,6 +10,8 @@ public class JsModuleResolver(AppWorkspace workspace)
 
     public string? ResolvePath(string importPath, string fromFile)
     {
+        ArgumentNullException.ThrowIfNull(importPath);
+        ArgumentNullException.ThrowIfNull(fromFile);
         if (importPath.StartsWith(Prefixes.Relative) || importPath.StartsWith(Prefixes.ParentRelative))
             return ResolveRelativePath(importPath, fromFile);
         

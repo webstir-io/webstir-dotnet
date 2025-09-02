@@ -34,10 +34,8 @@ This document captures time‑boxed, feature‑specific agreements for the curre
 - Dev: no‑cache headers; Prod: long‑cache for fingerprinted assets.
 
 ## Validation
-- Add fixtures that cover import/export forms, comments, strings with escapes, template literals; and CSS `@import` with `url()` and media.
-- Smoke test on sample pages; compare outputs before/after tokenizer swap‑in.
+- Ensure import/export and `@import` are identified correctly across typical cases (comments, escapes, whitespace).
 
 ## Out of Scope (v1)
 - JSX handling; React/Next integrations; SSR.
 - CommonJS interop.
-

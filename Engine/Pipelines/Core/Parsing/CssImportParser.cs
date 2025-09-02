@@ -4,28 +4,36 @@ public class CssImportParser
 {
     private readonly List<Token> _tokens;
     private readonly DiagnosticCollection _diagnostics;
+    private readonly string _filePath;
     private int _current;
 
     public CssImportParser(string code, string filePath, DiagnosticCollection? diagnostics = null)
     {
+        _filePath = filePath;
         _diagnostics = diagnostics ?? new DiagnosticCollection();
         _tokens = new Tokenizer(code, filePath, _diagnostics).Tokenize();
     }
 
     public List<CssImportRule> ParseImports()
     {
-        List<CssImportRule> list = [];
+        List<CssImportRule> imports = [];
         _current = 0;
         while (!IsAtEnd())
         {
             if (Match(TokenType.AtImport))
             {
-                var stmt = ParseImport();
-                if (stmt != null) list.Add(stmt);
+                CssImportRule? importRule = ParseImport();
+                if (importRule != null)
+                {
+                    imports.Add(importRule);
+                }
             }
-            else Advance();
+            else
+            {
+                Advance();
+            }
         }
-        return list;
+        return imports;
     }
 
     private CssImportRule? ParseImport()
@@ -40,24 +48,50 @@ public class CssImportParser
         else if (Check(TokenType.Identifier) && Current().Value == "url")
         {
             Advance();
-            if (Match(TokenType.OpenParen) && Check(TokenType.String))
+            if (Match(TokenType.OpenParen))
             {
-                path = StripQuotes(Advance().Value);
+                // Accept url('x.css') or url(x.css)
+                if (Check(TokenType.String))
+                {
+                    path = StripQuotes(Advance().Value);
+                }
+                else
+                {
+                    List<string> tokenBuffer = [];
+                    while (!Check(TokenType.CloseParen) && !IsAtEnd())
+                    {
+                        Token token = Current();
+                        if (token.Type is not TokenType.Whitespace and not TokenType.Newline and not TokenType.SingleLineComment and not TokenType.MultiLineComment)
+                        {
+                            tokenBuffer.Add(token.Value);
+                        }
+                        Advance();
+                    }
+                    string rawUrl = string.Join("", tokenBuffer).Trim();
+                    path = StripQuotes(rawUrl);
+                }
                 Match(TokenType.CloseParen);
             }
         }
-        if (path == null) return null;
+        if (path == null)
+        {
+            return null;
+        }
 
         // collect media tail until semicolon or EOF
-        List<string> parts = [];
+        List<string> mediaParts = [];
         while (!Check(TokenType.Semicolon) && !IsAtEnd())
         {
-            parts.Add(Current().Value);
+            mediaParts.Add(Current().Value);
             Advance();
         }
-        Match(TokenType.Semicolon);
+        bool hadSemicolon = Match(TokenType.Semicolon);
+        if (!hadSemicolon)
+        {
+            _diagnostics.AddError("Expected ';' after @import rule", _filePath, Current().Line, Current().Column);
+        }
 
-        string? media = parts.Count > 0 ? string.Join(" ", parts).Trim() : null;
+        string? media = mediaParts.Count > 0 ? string.Join(" ", mediaParts).Trim() : null;
         return new CssImportRule { Path = path, Media = string.IsNullOrWhiteSpace(media) ? null : media };
     }
 
@@ -66,18 +100,29 @@ public class CssImportParser
         while (Match(TokenType.Whitespace, TokenType.Newline, TokenType.SingleLineComment, TokenType.MultiLineComment)) { }
     }
 
-    private static string StripQuotes(string s)
+    private static string StripQuotes(string text)
     {
-        if (s.Length >= 2 && (s[0] == '"' || s[0] == '\'' || s[0] == '`')) return s[1..^1];
-        return s;
+        if (text.Length >= 2 && (text[0] == '"' || text[0] == '\'' || text[0] == '`'))
+        {
+            return text[1..^1];
+        }
+        return text;
     }
 
     private bool Match(params TokenType[] types)
     {
-        foreach (var t in types) if (Check(t)) { Advance(); return true; }
+        foreach (TokenType tokenType in types)
+        {
+            if (Check(tokenType))
+            {
+                Advance();
+                return true;
+            }
+        }
+
         return false;
     }
-    private bool Check(TokenType t) => !IsAtEnd() && Current().Type == t;
+    private bool Check(TokenType type) => !IsAtEnd() && Current().Type == type;
     private Token Advance() => _tokens[_current++];
     private Token Current() => _tokens[_current];
     private bool IsAtEnd() => Current().Type == TokenType.EndOfFile;

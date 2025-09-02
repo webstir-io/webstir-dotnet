@@ -7,10 +7,7 @@ public class AppWorkspace
 {
     private string _workingFolder = string.Empty;
 
-    public void Initialize(string workingFolder)
-    {
-        _workingFolder = workingFolder;
-    }
+    public void Initialize(string workingFolder) => _workingFolder = workingFolder;
 
     public string WorkingPath => Directory.CreateDirectory(_workingFolder).FullName;
     public string NodeModulesPath => WorkingPath.CreateSubDirectory(Folders.NodeModules);
@@ -39,11 +36,11 @@ public class AppWorkspace
 
     public ProjectMode DetectProjectMode()
     {
-        var clientPath = WorkingPath.Combine(Folders.Src, Folders.Client);
-        var serverPath = WorkingPath.Combine(Folders.Src, Folders.Server);
+        string clientPath = WorkingPath.Combine(Folders.Src, Folders.Client);
+        string serverPath = WorkingPath.Combine(Folders.Src, Folders.Server);
 
-        var hasClientDir = Directory.Exists(clientPath);
-        var hasServerDir = Directory.Exists(serverPath);
+        bool hasClientDir = Directory.Exists(clientPath);
+        bool hasServerDir = Directory.Exists(serverPath);
 
         return (hasClientDir, hasServerDir) switch
         {

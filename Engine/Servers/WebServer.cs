@@ -39,13 +39,14 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
 
     public async Task StartAsync(AppWorkspace workspace)
     {
+        ArgumentNullException.ThrowIfNull(workspace);
         if (!workspace.ClientBuildPath.Exists())
         {
             logger.LogWarning("Client build path does not exist. Skipping web server.");
             return;
         }
 
-        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        WebApplicationBuilder builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
             WebRootPath = workspace.ClientBuildPath
         });
@@ -75,7 +76,7 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
         })];
         await Task.WhenAll(tasks);
         
-        foreach (var client in _sseClients.ToList())
+        foreach (HttpContext client in _sseClients.ToList())
         {
             try { client.Abort(); }
             catch { }
@@ -95,7 +96,7 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
         string message = "data: reload\n\n";
         byte[] bytes = Encoding.UTF8.GetBytes(message);
         
-        foreach (var client in _sseClients.ToList())
+        foreach (HttpContext client in _sseClients.ToList())
         {
             try
             {

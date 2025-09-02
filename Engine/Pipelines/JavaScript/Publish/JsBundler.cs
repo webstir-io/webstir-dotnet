@@ -7,16 +7,15 @@ public class JsBundler(AppWorkspace workspace)
 {
     private readonly JsModuleResolver _resolver = new(workspace);
     
-    public async Task BundleAsync()
-    {
-        await BundlePageScriptsAsync();
-    }
+    public async Task BundleAsync() => await BundlePageScriptsAsync();
     
     private async Task BundlePageScriptsAsync()
     {
         string pagesPath = workspace.ClientBuildPath.Combine(Folders.Pages);
         if (!pagesPath.Exists())
+        {
             return;
+        }
         
         foreach (string pageDir in pagesPath.Folders())
         {
@@ -24,7 +23,9 @@ public class JsBundler(AppWorkspace workspace)
             string pageScript = pageDir.Combine($"{Files.Index}{FileExtensions.Js}");
             
             if (!pageScript.Exists())
+            {
                 continue;
+            }
             
             JsModuleGraph graph = await JsModuleGraph.BuildAsync(_resolver, pageScript);
             List<JsModuleInfo> modules = GetModulesInOrder(graph);
@@ -44,7 +45,9 @@ public class JsBundler(AppWorkspace workspace)
         HashSet<string> visited = [];
         
         foreach (string entryPoint in graph.GetEntryPoints())
+        {
             VisitModule(entryPoint, graph, visited, result);
+        }
 
         return result;
     }
@@ -52,14 +55,20 @@ public class JsBundler(AppWorkspace workspace)
     private static void VisitModule(string modulePath, JsModuleGraph graph, HashSet<string> visited, List<JsModuleInfo> result)
     {
         if (!visited.Add(modulePath))
+        {
             return;
+        }
         
         JsModuleNode? node = graph.GetModule(modulePath);
         if (node?.Info == null)
+        {
             return;
+        }
         
         foreach (string dependency in node.Dependencies)
+        {
             VisitModule(dependency, graph, visited, result);
+        }
         
         result.Add(node.Info);
     }
@@ -67,19 +76,21 @@ public class JsBundler(AppWorkspace workspace)
     private static string ConcatenateModules(List<JsModuleInfo> modules, JsModuleGraph graph)
     {
         Dictionary<string, int> moduleIdMap = [];
-        for (int i = 0; i < modules.Count; i++)
-            moduleIdMap[modules[i].FilePath] = i;
+        for (int moduleIndex = 0; moduleIndex < modules.Count; moduleIndex++)
+        {
+            moduleIdMap[modules[moduleIndex].FilePath] = moduleIndex;
+        }
         
         List<string> transformedModules = [];
         HashSet<string> usedExports = JsTreeShaker.AnalyzeUsage(graph);
         
-        for (int i = 0; i < modules.Count; i++)
+        for (int moduleIndex = 0; moduleIndex < modules.Count; moduleIndex++)
         {
-            JsTransformedModule transformed = JsTransformer.Transform(modules[i], i, moduleIdMap);
+            JsTransformedModule transformed = JsTransformer.Transform(modules[moduleIndex], moduleIndex, moduleIdMap);
             transformed = new JsTransformedModule
             {
                 Id = transformed.Id,
-                Code = JsTransformer.RemoveUnusedCode(transformed.Code, modules[i], usedExports),
+                Code = JsTransformer.RemoveUnusedCode(transformed.Code, modules[moduleIndex], usedExports),
                 SourceMap = transformed.SourceMap
             };
             

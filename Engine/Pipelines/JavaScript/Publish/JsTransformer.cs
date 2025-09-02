@@ -1,6 +1,6 @@
-using Engine.Pipelines.JavaScript.Models;
 using System.Text;
 using System.Text.RegularExpressions;
+using Engine.Pipelines.JavaScript.Models;
 
 namespace Engine.Pipelines.JavaScript.Publish;
 
@@ -9,6 +9,8 @@ public static class JsTransformer
     // Module transformation
     public static JsTransformedModule Transform(JsModuleInfo module, int moduleId, Dictionary<string, int> moduleIdMap)
     {
+        ArgumentNullException.ThrowIfNull(module);
+        ArgumentNullException.ThrowIfNull(moduleIdMap);
         StringBuilder output = new();
         
         output.AppendLine($"{Js.CommentPrefix} Module {moduleId}: {module.FilePath}");
@@ -23,10 +25,14 @@ public static class JsTransformer
         string code = output.ToString();
         
         if (CanHoist(module))
+        {
             code = HoistScope(code, moduleId);
+        }
         
         if (HasUnusedExports(module, []))
+        {
             code = RemoveUnusedCode(code, module, []);
+        }
         
         return new JsTransformedModule
         {
@@ -41,16 +47,24 @@ public static class JsTransformer
         foreach (JsImportStatement import in imports)
         {
             if (import.ResolvedPath == null || !moduleIdMap.TryGetValue(import.ResolvedPath, out int sourceModuleId))
+            {
                 continue;
+            }
             
             if (import.DefaultSpecifier != null)
+            {
                 output.AppendLine($"  {Js.Const} {import.DefaultSpecifier}{Syntax.Assignment}{Js.GetModuleDefault(sourceModuleId)}{Syntax.Semicolon}");
+            }
             
             foreach (string specifier in import.Specifiers)
+            {
                 output.AppendLine($"  {Js.Const} {specifier}{Syntax.Assignment}{Js.GetModuleExport(sourceModuleId, specifier)}{Syntax.Semicolon}");
+            }
             
             if (import.NamespaceSpecifier != null)
+            {
                 output.AppendLine($"  {Js.Const} {import.NamespaceSpecifier}{Syntax.Assignment}{Js.GetModuleVar(sourceModuleId)}{Syntax.Semicolon}");
+            }
         }
     }
     
@@ -65,10 +79,14 @@ public static class JsTransformer
         foreach (JsExportStatement export in exports)
         {
             if (export.IsDefault)
+            {
                 output.AppendLine($"  {Js.Var} {Js.GetModuleDefault(moduleId)}{Syntax.Assignment}undefined{Syntax.Semicolon}");
+            }
 
             foreach (string specifier in export.Specifiers)
+            {
                 output.AppendLine($"  {Js.Var} {Js.GetModuleExport(moduleId, specifier)}{Syntax.Assignment}{specifier}{Syntax.Semicolon}");
+            }
         }
     }
     
@@ -83,20 +101,28 @@ public static class JsTransformer
     // Scope hoisting
     public static bool CanHoist(JsModuleInfo module)
     {
+        ArgumentNullException.ThrowIfNull(module);
         if (HasSideEffects(module.Content))
+        {
             return false;
+        }
         
         if (HasDynamicImports(module.Content))
+        {
             return false;
+        }
         
         if (UsesModuleGlobals(module.Content))
+        {
             return false;
+        }
         
         return true;
     }
 
     public static string HoistScope(string code, int moduleId)
     {
+        ArgumentNullException.ThrowIfNull(code);
         string hoistedCode = RenameTopLevelDeclarations(code, moduleId);
         hoistedCode = RemoveModuleWrapper(hoistedCode);
         hoistedCode = OptimizeVariableDeclarations(hoistedCode);
@@ -106,39 +132,53 @@ public static class JsTransformer
 
     private static bool HasSideEffects(string code)
     {
-        if (code.Contains("console."))
+        if (code.Contains("console.", StringComparison.Ordinal))
+        {
             return true;
+        }
         
-        if (code.Contains("document."))
+        if (code.Contains("document.", StringComparison.Ordinal))
+        {
             return true;
+        }
         
-        if (code.Contains("window."))
+        if (code.Contains("window.", StringComparison.Ordinal))
+        {
             return true;
+        }
         
-        if (code.Contains("addEventListener"))
+        if (code.Contains("addEventListener", StringComparison.Ordinal))
+        {
             return true;
+        }
         
         return false;
     }
 
-    private static bool HasDynamicImports(string code)
-    {
-        return code.Contains("import(");
-    }
+    private static bool HasDynamicImports(string code) =>
+        code.Contains("import(", StringComparison.Ordinal);
 
     private static bool UsesModuleGlobals(string code)
     {
-        if (code.Contains("__filename"))
+        if (code.Contains("__filename", StringComparison.Ordinal))
+        {
             return true;
+        }
         
-        if (code.Contains("__dirname"))
+        if (code.Contains("__dirname", StringComparison.Ordinal))
+        {
             return true;
+        }
         
-        if (code.Contains("module."))
+        if (code.Contains("module.", StringComparison.Ordinal))
+        {
             return true;
+        }
         
-        if (code.Contains("exports."))
+        if (code.Contains("exports.", StringComparison.Ordinal))
+        {
             return true;
+        }
         
         return false;
     }
@@ -163,7 +203,9 @@ public static class JsTransformer
         
         string result = code;
         foreach (KeyValuePair<string, string> rename in renames)
+        {
             result = JsRegex.IdentifierBoundary(rename.Key).Replace(result, rename.Value);
+        }
 
         return result;
     }
@@ -171,7 +213,9 @@ public static class JsTransformer
     private static string RemoveModuleWrapper(string code)
     {
         if (code.StartsWith("(function()", StringComparison.Ordinal))
+        {
             code = ExtractWrappedContent(code);
+        }
         
         return code;
     }
@@ -182,7 +226,9 @@ public static class JsTransformer
         int endIndex = code.LastIndexOf('}');
         
         if (startIndex > 0 && endIndex > startIndex)
+        {
             return code[startIndex..endIndex].Trim();
+        }
         
         return code;
     }
@@ -204,7 +250,9 @@ public static class JsTransformer
         foreach (string line in lines)
         {
             if (IsVariableDeclaration(line))
+            {
                 pendingDeclarations.Add(line.Trim());
+            }
             else
             {
                 if (pendingDeclarations.Count > 0)
@@ -217,7 +265,9 @@ public static class JsTransformer
         }
         
         if (pendingDeclarations.Count > 0)
+        {
             result.Add(MergeDeclarations(pendingDeclarations));
+        }
         
         return string.Join('\n', result);
     }
@@ -233,7 +283,9 @@ public static class JsTransformer
     private static string MergeDeclarations(List<string> declarations)
     {
         if (declarations.Count == 1)
+        {
             return declarations[0];
+        }
         
         List<string> constDecls = [];
         List<string> letDecls = [];
@@ -241,37 +293,48 @@ public static class JsTransformer
         foreach (string decl in declarations)
         {
             if (decl.StartsWith("const ", StringComparison.Ordinal))
+            {
                 constDecls.Add(decl[6..].TrimEnd(';'));
+            }
             else if (decl.StartsWith("let ", StringComparison.Ordinal))
+            {
                 letDecls.Add(decl[4..].TrimEnd(';'));
+            }
         }
         
         List<string> merged = [];
         
         if (constDecls.Count > 0)
+        {
             merged.Add($"const {string.Join(", ", constDecls)};");
+        }
         
         if (letDecls.Count > 0)
+        {
             merged.Add($"let {string.Join(", ", letDecls)};");
+        }
         
         return string.Join('\n', merged);
     }
 
-    private static string RemoveUnusedVariables(string code)
-    {
-        return code;
-    }
+    private static string RemoveUnusedVariables(string code) => code;
     
     // Tree shaking
     public static bool HasUnusedExports(JsModuleInfo module, HashSet<string> usedExports)
     {
+        ArgumentNullException.ThrowIfNull(module);
+        ArgumentNullException.ThrowIfNull(usedExports);
         if (module.Exports.Count == 0)
+        {
             return false;
+        }
         
         foreach (JsExportStatement export in module.Exports)
         {
             if (!IsExportUsed(module.FilePath, export, usedExports))
+            {
                 return true;
+            }
         }
         
         return false;
@@ -279,15 +342,21 @@ public static class JsTransformer
 
     public static string RemoveUnusedCode(string code, JsModuleInfo module, HashSet<string> usedExports)
     {
+        ArgumentNullException.ThrowIfNull(module);
+        ArgumentNullException.ThrowIfNull(usedExports);
         HashSet<string> unusedExports = GetUnusedExports(module, usedExports);
         
         if (unusedExports.Count == 0)
+        {
             return code;
+        }
         
         string result = code;
         
         foreach (string exportName in unusedExports)
+        {
             result = RemoveExport(result, exportName);
+        }
         
         result = RemoveOrphanedCode(result);
         
@@ -297,7 +366,9 @@ public static class JsTransformer
     private static bool IsExportUsed(string modulePath, JsExportStatement export, HashSet<string> usedExports)
     {
         if (export.IsDefault)
+        {
             return usedExports.Contains($"{modulePath}:default");
+        }
         
         if (export.Specifiers.Count > 0)
         {
@@ -321,11 +392,15 @@ public static class JsTransformer
             if (!IsExportUsed(module.FilePath, export, usedExports))
             {
                 if (export.IsDefault)
+                {
                     unused.Add("default");
+                }
                 else if (export.Specifiers.Count > 0)
                 {
                     foreach (string name in export.Specifiers)
+                    {
                         unused.Add(name);
+                    }
                 }
             }
         }
@@ -362,6 +437,7 @@ public static class JsTransformer
     
     public static string Minify(string code)
     {
+        ArgumentNullException.ThrowIfNull(code);
         code = JsRegex.SingleLineComment().Replace(code, string.Empty);
         code = JsRegex.MultiLineComment().Replace(code, string.Empty);
         code = JsRegex.ExcessiveWhitespace().Replace(code, " ");

@@ -13,26 +13,28 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
 
     public int BuildOrder => 2;
 
-    public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack)
-    {
+    public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack) =>
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(Templates.ServerPath, workspace.ServerPath);
-    }
 
-    public async Task BuildAsync(string? changedFilePath = null)
+    public Task BuildAsync(string? changedFilePath = null)
     {
         if (!string.IsNullOrEmpty(changedFilePath) && !BuildHelpers.ContainsBuildFolder(changedFilePath, Folders.Server))
-            return;
+        {
+            return Task.CompletedTask;
+        }
 
-        var packageJsonPath = workspace.WorkingPath.Combine(Files.PackageJson);
+        string packageJsonPath = workspace.WorkingPath.Combine(Files.PackageJson);
         if (File.Exists(packageJsonPath))
+        {
             RunNpmInstall();
+        }
 
         CompileTypeScriptFiles();
 
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
-    public async Task PublishAsync()
+    public Task PublishAsync()
     {
         foreach (string jsFilepath in Directory.GetFiles(workspace.ServerBuildPath, "*.js", SearchOption.AllDirectories))
         {
@@ -46,15 +48,14 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
 
             File.WriteAllText(targetFilePath, jsContent);
         }
-
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     private void CompileTypeScriptFiles()
     {
-        var tsConfigPath = workspace.ServerPath.Combine(_tsConfigFile);
+        string tsConfigPath = workspace.ServerPath.Combine(_tsConfigFile);
 
-        var processInfo = new ProcessStartInfo
+        ProcessStartInfo processInfo = new()
         {
             FileName = "tsc",
             Arguments = $"-p \"{tsConfigPath}\"",
@@ -67,7 +68,7 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
         processInfo.Environment["API_PORT"] = _settings.ApiServerPort.ToString();
         processInfo.Environment["WEB_PORT"] = _settings.WebServerPort.ToString();
 
-        using var process = Process.Start(processInfo)
+        using Process process = Process.Start(processInfo)
             ?? throw new Exception("Failed to start TypeScript compiler process for server.");
 
         process.WaitForExit();
@@ -76,21 +77,25 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
         {
             string errors = process.StandardError.ReadToEnd();
             string output = process.StandardOutput.ReadToEnd();
-            var errorMessage = $"Server TypeScript compilation failed (Exit Code: {process.ExitCode})";
+            string errorMessage = $"Server TypeScript compilation failed (Exit Code: {process.ExitCode})";
             if (!string.IsNullOrWhiteSpace(errors))
+            {
                 errorMessage += $"\nErrors:\n{errors}";
+            }
             if (!string.IsNullOrWhiteSpace(output))
+            {
                 errorMessage += $"\nOutput:\n{output}";
+            }
             throw new Exception(errorMessage);
         }
     }
 
     private void RunNpmInstall()
     {
-        var packageLockPath = workspace.WorkingPath.Combine("package-lock.json");
-        var npmCommand = File.Exists(packageLockPath) ? "ci" : "install";
+        string packageLockPath = workspace.WorkingPath.Combine("package-lock.json");
+        string npmCommand = File.Exists(packageLockPath) ? "ci" : "install";
         
-        var processInfo = new ProcessStartInfo
+        ProcessStartInfo processInfo = new()
         {
             FileName = "npm",
             Arguments = npmCommand,
@@ -101,7 +106,7 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
             WorkingDirectory = workspace.WorkingPath
         };
 
-        using var process = Process.Start(processInfo)
+        using Process process = Process.Start(processInfo)
             ?? throw new Exception("Failed to start npm install process.");
 
         process.WaitForExit();
@@ -110,18 +115,22 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
         {
             string errors = process.StandardError.ReadToEnd();
             string output = process.StandardOutput.ReadToEnd();
-            var errorMessage = $"npm install failed (Exit Code: {process.ExitCode})";
+            string errorMessage = $"npm install failed (Exit Code: {process.ExitCode})";
             if (!string.IsNullOrWhiteSpace(errors))
+            {
                 errorMessage += $"\nErrors:\n{errors}";
+            }
             if (!string.IsNullOrWhiteSpace(output))
+            {
                 errorMessage += $"\nOutput:\n{output}";
+            }
             throw new Exception(errorMessage);
         }
     }
 
     private static string RemoveJavaScriptComments(string js)
     {
-        var singleLinePattern = @"(?<!:)//.*$";
+        string singleLinePattern = @"(?<!:)//.*$";
         js = System.Text.RegularExpressions.Regex.Replace(
             js, 
             singleLinePattern, 
@@ -129,10 +138,10 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
             System.Text.RegularExpressions.RegexOptions.Multiline
         );
         
-        var multiLinePattern = @"/\*[\s\S]*?\*/";
+        string multiLinePattern = @"/\*[\s\S]*?\*/";
         js = System.Text.RegularExpressions.Regex.Replace(js, multiLinePattern, string.Empty);
         
-        var emptyLinePattern = @"^\s*\r?\n";
+        string emptyLinePattern = @"^\s*\r?\n";
         js = System.Text.RegularExpressions.Regex.Replace(
             js, 
             emptyLinePattern, 
@@ -143,8 +152,5 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
         return js.Trim();
     }
 
-    public async Task AddPageAsync(string pageName)
-    {
-        await Task.CompletedTask;
-    }
+    public Task AddPageAsync(string pageName) => Task.CompletedTask;
 }

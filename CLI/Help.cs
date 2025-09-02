@@ -5,9 +5,8 @@ namespace CLI;
 
 public static class Help
 {
-    private static readonly Dictionary<string, CommandHelp> AppCommands = new()
+    private static readonly Dictionary<string, CommandHelp> AppCommands = new(StringComparer.OrdinalIgnoreCase)
     {
-    
         [Commands.Init] = GetInitCommand(),
         [Commands.AddPage] = GetAddPageCommand(),
         [Commands.Build] = GetBuildCommand(),
@@ -24,8 +23,8 @@ public static class Help
         CommandOption[]? options = null,
         string? usageParams = null)
     {
-        var usage = usageParams != null 
-            ? $"{App.Name} {name} {usageParams}" 
+        string usage = usageParams != null
+            ? $"{App.Name} {name} {usageParams}"
             : $"{App.Name} {name}";
 
         return new CommandHelp
@@ -38,14 +37,14 @@ public static class Help
         };
     }
 
-    private static CommandOption Option(string name, string description) => 
+    private static CommandOption Option(string name, string description) =>
         new() { Name = name, Description = description };
 
-    private static string Example(string command, string description) => 
+    private static string Example(string command, string description) =>
         $"{command,-40}# {description}";
 
     private static CommandHelp GetInitCommand() =>
-        CreateCommand(Commands.Init, 
+        CreateCommand(Commands.Init,
             $"Initialize a new {App.Name} project",
             [
                 Example($"{App.Name} {Commands.Init}", "Create a full-stack project (default)"),
@@ -59,7 +58,7 @@ public static class Help
             "[options]");
 
     private static CommandHelp GetAddPageCommand() =>
-        CreateCommand(Commands.AddPage, 
+        CreateCommand(Commands.AddPage,
             "Add a new page to your project",
             [
                 Example($"{App.Name} {Commands.AddPage} about", "Create a new about page")
@@ -68,7 +67,7 @@ public static class Help
             "<page-name>");
 
     private static CommandHelp GetBuildCommand() =>
-        CreateCommand(Commands.Build, 
+        CreateCommand(Commands.Build,
             "Build the project once",
             [
                 Example($"{App.Name} {Commands.Build}", "Build the project"),
@@ -81,7 +80,7 @@ public static class Help
             "[options]");
 
     private static CommandHelp GetWatchCommand() =>
-        CreateCommand(Commands.Watch, 
+        CreateCommand(Commands.Watch,
             "Build and watch for changes (default)",
             [
                 Example($"{App.Name} {Commands.Watch}", "Start development server with hot reload"),
@@ -90,14 +89,14 @@ public static class Help
             ]);
 
     private static CommandHelp GetPublishCommand() =>
-        CreateCommand(Commands.Publish, 
+        CreateCommand(Commands.Publish,
             "Create production build",
             [
                 Example($"{App.Name} {Commands.Publish}", "Create optimized production build")
             ]);
 
     private static CommandHelp GetHelpCommand() =>
-        CreateCommand(Commands.Help, 
+        CreateCommand(Commands.Help,
             "Show help information",
             [
                 Example($"{App.Name} {Commands.Help}", "Show general help"),
@@ -107,7 +106,7 @@ public static class Help
             "[command]");
 
     private static CommandHelp GetDemoCommand() =>
-        CreateCommand(Commands.Demo, 
+        CreateCommand(Commands.Demo,
             "Create a demo application showcasing all webstir features",
             [
                 Example($"{App.Name} {Commands.Demo}", "Create a demo app in the current directory"),
@@ -124,7 +123,7 @@ public static class Help
         Console.WriteLine();
         Console.WriteLine("Commands:");
         
-        foreach (var cmd in AppCommands.Values.OrderBy(c => c.Name))
+        foreach (CommandHelp cmd in AppCommands.Values.OrderBy(c => c.Name))
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.Write($"  {cmd.Name,-12}");
@@ -148,7 +147,12 @@ public static class Help
 
     public static void ShowCommandHelp(string commandName)
     {
-        if (!AppCommands.TryGetValue(commandName.ToLower(), out var command))
+        if (commandName is null)
+        {
+            throw new ArgumentNullException(nameof(commandName));
+        }
+
+        if (!AppCommands.TryGetValue(commandName, out CommandHelp? command))
         {
             Console.WriteLine($"Unknown command '{commandName}'");
             Console.WriteLine();
@@ -164,7 +168,7 @@ public static class Help
         {
             Console.WriteLine();
             Console.WriteLine("Options:");
-            foreach (var option in command.Options)
+            foreach (CommandOption option in command.Options)
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.Write($"  {option.Name,-18}");
@@ -177,7 +181,7 @@ public static class Help
         {
             Console.WriteLine();
             Console.WriteLine("Examples:");
-            foreach (var example in command.Examples)
+            foreach (string example in command.Examples)
             {
                 Console.ForegroundColor = ConsoleColor.Gray;
                 Console.WriteLine($"  {example}");

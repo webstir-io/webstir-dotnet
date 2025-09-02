@@ -1,0 +1,68 @@
+root = true
+
+[*.cs]
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+charset = utf-8
+end_of_line = lf
+trim_trailing_whitespace = true
+
+# Bracing and formatting
+csharp_new_line_before_open_brace = all
+csharp_preserve_single_line_blocks = false
+csharp_preserve_single_line_statements = false
+
+csharp_style_var_for_built_in_types = false:warning
+csharp_style_var_when_type_is_apparent = false:warning
+csharp_style_var_elsewhere = false:warning
+
+# Expression-bodied members
+csharp_style_expression_bodied_methods = when_on_single_line:warning
+csharp_style_expression_bodied_properties = when_on_single_line:warning
+csharp_style_expression_bodied_indexers = when_on_single_line:warning
+csharp_style_expression_bodied_constructors = false:warning
+
+# Pattern matching
+csharp_style_pattern_matching_over_is_with_cast_check = true:warning
+csharp_style_pattern_matching_over_as_with_null_check = true:warning
+csharp_style_prefer_switch_expression = true:warning
+csharp_style_prefer_pattern_matching = true:warning
+
+# Nullability
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_diagnostic.CA1062.severity = warning   # Validate arguments against null
+
+# Naming
+dotnet_naming_rule.interfaces_should_start_with_i.severity = warning
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_symbols.interfaces.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
+dotnet_naming_symbols.interfaces.required_prefix = I
+dotnet_naming_style.interface_prefix_style.capitalization = pascal_case
+dotnet_naming_style.interface_prefix_style.required_prefix = I
+dotnet_naming_rule.interfaces_should_start_with_i.symbols = interfaces
+dotnet_naming_rule.interfaces_should_start_with_i.style = interface_prefix_style
+
+# Usings
+dotnet_diagnostic.IDE0005.severity = warning   # Remove unnecessary usings
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = true
+
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_prefer_null_propagation = true:warning
+csharp_style_prefer_null_coalescing_expression = true:warning
+csharp_style_implicit_object_creation_when_type_is_apparent = true:warning
+csharp_style_prefer_primary_constructors = true:warning
+
+# Async
+dotnet_diagnostic.IDE0047.severity = warning   # Braces required
+dotnet_diagnostic.IDE0048.severity = warning   # Braces required for if/else
+
+# Collections
+csharp_style_prefer_collection_expression = true:warning
+dotnet_diagnostic.IDE0028.severity = warning   # Simplify collection initialization
+dotnet_diagnostic.IDE0305.severity = warning   # Use collection expressions
+
+# General formatting
+csharp_style_allow_blank_line_after_colon_in_constructor_initializer = false:warning
+csharp_style_allow_blank_lines_between_consecutive_braces = false:warning

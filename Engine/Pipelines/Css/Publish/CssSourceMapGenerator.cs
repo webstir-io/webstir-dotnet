@@ -12,19 +12,20 @@ public class SourceMapGenerator
 
     public void AddModule(CssModule module, int startLine, int startColumn)
     {
+        ArgumentNullException.ThrowIfNull(module);
         int sourceIndex = _sources.Count;
         _sources.Add(GetRelativePath(module.FilePath));
         _sourcesContent.Add(module.Content);
 
         string[] lines = module.Content.Split('\n');
-        for (int i = 0; i < lines.Length; i++)
+        for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++)
         {
             _mappings.Add(new CssMapping
             {
-                GeneratedLine = startLine + i,
-                GeneratedColumn = i == 0 ? startColumn : 0,
+                GeneratedLine = startLine + lineIndex,
+                GeneratedColumn = lineIndex == 0 ? startColumn : 0,
                 SourceIndex = sourceIndex,
-                OriginalLine = i,
+                OriginalLine = lineIndex,
                 OriginalColumn = 0
             });
         }

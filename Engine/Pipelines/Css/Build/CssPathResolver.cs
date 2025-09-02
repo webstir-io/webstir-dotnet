@@ -12,6 +12,9 @@ public static class CssPathResolver
     
     public static string ResolvePath(string path, string baseDirectory, string clientDirectory)
     {
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(baseDirectory);
+        ArgumentNullException.ThrowIfNull(clientDirectory);
         foreach (KeyValuePair<string, string> ns in NamespaceMap)
         {
             if (path.StartsWith(ns.Key))

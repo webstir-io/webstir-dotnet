@@ -8,6 +8,8 @@ public static class Transformer
     // CSS Modules Processing
     public static CssProcessedModule ProcessModule(string content, string filePath)
     {
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentNullException.ThrowIfNull(filePath);
         if (!filePath.EndsWith(Css.ModuleExt, StringComparison.OrdinalIgnoreCase))
             return new CssProcessedModule { Content = content, ClassMappings = [] };
 

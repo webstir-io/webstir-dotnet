@@ -8,10 +8,11 @@ public class WatchService(ChangeService changeService, ILogger<WatchService> log
     private readonly ILogger<WatchService> _logger = logger;
 
     private FileSystemWatcher? _watcher;
-    private readonly Dictionary<string, List<DateTime>> _pendingEvents = new();
+    private readonly Dictionary<string, List<DateTime>> _pendingEvents = new(StringComparer.Ordinal);
 
     public Task Watch(AppWorkspace workspace)
     {
+        ArgumentNullException.ThrowIfNull(workspace);
         StartFileWatching(workspace);
         return Task.CompletedTask;
     }
@@ -30,7 +31,7 @@ public class WatchService(ChangeService changeService, ILogger<WatchService> log
 
     private FileSystemWatcher CreateFileSystemWatcher(AppWorkspace workspace)
     {
-        var watcher = new FileSystemWatcher(workspace.SrcPath)
+        FileSystemWatcher watcher = new(workspace.SrcPath)
         {
             NotifyFilter = NotifyFilters.LastWrite,
             IncludeSubdirectories = true,
@@ -49,35 +50,32 @@ public class WatchService(ChangeService changeService, ILogger<WatchService> log
 
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
-        var fileInfo = new FileInfo(e.FullPath);
-        if (!fileInfo.Exists) return;
+        FileInfo fileInfo = new(e.FullPath);
+        if (!fileInfo.Exists)
+        {
+            return;
+        }
         
-        var currentTimestamp = fileInfo.LastWriteTime;
-        var pendingForFile = _pendingEvents.GetValueOrDefault(e.FullPath, []);
+        DateTime currentTimestamp = fileInfo.LastWriteTime;
+        List<DateTime> pendingForFile = _pendingEvents.GetValueOrDefault(e.FullPath, []);
     
         if (!pendingForFile.Contains(currentTimestamp))
         {
-            _changeService.EnqueueChange(e.FullPath, FileChangeType.Modified);            
+            _changeService.EnqueueChange(e.FullPath, FileChangeType.Modified);
             pendingForFile.Clear();
             pendingForFile.Add(currentTimestamp);
             _pendingEvents[e.FullPath] = pendingForFile;
         }
     }
 
-    private void OnCreated(object sender, FileSystemEventArgs e)
-    {
+    private void OnCreated(object sender, FileSystemEventArgs e) =>
         _changeService.EnqueueChange(e.FullPath, FileChangeType.Created);
-    }
 
-    private void OnDeleted(object sender, FileSystemEventArgs e)
-    {
+    private void OnDeleted(object sender, FileSystemEventArgs e) =>
         _changeService.EnqueueChange(e.FullPath, FileChangeType.Deleted);
-    }
 
-    private void OnRenamed(object sender, RenamedEventArgs e)
-    {
+    private void OnRenamed(object sender, RenamedEventArgs e) =>
         _changeService.EnqueueChange(e.FullPath, FileChangeType.Renamed);
-    }
 
     private void OnError(object sender, ErrorEventArgs e) =>
         LogException(e.GetException());

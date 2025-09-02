@@ -8,16 +8,15 @@ public class CssBundler(AppWorkspace workspace)
 {
     private readonly CssModuleGraph _graph = new();
 
-    public async Task BundleAsync()
-    {
-        await BundlePageStylesAsync();
-    }
+    public async Task BundleAsync() => await BundlePageStylesAsync();
     
     private async Task BundlePageStylesAsync()
     {
         string pagesPath = workspace.ClientBuildPath.Combine(Folders.Pages);
         if (!pagesPath.Exists())
+        {
             return;
+        }
         
         foreach (string pageDir in pagesPath.Folders())
         {
@@ -25,7 +24,9 @@ public class CssBundler(AppWorkspace workspace)
             string pageStyle = pageDir.Combine($"{Files.Index}{Css.ModuleExt}");
 
             if (!pageStyle.Exists())
+            {
                 continue;
+            }
             
             _graph.Clear();
             
@@ -86,7 +87,9 @@ public class CssBundler(AppWorkspace workspace)
         _graph.AddModule(module);
 
         foreach (CssImport import in imports)
+        {
             await LoadModuleRecursively(import.ResolvedPath);
+        }
 
         return module;
     }
@@ -108,10 +111,14 @@ public class CssBundler(AppWorkspace workspace)
         {
             StringBuilder wrapped = new();
             foreach (CssImport import in module.Imports.Where(i => i.Media != null))
+            {
                 wrapped.AppendLine($"@media {import.Media} {{");
+            }
             wrapped.Append(content);
             foreach (CssImport import in module.Imports.Where(i => i.Media != null))
+            {
                 wrapped.AppendLine("}");
+            }
 
             content = wrapped.ToString();
         }

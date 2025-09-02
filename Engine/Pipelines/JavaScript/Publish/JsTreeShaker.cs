@@ -7,6 +7,7 @@ public static class JsTreeShaker
 {
     public static HashSet<string> AnalyzeUsage(JsModuleGraph graph)
     {
+        ArgumentNullException.ThrowIfNull(graph);
         HashSet<string> usedExports = [];
         
         foreach (string entryPoint in graph.GetEntryPoints())

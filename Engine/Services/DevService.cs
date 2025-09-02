@@ -18,6 +18,7 @@ public class DevService(
 
     public async Task StartAsync(AppWorkspace workspace, Func<string?, bool, Task>? onChangeAction = null)
     {
+        ArgumentNullException.ThrowIfNull(workspace);
         _logger.LogInformation("Starting {DevService} for {WorkspacePath}", App.DevService, workspace.WorkingPath);
         
         try
@@ -66,19 +67,17 @@ public class DevService(
 
     public async Task RestartNodeServerAsync(AppWorkspace workspace)
     {
+        ArgumentNullException.ThrowIfNull(workspace);
         _logger.LogInformation("Restarting Node server...");
         await _nodeServer.StopAsync();
         await _nodeServer.StartAsync(workspace);
     }
 
-    public async Task NotifyClientsAsync()
-    {
-        await _webServer.UpdateClientsAsync();
-    }
+    public async Task NotifyClientsAsync() => await _webServer.UpdateClientsAsync();
 
     private async Task WaitForExitSignalAsync()
     {
-        var exitEvent = new TaskCompletionSource<bool>();
+        TaskCompletionSource<bool> exitEvent = new();
         Console.CancelKeyPress += (sender, e) =>
         {
             e.Cancel = true;

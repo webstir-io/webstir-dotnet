@@ -11,10 +11,5 @@ public class BuildWorkflow(
 {
     public override string WorkflowName => Commands.Build;
 
-    protected override async Task ExecuteWorkflowAsync(string[] args)
-    {
-        // TODO: Implement clean build logic
-        // var cleanBuild = args.Contains(BuildOptions.Clean);
-        await ExecuteBuildAsync();
-    }
+    protected override async Task ExecuteWorkflowAsync(string[] args) => await ExecuteBuildAsync();
 }

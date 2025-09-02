@@ -6,15 +6,15 @@ namespace Engine.Pipelines.Css;
 
 public class CssHandler(AppWorkspace workspace, CssBuilder builder, CssBundler bundler)
 {
-    public async Task BuildAsync()
+    public Task BuildAsync()
     {
         builder.Build();
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
-    public async Task PublishAsync() => await bundler.BundleAsync();
+    public Task PublishAsync() => bundler.BundleAsync();
 
-    public async Task AddPageAsync(string pageName)
+    public Task AddPageAsync(string pageName)
     {
         string cssContent = $"""
             /* {pageName} Page Styles */
@@ -26,7 +26,6 @@ public class CssHandler(AppWorkspace workspace, CssBuilder builder, CssBundler b
         string pageDirectory = workspace.ClientPagesPath.Combine(pageName);
         string cssFilePath = pageDirectory.Combine($"{Files.Index}.css");
         File.WriteAllText(cssFilePath, cssContent);
-        
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }

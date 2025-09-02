@@ -52,10 +52,12 @@ public class ChangeService(ILogger<ChangeService> logger)
             return;
         }
             
-        var changeEvent = new FileChangeEvent(filePath, changeType, DateTime.UtcNow);
+        FileChangeEvent changeEvent = new(filePath, changeType, DateTime.UtcNow);
         
         if (!_channel.Writer.TryWrite(changeEvent))
+        {
             _logger.LogWarning("Failed to enqueue file change: {FilePath}", filePath);
+        }
     }
 
     public Task StartAsync()
@@ -68,7 +70,7 @@ public class ChangeService(ILogger<ChangeService> logger)
     {
         try
         {
-            await foreach (var changeEvent in _channel.Reader.ReadAllAsync(cancellationToken))
+            await foreach (FileChangeEvent changeEvent in _channel.Reader.ReadAllAsync(cancellationToken))
             {
                 _logger.LogInformation("File change detected: {FilePath} ({ChangeType})", 
                     changeEvent.FilePath, changeEvent.ChangeType);
@@ -85,11 +87,15 @@ public class ChangeService(ILogger<ChangeService> logger)
                         {
                             _logger.LogInformation("Server files changed, requesting server restart...");
                             if (_onServerRestart != null)
+                            {
                                 await _onServerRestart(_workspace!);
+                            }
                         }
 
                         if (_onClientNotification != null)
+                        {
                             await _onClientNotification();
+                        }
                         break;
 
                     case FileChangeType.Deleted:
@@ -97,10 +103,12 @@ public class ChangeService(ILogger<ChangeService> logger)
                         await _onChangeAction?.Invoke(changeEvent.FilePath, false)!;
                         
                         if (_onClientNotification != null)
+                        {
                             await _onClientNotification();
+                        }
                         break;
-                }
             }
+        }
         }
         catch (OperationCanceledException)
         {
@@ -113,26 +121,25 @@ public class ChangeService(ILogger<ChangeService> logger)
         }
     }
 
-    public async Task StopAsync()
+    public Task StopAsync() => StopInternalAsync();
+
+    private Task StopInternalAsync()
     {
         _channel.Writer.Complete();
         _cancellationTokenSource.Cancel();
-
-        if (_processingTask != null)
-            await _processingTask;
-
         _cancellationTokenSource.Dispose();
+        return _processingTask ?? Task.CompletedTask;
     }
 
 
     private async Task WaitForFileAsync(string filePath, int timeoutMs = 10000, int checkIntervalMs = 500)
     {
-        var timeElapsed = 0;
+        int timeElapsed = 0;
         while (timeElapsed < timeoutMs)
         {
             try
             {
-                using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.None);
+        using FileStream stream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.None);
                 return;
             }
             catch (IOException)
@@ -145,18 +152,16 @@ public class ChangeService(ILogger<ChangeService> logger)
         _logger.LogWarning("Timeout waiting for file to be ready");
     }
 
-    private bool IsServerFile(string filePath)
-    {
-        return filePath.StartsWith(_workspace!.ServerPath, StringComparison.OrdinalIgnoreCase);
-    }
+    private bool IsServerFile(string filePath) =>
+        filePath.StartsWith(_workspace!.ServerPath, StringComparison.OrdinalIgnoreCase);
     
     private static bool IsIgnored(string filePath)
     {
-        var fileName = Path.GetFileName(filePath);
+        string fileName = Path.GetFileName(filePath);
         
-        return fileName.StartsWith('.') ||
-               fileName.EndsWith('~') ||
-               IgnoredFiles.Contains(fileName) ||
-               IgnoredExtensions.Any(fileName.EndsWith);
+        return fileName.StartsWith('.')
+               || fileName.EndsWith('~')
+               || IgnoredFiles.Contains(fileName)
+               || IgnoredExtensions.Any(ext => fileName.EndsWith(ext, StringComparison.Ordinal));
     }
 }

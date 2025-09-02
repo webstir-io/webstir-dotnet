@@ -23,6 +23,7 @@ public class JsSourceMapGenerator
     
     public void AddMapping(JsModuleInfo module)
     {
+        ArgumentNullException.ThrowIfNull(module);
         if (!_sources.Contains(module.FilePath))
             _sources.Add(module.FilePath);
         

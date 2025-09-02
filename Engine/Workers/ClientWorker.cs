@@ -16,18 +16,18 @@ public class ClientWorker(
 {
     public int BuildOrder => 1;
 
-    public async Task InitAsync(ProjectMode mode)
-    {
+    public async Task InitAsync(ProjectMode mode) =>
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(Templates.ClientPath, workspace.ClientPath);
-    }
 
     public async Task BuildAsync(string? changedFilePath = null)
     {
         if (!string.IsNullOrEmpty(changedFilePath) && !BuildHelpers.ContainsBuildFolder(changedFilePath, Folders.Client))
+        {
             return;
+        }
         
         await scriptsHandler.BuildAsync();
-        await Task.WhenAll(            
+        await Task.WhenAll(
             htmlHandler.BuildAsync(),
             cssHandler.BuildAsync(),
             imagesHandler.BuildAsync()

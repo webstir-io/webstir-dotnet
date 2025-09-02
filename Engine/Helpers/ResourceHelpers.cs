@@ -6,49 +6,54 @@ public static class ResourceHelpers
 {
     public static async Task CopyEmbeddedDirectoryAsync(string resourcePrefix, string destinationPath)
     {
-        var assembly = Assembly.GetExecutingAssembly();
-        var resources = assembly.GetManifestResourceNames()
-            .Where(name => name.StartsWith($"{resourcePrefix}."))
-            .ToArray();
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        string resourcePrefixWithDot = $"{resourcePrefix}.";
+        string[] resources = [.. assembly.GetManifestResourceNames()
+            .Where(name => name.StartsWith(resourcePrefixWithDot, StringComparison.Ordinal))];
 
-        foreach (var resourceName in resources)
+        foreach (string resourceName in resources)
         {
-            using var stream = assembly.GetManifestResourceStream(resourceName);
-            if (stream == null) continue;
+            using Stream? stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null)
+            {
+                continue;
+            }
             
-            var resourcePath = resourceName.Replace($"{resourcePrefix}.", "");
-            var lastDotIndex = resourcePath.LastIndexOf('.');
+            string resourcePath = resourceName.Replace(resourcePrefixWithDot, "");
+            int lastDotIndex = resourcePath.LastIndexOf('.');
             
-            var relativePath = lastDotIndex > 0 
+            string relativePath = lastDotIndex > 0 
                 ? resourcePath[..lastDotIndex].Replace('.', Path.DirectorySeparatorChar) + resourcePath[lastDotIndex..]
                 : resourcePath.Replace('.', Path.DirectorySeparatorChar);
                 
-            var outputPath = Path.Combine(destinationPath, relativePath);
+            string outputPath = Path.Combine(destinationPath, relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
             
-            using var fileStream = File.Create(outputPath);
+            using FileStream fileStream = File.Create(outputPath);
             await stream.CopyToAsync(fileStream);
         }
     }
 
     public static async Task CopyEmbeddedRootFilesAsync(string resourcePrefix, string destinationPath)
     {
-        var assembly = Assembly.GetExecutingAssembly();
-        var prefixWithDot = $"{resourcePrefix}.";
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        string prefixWithDot = $"{resourcePrefix}.";
         
-        var resources = assembly.GetManifestResourceNames()
-            .Where(name => name.StartsWith(prefixWithDot) && !name.StartsWith($"{prefixWithDot}{Folders.Src}."))
-            .ToArray();
+        string[] resources = [.. assembly.GetManifestResourceNames()
+            .Where(name => name.StartsWith(prefixWithDot, StringComparison.Ordinal) && !name.StartsWith($"{prefixWithDot}{Folders.Src}.", StringComparison.Ordinal))];
 
-        foreach (var resourceName in resources)
+        foreach (string resourceName in resources)
         {
-            using var stream = assembly.GetManifestResourceStream(resourceName);
-            if (stream == null) continue;
+            using Stream? stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null)
+            {
+                continue;
+            }
             
-            var fileName = resourceName.Replace(prefixWithDot, "");
-            var outputPath = Path.Combine(destinationPath, fileName);
+            string fileName = resourceName.Replace(prefixWithDot, "");
+            string outputPath = Path.Combine(destinationPath, fileName);
             
-            using var fileStream = File.Create(outputPath);
+            using FileStream fileStream = File.Create(outputPath);
             await stream.CopyToAsync(fileStream);
         }
     }

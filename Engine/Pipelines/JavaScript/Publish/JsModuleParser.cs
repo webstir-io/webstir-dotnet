@@ -1,15 +1,100 @@
-using Engine.Pipelines.JavaScript.Models;
-using Engine.Pipelines.Core.Parsing;
 using System.Text.RegularExpressions;
-using System.Linq;
+
+using Engine.Pipelines.Core.Parsing;
+using Engine.Pipelines.JavaScript.Models;
 
 namespace Engine.Pipelines.JavaScript.Publish;
 
 public static class JsModuleParser
 {
+    private static void MapImports(List<ImportDeclaration> imports, JsModuleInfo module)
+    {
+        foreach (ImportDeclaration imp in imports)
+        {
+            JsImportStatement item = new()
+            {
+                Source = imp.Source,
+                LineNumber = imp.Line,
+                IsDynamic = imp.IsDynamic
+            };
+
+            if (imp.IsSideEffect)
+            {
+                item.Type = JsImportType.SideEffect;
+            }
+            else if (imp.IsDynamic)
+            {
+                item.Type = JsImportType.Dynamic;
+            }
+            else if (imp.DefaultImport != null && imp.NamedImports != null && imp.NamedImports.Count > 0)
+            {
+                item.Type = JsImportType.Mixed;
+                item.DefaultSpecifier = imp.DefaultImport;
+                item.Specifiers = [.. imp.NamedImports.Select(n => n.Local)];
+            }
+            else if (imp.DefaultImport != null)
+            {
+                item.Type = JsImportType.Default;
+                item.DefaultSpecifier = imp.DefaultImport;
+            }
+            else if (imp.NamespaceImport != null)
+            {
+                item.Type = JsImportType.Namespace;
+                item.NamespaceSpecifier = imp.NamespaceImport;
+            }
+            else if (imp.NamedImports != null && imp.NamedImports.Count > 0)
+            {
+                item.Type = JsImportType.Named;
+                item.Specifiers = [.. imp.NamedImports.Select(n => n.Local)];
+            }
+
+            module.Imports.Add(item);
+        }
+    }
+
+    private static void MapExports(List<ExportDeclaration> exports, JsModuleInfo module)
+    {
+        foreach (ExportDeclaration ex in exports)
+        {
+            JsExportStatement item = new()
+            {
+                IsDefault = ex.IsDefault,
+                LineNumber = ex.Line,
+                Source = ex.Source
+            };
+
+            if (ex.IsDefault)
+            {
+                item.Type = JsExportType.Default;
+            }
+            else if (ex.IsReExport && ex.Namespace != null)
+            {
+                item.Type = JsExportType.NamespaceReexport;
+                item.Specifiers = [ex.Namespace];
+            }
+            else if (ex.All && ex.IsReExport)
+            {
+                item.Type = JsExportType.AllReexport;
+            }
+            else if (ex.Named != null && ex.Named.Count > 0 && ex.IsReExport)
+            {
+                item.Type = JsExportType.Named;
+                item.Specifiers = ex.Named;
+            }
+            else if (ex.Named != null && ex.Named.Count > 0)
+            {
+                item.Type = JsExportType.Named;
+                item.Specifiers = ex.Named;
+            }
+
+            module.Exports.Add(item);
+        }
+    }
 
     public static JsModuleInfo ParseModule(string filePath, string content)
     {
+        ArgumentNullException.ThrowIfNull(filePath);
+        ArgumentNullException.ThrowIfNull(content);
         JsModuleInfo module = new()
         {
             FilePath = filePath,
@@ -26,80 +111,8 @@ public static class JsModuleParser
             List<ImportDeclaration> imports = parser.ParseImports();
             List<ExportDeclaration> exports = parser.ParseExports();
 
-            // Map imports
-            foreach (ImportDeclaration imp in imports)
-            {
-                JsImportStatement item = new()
-                {
-                    Source = imp.Source,
-                    LineNumber = imp.Line,
-                    IsDynamic = imp.IsDynamic
-                };
-
-                if (imp.IsSideEffect)
-                {
-                    item.Type = JsImportType.SideEffect;
-                }
-                else if (imp.IsDynamic)
-                {
-                    item.Type = JsImportType.Dynamic;
-                }
-                else if (imp.DefaultImport != null && imp.NamedImports != null && imp.NamedImports.Count > 0)
-                {
-                    item.Type = JsImportType.Mixed;
-                    item.DefaultSpecifier = imp.DefaultImport;
-                    item.Specifiers = imp.NamedImports.Select(n => n.Local).ToList();
-                }
-                else if (imp.DefaultImport != null)
-                {
-                    item.Type = JsImportType.Default;
-                    item.DefaultSpecifier = imp.DefaultImport;
-                }
-                else if (imp.NamespaceImport != null)
-                {
-                    item.Type = JsImportType.Namespace;
-                    item.NamespaceSpecifier = imp.NamespaceImport;
-                }
-                else if (imp.NamedImports != null && imp.NamedImports.Count > 0)
-                {
-                    item.Type = JsImportType.Named;
-                    item.Specifiers = imp.NamedImports.Select(n => n.Local).ToList();
-                }
-
-                module.Imports.Add(item);
-            }
-
-            // Map exports
-            foreach (ExportDeclaration ex in exports)
-            {
-                JsExportStatement item = new()
-                {
-                    IsDefault = ex.IsDefault,
-                    LineNumber = ex.Line,
-                    Source = ex.Source
-                };
-
-                if (ex.IsDefault)
-                {
-                    item.Type = JsExportType.Default;
-                }
-                else if (ex.All && ex.IsReExport)
-                {
-                    item.Type = JsExportType.AllReexport;
-                }
-                else if (ex.Named != null && ex.Named.Count > 0 && ex.IsReExport)
-                {
-                    item.Type = JsExportType.Named;
-                    item.Specifiers = ex.Named;
-                }
-                else if (ex.Named != null && ex.Named.Count > 0)
-                {
-                    item.Type = JsExportType.Named;
-                    item.Specifiers = ex.Named;
-                }
-
-                module.Exports.Add(item);
-            }
+            MapImports(imports, module);
+            MapExports(exports, module);
         }
         catch
         {
@@ -114,14 +127,20 @@ public static class JsModuleParser
     private static JsModuleType DetectModuleType(string filePath, string content)
     {
         if (filePath.EndsWith(Exts.TypeScript, StringComparison.Ordinal))
+        {
             return JsModuleType.TypeScript;
-        
-        if (content.Contains("import ") || content.Contains("export "))
+        }
+
+        if (content.Contains("import ", StringComparison.Ordinal) || content.Contains("export ", StringComparison.Ordinal))
+        {
             return JsModuleType.ES6;
-        
-        if (content.Contains("require(") || content.Contains("module.exports"))
+        }
+
+        if (content.Contains("require(", StringComparison.Ordinal) || content.Contains("module.exports", StringComparison.Ordinal))
+        {
             return JsModuleType.CommonJS;
-        
+        }
+
         return JsModuleType.Unknown;
     }
 
@@ -168,7 +187,9 @@ public static class JsModuleParser
         foreach (Match match in JsRegex.DefaultImport().Matches(content))
         {
             if (JsRegex.MixedImport().IsMatch(lines[GetLineNumber(content, match.Index) - 1]))
+            {
                 continue;
+            }
             
             module.Imports.Add(new JsImportStatement
             {
@@ -185,7 +206,9 @@ public static class JsModuleParser
         foreach (Match match in JsRegex.NamedImports().Matches(content))
         {
             if (JsRegex.MixedImport().IsMatch(lines[GetLineNumber(content, match.Index) - 1]))
+            {
                 continue;
+            }
             
             JsImportStatement import = new()
             {
@@ -219,7 +242,9 @@ public static class JsModuleParser
         foreach (Match match in JsRegex.SideEffectImport().Matches(content))
         {
             if (IsPartOfOtherImport(content, match.Index))
+            {
                 continue;
+            }
 
             module.Imports.Add(new JsImportStatement
             {
@@ -317,7 +342,9 @@ public static class JsModuleParser
             int start = Math.Max(0, match.Index - 50);
             int end = Math.Min(content.Length, match.Index + 50);
             if (JsRegex.ReexportNamed().IsMatch(content[start..end]))
+            {
                 continue;
+            }
             
             JsExportStatement export = new()
             {
@@ -354,13 +381,17 @@ public static class JsModuleParser
     private static bool IsPartOfOtherImport(string content, int index)
     {
         int lineStart = content.LastIndexOf('\n', index) + 1;
-        string line = content[lineStart..content.IndexOf('\n', index)];
+        int lineEnd = content.IndexOf('\n', index);
+        if (lineEnd == -1)
+        {
+            lineEnd = content.Length;
+        }
+        string line = content[lineStart..lineEnd];
         
-        return line.Contains(" from ", StringComparison.Ordinal) || line.Contains("import {", StringComparison.Ordinal) || line.Contains("import *", StringComparison.Ordinal);
+        return line.Contains(" from ", StringComparison.Ordinal)
+            || line.Contains("import {", StringComparison.Ordinal)
+            || line.Contains("import *", StringComparison.Ordinal);
     }
 
-    private static int GetLineNumber(string content, int index)
-    {
-        return content[..index].Count(c => c == '\n') + 1;
-    }
+    private static int GetLineNumber(string content, int index) => content[..index].Count(c => c == '\n') + 1;
 }

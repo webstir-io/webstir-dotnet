@@ -14,20 +14,21 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
     
     public async Task StartAsync(AppWorkspace workspace)
     {
+        ArgumentNullException.ThrowIfNull(workspace);
         await KillProcessOnPort(_settings.ApiServerPort);
         
-        var serverIndexPath = workspace.ServerBuildPath.Combine("index.js");        
+        string serverIndexPath = workspace.ServerBuildPath.Combine("index.js");        
         if (!File.Exists(serverIndexPath))
         {
             _logger.LogWarning("Server build not found. Skipping Node.js server.");
             return;
         }
         
-        var startupComplete = new TaskCompletionSource<bool>();
+        TaskCompletionSource<bool> startupComplete = new();
         
-        _process = new Process
+        _process = new()
         {
-            StartInfo = new ProcessStartInfo
+            StartInfo = new()
             {
                 FileName = "node",
                 Arguments = serverIndexPath,
@@ -48,11 +49,15 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
         {
             if (!string.IsNullOrEmpty(e.Data))
             {
-                if (!e.Data.Contains("SIGINT received"))
+                if (!e.Data.Contains("SIGINT received", StringComparison.Ordinal))
+                {
                     _logger.LogInformation("{NodeOutput}", e.Data);
+                }
                 
-                if (e.Data.Contains("API server running"))
+                if (e.Data.Contains("API server running", StringComparison.Ordinal))
+                {
                     startupComplete.TrySetResult(true);
+                }
             }
         };
         
@@ -84,9 +89,11 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
     {
         try
         {
-            var pid = await GetProcessIdOnPort(port);
+            string? pid = await GetProcessIdOnPort(port);
             if (pid == null)
+            {
                 return;
+            }
             
             string command;
             string arguments;
@@ -102,7 +109,7 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
                 arguments = $"-9 {pid}";
             }
             
-            using var killProcess = Process.Start(new ProcessStartInfo
+            using Process? killProcess = Process.Start(new ProcessStartInfo
             {
                 FileName = command,
                 Arguments = arguments,
@@ -141,7 +148,7 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
                 arguments = $"-ti:{port}";
             }
             
-            using var process = Process.Start(new ProcessStartInfo
+            ProcessStartInfo psi = new()
             {
                 FileName = command,
                 Arguments = arguments,
@@ -149,25 +156,34 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true
-            });
+            };
+            using Process? process = Process.Start(psi);
             
-            if (process == null) return null;
+            if (process == null)
+            {
+                return null;
+            }
             
-            var output = await process.StandardOutput.ReadToEndAsync();
+            string output = await process.StandardOutput.ReadToEndAsync();
             await process.WaitForExitAsync();
             
-            if (string.IsNullOrWhiteSpace(output)) return null;
+            if (string.IsNullOrWhiteSpace(output))
+            {
+                return null;
+            }
             
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                var lines = output.Split('\n');
-                foreach (var line in lines)
+                string[] lines = output.Split('\n');
+                foreach (string line in lines)
                 {
-                    if (line.Contains($":{port}") && line.Contains("LISTENING"))
+                    if (line.Contains($":{port}", StringComparison.Ordinal) && line.Contains("LISTENING", StringComparison.Ordinal))
                     {
-                        var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        string[] parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                         if (parts.Length >= 5)
+                        {
                             return parts[^1].Trim();
+                        }
                     }
                 }
             }

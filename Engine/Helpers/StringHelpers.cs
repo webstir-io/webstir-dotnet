@@ -6,7 +6,7 @@ public static class StringHelpers
 {
     public static int ExtractNumber(string str)
     {
-        var match = Regex.Match(str, @"\d+");
+        Match match = Regex.Match(str, @"\d+");
         return match.Success ? int.Parse(match.Value) : 0;
     }
 }

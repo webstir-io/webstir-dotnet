@@ -13,7 +13,7 @@ public class WorkflowFactory(IEnumerable<IWorkflow> workflows) : IWorkflowFactor
 
     public async Task ExecuteAsync(string commandName, string[] args)
     {
-        var workflow = _workflows.SingleOrDefault(w => w.WorkflowName == commandName)
+        IWorkflow workflow = _workflows.SingleOrDefault(w => w.WorkflowName == commandName)
             ?? throw new InvalidOperationException($"No workflow found for command '{commandName}'");
 
         await workflow.ExecuteAsync(args);

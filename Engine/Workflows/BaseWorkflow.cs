@@ -24,17 +24,21 @@ public abstract class BaseWorkflow(
 
     protected async Task ExecuteWorkersAsync(Func<IWorker, Task> workerAction, ProjectMode? mode = null)
     {
-        var workers = GetFilteredWorkers(mode ?? Context.DetectProjectMode());
+        ArgumentNullException.ThrowIfNull(workerAction);
+
+        IEnumerable<IWorker> workers = GetFilteredWorkers(mode ?? Context.DetectProjectMode());
         
-        var workerGroups = workers
+        IEnumerable<IGrouping<int, IWorker>> workerGroups = workers
             .GroupBy(w => w.BuildOrder)
             .OrderBy(g => g.Key);
 
-        foreach (var group in workerGroups)
+        foreach (IGrouping<int, IWorker> group in workerGroups)
         {
-            var workersInGroup = group.ToList();
-            foreach (var worker in workersInGroup)
+            List<IWorker> workersInGroup = [.. group];
+            foreach (IWorker worker in workersInGroup)
+            {
                 await workerAction(worker);
+            }
         }
     }
 
@@ -48,24 +52,20 @@ public abstract class BaseWorkflow(
         };
     }
 
-    protected async Task ExecuteBuildAsync()
-    {
-        await ExecuteWorkersAsync(async worker => await worker.BuildAsync());
-    }
+    protected async Task ExecuteBuildAsync() => await ExecuteWorkersAsync(async worker => await worker.BuildAsync());
 
-    protected async Task ExecuteBuildAsync(string? changedFilePath)
-    {
+    protected async Task ExecuteBuildAsync(string? changedFilePath) =>
         await ExecuteWorkersAsync(async worker => await worker.BuildAsync(changedFilePath));
-    }
 
     protected virtual void InitializeWorkspace(string[] args)
     {
-        var filteredArgs = args.Where(arg => arg != WorkflowName).ToArray();        
-        var projectName = GetProjectFromFlags(filteredArgs);
+        ArgumentNullException.ThrowIfNull(args);
+        string[] filteredArgs = [.. args.Where(arg => arg != WorkflowName)];        
+        string? projectName = GetProjectFromFlags(filteredArgs);
         
         if (!string.IsNullOrEmpty(projectName))
         {
-            var projectPath = Context.WorkingPath.Combine(projectName);
+            string projectPath = Context.WorkingPath.Combine(projectName);
             if (!Directory.Exists(projectPath))
                 throw new DirectoryNotFoundException($"Project directory '{projectName}' not found in current directory");
             
@@ -73,9 +73,8 @@ public abstract class BaseWorkflow(
             return;
         }
 
-        var validProjects = Context.WorkingPath.Folders()
-            .Where(projectPath => projectPath.Combine(Folders.Src).Exists())
-            .ToList();
+        List<string> validProjects = [.. Context.WorkingPath.Folders()
+            .Where(projectPath => projectPath.Combine(Folders.Src).Exists())];
 
         if (validProjects.Count == 0)
             throw new InvalidOperationException(
@@ -87,7 +86,7 @@ public abstract class BaseWorkflow(
             return;
         }
         
-        var projectNames = validProjects.Select(Path.GetFileName);
+        IEnumerable<string?> projectNames = validProjects.Select(Path.GetFileName);
         throw new InvalidOperationException(
             $"Multiple projects found: {string.Join(", ", projectNames)}. " +
             $"Please specify which project to use: {WorkflowName} <project-name> or {WorkflowName} --project-name <project-name>");
@@ -95,10 +94,11 @@ public abstract class BaseWorkflow(
 
     protected static string? GetProjectFromFlags(string[] args)
     {
-        for (int i = 0; i < args.Length; i++)
+        ArgumentNullException.ThrowIfNull(args);
+        for (int index = 0; index < args.Length; index++)
         {
-            if ((args[i] == ProjectOptions.ProjectName || args[i] == ProjectOptions.ProjectNameShort) && i + 1 < args.Length)
-                return args[i + 1];
+            if ((args[index] == ProjectOptions.ProjectName || args[index] == ProjectOptions.ProjectNameShort) && index + 1 < args.Length)
+                return args[index + 1];
         }
 
         return null;

@@ -1,4 +1,9 @@
-﻿using System.Text.Json;
+using System.Text.Json;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+using Serilog.Core;
+
 using CLI;
 using Engine;
 using Engine.Pipelines.Assets;
@@ -15,10 +20,6 @@ using Engine.Servers;
 using Engine.Services;
 using Engine.Workers;
 using Engine.Workflows;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Serilog;
-using Serilog.Core;
 
 Logger logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -34,12 +35,14 @@ try
 
     ServiceCollection services = new();
     services.AddSingleton<IConfiguration>(configuration);
-    services.AddLogging(builder => builder.AddSerilog(logger)); 
+    services.AddLogging(builder => builder.AddSerilog(logger));
     services.Configure<AppSettings>(options =>
     {
-        var section = configuration.GetSection(nameof(AppSettings));
+        IConfigurationSection section = configuration.GetSection(nameof(AppSettings));
         if (section.Exists())
+        {
             section.Bind(options);
+        }
     });
 
     services.AddSingleton<Runner>();
@@ -47,7 +50,7 @@ try
     services.AddSingleton<ChangeService>();
     services.AddSingleton<DevService>();
     services.AddSingleton<WebServer>();
-    services.AddSingleton<NodeServer>();    
+    services.AddSingleton<NodeServer>();
     services.AddSingleton(new JsonSerializerOptions
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -68,7 +71,6 @@ try
     services.AddTransient<CssBundler>();
     services.AddTransient<JsBundler>();
 
-
     services.AddTransient<ClientWorker>();
     services.AddTransient<ServerWorker>();
     services.AddTransient<SharedWorker>();
@@ -81,7 +83,6 @@ try
 
     using ServiceProvider provider = services.BuildServiceProvider();
     await provider.GetService<Runner>()!.Run(args);
-
 }
 catch (Exception ex)
 {
