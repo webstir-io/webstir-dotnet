@@ -36,14 +36,20 @@ public class HtmlBundler(AppWorkspace workspace)
     private async Task ProcessHtmlFileAsync(string sourceFile, string pageName, DiagnosticCollection? diagnostics)
     {
         string htmlContent = await File.ReadAllTextAsync(sourceFile);
-        
+
         htmlContent = HtmlRegex.RefreshScript().Replace(htmlContent, string.Empty);
         htmlContent = HtmlRegex.Comment().Replace(htmlContent, string.Empty);
+
+        // Rewrite asset references using per-page manifest if present
+        string pageDistDir = workspace.ClientDistPath.Combine(Folders.Pages, pageName);
+        Engine.Pipelines.Core.AssetManifest manifest = Engine.Pipelines.Core.AssetManifest.Load(pageDistDir);
+        htmlContent = RewriteAssetReferences(htmlContent, manifest);
+
         htmlContent = MinifyHtml(htmlContent);
-        
+
         string distPagePath = workspace.ClientDistPath.Combine(Folders.Pages, pageName, $"{Files.Index}{FileExtensions.Html}");
         distPagePath.DirectoryName().Create();
-        
+
         await File.WriteAllTextAsync(distPagePath, htmlContent);
     }
     
@@ -54,5 +60,29 @@ public class HtmlBundler(AppWorkspace workspace)
         // inside <script>, <style>, <pre>, <textarea>
         html = Regex.Replace(html, @">\s+<", "><");
         return html.Trim();
+    }
+
+    private static string RewriteAssetReferences(string html, Engine.Pipelines.Core.AssetManifest manifest)
+    {
+        string result = html;
+
+        if (!string.IsNullOrWhiteSpace(manifest.Css))
+        {
+            string cssQuoted = manifest.Css;
+            result = result.Replace($"\"{Files.Index}{FileExtensions.Css}\"", $"\"{cssQuoted}\"");
+            result = result.Replace($"'{Files.Index}{FileExtensions.Css}'", $"'{cssQuoted}'");
+            // Also replace module variant if present
+            result = result.Replace($"\"{Files.Index}{Engine.Pipelines.Css.Css.ModuleExt}\"", $"\"{cssQuoted}\"");
+            result = result.Replace($"'{Files.Index}{Engine.Pipelines.Css.Css.ModuleExt}'", $"'{cssQuoted}'");
+        }
+
+        if (!string.IsNullOrWhiteSpace(manifest.Js))
+        {
+            string jsQuoted = manifest.Js;
+            result = result.Replace($"\"{Files.Index}{FileExtensions.Js}\"", $"\"{jsQuoted}\"");
+            result = result.Replace($"'{Files.Index}{FileExtensions.Js}'", $"'{jsQuoted}'");
+        }
+
+        return result;
     }
 }

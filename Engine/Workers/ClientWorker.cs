@@ -42,11 +42,12 @@ public class ClientWorker(
         Directory.CreateDirectory(workspace.ClientDistPath);
         
         await Task.WhenAll(
-            htmlHandler.PublishAsync(),
             cssHandler.PublishAsync(),
-            scriptsHandler.PublishAsync(),
-            imagesHandler.PublishAsync()
+            scriptsHandler.PublishAsync()
         );
+
+        await htmlHandler.PublishAsync();
+        await imagesHandler.PublishAsync();
     }
 
     public async Task AddPageAsync(string pageName)
