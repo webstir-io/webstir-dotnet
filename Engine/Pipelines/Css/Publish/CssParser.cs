@@ -20,7 +20,7 @@ public static class Parser
                 Path = importPath,
                 ResolvedPath = ResolvePath(importPath, baseDirectory),
                 Media = media,
-                IsModuleImport = importPath.EndsWith(Css.ModuleExt)
+                IsModuleImport = importPath.EndsWith(Css.ModuleExt, StringComparison.OrdinalIgnoreCase)
             });
         }
         return imports;

@@ -8,6 +8,10 @@ charset = utf-8
 end_of_line = lf
 trim_trailing_whitespace = true
 
+# Note: Some options like 'dotnet_sort_system_directives_first' and
+# 'dotnet_separate_import_directive_groups' are formatter-only and do not
+# produce diagnostics at build. They are still honored by the formatter.
+
 # Bracing and formatting
 csharp_new_line_before_open_brace = all
 csharp_preserve_single_line_blocks = false
@@ -31,7 +35,9 @@ csharp_style_prefer_pattern_matching = true:warning
 
 # Nullability
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
-dotnet_diagnostic.CA1062.severity = warning   # Validate arguments against null
+dotnet_diagnostic.CA1062.severity = error     # Validate arguments against null
+dotnet_diagnostic.CA1305.severity = error     # Specify IFormatProvider (culture-aware operations)
+dotnet_diagnostic.CA1310.severity = error     # Specify StringComparison for string operations
 dotnet_diagnostic.CA1510.severity = warning   # Prefer ArgumentNullException.ThrowIfNull
 dotnet_diagnostic.CA1869.severity = warning   # Cache JsonSerializerOptions instances
 
@@ -46,10 +52,17 @@ dotnet_naming_rule.interfaces_should_start_with_i.symbols = interfaces
 dotnet_naming_rule.interfaces_should_start_with_i.style = interface_prefix_style
 
 # Usings
-dotnet_diagnostic.IDE0005.severity = warning   # Remove unnecessary usings
-dotnet_diagnostic.IDE0001.severity = warning   # Name can be simplified
+dotnet_diagnostic.IDE0005.severity = error     # Remove unnecessary usings
+dotnet_diagnostic.IDE0001.severity = error     # Name can be simplified
+dotnet_diagnostic.IDE0002.severity = error     # Name can be simplified (remove qualification)
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = true
+
+# Qualification preferences (drive IDE0001 at build)
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
 
 csharp_style_namespace_declarations = file_scoped:warning
 csharp_style_prefer_null_propagation = true:warning
@@ -58,13 +71,14 @@ csharp_style_implicit_object_creation_when_type_is_apparent = true:warning
 csharp_style_prefer_primary_constructors = true:warning
 
 # Async
-dotnet_diagnostic.IDE0047.severity = warning   # Braces required
-dotnet_diagnostic.IDE0048.severity = warning   # Braces required for if/else
+dotnet_diagnostic.IDE0047.severity = error     # Braces required
+dotnet_diagnostic.IDE0048.severity = error     # Braces required for if/else
+dotnet_diagnostic.CA1852.severity = error     # Seal types with no subtypes
 
 # Collections
 csharp_style_prefer_collection_expression = true:warning
-dotnet_diagnostic.IDE0028.severity = warning   # Simplify collection initialization
-dotnet_diagnostic.IDE0305.severity = warning   # Use collection expressions
+dotnet_diagnostic.IDE0028.severity = error     # Simplify collection initialization
+dotnet_diagnostic.IDE0305.severity = error     # Use collection expressions
 
 # General formatting
 csharp_style_allow_blank_line_after_colon_in_constructor_initializer = false:warning

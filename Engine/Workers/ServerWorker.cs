@@ -65,8 +65,8 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
             CreateNoWindow = true
         };
         
-        processInfo.Environment["API_PORT"] = _settings.ApiServerPort.ToString();
-        processInfo.Environment["WEB_PORT"] = _settings.WebServerPort.ToString();
+        processInfo.Environment["API_PORT"] = _settings.ApiServerPort.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        processInfo.Environment["WEB_PORT"] = _settings.WebServerPort.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         using Process process = Process.Start(processInfo)
             ?? throw new Exception("Failed to start TypeScript compiler process for server.");

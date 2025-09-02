@@ -13,14 +13,14 @@ public static class JsTransformer
         ArgumentNullException.ThrowIfNull(moduleIdMap);
         StringBuilder output = new();
         
-        output.AppendLine($"{Js.CommentPrefix} Module {moduleId}: {module.FilePath}");
-        output.AppendLine($"{Syntax.OpenParen}function{Syntax.OpenParen}{Syntax.CloseParen} {Syntax.OpenBrace}");
+        output.AppendLine(FormattableString.Invariant($"{Js.CommentPrefix} Module {moduleId}: {module.FilePath}"));
+        output.AppendLine(FormattableString.Invariant($"{Syntax.OpenParen}function{Syntax.OpenParen}{Syntax.CloseParen} {Syntax.OpenBrace}"));
         
         AppendImports(output, module.Imports, moduleIdMap);
         AppendModuleContent(output, module.Content);
         AppendExports(output, module.Exports, moduleId);
         
-        output.AppendLine($"{Syntax.CloseBrace}{Syntax.CloseParen}{Syntax.OpenParen}{Syntax.CloseParen}{Syntax.Semicolon}");
+        output.AppendLine(FormattableString.Invariant($"{Syntax.CloseBrace}{Syntax.CloseParen}{Syntax.OpenParen}{Syntax.CloseParen}{Syntax.Semicolon}"));
         
         string code = output.ToString();
         
@@ -53,17 +53,17 @@ public static class JsTransformer
             
             if (import.DefaultSpecifier != null)
             {
-                output.AppendLine($"  {Js.Const} {import.DefaultSpecifier}{Syntax.Assignment}{Js.GetModuleDefault(sourceModuleId)}{Syntax.Semicolon}");
+                output.AppendLine(FormattableString.Invariant($"  {Js.Const} {import.DefaultSpecifier}{Syntax.Assignment}{Js.GetModuleDefault(sourceModuleId)}{Syntax.Semicolon}"));
             }
             
             foreach (string specifier in import.Specifiers)
             {
-                output.AppendLine($"  {Js.Const} {specifier}{Syntax.Assignment}{Js.GetModuleExport(sourceModuleId, specifier)}{Syntax.Semicolon}");
+                output.AppendLine(FormattableString.Invariant($"  {Js.Const} {specifier}{Syntax.Assignment}{Js.GetModuleExport(sourceModuleId, specifier)}{Syntax.Semicolon}"));
             }
             
             if (import.NamespaceSpecifier != null)
             {
-                output.AppendLine($"  {Js.Const} {import.NamespaceSpecifier}{Syntax.Assignment}{Js.GetModuleVar(sourceModuleId)}{Syntax.Semicolon}");
+                output.AppendLine(FormattableString.Invariant($"  {Js.Const} {import.NamespaceSpecifier}{Syntax.Assignment}{Js.GetModuleVar(sourceModuleId)}{Syntax.Semicolon}"));
             }
         }
     }
@@ -80,12 +80,12 @@ public static class JsTransformer
         {
             if (export.IsDefault)
             {
-                output.AppendLine($"  {Js.Var} {Js.GetModuleDefault(moduleId)}{Syntax.Assignment}undefined{Syntax.Semicolon}");
+                output.AppendLine(FormattableString.Invariant($"  {Js.Var} {Js.GetModuleDefault(moduleId)}{Syntax.Assignment}undefined{Syntax.Semicolon}"));
             }
 
             foreach (string specifier in export.Specifiers)
             {
-                output.AppendLine($"  {Js.Var} {Js.GetModuleExport(moduleId, specifier)}{Syntax.Assignment}{specifier}{Syntax.Semicolon}");
+                output.AppendLine(FormattableString.Invariant($"  {Js.Var} {Js.GetModuleExport(moduleId, specifier)}{Syntax.Assignment}{specifier}{Syntax.Semicolon}"));
             }
         }
     }
@@ -127,7 +127,7 @@ public static class JsTransformer
         hoistedCode = RemoveModuleWrapper(hoistedCode);
         hoistedCode = OptimizeVariableDeclarations(hoistedCode);
         
-        return $"// Module {moduleId} (hoisted)\n{hoistedCode}";
+        return FormattableString.Invariant($"// Module {moduleId} (hoisted)\n{hoistedCode}");
     }
 
     private static bool HasSideEffects(string code)

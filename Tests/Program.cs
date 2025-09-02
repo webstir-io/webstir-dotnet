@@ -1,7 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Tests.Framework;
-using Tests.Suite;
+using PublishWorkflowTests = Tests.Workflows.Publish.PublishTests;
+using BuildWorkflowTests = Tests.Workflows.Build.BuildTests;
+using InitWorkflowTests = Tests.Workflows.Init.InitTests;
+using WatchWorkflowTests = Tests.Workflows.Watch.WatchTests;
+using HelpWorkflowTests = Tests.Workflows.Help.HelpTests;
 
 namespace Tests;
 
@@ -28,7 +32,7 @@ public class Program
         // Set test mode (CLI overrides env)
         if (options.RunFull.HasValue)
         {
-            Tests.Framework.TestMode.SetFull(options.RunFull.Value);
+            TestMode.SetFull(options.RunFull.Value);
         }
 
         // Setup dependency injection
@@ -126,11 +130,11 @@ public class Program
         });
         
         // Register test suites
-        services.AddTransient<ITestSuite, InitTests>();
-        services.AddTransient<ITestSuite, BuildTests>();
-        services.AddTransient<ITestSuite, WatchTests>();
-        services.AddTransient<ITestSuite, PublishTests>();
-        services.AddTransient<ITestSuite, HelpTests>();
+        services.AddTransient<ITestSuite, InitWorkflowTests>();
+        services.AddTransient<ITestSuite, BuildWorkflowTests>();
+        services.AddTransient<ITestSuite, WatchWorkflowTests>();
+        services.AddTransient<ITestSuite, PublishWorkflowTests>();
+        services.AddTransient<ITestSuite, HelpWorkflowTests>();
         
         // Register test runner and output manager
         services.AddTransient<ITestRunner, TestRunner>();

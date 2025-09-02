@@ -142,7 +142,7 @@ public class CssBundler(AppWorkspace workspace)
             StringBuilder wrapped = new();
             foreach (CssImport import in module.Imports.Where(i => i.Media != null))
             {
-                wrapped.AppendLine($"@media {import.Media} {{");
+                wrapped.AppendLine(FormattableString.Invariant($"@media {import.Media} {{"));
             }
             wrapped.Append(content);
             foreach (CssImport import in module.Imports.Where(i => i.Media != null))
@@ -158,7 +158,7 @@ public class CssBundler(AppWorkspace workspace)
 
     private static string ResolveUrl(string url, string baseDirectory)
     {
-        if (url.StartsWith("http://") || url.StartsWith("https://") || url.StartsWith("data:"))
+        if (url.StartsWith("http://", StringComparison.Ordinal) || url.StartsWith("https://", StringComparison.Ordinal) || url.StartsWith("data:", StringComparison.Ordinal))
             return url;
 
         if (url.StartsWith('/'))

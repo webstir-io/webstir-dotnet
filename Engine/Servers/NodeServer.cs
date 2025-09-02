@@ -41,7 +41,7 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
         };
         
         _process.StartInfo.Environment["NODE_ENV"] = "development";
-        _process.StartInfo.Environment["PORT"] = _settings.ApiServerPort.ToString();
+        _process.StartInfo.Environment["PORT"] = _settings.ApiServerPort.ToString(System.Globalization.CultureInfo.InvariantCulture);
         _process.StartInfo.Environment["WEB_SERVER_URL"] = _settings.WebServerUrl;
         _process.StartInfo.Environment["API_SERVER_URL"] = _settings.ApiServerUrl;
         

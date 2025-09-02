@@ -12,7 +12,7 @@ public class JsModuleResolver(AppWorkspace workspace)
     {
         ArgumentNullException.ThrowIfNull(importPath);
         ArgumentNullException.ThrowIfNull(fromFile);
-        if (importPath.StartsWith(Prefixes.Relative) || importPath.StartsWith(Prefixes.ParentRelative))
+        if (importPath.StartsWith(Prefixes.Relative, StringComparison.Ordinal) || importPath.StartsWith(Prefixes.ParentRelative, StringComparison.Ordinal))
             return ResolveRelativePath(importPath, fromFile);
         
         if (importPath.StartsWith('/'))

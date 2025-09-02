@@ -17,15 +17,15 @@ public class ConsoleFormatter : ITestResultFormatter
         
         if (summary.FailedTests == 0)
         {
-            result.AppendLine($"\n✅ All tests passed ({summary.TotalTests} tests, {summary.TotalDuration.TotalMilliseconds:F0}ms)");
+            result.AppendLine(FormattableString.Invariant($"\n✅ All tests passed ({summary.TotalTests} tests, {summary.TotalDuration.TotalMilliseconds:F0}ms)"));
         }
         else
         {
-            result.AppendLine($"\n❌ {summary.FailedTests} of {summary.TotalTests} tests failed ({summary.TotalDuration.TotalMilliseconds:F0}ms)");
+            result.AppendLine(FormattableString.Invariant($"\n❌ {summary.FailedTests} of {summary.TotalTests} tests failed ({summary.TotalDuration.TotalMilliseconds:F0}ms)"));
             result.AppendLine();
             foreach (TestResult failedTest in summary.Results.Where(r => !r.Passed))
             {
-                result.AppendLine($"✗ {failedTest.TestName}: {failedTest.Message}");
+                result.AppendLine(FormattableString.Invariant($"✗ {failedTest.TestName}: {failedTest.Message}"));
             }
         }
         
@@ -46,7 +46,7 @@ public class JsonFormatter : ITestResultFormatter
             p = summary.PassedTests,
             f = summary.FailedTests,
             d = (int)summary.TotalDuration.TotalMilliseconds,
-            ts = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+            ts = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture),
             r = summary.Results.Select(r => new
             {
                 n = r.TestName,
@@ -68,18 +68,18 @@ public class XmlFormatter : ITestResultFormatter
     {
         ArgumentNullException.ThrowIfNull(summary);
         System.Text.StringBuilder xml = new();
-        xml.AppendLine($"<ts t=\"{summary.TotalTests}\" f=\"{summary.FailedTests}\" d=\"{summary.TotalDuration.TotalMilliseconds:F0}\">");
+        xml.AppendLine(FormattableString.Invariant($"<ts t=\"{summary.TotalTests}\" f=\"{summary.FailedTests}\" d=\"{summary.TotalDuration.TotalMilliseconds:F0}\">"));
         
         // Only include failed tests and slow tests (>1ms) to reduce size
         foreach (TestResult result in summary.Results.Where(r => !r.Passed || r.Duration.TotalMilliseconds > 1))
         {
             if (!result.Passed)
             {
-                xml.AppendLine($"  <tc n=\"{EscapeXml(result.TestName)}\" f=\"{EscapeXml(result.Message)}\"/>");
+                xml.AppendLine(FormattableString.Invariant($"  <tc n=\"{EscapeXml(result.TestName)}\" f=\"{EscapeXml(result.Message)}\"/>"));
             }
             else
             {
-                xml.AppendLine($"  <tc n=\"{EscapeXml(result.TestName)}\" d=\"{result.Duration.TotalMilliseconds:F0}\"/>");
+                xml.AppendLine(FormattableString.Invariant($"  <tc n=\"{EscapeXml(result.TestName)}\" d=\"{result.Duration.TotalMilliseconds:F0}\"/>"));
             }
         }
         
@@ -100,7 +100,7 @@ public class MarkdownFormatter : ITestResultFormatter
         ArgumentNullException.ThrowIfNull(summary);
         System.Text.StringBuilder md = new();
         
-        md.AppendLine($"# Tests: {summary.PassedTests}/{summary.TotalTests} ({summary.TotalDuration.TotalMilliseconds:F0}ms)");
+        md.AppendLine(FormattableString.Invariant($"# Tests: {summary.PassedTests}/{summary.TotalTests} ({summary.TotalDuration.TotalMilliseconds:F0}ms)"));
         
         // Only show failed tests and slow tests to minimize size
         List<TestResult> notableResults = [.. summary.Results.Where(r => !r.Passed || r.Duration.TotalMilliseconds > 1)];
@@ -111,8 +111,8 @@ public class MarkdownFormatter : ITestResultFormatter
             foreach (TestResult result in notableResults)
             {
                 string status = result.Passed ? "🐌" : "❌";
-                string detail = result.Passed ? $"{result.Duration.TotalMilliseconds:F0}ms" : result.Message;
-                md.AppendLine($"- {status} {result.TestName}: {detail}");
+                string detail = result.Passed ? FormattableString.Invariant($"{result.Duration.TotalMilliseconds:F0}ms") : result.Message;
+                md.AppendLine(FormattableString.Invariant($"- {status} {result.TestName}: {detail}"));
             }
         }
         

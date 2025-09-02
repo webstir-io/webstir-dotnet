@@ -31,11 +31,11 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
     private static partial Regex TimestampedAssetPattern();
 
     private static bool IsStaticAsset(string path) =>
-        path.EndsWith(FileExtensions.Css) || path.EndsWith(FileExtensions.Js) || 
-        path.EndsWith(FileExtensions.Png) || path.EndsWith(FileExtensions.Jpg) || 
-        path.EndsWith(FileExtensions.Jpeg) || path.EndsWith(FileExtensions.Gif) || 
-        path.EndsWith(FileExtensions.Svg) || path.EndsWith(FileExtensions.Webp) || 
-        path.EndsWith(FileExtensions.Ico);
+        path.EndsWith(FileExtensions.Css, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Js, StringComparison.OrdinalIgnoreCase) || 
+        path.EndsWith(FileExtensions.Png, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Jpg, StringComparison.OrdinalIgnoreCase) || 
+        path.EndsWith(FileExtensions.Jpeg, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Gif, StringComparison.OrdinalIgnoreCase) || 
+        path.EndsWith(FileExtensions.Svg, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Webp, StringComparison.OrdinalIgnoreCase) || 
+        path.EndsWith(FileExtensions.Ico, StringComparison.OrdinalIgnoreCase);
 
     public async Task StartAsync(AppWorkspace workspace)
     {
@@ -177,13 +177,13 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
         {
             context.Response.Headers.CacheControl = LongCache;
         }
-        else if (path.EndsWith(Files.RefreshJs))
+        else if (path.EndsWith(Files.RefreshJs, StringComparison.Ordinal))
         {
             context.Response.Headers.CacheControl = NoCache;
             context.Response.Headers.Pragma = PragmaNoCache;
             context.Response.Headers.Expires = ExpiresZero;
         }
-        else if (path.EndsWith(FileExtensions.Html) || !path.Contains('.'))
+        else if (path.EndsWith(FileExtensions.Html, StringComparison.OrdinalIgnoreCase) || !path.Contains('.'))
         {
             context.Response.Headers.CacheControl = NoCache;
             context.Response.Headers.Pragma = PragmaNoCache;
@@ -204,15 +204,15 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
             if (path == "/")
                 path = HomeRoute;
             
-            if (path.StartsWith("/" + Files.Index + ".") && !path.StartsWith("/" + Files.IndexHtml))
+            if (path.StartsWith("/" + Files.Index + ".", StringComparison.Ordinal) && !path.StartsWith("/" + Files.IndexHtml, StringComparison.Ordinal))
             {
                 context.Request.Path = $"/{Folders.Pages}/{Folders.Home}{path}";
             }
             else if (!path.Contains('.') && 
-                !path.StartsWith("/" + Folders.Images) && 
-                !path.StartsWith("/" + Folders.Pages) &&
-                !path.StartsWith(ApiRoute) && 
-                !path.StartsWith(SseRoute))
+                !path.StartsWith("/" + Folders.Images, StringComparison.Ordinal) && 
+                !path.StartsWith("/" + Folders.Pages, StringComparison.Ordinal) &&
+                !path.StartsWith(ApiRoute, StringComparison.Ordinal) && 
+                !path.StartsWith(SseRoute, StringComparison.Ordinal))
             {
                 string pageName = path.TrimStart('/');
                 string indexPath = $"/{Folders.Pages}/{pageName}/{Files.IndexHtml}";

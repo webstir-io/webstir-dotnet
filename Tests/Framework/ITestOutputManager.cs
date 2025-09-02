@@ -77,7 +77,7 @@ public class TestOutputManager : ITestOutputManager
         if (Path.IsPathRooted(outputPath))
             return outputPath;
         
-        string timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
+        string timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
         
         // If just a filename, organize by timestamp
         if (!outputPath.Contains('/') && !outputPath.Contains('\\'))

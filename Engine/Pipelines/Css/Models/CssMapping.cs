@@ -1,6 +1,6 @@
 namespace Engine.Pipelines.Css.Models;
 
-internal record CssMapping
+internal sealed record CssMapping
 {
     public required int GeneratedLine { get; init; }
     public required int GeneratedColumn { get; init; }

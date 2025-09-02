@@ -17,7 +17,7 @@ public static class CssPathResolver
         ArgumentNullException.ThrowIfNull(clientDirectory);
         foreach (KeyValuePair<string, string> ns in NamespaceMap)
         {
-            if (path.StartsWith(ns.Key))
+            if (path.StartsWith(ns.Key, StringComparison.Ordinal))
             {
                 string relativePath = path[ns.Key.Length..];
                 string clientPath = Path.Combine(clientDirectory, ns.Value, relativePath);
@@ -25,7 +25,7 @@ public static class CssPathResolver
             }
         }
         
-        if (path.StartsWith("./") || path.StartsWith("../"))
+        if (path.StartsWith("./", StringComparison.Ordinal) || path.StartsWith("../", StringComparison.Ordinal))
         {
             string fullPath = Path.Combine(baseDirectory, path);
             return Path.GetFullPath(fullPath);
