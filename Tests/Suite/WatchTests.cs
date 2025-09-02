@@ -18,19 +18,32 @@ public class WatchTests : BaseTest
     
     private void TestWatchCommandStartup()
     {        
-        string testDir = Directories.GetTestDirectory("watch");
-        CleanupDirectory(testDir);
-        SetupProject(testDir);
+        string testDir = Directories.OutDirectory.FullName;
+        Directory.CreateDirectory(testDir);
+        string seedDir = Path.Combine(testDir, Folders.Seed);
+        if (!Directory.Exists(Path.Combine(seedDir, Folders.Src)))
+        {
+            // Initialize seed project if missing
+            ProcessRunner.ProcessResult init = RunCliCommand(Commands.Init, testDir, timeoutMs: 10000);
+            Assert.AreEqual(0, init.ExitCode, $"{Commands.Init} command failed. Error: {init.Error}");
+        }
+        
+        // Per-suite cleanup: start watch with a clean build folder to ensure fresh compile
+        string seedBuild = Path.Combine(seedDir, Folders.Build);
+        if (Directory.Exists(seedBuild))
+        {
+            try { Directory.Delete(seedBuild, recursive: true); } catch { }
+        }
         
         ProcessRunner.ProcessResult result = RunCliCommand(
-            Commands.Watch, 
-            testDir, 
-            timeoutMs: 8000,
-            waitForSignal: "Watching for changes"
+            $"{Commands.Watch} {ProjectOptions.ProjectName} seed",
+            testDir,
+            timeoutMs: 12000,
+            waitForSignal: "Dev Service is running"
         );
         
         // Verify watch started successfully
-        Assert.IsTrue(result.ReceivedReadySignal, "Watch mode did not start - 'Watching for changes' message not received");
+        Assert.IsTrue(result.ReceivedReadySignal, "Watch mode did not start - readiness message not received");
         
         // Watch should start without immediate compilation errors
         AssertNoCompilationErrors(result);

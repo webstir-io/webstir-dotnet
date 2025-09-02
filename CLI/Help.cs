@@ -48,14 +48,17 @@ public static class Help
             $"Initialize a new {App.Name} project",
             [
                 Example($"{App.Name} {Commands.Init}", "Create a full-stack project (default)"),
+                Example($"{App.Name} {Commands.Init} my-app", "Create a project in 'my-app' directory (positional)"),
+                Example($"{App.Name} {Commands.Init} --project-name my-app", "Create a project in 'my-app' directory (flag)"),
                 Example($"{App.Name} {Commands.Init} {InitOptions.ClientOnly}", "Create a client-only project"),
                 Example($"{App.Name} {Commands.Init} {InitOptions.ServerOnly}", "Create a server-only project")
             ],
             [
                 Option(InitOptions.ClientOnly, "Create a client-side only project"),
-                Option(InitOptions.ServerOnly, "Create a server-side only project")
+                Option(InitOptions.ServerOnly, "Create a server-side only project"),
+                Option(ProjectOptions.ProjectName, "Specify target project folder name (alternative to positional [directory])")
             ],
-            "[options]");
+            "[options] [directory]");
 
     private static CommandHelp GetAddPageCommand() =>
         CreateCommand(Commands.AddPage,

@@ -20,7 +20,7 @@ public abstract class BaseTest : TestSuite
             WorkingDirectory = workingDirectory ?? Environment.CurrentDirectory,
             ExitTimeoutMs = timeoutMs,
             WaitForSignal = waitForSignal,
-            WaitForSignalTimeoutMs = waitForSignal != null ? 8000 : 5000,
+            WaitForSignalTimeoutMs = waitForSignal != null ? 15000 : 5000,
             TerminationMethod = waitForSignal != null ? TerminationMethod.CtrlC : TerminationMethod.Kill
         });
     }

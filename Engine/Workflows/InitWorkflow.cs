@@ -15,8 +15,25 @@ public class InitWorkflow(
 
     protected override void InitializeWorkspace(string[] args)
     {
+        // When running init in the current working directory, allow a custom project folder name.
+        // Fallback to the default seed folder if no name is provided.
         if (Context.WorkingPath == Directory.GetCurrentDirectory())
-            Context.Initialize(Context.WorkingPath.Combine(Folders.Seed));
+        {
+            string[] filteredArgs = [.. args.Where(a => a != WorkflowName)];
+            string? projectName = GetProjectFromFlags(filteredArgs);
+            // Also support a positional directory argument: `webstir init my-app`
+            if (string.IsNullOrWhiteSpace(projectName))
+            {
+                // Take the first non-option arg as a directory name
+                projectName = filteredArgs.FirstOrDefault(a => !a.StartsWith('-'));
+            }
+
+            string targetFolder = !string.IsNullOrWhiteSpace(projectName)
+                ? projectName!
+                : Folders.Seed;
+
+            Context.Initialize(Context.WorkingPath.Combine(targetFolder));
+        }
     }
 
     protected override async Task ExecuteWorkflowAsync(string[] args)
