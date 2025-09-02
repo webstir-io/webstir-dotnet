@@ -22,14 +22,20 @@ public class CssBundler(AppWorkspace workspace)
         foreach (string pageDir in pagesPath.Folders())
         {
             string pageName = pageDir.Filename();
-            string pageStyle = pageDir.Combine($"{Files.Index}{Css.ModuleExt}");
+            // Prefer CSS Modules if present; otherwise fall back to plain CSS
+            string moduleStylePath = pageDir.Combine($"{Files.Index}{Css.ModuleExt}");
+            string plainStylePath = pageDir.Combine($"{Files.Index}{FileExtensions.Css}");
 
-            if (!pageStyle.Exists())
+            string? entryStylePath = moduleStylePath.Exists()
+                ? moduleStylePath
+                : (plainStylePath.Exists() ? plainStylePath : null);
+
+            if (string.IsNullOrEmpty(entryStylePath))
             {
                 continue;
             }
 
-            string finalCss = await BuildBundledCssAsync(pageStyle);
+            string finalCss = await BuildBundledCssAsync(entryStylePath);
             string cssFileName = await WriteCssAsync(pageName, finalCss);
             await UpdateCssManifestAsync(pageName, cssFileName);
         }
@@ -71,9 +77,7 @@ public class CssBundler(AppWorkspace workspace)
     private Task UpdateCssManifestAsync(string pageName, string cssFileName)
     {
         string pageDistDir = workspace.ClientDistPath.Combine(Folders.Pages, pageName);
-        AssetManifest manifest = AssetManifest.Load(pageDistDir);
-        manifest.Css = cssFileName;
-        manifest.Save(pageDistDir);
+        AssetManifest.Update(pageDistDir, m => m.Css = cssFileName);
         return Task.CompletedTask;
     }
 

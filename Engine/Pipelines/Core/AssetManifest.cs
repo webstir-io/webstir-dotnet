@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 
 namespace Engine.Pipelines.Core;
@@ -21,6 +22,8 @@ public sealed class AssetManifest
         WriteIndented = true
     };
 
+    private static readonly ConcurrentDictionary<string, object> Locks = new(StringComparer.OrdinalIgnoreCase);
+
     public static AssetManifest Load(string pageDistDirectory)
     {
         ArgumentNullException.ThrowIfNull(pageDistDirectory);
@@ -42,12 +45,30 @@ public sealed class AssetManifest
         }
     }
 
+    public static void Update(string pageDistDirectory, Action<AssetManifest> updateAction)
+    {
+        ArgumentNullException.ThrowIfNull(pageDistDirectory);
+        ArgumentNullException.ThrowIfNull(updateAction);
+
+        string key = Path.GetFullPath(pageDistDirectory);
+        object gate = Locks.GetOrAdd(key, _ => new object());
+
+        lock (gate)
+        {
+            AssetManifest manifest = Load(pageDistDirectory);
+            updateAction(manifest);
+            manifest.Save(pageDistDirectory);
+        }
+    }
+
     public void Save(string pageDistDirectory)
     {
         ArgumentNullException.ThrowIfNull(pageDistDirectory);
         Directory.CreateDirectory(pageDistDirectory);
         string manifestPath = Path.Combine(pageDistDirectory, "manifest.json");
         string json = JsonSerializer.Serialize(this, JsonOptions);
-        File.WriteAllText(manifestPath, json);
+        string tempPath = Path.Combine(pageDistDirectory, $"manifest.{Guid.NewGuid():N}.tmp");
+        File.WriteAllText(tempPath, json);
+        File.Move(tempPath, manifestPath, overwrite: true);
     }
 }

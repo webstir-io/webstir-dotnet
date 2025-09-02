@@ -61,12 +61,17 @@ public class PublishTests : BaseTest
         string clientPageDir = Path.Combine(distDir, Folders.Client, Folders.Pages, Folders.Home);
         Assert.IsTrue(File.Exists(Path.Combine(clientPageDir, $"{Files.Index}{FileExtensions.Html}")), "client page index.html missing in dist");
 
-        string expectedJsPath = Path.Combine(clientPageDir, $"{Files.Index}{FileExtensions.Js}");
+        // Determine expected JS path using manifest (supports fingerprinted filenames)
+        Engine.Pipelines.Core.AssetManifest manifest = Engine.Pipelines.Core.AssetManifest.Load(clientPageDir);
+        string expectedJsPath = !string.IsNullOrWhiteSpace(manifest.Js)
+            ? Path.Combine(clientPageDir, manifest.Js!)
+            : Path.Combine(clientPageDir, $"{Files.Index}{FileExtensions.Js}");
         if (!File.Exists(expectedJsPath))
         {
             System.Text.StringBuilder diagnostics = new();
-            diagnostics.AppendLine("client page index.js missing in dist");
+            diagnostics.AppendLine("client page JS missing in dist");
             diagnostics.AppendLine();
+            diagnostics.AppendLine($"Manifest JS: {manifest.Js ?? "<null>"}");
             diagnostics.AppendLine($"Expected JS path: {expectedJsPath}");
 
             string buildClientPageDir = Path.Combine(testDir, Folders.Seed, Folders.Build, Folders.Client, Folders.Pages, Folders.Home);
@@ -123,18 +128,15 @@ public class PublishTests : BaseTest
         string distHtml = File.ReadAllText(distHtmlPath);
         Assert.DoesNotContain("<!--", distHtml, "Client HTML should not contain comments in dist");
 
-        // CSS minification: if page CSS exists, ensure no block comments
-        string distCssPath1 = Path.Combine(clientPageDir, "index.module.css");
-        string distCssPath2 = Path.Combine(clientPageDir, $"{Files.Index}{FileExtensions.Css}");
-        string? cssPath = File.Exists(distCssPath1) ? distCssPath1 : (File.Exists(distCssPath2) ? distCssPath2 : null);
-        if (cssPath != null)
+        // CSS minification: if page CSS exists (per manifest), ensure no block comments
+        string? cssManifest = manifest.Css;
+        if (!string.IsNullOrWhiteSpace(cssManifest))
         {
+            string cssPath = Path.Combine(clientPageDir, cssManifest!);
+            Assert.IsTrue(File.Exists(cssPath), $"Client CSS referenced by manifest missing: {cssManifest}");
             string distCss = File.ReadAllText(cssPath);
             Assert.DoesNotContain("/*", distCss, "Client CSS should not contain block comments in dist");
         }
-        bool hasCss = File.Exists(Path.Combine(clientPageDir, "index.module.css"));
-        // If a page doesn't use CSS modules, there may be no standalone CSS in dist
-        // Accept absence for now.
 
         // Refresh script should not exist in dist
         Assert.IsFalse(File.Exists(Path.Combine(distDir, Folders.Client, Files.RefreshJs)), "refresh.js should not be published to dist");

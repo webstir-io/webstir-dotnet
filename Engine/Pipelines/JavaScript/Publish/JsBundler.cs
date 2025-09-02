@@ -28,9 +28,9 @@ public class JsBundler(AppWorkspace workspace)
                 continue;
             }
 
-            (string bundleCode, string sourceMap) = await BuildBundleAsync(pageScript, diagnostics);
-            (string jsFileName, string mapFileName) = await WriteJsAsync(pageName, bundleCode, sourceMap);
-            await UpdateJsManifestAsync(pageName, jsFileName, mapFileName);
+            string bundleCode = await BuildBundleAsync(pageScript, diagnostics);
+            string jsFileName = await WriteJsAsync(pageName, bundleCode);
+            await UpdateJsManifestAsync(pageName, jsFileName);
         }
     }
 
@@ -95,7 +95,7 @@ public class JsBundler(AppWorkspace workspace)
         return string.Join("\n\n", transformedModules);
     }
 
-    private async Task<(string BundleCode, string SourceMap)> BuildBundleAsync(string entryScriptPath, DiagnosticCollection? diagnostics)
+    private async Task<string> BuildBundleAsync(string entryScriptPath, DiagnosticCollection? diagnostics)
     {
         JsModuleGraph graph = await JsModuleGraph.BuildAsync(_resolver, entryScriptPath);
         List<JsModuleInfo> modules = GetModulesInOrder(graph);
@@ -115,44 +115,30 @@ public class JsBundler(AppWorkspace workspace)
 
         string bundleCode = ConcatenateModules(modules, graph);
 
-        JsSourceMapGenerator mapGenerator = new();
-        foreach (JsModuleInfo module in modules)
-        {
-            mapGenerator.AddMapping(module);
-        }
-        string sourceMap = mapGenerator.Generate();
-
+        // Minify bundle for production; no source maps in production.
         bundleCode = JsTransformer.Minify(bundleCode);
 
-        return (bundleCode, sourceMap);
+        return bundleCode;
     }
 
-    private async Task<(string JsFileName, string MapFileName)> WriteJsAsync(string pageName, string bundleCode, string sourceMap)
+    private async Task<string> WriteJsAsync(string pageName, string bundleCode)
     {
         long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         string jsFileName = $"{Files.Index}.{timestamp}{FileExtensions.Js}";
-        string mapFileName = jsFileName + FileExtensions.Map;
 
         string pageDistDir = workspace.ClientDistPath.Combine(Folders.Pages, pageName);
         pageDistDir.Create();
 
-        string bundleWithMapComment = bundleCode + "\n//# sourceMappingURL=" + mapFileName + "\n";
         string distJsPath = Path.Combine(pageDistDir, jsFileName);
-        await File.WriteAllTextAsync(distJsPath, bundleWithMapComment);
+        await File.WriteAllTextAsync(distJsPath, bundleCode);
 
-        string distMapPath = Path.Combine(pageDistDir, mapFileName);
-        await File.WriteAllTextAsync(distMapPath, sourceMap);
-
-        return (jsFileName, mapFileName);
+        return jsFileName;
     }
 
-    private Task UpdateJsManifestAsync(string pageName, string jsFileName, string mapFileName)
+    private Task UpdateJsManifestAsync(string pageName, string jsFileName)
     {
         string pageDistDir = workspace.ClientDistPath.Combine(Folders.Pages, pageName);
-        AssetManifest manifest = AssetManifest.Load(pageDistDir);
-        manifest.Js = jsFileName;
-        manifest.Map.Js = mapFileName;
-        manifest.Save(pageDistDir);
+        AssetManifest.Update(pageDistDir, m => m.Js = jsFileName);
         return Task.CompletedTask;
     }
 }
