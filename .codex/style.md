@@ -97,6 +97,7 @@
   - Follow **KISS, DRY, YAGNI, SOLID**.
   - Favor immutability; use guard clauses; return early.
   - Keep DTOs separate from domain models.
+  - Methods & SRP: Prefer ~5–40 lines as a guideline, not a rule. Let Single Responsibility drive size; split when a method does more than one thing (e.g., compute vs. write, parse vs. transform). Use small private helpers; avoid trivial pass‑through wrappers that harm clarity.
 
 ## Naming: Single-letter Names
 - Prohibited. Always use descriptive names; use `_` only as a discard.

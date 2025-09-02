@@ -27,44 +27,10 @@ public class JsBundler(AppWorkspace workspace)
             {
                 continue;
             }
-            
-            JsModuleGraph graph = await JsModuleGraph.BuildAsync(_resolver, pageScript);
-            List<JsModuleInfo> modules = GetModulesInOrder(graph);
-            // Diagnostics: flag unsupported CommonJS modules
-            if (diagnostics != null)
-            {
-                foreach (JsModuleInfo module in modules)
-                {
-                    if (module.Type == JsModuleType.CommonJS)
-                    {
-                        diagnostics.AddError(
-                            "CommonJS detected; ESM required. Replace require()/module.exports with import/export.",
-                            module.FilePath);
-                    }
-                }
-            }
-            
-            // Concatenate all transformed modules
-            string bundleCode = ConcatenateModules(modules, graph);
 
-            // Generate a coarse per-module source map (line-offset based)
-            JsSourceMapGenerator mapGenerator = new();
-            foreach (JsModuleInfo module in modules)
-            {
-                mapGenerator.AddMapping(module);
-            }
-            string sourceMap = mapGenerator.Generate();
-
-            // Minify after concatenation; mapping remains coarse by design (v1)
-            bundleCode = JsTransformer.Minify(bundleCode);
-            
-            string distPagePath = workspace.ClientDistPath.Combine(Folders.Pages, pageName, $"{Files.Index}{FileExtensions.Js}");
-            distPagePath.DirectoryName().Create();
-            await File.WriteAllTextAsync(distPagePath, bundleCode);
-
-            // Emit separate source map file (no inline comment to keep dist clean)
-            string distMapPath = distPagePath + FileExtensions.Map;
-            await File.WriteAllTextAsync(distMapPath, sourceMap);
+            (string bundleCode, string sourceMap) = await BuildBundleAsync(pageScript, diagnostics);
+            (string jsFileName, string mapFileName) = await WriteJsAsync(pageName, bundleCode, sourceMap);
+            await UpdateJsManifestAsync(pageName, jsFileName, mapFileName);
         }
     }
 
@@ -127,5 +93,66 @@ public class JsBundler(AppWorkspace workspace)
         }
 
         return string.Join("\n\n", transformedModules);
+    }
+
+    private async Task<(string BundleCode, string SourceMap)> BuildBundleAsync(string entryScriptPath, DiagnosticCollection? diagnostics)
+    {
+        JsModuleGraph graph = await JsModuleGraph.BuildAsync(_resolver, entryScriptPath);
+        List<JsModuleInfo> modules = GetModulesInOrder(graph);
+
+        if (diagnostics != null)
+        {
+            foreach (JsModuleInfo module in modules)
+            {
+                if (module.Type == JsModuleType.CommonJS)
+                {
+                    diagnostics.AddError(
+                        "CommonJS detected; ESM required. Replace require()/module.exports with import/export.",
+                        module.FilePath);
+                }
+            }
+        }
+
+        string bundleCode = ConcatenateModules(modules, graph);
+
+        JsSourceMapGenerator mapGenerator = new();
+        foreach (JsModuleInfo module in modules)
+        {
+            mapGenerator.AddMapping(module);
+        }
+        string sourceMap = mapGenerator.Generate();
+
+        bundleCode = JsTransformer.Minify(bundleCode);
+
+        return (bundleCode, sourceMap);
+    }
+
+    private async Task<(string JsFileName, string MapFileName)> WriteJsAsync(string pageName, string bundleCode, string sourceMap)
+    {
+        long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        string jsFileName = $"{Files.Index}.{timestamp}{FileExtensions.Js}";
+        string mapFileName = jsFileName + FileExtensions.Map;
+
+        string pageDistDir = workspace.ClientDistPath.Combine(Folders.Pages, pageName);
+        pageDistDir.Create();
+
+        string bundleWithMapComment = bundleCode + "\n//# sourceMappingURL=" + mapFileName + "\n";
+        string distJsPath = Path.Combine(pageDistDir, jsFileName);
+        await File.WriteAllTextAsync(distJsPath, bundleWithMapComment);
+
+        string distMapPath = Path.Combine(pageDistDir, mapFileName);
+        await File.WriteAllTextAsync(distMapPath, sourceMap);
+
+        return (jsFileName, mapFileName);
+    }
+
+    private Task UpdateJsManifestAsync(string pageName, string jsFileName, string mapFileName)
+    {
+        string pageDistDir = workspace.ClientDistPath.Combine(Folders.Pages, pageName);
+        AssetManifest manifest = AssetManifest.Load(pageDistDir);
+        manifest.Js = jsFileName;
+        manifest.Map.Js = mapFileName;
+        manifest.Save(pageDistDir);
+        return Task.CompletedTask;
     }
 }

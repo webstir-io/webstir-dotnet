@@ -1,11 +1,19 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+
 using Engine.Pipelines.Css.Models;
 
 namespace Engine.Pipelines.Css.Publish;
 
 public class SourceMapGenerator
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = false,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
     private readonly List<string> _sources = [];
     private readonly List<string?> _sourcesContent = [];
     private readonly List<CssMapping> _mappings = [];
@@ -42,11 +50,7 @@ public class SourceMapGenerator
             Mappings = EncodeMappings()
         };
 
-        return JsonSerializer.Serialize(map, new JsonSerializerOptions
-        {
-            WriteIndented = false,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-        });
+        return JsonSerializer.Serialize(map, JsonOptions);
     }
 
     public string GenerateInlineSourceMap(string bundleFileName)
@@ -95,6 +99,7 @@ public class SourceMapGenerator
         return encoded.ToString();
     }
 
+    // Variable-length quantity (VLQ) encoding
     private static string EncodeVlq(int value)
     {
         const string Base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -106,10 +111,10 @@ public class SourceMapGenerator
         {
             int digit = vlq & 0x1F;
             vlq >>= 5;
-            
+
             if (vlq > 0)
                 digit |= 0x20;
-            
+
             encoded.Append(Base64Chars[digit]);
         } while (vlq > 0);
 

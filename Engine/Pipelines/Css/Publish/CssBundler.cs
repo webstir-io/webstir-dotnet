@@ -1,5 +1,6 @@
 using Engine.Extensions;
 using Engine.Pipelines.Css.Models;
+using Engine.Pipelines.Core;
 using System.Text;
 
 namespace Engine.Pipelines.Css.Publish;
@@ -27,29 +28,54 @@ public class CssBundler(AppWorkspace workspace)
             {
                 continue;
             }
-            
-            _graph.Clear();
-            
-            await LoadModuleRecursively(pageStyle);
-            List<CssModule> modules = _graph.GetModulesInOrder([pageStyle]);
-            
-            StringBuilder bundled = new();
-            foreach (CssModule module in modules)
-            {
-                string processed = await ProcessModule(module);
-                bundled.AppendLine(processed);
-            }
-            
-            string finalCss = bundled.ToString();
-            finalCss = Transformer.AddPrefixes(finalCss);
-            finalCss = Transformer.Minify(finalCss);
 
-            string distPagePath = workspace.ClientDistPath.Combine(Folders.Pages, pageName, $"{Files.Index}{Css.ModuleExt}");
-            distPagePath.DirectoryName().Create();
-            await File.WriteAllTextAsync(distPagePath, finalCss);
+            string finalCss = await BuildBundledCssAsync(pageStyle);
+            string cssFileName = await WriteCssAsync(pageName, finalCss);
+            await UpdateCssManifestAsync(pageName, cssFileName);
         }
     }
 
+    private async Task<string> BuildBundledCssAsync(string entryModulePath)
+    {
+        _graph.Clear();
+
+        await LoadModuleRecursively(entryModulePath);
+        List<CssModule> modules = _graph.GetModulesInOrder([entryModulePath]);
+
+        StringBuilder bundled = new();
+        foreach (CssModule module in modules)
+        {
+            string processed = await ProcessModule(module);
+            bundled.AppendLine(processed);
+        }
+
+        string finalCss = bundled.ToString();
+        finalCss = Transformer.AddPrefixes(finalCss);
+        finalCss = Transformer.Minify(finalCss);
+        return finalCss;
+    }
+
+    private async Task<string> WriteCssAsync(string pageName, string finalCss)
+    {
+        long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        string cssFileName = $"{Files.Index}.{timestamp}{FileExtensions.Css}";
+        string pageDistDir = workspace.ClientDistPath.Combine(Folders.Pages, pageName);
+        pageDistDir.Create();
+
+        string distCssPath = Path.Combine(pageDistDir, cssFileName);
+        await File.WriteAllTextAsync(distCssPath, finalCss);
+
+        return cssFileName;
+    }
+
+    private Task UpdateCssManifestAsync(string pageName, string cssFileName)
+    {
+        string pageDistDir = workspace.ClientDistPath.Combine(Folders.Pages, pageName);
+        AssetManifest manifest = AssetManifest.Load(pageDistDir);
+        manifest.Css = cssFileName;
+        manifest.Save(pageDistDir);
+        return Task.CompletedTask;
+    }
 
     private async Task<CssModule> LoadModuleRecursively(string filePath)
     {

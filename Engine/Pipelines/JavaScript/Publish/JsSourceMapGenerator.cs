@@ -6,6 +6,10 @@ namespace Engine.Pipelines.JavaScript.Publish;
 
 public class JsSourceMapGenerator
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = false
+    };
     private readonly List<JsMappingSegment> _mappings = [];
     private readonly List<string> _sources = [];
     private readonly List<string> _names = [];
@@ -78,7 +82,7 @@ public class JsSourceMapGenerator
             Mappings = EncodeMappings()
         };
         
-        return JsonSerializer.Serialize(map, new JsonSerializerOptions { WriteIndented = false });
+        return JsonSerializer.Serialize(map, JsonOptions);
     }
     
     private string EncodeMappings()
