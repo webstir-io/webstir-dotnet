@@ -2,6 +2,13 @@ namespace Engine.Extensions;
 
 public static class PathExtensions
 {
+    public static string CreateSubDirectory(this string path, string subDirectory)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(subDirectory);
+        return path.Combine(subDirectory).Create();
+    }
+
     public static string Combine(this string path, params string[] segments)
     {
         ArgumentNullException.ThrowIfNull(path);

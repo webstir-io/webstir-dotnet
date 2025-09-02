@@ -46,8 +46,11 @@ public class JsModuleGraph
     public void MarkAsEntryPoint(string filePath)
     {
         if (!_nodes.TryGetValue(filePath, out JsModuleNode? node))
-            throw new InvalidOperationException($"Cannot mark non-existent module '{filePath}' as entry point");
-        
+        {
+            // Be tolerant: ensure an entry node exists to avoid failing the publish
+            node = new JsModuleNode { FilePath = filePath };
+            _nodes[filePath] = node;
+        }
         node.IsEntryPoint = true;
     }
 

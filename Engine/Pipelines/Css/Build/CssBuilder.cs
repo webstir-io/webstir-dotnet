@@ -18,13 +18,14 @@ public class CssBuilder(AppWorkspace workspace)
         string relativePath = Path.GetRelativePath(workspace.ClientPath, srcFile);
         string buildPath = workspace.ClientBuildPath.Combine(relativePath);
         
-        Path.GetDirectoryName(buildPath)!.Create();
+        buildPath.DirectoryName().Create();
         
         string processedContent = CssImportProcessor.ProcessForBuild(
-            cssContent, 
-            srcFile, 
-            buildPath, 
-            workspace.ClientPath
+            cssContent,
+            srcFile,
+            buildPath,
+            workspace.ClientPath,
+            workspace.ClientBuildPath
         );
 
         File.WriteAllText(buildPath, processedContent);

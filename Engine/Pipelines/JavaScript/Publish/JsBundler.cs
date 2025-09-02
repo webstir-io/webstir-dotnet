@@ -30,12 +30,27 @@ public class JsBundler(AppWorkspace workspace)
             JsModuleGraph graph = await JsModuleGraph.BuildAsync(_resolver, pageScript);
             List<JsModuleInfo> modules = GetModulesInOrder(graph);
             
+            // Concatenate all transformed modules
             string bundleCode = ConcatenateModules(modules, graph);
+
+            // Generate a coarse per-module source map (line-offset based)
+            JsSourceMapGenerator mapGenerator = new();
+            foreach (JsModuleInfo module in modules)
+            {
+                mapGenerator.AddMapping(module);
+            }
+            string sourceMap = mapGenerator.Generate();
+
+            // Minify after concatenation; mapping remains coarse by design (v1)
             bundleCode = JsTransformer.Minify(bundleCode);
             
             string distPagePath = workspace.ClientDistPath.Combine(Folders.Pages, pageName, $"{Files.Index}{FileExtensions.Js}");
             distPagePath.DirectoryName().Create();
             await File.WriteAllTextAsync(distPagePath, bundleCode);
+
+            // Emit separate source map file (no inline comment to keep dist clean)
+            string distMapPath = distPagePath + FileExtensions.Map;
+            await File.WriteAllTextAsync(distMapPath, sourceMap);
         }
     }
 

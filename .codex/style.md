@@ -100,3 +100,9 @@
 
 ## Naming: Single-letter Names
 - Prohibited. Always use descriptive names; use `_` only as a discard.
+
+## Literals: Magic Strings
+- Avoid magic strings and numbers in code.
+- Centralize file names, extensions, and folder names in `Engine/Constants.cs` (`Files`, `FileExtensions`, `Folders`).
+- Prefer domain enums or static readonly fields when a constant doesn’t belong in `Constants.cs`.
+- Exceptions: user-facing error/help text, narrowly scoped test data, or tiny regex fragments where a constant harms clarity.

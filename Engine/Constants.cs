@@ -40,6 +40,7 @@ public static class FileExtensions
     public const string Html = ".html";
     public const string Css = ".css";
     public const string Js = ".js";
+    public const string Map = ".map";
     public const string Png = ".png";
     public const string Jpg = ".jpg";
     public const string Jpeg = ".jpeg";
@@ -57,4 +58,3 @@ public static class Templates
     public const string ServerPath = $"{SrcPath}.{Folders.Server}";
     public const string SharedPath = $"{SrcPath}.{Folders.Shared}";
 }
-

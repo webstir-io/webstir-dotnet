@@ -23,6 +23,10 @@ This document captures time‑boxed, feature‑specific agreements for the curre
 - Skip non‑semantic tokens via `SkipTrivia()` (whitespace/newlines/comments).
 - On ambiguity, add a diagnostic and optionally fall back to the legacy path.
 
+## Constants (No Magic Strings)
+- Do not introduce magic strings for filenames, extensions, or folders in pipelines.
+- Use `Engine/Constants.cs` (`Files`, `FileExtensions`, `Folders`) for shared literals.
+
 ## Diagnostics
 - Use `Engine/Pipelines/Core/Diagnostics.cs`.
 - Include file, line, column where possible; keep messages actionable.
