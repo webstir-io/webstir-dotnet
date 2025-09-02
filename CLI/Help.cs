@@ -150,10 +150,7 @@ public static class Help
 
     public static void ShowCommandHelp(string commandName)
     {
-        if (commandName is null)
-        {
-            throw new ArgumentNullException(nameof(commandName));
-        }
+        ArgumentNullException.ThrowIfNull(commandName);
 
         if (!AppCommands.TryGetValue(commandName, out CommandHelp? command))
         {

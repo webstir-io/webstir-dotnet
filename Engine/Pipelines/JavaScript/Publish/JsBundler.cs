@@ -1,4 +1,5 @@
 using Engine.Extensions;
+using Engine.Pipelines.Core;
 using Engine.Pipelines.JavaScript.Models;
 
 namespace Engine.Pipelines.JavaScript.Publish;
@@ -7,9 +8,9 @@ public class JsBundler(AppWorkspace workspace)
 {
     private readonly JsModuleResolver _resolver = new(workspace);
     
-    public async Task BundleAsync() => await BundlePageScriptsAsync();
+    public async Task BundleAsync(DiagnosticCollection? diagnostics = null) => await BundlePageScriptsAsync(diagnostics);
     
-    private async Task BundlePageScriptsAsync()
+    private async Task BundlePageScriptsAsync(DiagnosticCollection? diagnostics)
     {
         string pagesPath = workspace.ClientBuildPath.Combine(Folders.Pages);
         if (!pagesPath.Exists())
@@ -29,6 +30,19 @@ public class JsBundler(AppWorkspace workspace)
             
             JsModuleGraph graph = await JsModuleGraph.BuildAsync(_resolver, pageScript);
             List<JsModuleInfo> modules = GetModulesInOrder(graph);
+            // Diagnostics: flag unsupported CommonJS modules
+            if (diagnostics != null)
+            {
+                foreach (JsModuleInfo module in modules)
+                {
+                    if (module.Type == JsModuleType.CommonJS)
+                    {
+                        diagnostics.AddError(
+                            "CommonJS detected; ESM required. Replace require()/module.exports with import/export.",
+                            module.FilePath);
+                    }
+                }
+            }
             
             // Concatenate all transformed modules
             string bundleCode = ConcatenateModules(modules, graph);

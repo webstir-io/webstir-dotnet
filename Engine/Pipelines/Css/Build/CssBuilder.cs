@@ -1,32 +1,28 @@
 using Engine.Extensions;
+using Engine.Pipelines.Core;
 
 namespace Engine.Pipelines.Css.Build;
 
 public class CssBuilder(AppWorkspace workspace)
 {
-    public void Build()
+    public void Build(DiagnosticCollection? diagnostics = null)
     {
         string[] cssFiles = workspace.ClientPath.Files("*.css", SearchOption.AllDirectories);
 
         foreach (string srcFile in cssFiles)
-            ProcessBuildFile(srcFile);
+        {
+            ProcessBuildFile(srcFile, diagnostics);
+        }
     }
 
-    private void ProcessBuildFile(string srcFile)
+    private void ProcessBuildFile(string srcFile, DiagnosticCollection? diagnostics)
     {
         string cssContent = File.ReadAllText(srcFile);
-        string relativePath = Path.GetRelativePath(workspace.ClientPath, srcFile);
-        string buildPath = workspace.ClientBuildPath.Combine(relativePath);
+        string buildPath = CssImportProcessor.ComputeOutputPathForSource(srcFile, workspace);
         
         buildPath.DirectoryName().Create();
         
-        string processedContent = CssImportProcessor.ProcessForBuild(
-            cssContent,
-            srcFile,
-            buildPath,
-            workspace.ClientPath,
-            workspace.ClientBuildPath
-        );
+        string processedContent = CssImportProcessor.ProcessForBuild(cssContent, srcFile, workspace, diagnostics);
 
         File.WriteAllText(buildPath, processedContent);
     }

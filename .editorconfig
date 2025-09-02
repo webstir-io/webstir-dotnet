@@ -32,6 +32,7 @@ csharp_style_prefer_pattern_matching = true:warning
 # Nullability
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
 dotnet_diagnostic.CA1062.severity = warning   # Validate arguments against null
+dotnet_diagnostic.CA1510.severity = warning   # Prefer ArgumentNullException.ThrowIfNull
 
 # Naming
 dotnet_naming_rule.interfaces_should_start_with_i.severity = warning

@@ -9,7 +9,7 @@ Documents:
 - 03-javascript-pipeline-ts.md — JS/TS pipeline with `tsc` required
 - 04-css-pipeline.md — CSS pipeline updates
 - 05-html-processing.md — HTML pipeline updates
-- 06-migration.md — Rollout plan (no feature flags for now)
+- 06-migration.md — Migration guidance (no feature flags)
 - 07-differences-from-claude.md — Key differences vs. earlier draft
 - 08-cache-busting-and-fingerprinting.md — Cache busting strategy and filename fingerprinting
 - 09-working-agreements.md — Feature-specific agreements for this pipeline work
