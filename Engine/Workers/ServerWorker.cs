@@ -1,7 +1,9 @@
 using System.Diagnostics;
+
 using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Models;
+
 using Microsoft.Extensions.Options;
 
 namespace Engine.Workers;
@@ -64,7 +66,7 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
             UseShellExecute = false,
             CreateNoWindow = true
         };
-        
+
         processInfo.Environment["API_PORT"] = _settings.ApiServerPort.ToString(System.Globalization.CultureInfo.InvariantCulture);
         processInfo.Environment["WEB_PORT"] = _settings.WebServerPort.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
@@ -94,7 +96,7 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
     {
         string packageLockPath = workspace.WorkingPath.Combine("package-lock.json");
         string npmCommand = File.Exists(packageLockPath) ? "ci" : "install";
-        
+
         ProcessStartInfo processInfo = new()
         {
             FileName = "npm",
@@ -132,23 +134,23 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
     {
         string singleLinePattern = @"(?<!:)//.*$";
         js = System.Text.RegularExpressions.Regex.Replace(
-            js, 
-            singleLinePattern, 
-            string.Empty, 
+            js,
+            singleLinePattern,
+            string.Empty,
             System.Text.RegularExpressions.RegexOptions.Multiline
         );
-        
+
         string multiLinePattern = @"/\*[\s\S]*?\*/";
         js = System.Text.RegularExpressions.Regex.Replace(js, multiLinePattern, string.Empty);
-        
+
         string emptyLinePattern = @"^\s*\r?\n";
         js = System.Text.RegularExpressions.Regex.Replace(
-            js, 
-            emptyLinePattern, 
-            string.Empty, 
+            js,
+            emptyLinePattern,
+            string.Empty,
             System.Text.RegularExpressions.RegexOptions.Multiline
         );
-        
+
         return js.Trim();
     }
 

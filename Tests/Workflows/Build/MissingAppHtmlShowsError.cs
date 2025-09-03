@@ -1,4 +1,5 @@
 using Engine;
+
 using Tests.Framework;
 
 namespace Tests.Workflows.Build;
@@ -25,7 +26,11 @@ public sealed class MissingAppHtmlShowsError : ITestCase
         string appHtml = Path.Combine(projectDir, Folders.Src, Folders.Client, Folders.App, "app.html");
         if (File.Exists(appHtml))
         {
-            try { File.Delete(appHtml); } catch { }
+            try
+            {
+                File.Delete(appHtml);
+            }
+            catch { }
         }
 
         ProcessRunner.ProcessResult result = context.Cli.Run($"{Commands.Build} {ProjectOptions.ProjectName} {projectName}", testDir, timeoutMs: 10000);

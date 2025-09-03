@@ -32,13 +32,13 @@ public static class Exts
     public const string ModuleJs = ".mjs";
     public const string Json = ".json";
 }
-    
+
 public static class PackageJsonFields
 {
     public const string Main = "main";
     public const string Module = "module";
 }
-    
+
 public static class Syntax
 {
     public const string OpenBrace = "{";

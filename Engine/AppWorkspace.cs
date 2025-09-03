@@ -27,6 +27,7 @@ public class AppWorkspace
     public string ClientDistPath => DistPath.CreateSubDirectory(Folders.Client);
     public string ClientDistImagesPath => ClientDistPath.CreateSubDirectory(Folders.Images);
     public string ClientDistPagesPath => ClientDistPath.CreateSubDirectory(Folders.Pages);
+    public string ClientDistAppPath => ClientDistPath.CreateSubDirectory(Folders.App);
 
     public string ServerPath => SrcPath.CreateSubDirectory(Folders.Server);
     public string ServerBuildPath => BuildPath.CreateSubDirectory(Folders.Server);

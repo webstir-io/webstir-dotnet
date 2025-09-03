@@ -2,6 +2,7 @@ using Engine.Extensions;
 using Engine.Pipelines.Core;
 using Engine.Pipelines.JavaScript.Build;
 using Engine.Pipelines.JavaScript.Publish;
+
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.JavaScript;
@@ -34,7 +35,7 @@ public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bund
 
             console.log('{pageName} page loaded');
             """;
-        
+
         File.WriteAllText(tsFilePath, tsContent);
         return Task.CompletedTask;
     }

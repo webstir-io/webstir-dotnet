@@ -8,7 +8,7 @@ public class WatchWorkflow(
     ClientWorker clientWorker,
     ServerWorker serverWorker,
     SharedWorker sharedWorker,
-    DevService devService) 
+    DevService devService)
     : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
 {
     public override string WorkflowName => Commands.Watch;

@@ -7,7 +7,7 @@ public class AddPageWorkflow(
     AppWorkspace context,
     ClientWorker clientWorker,
     ServerWorker serverWorker,
-    SharedWorker sharedWorker) 
+    SharedWorker sharedWorker)
     : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
 {
     public override string WorkflowName => Commands.AddPage;

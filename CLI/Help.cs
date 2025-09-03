@@ -12,14 +12,13 @@ public static class Help
         [Commands.Build] = GetBuildCommand(),
         [Commands.Watch] = GetWatchCommand(),
         [Commands.Publish] = GetPublishCommand(),
-        [Commands.Help] = GetHelpCommand(),
-        [Commands.Demo] = GetDemoCommand()
+        [Commands.Help] = GetHelpCommand()
     };
 
     private static CommandHelp CreateCommand(
-        string name, 
-        string description, 
-        string[]? examples = null, 
+        string name,
+        string description,
+        string[]? examples = null,
         CommandOption[]? options = null,
         string? usageParams = null)
     {
@@ -38,7 +37,11 @@ public static class Help
     }
 
     private static CommandOption Option(string name, string description) =>
-        new() { Name = name, Description = description };
+        new()
+        {
+            Name = name,
+            Description = description
+        };
 
     private static string Example(string command, string description) =>
         $"{command,-40}# {description}";
@@ -108,15 +111,7 @@ public static class Help
             null,
             "[command]");
 
-    private static CommandHelp GetDemoCommand() =>
-        CreateCommand(Commands.Demo,
-            "Create a demo application showcasing all webstir features",
-            [
-                Example($"{App.Name} {Commands.Demo}", "Create a demo app in the current directory"),
-                Example($"{App.Name} {Commands.Demo} my-demo", "Create a demo app in 'my-demo' directory")
-            ],
-            null,
-            "[directory]");
+    // Demo command temporarily removed
 
     public static void ShowGeneralHelp()
     {
@@ -125,7 +120,7 @@ public static class Help
         Console.WriteLine($"Usage: {App.Name} [command] [options] [path]");
         Console.WriteLine();
         Console.WriteLine("Commands:");
-        
+
         foreach (CommandHelp cmd in AppCommands.Values.OrderBy(c => c.Name))
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
@@ -133,7 +128,7 @@ public static class Help
             Console.ResetColor();
             Console.WriteLine($"  {cmd.Description}");
         }
-        
+
         Console.WriteLine();
         Console.WriteLine($"Run '{App.Name} {Commands.Help} <command>' for more information on a specific command.");
         Console.WriteLine();
@@ -163,7 +158,7 @@ public static class Help
         Console.WriteLine(command.Description);
         Console.WriteLine();
         Console.WriteLine($"Usage: {command.Usage}");
-        
+
         if (command.Options.Count > 0)
         {
             Console.WriteLine();
@@ -176,7 +171,7 @@ public static class Help
                 Console.WriteLine($"{option.Description}");
             }
         }
-        
+
         if (command.Examples.Count > 0)
         {
             Console.WriteLine();

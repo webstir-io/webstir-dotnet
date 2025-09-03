@@ -1,6 +1,7 @@
-using Engine.Pipelines.Css.Models;
 using System.Security.Cryptography;
 using System.Text;
+
+using Engine.Pipelines.Css.Models;
 
 namespace Engine.Pipelines.Css.Publish;
 
@@ -15,7 +16,7 @@ public class CssModuleGraph
     }
 
     public CssModule? GetModule(string filePath) => _modules.GetValueOrDefault(filePath);
-    
+
     public void Clear() => _modules.Clear();
 
     public List<CssModule> GetModulesInOrder(params string[] entryPoints)

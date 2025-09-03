@@ -4,7 +4,10 @@ namespace Engine.Workers;
 
 public interface IWorker
 {
-    int BuildOrder { get; }
+    int BuildOrder
+    {
+        get;
+    }
     Task InitAsync(ProjectMode mode);
     Task BuildAsync(string? changedFilePath = null);
     Task PublishAsync();

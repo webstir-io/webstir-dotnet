@@ -155,7 +155,7 @@ public static class JsModuleParser
     private static void ParseImports(string content, JsModuleInfo module)
     {
         string[] lines = content.Split('\n');
-        
+
         ParseMixedImports(content, module);
         ParseDefaultImports(content, lines, module);
         ParseNamedImports(content, lines, module);
@@ -175,9 +175,9 @@ public static class JsModuleParser
                 DefaultSpecifier = match.Groups[1].Value,
                 LineNumber = GetLineNumber(content, match.Index)
             };
-            
+
             import.Specifiers = ParseSpecifiers(match.Groups[2].Value);
-            
+
             module.Imports.Add(import);
         }
     }
@@ -190,7 +190,7 @@ public static class JsModuleParser
             {
                 continue;
             }
-            
+
             module.Imports.Add(new JsImportStatement
             {
                 Source = match.Groups[2].Value,
@@ -209,16 +209,16 @@ public static class JsModuleParser
             {
                 continue;
             }
-            
+
             JsImportStatement import = new()
             {
                 Source = match.Groups[2].Value,
                 Type = JsImportType.Named,
                 LineNumber = GetLineNumber(content, match.Index)
             };
-            
+
             import.Specifiers = ParseSpecifiers(match.Groups[1].Value);
-            
+
             module.Imports.Add(import);
         }
     }
@@ -301,9 +301,9 @@ public static class JsModuleParser
                 Source = match.Groups[2].Value,
                 LineNumber = GetLineNumber(content, match.Index)
             };
-            
+
             export.Specifiers = ParseSpecifiers(match.Groups[1].Value);
-            
+
             module.Exports.Add(export);
         }
     }
@@ -345,15 +345,15 @@ public static class JsModuleParser
             {
                 continue;
             }
-            
+
             JsExportStatement export = new()
             {
                 Type = JsExportType.Named,
                 LineNumber = GetLineNumber(content, match.Index)
             };
-            
+
             export.Specifiers = ParseSpecifiers(match.Groups[1].Value);
-            
+
             module.Exports.Add(export);
         }
     }
@@ -362,13 +362,13 @@ public static class JsModuleParser
     {
         List<string> specifiers = [];
         string[] parts = specifiersString.Split(',');
-        
+
         foreach (string part in parts)
         {
             string trimmed = part.Trim();
             if (!string.IsNullOrWhiteSpace(trimmed))
             {
-                string specifier = trimmed.Contains(" as ", StringComparison.Ordinal) 
+                string specifier = trimmed.Contains(" as ", StringComparison.Ordinal)
                     ? trimmed.Split(" as ")[1].Trim()
                     : trimmed;
                 specifiers.Add(specifier);
@@ -387,7 +387,7 @@ public static class JsModuleParser
             lineEnd = content.Length;
         }
         string line = content[lineStart..lineEnd];
-        
+
         return line.Contains(" from ", StringComparison.Ordinal)
             || line.Contains("import {", StringComparison.Ordinal)
             || line.Contains("import *", StringComparison.Ordinal);

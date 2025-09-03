@@ -21,8 +21,14 @@ public class InitParameters : WorkflowParameters
 /// </summary>
 public class BuildParameters : WorkflowParameters
 {
-    public bool ReleaseMode { get; set; }
-    public bool CleanBuild { get; set; }
+    public bool ReleaseMode
+    {
+        get; set;
+    }
+    public bool CleanBuild
+    {
+        get; set;
+    }
 }
 
 /// <summary>

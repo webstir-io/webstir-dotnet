@@ -39,14 +39,16 @@ public class InitWorkflow(
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         ProjectMode mode = ParseProjectMode(args);
-        await ResourceHelpers.CopyEmbeddedRootFilesAsync(Templates.Path, Context.WorkingPath);     
+        await ResourceHelpers.CopyEmbeddedRootFilesAsync(Templates.Path, Context.WorkingPath);
         await ExecuteWorkersAsync(async worker => await worker.InitAsync(mode), mode);
     }
 
     private static ProjectMode ParseProjectMode(string[] args)
     {
-        if (args.Contains(InitOptions.ClientOnly)) return ProjectMode.ClientOnly;
-        if (args.Contains(InitOptions.ServerOnly)) return ProjectMode.ServerOnly;
+        if (args.Contains(InitOptions.ClientOnly))
+            return ProjectMode.ClientOnly;
+        if (args.Contains(InitOptions.ServerOnly))
+            return ProjectMode.ServerOnly;
         return ProjectMode.Fullstack;
     }
 }

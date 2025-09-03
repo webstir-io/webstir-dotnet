@@ -8,7 +8,6 @@ public static class Commands
     public const string Watch = "watch";
     public const string Publish = "publish";
     public const string Help = "help";
-    public const string Demo = "demo";
 }
 
 public static class HelpOptions
@@ -21,7 +20,7 @@ public static class ProjectOptions
 {
     public const string ProjectName = "--project-name";
     public const string ProjectNameShort = "-p";
-}   
+}
 
 public static class InitOptions
 {

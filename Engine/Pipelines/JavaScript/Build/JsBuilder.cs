@@ -1,11 +1,14 @@
+using System.Diagnostics;
+using System.Text.RegularExpressions;
+
 using Engine.Extensions;
 using Engine.Pipelines.Core;
+
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 
 namespace Engine.Pipelines.JavaScript.Build;
 
-public class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
+public partial class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
 {
     private const string RefreshJsFile = "refresh.js";
     private const string BaseTsConfig = "base.tsconfig.json";
@@ -71,7 +74,7 @@ public class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
             WorkingDirectory = workingDirectory
         };
 
-        using Process process = Process.Start(processInfo) 
+        using Process process = Process.Start(processInfo)
             ?? throw new Exception($"Failed to start {description} process.");
 
         process.WaitForExit();
@@ -81,12 +84,12 @@ public class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
             string errors = process.StandardError.ReadToEnd();
             string output = process.StandardOutput.ReadToEnd();
             string errorMessage = $"{description} failed (Exit Code: {process.ExitCode})";
-            
+
             if (!string.IsNullOrWhiteSpace(errors))
                 errorMessage += $"\nErrors:\n{errors}";
             if (!string.IsNullOrWhiteSpace(output))
                 errorMessage += $"\nOutput:\n{output}";
-            
+
             throw new Exception(errorMessage);
         }
     }
@@ -101,15 +104,11 @@ public class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
         // Support both classic and newer tsc formats:
         // 1) path.ts(10,5): error TS1234: Message
         // 2) path.ts:10:5 - error TS1234: Message
-        System.Text.RegularExpressions.Regex classic = new(
-            @"^(?<file>.+?)\((?<line>\d+),(?<col>\d+)\):\s*error\s+TS\d+:\s*(?<msg>.+)$",
-            System.Text.RegularExpressions.RegexOptions.Multiline);
-        System.Text.RegularExpressions.Regex modern = new(
-            @"^(?<file>.+?):(?<line>\d+):(?<col>\d+)\s*-\s*error\s+TS\d+:\s*(?<msg>.+)$",
-            System.Text.RegularExpressions.RegexOptions.Multiline);
+        Regex classic = TscClassicErrorRegex();
+        Regex modern = TscModernErrorRegex();
 
         int added = 0;
-        foreach (System.Text.RegularExpressions.Match match in classic.Matches(text))
+        foreach (Match match in classic.Matches(text))
         {
             string file = match.Groups["file"].Value.Trim();
             int line = int.TryParse(match.Groups["line"].Value, out int ln) ? ln : 0;
@@ -118,7 +117,7 @@ public class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
             diagnostics.AddError(message, file, line, col);
             added++;
         }
-        foreach (System.Text.RegularExpressions.Match match in modern.Matches(text))
+        foreach (Match match in modern.Matches(text))
         {
             string file = match.Groups["file"].Value.Trim();
             int line = int.TryParse(match.Groups["line"].Value, out int ln) ? ln : 0;
@@ -134,4 +133,14 @@ public class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
             diagnostics.AddError("TypeScript compilation failed", null, null, null);
         }
     }
+}
+
+// Generated regex helpers for parsing tsc diagnostics
+public partial class JsBuilder
+{
+    [GeneratedRegex(@"^(?<file>.+?)\((?<line>\d+),(?<col>\d+)\):\s*error\s+TS\d+:\s*(?<msg>.+)$", RegexOptions.Multiline)]
+    private static partial Regex TscClassicErrorRegex();
+
+    [GeneratedRegex(@"^(?<file>.+?):(?<line>\d+):(?<col>\d+)\s*-\s*error\s+TS\d+:\s*(?<msg>.+)$", RegexOptions.Multiline)]
+    private static partial Regex TscModernErrorRegex();
 }

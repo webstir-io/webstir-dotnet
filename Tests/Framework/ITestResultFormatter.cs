@@ -3,18 +3,21 @@ namespace Tests.Framework;
 public interface ITestResultFormatter
 {
     string Format(TestSummary summary);
-    string FileExtension { get; }
+    string FileExtension
+    {
+        get;
+    }
 }
 
 public class ConsoleFormatter : ITestResultFormatter
 {
     public string FileExtension => "";
-    
+
     public string Format(TestSummary summary)
     {
         ArgumentNullException.ThrowIfNull(summary);
         System.Text.StringBuilder result = new();
-        
+
         if (summary.FailedTests == 0)
         {
             result.AppendLine(FormattableString.Invariant($"\n✅ All tests passed ({summary.TotalTests} tests, {summary.TotalDuration.TotalMilliseconds:F0}ms)"));
@@ -28,7 +31,7 @@ public class ConsoleFormatter : ITestResultFormatter
                 result.AppendLine(FormattableString.Invariant($"✗ {failedTest.TestName}: {failedTest.Message}"));
             }
         }
-        
+
         return result.ToString();
     }
 }
@@ -36,7 +39,7 @@ public class ConsoleFormatter : ITestResultFormatter
 public class JsonFormatter : ITestResultFormatter
 {
     public string FileExtension => "json";
-    
+
     public string Format(TestSummary summary)
     {
         ArgumentNullException.ThrowIfNull(summary);
@@ -55,7 +58,7 @@ public class JsonFormatter : ITestResultFormatter
                 d = (int)r.Duration.TotalMilliseconds
             }).Where(r => r.m != null || r.d > 1) // Only include failed tests or slow tests
         };
-        
+
         return System.Text.Json.JsonSerializer.Serialize(result);
     }
 }
@@ -63,13 +66,13 @@ public class JsonFormatter : ITestResultFormatter
 public class XmlFormatter : ITestResultFormatter
 {
     public string FileExtension => "xml";
-    
+
     public string Format(TestSummary summary)
     {
         ArgumentNullException.ThrowIfNull(summary);
         System.Text.StringBuilder xml = new();
         xml.AppendLine(FormattableString.Invariant($"<ts t=\"{summary.TotalTests}\" f=\"{summary.FailedTests}\" d=\"{summary.TotalDuration.TotalMilliseconds:F0}\">"));
-        
+
         // Only include failed tests and slow tests (>1ms) to reduce size
         foreach (TestResult result in summary.Results.Where(r => !r.Passed || r.Duration.TotalMilliseconds > 1))
         {
@@ -82,29 +85,29 @@ public class XmlFormatter : ITestResultFormatter
                 xml.AppendLine(FormattableString.Invariant($"  <tc n=\"{EscapeXml(result.TestName)}\" d=\"{result.Duration.TotalMilliseconds:F0}\"/>"));
             }
         }
-        
+
         xml.AppendLine("</ts>");
         return xml.ToString();
     }
-    
-    private static string EscapeXml(string text) => 
+
+    private static string EscapeXml(string text) =>
         text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
 }
 
 public class MarkdownFormatter : ITestResultFormatter
 {
     public string FileExtension => "md";
-    
+
     public string Format(TestSummary summary)
     {
         ArgumentNullException.ThrowIfNull(summary);
         System.Text.StringBuilder md = new();
-        
+
         md.AppendLine(FormattableString.Invariant($"# Tests: {summary.PassedTests}/{summary.TotalTests} ({summary.TotalDuration.TotalMilliseconds:F0}ms)"));
-        
+
         // Only show failed tests and slow tests to minimize size
         List<TestResult> notableResults = [.. summary.Results.Where(r => !r.Passed || r.Duration.TotalMilliseconds > 1)];
-        
+
         if (notableResults.Any())
         {
             md.AppendLine();
@@ -115,7 +118,7 @@ public class MarkdownFormatter : ITestResultFormatter
                 md.AppendLine(FormattableString.Invariant($"- {status} {result.TestName}: {detail}"));
             }
         }
-        
+
         return md.ToString();
     }
 }

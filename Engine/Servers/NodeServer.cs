@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+
 using Engine.Extensions;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -11,21 +13,21 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
     private readonly AppSettings _settings = options.Value;
     private readonly ILogger<NodeServer> _logger = logger;
     private Process? _process;
-    
+
     public async Task StartAsync(AppWorkspace workspace)
     {
         ArgumentNullException.ThrowIfNull(workspace);
         await KillProcessOnPort(_settings.ApiServerPort);
-        
-        string serverIndexPath = workspace.ServerBuildPath.Combine("index.js");        
+
+        string serverIndexPath = workspace.ServerBuildPath.Combine("index.js");
         if (!File.Exists(serverIndexPath))
         {
             _logger.LogWarning("Server build not found. Skipping Node.js server.");
             return;
         }
-        
+
         TaskCompletionSource<bool> startupComplete = new();
-        
+
         _process = new()
         {
             StartInfo = new()
@@ -39,12 +41,12 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
                 WorkingDirectory = workspace.WorkingPath
             }
         };
-        
+
         _process.StartInfo.Environment["NODE_ENV"] = "development";
         _process.StartInfo.Environment["PORT"] = _settings.ApiServerPort.ToString(System.Globalization.CultureInfo.InvariantCulture);
         _process.StartInfo.Environment["WEB_SERVER_URL"] = _settings.WebServerUrl;
         _process.StartInfo.Environment["API_SERVER_URL"] = _settings.ApiServerUrl;
-        
+
         _process.OutputDataReceived += (_, e) =>
         {
             if (!string.IsNullOrEmpty(e.Data))
@@ -53,27 +55,27 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
                 {
                     _logger.LogInformation("{NodeOutput}", e.Data);
                 }
-                
+
                 if (e.Data.Contains("API server running", StringComparison.Ordinal))
                 {
                     startupComplete.TrySetResult(true);
                 }
             }
         };
-        
+
         _process.ErrorDataReceived += (_, e) =>
         {
             if (!string.IsNullOrEmpty(e.Data))
                 _logger.LogError("Node server error: {ErrorData}", e.Data);
         };
-        
+
         _process.Start();
         _process.BeginOutputReadLine();
         _process.BeginErrorReadLine();
-        
+
         await startupComplete.Task;
     }
-    
+
     public async Task StopAsync()
     {
         if (_process != null && !_process.HasExited)
@@ -84,7 +86,7 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
             _process = null;
         }
     }
-    
+
     private async Task KillProcessOnPort(int port)
     {
         try
@@ -94,10 +96,10 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
             {
                 return;
             }
-            
+
             string command;
             string arguments;
-            
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 command = "taskkill";
@@ -108,7 +110,7 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
                 command = "kill";
                 arguments = $"-9 {pid}";
             }
-            
+
             using Process? killProcess = Process.Start(new ProcessStartInfo
             {
                 FileName = command,
@@ -118,7 +120,7 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
                 RedirectStandardError = true,
                 CreateNoWindow = true
             });
-            
+
             if (killProcess != null)
             {
                 await killProcess.WaitForExitAsync();
@@ -129,14 +131,14 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
             _logger.LogWarning("Could not kill process on port {Port}: {Message}", port, ex.Message);
         }
     }
-    
+
     private static async Task<string?> GetProcessIdOnPort(int port)
     {
         try
         {
             string command;
             string arguments;
-            
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 command = "cmd.exe";
@@ -147,7 +149,7 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
                 command = "lsof";
                 arguments = $"-ti:{port}";
             }
-            
+
             ProcessStartInfo psi = new()
             {
                 FileName = command,
@@ -158,20 +160,20 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
                 CreateNoWindow = true
             };
             using Process? process = Process.Start(psi);
-            
+
             if (process == null)
             {
                 return null;
             }
-            
+
             string output = await process.StandardOutput.ReadToEndAsync();
             await process.WaitForExitAsync();
-            
+
             if (string.IsNullOrWhiteSpace(output))
             {
                 return null;
             }
-            
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 string[] lines = output.Split('\n');
@@ -191,7 +193,7 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
             {
                 return output.Trim().Split('\n')[0];
             }
-            
+
             return null;
         }
         catch

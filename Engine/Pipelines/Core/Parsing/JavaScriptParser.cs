@@ -100,7 +100,11 @@ public class JavaScriptParser
             return new ImportDeclaration { Source = src, IsSideEffect = true, Line = tImport.Line, Column = tImport.Column };
         }
 
-        ImportDeclaration imp = new() { Line = tImport.Line, Column = tImport.Column };
+        ImportDeclaration imp = new()
+        {
+            Line = tImport.Line,
+            Column = tImport.Column
+        };
 
         if (Match(TokenType.Star))
         {
@@ -226,7 +230,12 @@ public class JavaScriptParser
             }
             Match(TokenType.CloseBrace);
             SkipTrivia();
-            ExportDeclaration stmt = new() { Named = names, Line = tExport.Line, Column = tExport.Column };
+            ExportDeclaration stmt = new()
+            {
+                Named = names,
+                Line = tExport.Line,
+                Column = tExport.Column
+            };
             if (Match(TokenType.From) && Check(TokenType.String))
             {
                 stmt.Source = StripQuotes(Advance().Value);
@@ -249,7 +258,11 @@ public class JavaScriptParser
     {
         foreach (TokenType tokenType in types)
         {
-            if (Check(tokenType)) { Advance(); return true; }
+            if (Check(tokenType))
+            {
+                Advance();
+                return true;
+            }
         }
         return false;
     }
@@ -270,30 +283,81 @@ public class JavaScriptParser
 
 public class ImportDeclaration
 {
-    public string? DefaultImport { get; set; }
-    public List<NamedImport>? NamedImports { get; set; }
-    public string? NamespaceImport { get; set; }
+    public string? DefaultImport
+    {
+        get; set;
+    }
+    public List<NamedImport>? NamedImports
+    {
+        get; set;
+    }
+    public string? NamespaceImport
+    {
+        get; set;
+    }
     public string Source { get; set; } = string.Empty;
-    public bool IsSideEffect { get; set; }
-    public bool IsDynamic { get; set; }
-    public int Line { get; set; }
-    public int Column { get; set; }
+    public bool IsSideEffect
+    {
+        get; set;
+    }
+    public bool IsDynamic
+    {
+        get; set;
+    }
+    public int Line
+    {
+        get; set;
+    }
+    public int Column
+    {
+        get; set;
+    }
 }
 
 public class NamedImport
 {
-    public required string Imported { get; set; }
-    public required string Local { get; set; }
+    public required string Imported
+    {
+        get; set;
+    }
+    public required string Local
+    {
+        get; set;
+    }
 }
 
 public class ExportDeclaration
 {
-    public bool IsDefault { get; set; }
-    public bool IsReExport { get; set; }
-    public bool All { get; set; }
-    public string? Namespace { get; set; }
-    public List<string>? Named { get; set; }
-    public string? Source { get; set; }
-    public int Line { get; set; }
-    public int Column { get; set; }
+    public bool IsDefault
+    {
+        get; set;
+    }
+    public bool IsReExport
+    {
+        get; set;
+    }
+    public bool All
+    {
+        get; set;
+    }
+    public string? Namespace
+    {
+        get; set;
+    }
+    public List<string>? Named
+    {
+        get; set;
+    }
+    public string? Source
+    {
+        get; set;
+    }
+    public int Line
+    {
+        get; set;
+    }
+    public int Column
+    {
+        get; set;
+    }
 }

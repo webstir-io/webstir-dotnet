@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/CLI/bin/Debug/net9.0/CLI.dll",
-            "args": ["build"],
+            "args": ["watch"],
             "cwd": "${workspaceFolder}/CLI/out",
             "stopAtEntry": false,
             "console": "integratedTerminal",
@@ -21,10 +21,28 @@
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/Tests/bin/Debug/net9.0/Tests.dll",
-            "args": ["test", "demo"],
+            "args": ["test", "help"],
             "cwd": "${workspaceFolder}/Tests",
             "console": "integratedTerminal",
             "stopAtEntry": false
+        },
+        {
+            "name": "Sandbox: Up",
+            "type": "node-terminal",
+            "request": "launch",
+            "preLaunchTask": "check:docker",
+            "command": "bash -lc './scripts/deploy-seed.sh && docker compose -f Sandbox/docker-compose.yml down -v || true; docker compose -f Sandbox/docker-compose.yml up --build'",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "COMPOSE_DOCKER_CLI_BUILD": "1"
+            }
+        },
+        {
+            "name": "Sandbox: Down",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "exec docker compose -f Sandbox/docker-compose.yml down -v",
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

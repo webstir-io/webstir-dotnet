@@ -25,7 +25,7 @@ public class WatchService(ChangeService changeService, ILogger<WatchService> log
 
     private void StartFileWatching(AppWorkspace workspace)
     {
-        _watcher = CreateFileSystemWatcher(workspace);        
+        _watcher = CreateFileSystemWatcher(workspace);
         _logger.LogInformation("Started watching for file changes in {SrcPath}", workspace.SrcPath);
     }
 
@@ -55,10 +55,10 @@ public class WatchService(ChangeService changeService, ILogger<WatchService> log
         {
             return;
         }
-        
+
         DateTime currentTimestamp = fileInfo.LastWriteTime;
         List<DateTime> pendingForFile = _pendingEvents.GetValueOrDefault(e.FullPath, []);
-    
+
         if (!pendingForFile.Contains(currentTimestamp))
         {
             _changeService.EnqueueChange(e.FullPath, FileChangeType.Modified);

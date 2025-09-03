@@ -1,5 +1,6 @@
-using Engine.Pipelines.JavaScript.Models;
 using System.Text.RegularExpressions;
+
+using Engine.Pipelines.JavaScript.Models;
 
 namespace Engine.Pipelines.JavaScript.Publish;
 
@@ -9,10 +10,10 @@ public static class JsTreeShaker
     {
         ArgumentNullException.ThrowIfNull(graph);
         HashSet<string> usedExports = [];
-        
+
         foreach (string entryPoint in graph.GetEntryPoints())
             AnalyzeModule(entryPoint, graph, usedExports);
-        
+
         return usedExports;
     }
 
@@ -21,23 +22,23 @@ public static class JsTreeShaker
         JsModuleNode? node = graph.GetModule(modulePath);
         if (node?.Info == null)
             return;
-        
+
         foreach (JsImportStatement import in node.Info.Imports)
         {
             if (import.ResolvedPath == null)
                 continue;
-            
+
             if (import.DefaultSpecifier != null)
                 usedExports.Add($"{import.ResolvedPath}:default");
-            
+
             foreach (string specifier in import.Specifiers)
                 usedExports.Add($"{import.ResolvedPath}:{specifier}");
-            
+
             if (import.NamespaceSpecifier != null)
                 usedExports.Add($"{import.ResolvedPath}:*");
         }
     }
-    
+
     public static HashSet<string> ExtractUsedIdentifiers(string code)
     {
         HashSet<string> identifiers = [];
@@ -52,14 +53,14 @@ public static class JsTreeShaker
         {
             string rightSide = match.Groups[2].Value;
             string[] tokens = rightSide.Split([' ', '.', '(', ')', '[', ']'], StringSplitOptions.RemoveEmptyEntries);
-            
+
             foreach (string token in tokens)
             {
                 if (IsIdentifier(token))
                     identifiers.Add(token);
             }
         }
-        
+
         return identifiers;
     }
 
@@ -67,13 +68,13 @@ public static class JsTreeShaker
     {
         if (string.IsNullOrEmpty(token))
             return false;
-        
+
         if (char.IsDigit(token[0]))
             return false;
-        
+
         if (IsKeyword(token))
             return false;
-        
+
         return token.All(c => char.IsLetterOrDigit(c) || c == '_' || c == '$');
     }
 

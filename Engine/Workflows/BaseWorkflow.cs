@@ -1,7 +1,7 @@
-using Engine.Servers;
-using Engine.Models;
-using Engine.Workers;
 using Engine.Extensions;
+using Engine.Models;
+using Engine.Servers;
+using Engine.Workers;
 
 namespace Engine.Workflows;
 
@@ -12,14 +12,17 @@ public abstract class BaseWorkflow(
     SharedWorker sharedWorker) : IWorkflow
 {
     protected readonly AppWorkspace Context = context;
-    public abstract string WorkflowName { get; }
+    public abstract string WorkflowName
+    {
+        get;
+    }
 
     public virtual async Task ExecuteAsync(string[] args)
     {
         InitializeWorkspace(args);
         await ExecuteWorkflowAsync(args);
     }
-    
+
     protected abstract Task ExecuteWorkflowAsync(string[] args);
 
     protected async Task ExecuteWorkersAsync(Func<IWorker, Task> workerAction, ProjectMode? mode = null)
@@ -27,7 +30,7 @@ public abstract class BaseWorkflow(
         ArgumentNullException.ThrowIfNull(workerAction);
 
         IEnumerable<IWorker> workers = GetFilteredWorkers(mode ?? Context.DetectProjectMode());
-        
+
         IEnumerable<IGrouping<int, IWorker>> workerGroups = workers
             .GroupBy(w => w.BuildOrder)
             .OrderBy(g => g.Key);
@@ -60,15 +63,15 @@ public abstract class BaseWorkflow(
     protected virtual void InitializeWorkspace(string[] args)
     {
         ArgumentNullException.ThrowIfNull(args);
-        string[] filteredArgs = [.. args.Where(arg => arg != WorkflowName)];        
+        string[] filteredArgs = [.. args.Where(arg => arg != WorkflowName)];
         string? projectName = GetProjectFromFlags(filteredArgs);
-        
+
         if (!string.IsNullOrEmpty(projectName))
         {
             string projectPath = Context.WorkingPath.Combine(projectName);
             if (!Directory.Exists(projectPath))
                 throw new DirectoryNotFoundException($"Project directory '{projectName}' not found in current directory");
-            
+
             Context.Initialize(projectPath);
             return;
         }
@@ -79,13 +82,13 @@ public abstract class BaseWorkflow(
         if (validProjects.Count == 0)
             throw new InvalidOperationException(
                 "No valid webstir projects found in current directory. Run 'init <project-name>' to create a new project.");
-        
+
         if (validProjects.Count == 1)
         {
             Context.Initialize(validProjects.Single());
             return;
         }
-        
+
         IEnumerable<string?> projectNames = validProjects.Select(Path.GetFileName);
         throw new InvalidOperationException(
             $"Multiple projects found: {string.Join(", ", projectNames)}. " +

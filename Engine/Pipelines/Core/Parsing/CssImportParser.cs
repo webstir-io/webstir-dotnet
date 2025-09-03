@@ -97,7 +97,9 @@ public class CssImportParser
 
     private void SkipTrivia()
     {
-        while (Match(TokenType.Whitespace, TokenType.Newline, TokenType.SingleLineComment, TokenType.MultiLineComment)) { }
+        while (Match(TokenType.Whitespace, TokenType.Newline, TokenType.SingleLineComment, TokenType.MultiLineComment))
+        {
+        }
     }
 
     private static string StripQuotes(string text)
@@ -130,6 +132,12 @@ public class CssImportParser
 
 public class CssImportRule
 {
-    public required string Path { get; set; }
-    public string? Media { get; set; }
+    public required string Path
+    {
+        get; set;
+    }
+    public string? Media
+    {
+        get; set;
+    }
 }

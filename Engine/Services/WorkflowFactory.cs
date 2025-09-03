@@ -18,4 +18,4 @@ public class WorkflowFactory(IEnumerable<IWorkflow> workflows) : IWorkflowFactor
 
         await workflow.ExecuteAsync(args);
     }
-} 
+}

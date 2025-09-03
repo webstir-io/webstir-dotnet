@@ -1,15 +1,14 @@
 using Engine.Extensions;
 using Engine.Pipelines.Core;
 using Engine.Pipelines.Html.Constants;
-using System.Text.RegularExpressions;
 
 namespace Engine.Pipelines.Html.Publish;
 
 public class HtmlBundler(AppWorkspace workspace)
 {
-    
+
     public async Task BundleAsync(DiagnosticCollection? diagnostics = null) => await BundlePageHtmlAsync(diagnostics);
-    
+
     private async Task BundlePageHtmlAsync(DiagnosticCollection? diagnostics)
     {
         string pagesPath = workspace.ClientBuildPath.Combine(Folders.Pages);
@@ -17,22 +16,22 @@ public class HtmlBundler(AppWorkspace workspace)
         {
             return;
         }
-        
+
         foreach (string pageDir in pagesPath.Folders())
         {
             string pageName = pageDir.Filename();
             string pageHtml = pageDir.Combine($"{Files.Index}{FileExtensions.Html}");
-            
+
             if (!pageHtml.Exists())
             {
                 diagnostics?.Add(new Diagnostic { Level = DiagnosticLevel.Warning, Message = $"Missing page HTML: {pageHtml}", File = pageHtml });
                 continue;
             }
-            
+
             await ProcessHtmlFileAsync(pageHtml, pageName, diagnostics);
         }
     }
-    
+
     private async Task ProcessHtmlFileAsync(string sourceFile, string pageName, DiagnosticCollection? diagnostics)
     {
         string htmlContent = await File.ReadAllTextAsync(sourceFile);
@@ -42,8 +41,8 @@ public class HtmlBundler(AppWorkspace workspace)
 
         // Rewrite asset references using per-page manifest if present
         string pageDistDir = workspace.ClientDistPath.Combine(Folders.Pages, pageName);
-        Engine.Pipelines.Core.AssetManifest manifest = Engine.Pipelines.Core.AssetManifest.Load(pageDistDir);
-        htmlContent = RewriteAssetReferences(htmlContent, manifest);
+        AssetManifest manifest = AssetManifest.Load(pageDistDir);
+        htmlContent = RewriteAssetReferences(htmlContent, manifest, pageName);
 
         htmlContent = MinifyHtml(htmlContent);
 
@@ -52,33 +51,33 @@ public class HtmlBundler(AppWorkspace workspace)
 
         await File.WriteAllTextAsync(distPagePath, htmlContent);
     }
-    
-    
+
+
     private static string MinifyHtml(string html)
     {
         // Be safe: only collapse whitespace between tags; avoid touching content
         // inside <script>, <style>, <pre>, <textarea>
-        html = Regex.Replace(html, @">\s+<", "><");
+        html = HtmlRegex.InterTagWhitespace().Replace(html, "><");
         return html.Trim();
     }
 
-    private static string RewriteAssetReferences(string html, Engine.Pipelines.Core.AssetManifest manifest)
+    private static string RewriteAssetReferences(string html, AssetManifest manifest, string pageName)
     {
         string result = html;
 
         if (!string.IsNullOrWhiteSpace(manifest.Css))
         {
-            string cssQuoted = manifest.Css;
+            string cssQuoted = $"/{Folders.Pages}/{pageName}/{manifest.Css}";
             result = result.Replace($"\"{Files.Index}{FileExtensions.Css}\"", $"\"{cssQuoted}\"");
             result = result.Replace($"'{Files.Index}{FileExtensions.Css}'", $"'{cssQuoted}'");
             // Also replace module variant if present
-            result = result.Replace($"\"{Files.Index}{Engine.Pipelines.Css.Css.ModuleExt}\"", $"\"{cssQuoted}\"");
-            result = result.Replace($"'{Files.Index}{Engine.Pipelines.Css.Css.ModuleExt}'", $"'{cssQuoted}'");
+            result = result.Replace($"\"{Files.Index}{Css.Css.ModuleExt}\"", $"\"{cssQuoted}\"");
+            result = result.Replace($"'{Files.Index}{Css.Css.ModuleExt}'", $"'{cssQuoted}'");
         }
 
         if (!string.IsNullOrWhiteSpace(manifest.Js))
         {
-            string jsQuoted = manifest.Js;
+            string jsQuoted = $"/{Folders.Pages}/{pageName}/{manifest.Js}";
             result = result.Replace($"\"{Files.Index}{FileExtensions.Js}\"", $"\"{jsQuoted}\"");
             result = result.Replace($"'{Files.Index}{FileExtensions.Js}'", $"'{jsQuoted}'");
         }

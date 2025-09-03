@@ -2,8 +2,14 @@ namespace Tests.Framework;
 
 public sealed class TestCaseContext
 {
-    public required Cli Cli { get; init; }
-    public required string OutPath { get; init; }
+    public required Cli Cli
+    {
+        get; init;
+    }
+    public required string OutPath
+    {
+        get; init;
+    }
 
     public void AssertNoCompilationErrors(ProcessRunner.ProcessResult result)
     {

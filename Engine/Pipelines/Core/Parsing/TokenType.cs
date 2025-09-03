@@ -43,9 +43,21 @@ public enum TokenType
 
 public class Token
 {
-    public required TokenType Type { get; init; }
-    public required string Value { get; init; }
-    public required int Line { get; init; }
-    public required int Column { get; init; }
+    public required TokenType Type
+    {
+        get; init;
+    }
+    public required string Value
+    {
+        get; init;
+    }
+    public required int Line
+    {
+        get; init;
+    }
+    public required int Column
+    {
+        get; init;
+    }
 }
 

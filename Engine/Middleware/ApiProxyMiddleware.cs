@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Engine.Middleware;
@@ -24,7 +24,7 @@ public class ApiProxyMiddleware(RequestDelegate next)
     {
         IHttpClientFactory httpClientFactory = context.RequestServices.GetRequiredService<IHttpClientFactory>();
         HttpClient httpClient = httpClientFactory.CreateClient("ApiProxy");
-        
+
         try
         {
             HttpRequestMessage requestMessage = CreateProxyRequest(context, httpClient);
@@ -49,7 +49,7 @@ public class ApiProxyMiddleware(RequestDelegate next)
             Method = new HttpMethod(context.Request.Method),
             RequestUri = new Uri(httpClient.BaseAddress!, targetUrl)
         };
-        
+
         foreach (KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues> header in context.Request.Headers)
         {
             if (!header.Key.StartsWith("Host", StringComparison.OrdinalIgnoreCase))
@@ -57,31 +57,31 @@ public class ApiProxyMiddleware(RequestDelegate next)
                 requestMessage.Headers.TryAddWithoutValidation(header.Key, [.. header.Value]);
             }
         }
-        
+
         if (context.Request.ContentLength > 0)
         {
             requestMessage.Content = new StreamContent(context.Request.Body);
             requestMessage.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(
                 context.Request.ContentType ?? "application/json");
         }
-        
+
         return requestMessage;
     }
 
     private static async Task CopyProxyResponse(HttpContext context, HttpResponseMessage response)
     {
         context.Response.StatusCode = (int)response.StatusCode;
-        
+
         foreach (KeyValuePair<string, IEnumerable<string>> header in response.Headers)
         {
             context.Response.Headers[header.Key] = header.Value.ToArray();
         }
-        
+
         foreach (KeyValuePair<string, IEnumerable<string>> header in response.Content.Headers)
         {
             context.Response.Headers[header.Key] = header.Value.ToArray();
         }
-        
+
         await response.Content.CopyToAsync(context.Response.Body);
     }
 

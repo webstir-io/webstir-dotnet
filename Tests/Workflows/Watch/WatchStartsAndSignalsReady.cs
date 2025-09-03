@@ -1,4 +1,5 @@
 using Engine;
+
 using Tests.Framework;
 
 namespace Tests.Workflows.Watch;
@@ -24,14 +25,18 @@ public sealed class WatchStartsAndSignalsReady : ITestCase
         string seedBuild = Path.Combine(seedDir, Folders.Build);
         if (Directory.Exists(seedBuild))
         {
-            try { Directory.Delete(seedBuild, recursive: true); } catch { }
+            try
+            {
+                Directory.Delete(seedBuild, recursive: true);
+            }
+            catch { }
         }
 
         ProcessRunner.ProcessResult result = context.Cli.Run(
             $"{Commands.Watch} {ProjectOptions.ProjectName} seed",
             testDir,
             timeoutMs: 12000,
-            waitForSignal: Engine.App.DevService
+            waitForSignal: App.DevService
         );
 
         Assert.IsTrue(result.ReceivedReadySignal, "Watch mode did not start - readiness message not received");

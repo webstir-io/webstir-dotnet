@@ -2,6 +2,7 @@ using Engine.Extensions;
 using Engine.Pipelines.Core;
 using Engine.Pipelines.Css.Build;
 using Engine.Pipelines.Css.Publish;
+
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.Css;
@@ -25,9 +26,9 @@ public class CssHandler(AppWorkspace workspace, CssBuilder builder, CssBundler b
         string cssContent = $"""
             /* {pageName} Page Styles */
             @import "@app/app.css";
-            
+
             /* Add your page-specific styles here */
-            
+
             """;
         string pageDirectory = workspace.ClientPagesPath.Combine(pageName);
         string cssFilePath = pageDirectory.Combine($"{Files.Index}.css");

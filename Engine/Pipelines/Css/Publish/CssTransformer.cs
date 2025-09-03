@@ -1,5 +1,6 @@
-using Engine.Pipelines.Css.Models;
 using System.Text.RegularExpressions;
+
+using Engine.Pipelines.Css.Models;
 
 namespace Engine.Pipelines.Css.Publish;
 
@@ -116,7 +117,7 @@ public static class Transformer
             }
         }
 
-        return orderedProperties.Count > 0 
+        return orderedProperties.Count > 0
             ? "\n" + string.Join("\n", orderedProperties) + "\n"
             : block;
     }

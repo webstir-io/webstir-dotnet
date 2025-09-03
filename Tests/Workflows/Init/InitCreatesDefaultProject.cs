@@ -1,4 +1,5 @@
 using Engine;
+
 using Tests.Framework;
 
 namespace Tests.Workflows.Init;
@@ -19,7 +20,11 @@ public sealed class InitCreatesDefaultProject : ITestCase
         string seedDir = Path.Combine(testDir, Folders.Seed);
         if (Directory.Exists(seedDir))
         {
-            try { Directory.Delete(seedDir, recursive: true); } catch { }
+            try
+            {
+                Directory.Delete(seedDir, recursive: true);
+            }
+            catch { }
         }
 
         ProcessRunner.ProcessResult result = context.Cli.Run(Commands.Init, testDir, timeoutMs: 10000);

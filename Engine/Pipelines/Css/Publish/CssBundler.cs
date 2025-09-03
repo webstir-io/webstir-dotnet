@@ -1,7 +1,8 @@
-using Engine.Extensions;
-using Engine.Pipelines.Css.Models;
-using Engine.Pipelines.Core;
 using System.Text;
+
+using Engine.Extensions;
+using Engine.Pipelines.Core;
+using Engine.Pipelines.Css.Models;
 
 namespace Engine.Pipelines.Css.Publish;
 
@@ -10,7 +11,7 @@ public class CssBundler(AppWorkspace workspace)
     private readonly CssModuleGraph _graph = new();
 
     public async Task BundleAsync() => await BundlePageStylesAsync();
-    
+
     private async Task BundlePageStylesAsync()
     {
         string pagesPath = workspace.ClientBuildPath.Combine(Folders.Pages);
@@ -18,7 +19,7 @@ public class CssBundler(AppWorkspace workspace)
         {
             return;
         }
-        
+
         foreach (string pageDir in pagesPath.Folders())
         {
             string pageName = pageDir.Filename();
@@ -92,7 +93,7 @@ public class CssBundler(AppWorkspace workspace)
 
         string content = await File.ReadAllTextAsync(filePath);
         string directory = filePath.DirectoryName();
-        
+
         List<CssImport> imports = Parser.ExtractImports(content, directory);
         content = CssRegex.Import().Replace(content, string.Empty);
 
@@ -164,9 +165,9 @@ public class CssBundler(AppWorkspace workspace)
         if (url.StartsWith('/'))
             return url;
 
-        string resolved = Path.GetRelativePath(Directory.GetCurrentDirectory(), 
+        string resolved = Path.GetRelativePath(Directory.GetCurrentDirectory(),
             Path.GetFullPath(baseDirectory.Combine(url)));
-        
+
         return resolved.Replace('\\', '/');
     }
 }

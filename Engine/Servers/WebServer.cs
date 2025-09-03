@@ -1,7 +1,9 @@
 using System.Text;
 using System.Text.RegularExpressions;
+
 using Engine.Extensions;
 using Engine.Middleware;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -22,7 +24,7 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
     private const string LongCache = "public, max-age=31536000, immutable";
     private const string PragmaNoCache = "no-cache";
     private const string ExpiresZero = "0";
-    
+
     private const string SseRoute = "/sse";
     private const string ApiRoute = "/api";
     private const string HomeRoute = "/home";
@@ -31,10 +33,10 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
     private static partial Regex TimestampedAssetPattern();
 
     private static bool IsStaticAsset(string path) =>
-        path.EndsWith(FileExtensions.Css, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Js, StringComparison.OrdinalIgnoreCase) || 
-        path.EndsWith(FileExtensions.Png, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Jpg, StringComparison.OrdinalIgnoreCase) || 
-        path.EndsWith(FileExtensions.Jpeg, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Gif, StringComparison.OrdinalIgnoreCase) || 
-        path.EndsWith(FileExtensions.Svg, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Webp, StringComparison.OrdinalIgnoreCase) || 
+        path.EndsWith(FileExtensions.Css, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Js, StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(FileExtensions.Png, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Jpg, StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(FileExtensions.Jpeg, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Gif, StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(FileExtensions.Svg, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Webp, StringComparison.OrdinalIgnoreCase) ||
         path.EndsWith(FileExtensions.Ico, StringComparison.OrdinalIgnoreCase);
 
     public async Task StartAsync(AppWorkspace workspace)
@@ -54,10 +56,10 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
         builder.WebHost.UseUrls(options.Value.WebServerUrl);
         ConfigureServices(builder.Services);
-        
+
         _app = builder.Build();
         ConfigureMiddleware(_app, workspace.ClientBuildPath);
-        
+
         await _app.StartAsync();
         logger.LogInformation("Web server running at {WebServerUrl}", options.Value.WebServerUrl);
     }
@@ -75,14 +77,17 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
             catch { }
         })];
         await Task.WhenAll(tasks);
-        
+
         foreach (HttpContext client in _sseClients.ToList())
         {
-            try { client.Abort(); }
+            try
+            {
+                client.Abort();
+            }
             catch { }
         }
         _sseClients.Clear();
-        
+
         if (_app != null)
         {
             await _app.StopAsync();
@@ -95,7 +100,7 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
     {
         string message = "data: reload\n\n";
         byte[] bytes = Encoding.UTF8.GetBytes(message);
-        
+
         foreach (HttpContext client in _sseClients.ToList())
         {
             try
@@ -131,7 +136,7 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
         defaultFilesOptions.DefaultFileNames.Clear();
         defaultFilesOptions.DefaultFileNames.Add(Files.IndexHtml);
         app.UseDefaultFiles(defaultFilesOptions);
-        
+
         app.UseStaticFiles();
         app.UseFileServer(new FileServerOptions
         {
@@ -147,15 +152,15 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
             context.Response.Headers.Append("Content-Type", "text/event-stream");
             context.Response.Headers.Append("Cache-Control", "no-cache");
             context.Response.Headers.Append("Connection", "keep-alive");
-            
+
             _sseClients.Add(context);
-            
+
             await context.Response.Body.FlushAsync();
-            
+
             TaskCompletionSource tcs = new();
             context.RequestAborted.Register(tcs.SetResult);
             await tcs.Task;
-            
+
             _sseClients.Remove(context);
         }
         else
@@ -167,12 +172,12 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
     private async Task SetCacheHeaders(HttpContext context, Func<Task> next)
     {
         await next();
-        
+
         if (context.Response.HasStarted)
             return;
-            
+
         string path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
-        
+
         if (TimestampedAssetPattern().IsMatch(path))
         {
             context.Response.Headers.CacheControl = LongCache;
@@ -198,32 +203,32 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
     private async Task RewriteCleanUrls(HttpContext context, Func<Task> next)
     {
         string? path = context.Request.Path.Value;
-        
+
         if (!string.IsNullOrEmpty(path))
         {
             if (path == "/")
                 path = HomeRoute;
-            
+
             if (path.StartsWith("/" + Files.Index + ".", StringComparison.Ordinal) && !path.StartsWith("/" + Files.IndexHtml, StringComparison.Ordinal))
             {
                 context.Request.Path = $"/{Folders.Pages}/{Folders.Home}{path}";
             }
-            else if (!path.Contains('.') && 
-                !path.StartsWith("/" + Folders.Images, StringComparison.Ordinal) && 
+            else if (!path.Contains('.') &&
+                !path.StartsWith("/" + Folders.Images, StringComparison.Ordinal) &&
                 !path.StartsWith("/" + Folders.Pages, StringComparison.Ordinal) &&
-                !path.StartsWith(ApiRoute, StringComparison.Ordinal) && 
+                !path.StartsWith(ApiRoute, StringComparison.Ordinal) &&
                 !path.StartsWith(SseRoute, StringComparison.Ordinal))
             {
                 string pageName = path.TrimStart('/');
                 string indexPath = $"/{Folders.Pages}/{pageName}/{Files.IndexHtml}";
-                
+
                 string webRoot = context.RequestServices.GetRequiredService<IWebHostEnvironment>().WebRootPath;
                 string fullPath = Path.Combine(webRoot, indexPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
                 if (File.Exists(fullPath))
                     context.Request.Path = indexPath;
             }
         }
-        
+
         await next();
     }
 }

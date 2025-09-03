@@ -19,9 +19,9 @@ public class CssBuilder(AppWorkspace workspace)
     {
         string cssContent = File.ReadAllText(srcFile);
         string buildPath = CssImportProcessor.ComputeOutputPathForSource(srcFile, workspace);
-        
+
         buildPath.DirectoryName().Create();
-        
+
         string processedContent = CssImportProcessor.ProcessForBuild(cssContent, srcFile, workspace, diagnostics);
 
         File.WriteAllText(buildPath, processedContent);

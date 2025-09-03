@@ -40,6 +40,7 @@ dotnet_diagnostic.CA1305.severity = error     # Specify IFormatProvider (culture
 dotnet_diagnostic.CA1310.severity = error     # Specify StringComparison for string operations
 dotnet_diagnostic.CA1510.severity = warning   # Prefer ArgumentNullException.ThrowIfNull
 dotnet_diagnostic.CA1869.severity = warning   # Cache JsonSerializerOptions instances
+dotnet_diagnostic.SYSLIB1045.severity = warning   # Prefer GeneratedRegexAttribute for regexes
 
 # Naming
 dotnet_naming_rule.interfaces_should_start_with_i.severity = warning

@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Services;
@@ -20,7 +21,7 @@ public record FileChangeEvent(
 public class ChangeService(ILogger<ChangeService> logger)
 {
     private readonly ILogger<ChangeService> _logger = logger;
-    
+
     private static readonly string[] IgnoredFiles = ["Thumbs.db", ".DS_Store"];
     private static readonly string[] IgnoredExtensions = [".tmp"];
 
@@ -33,14 +34,14 @@ public class ChangeService(ILogger<ChangeService> logger)
     private Func<Task>? _onClientNotification;
     private AppWorkspace? _workspace;
 
-    public async Task Initialize(AppWorkspace workspace, Func<string?, bool, Task>? onChangeAction = null, 
+    public async Task Initialize(AppWorkspace workspace, Func<string?, bool, Task>? onChangeAction = null,
         Func<AppWorkspace, Task>? onServerRestart = null, Func<Task>? onClientNotification = null)
     {
         _workspace = workspace;
         _onChangeAction = onChangeAction;
         _onServerRestart = onServerRestart;
-        _onClientNotification = onClientNotification;        
-        
+        _onClientNotification = onClientNotification;
+
         await Task.CompletedTask;
     }
 
@@ -51,9 +52,9 @@ public class ChangeService(ILogger<ChangeService> logger)
             _logger.LogDebug("Ignoring file change: {FilePath}", filePath);
             return;
         }
-            
+
         FileChangeEvent changeEvent = new(filePath, changeType, DateTime.UtcNow);
-        
+
         if (!_channel.Writer.TryWrite(changeEvent))
         {
             _logger.LogWarning("Failed to enqueue file change: {FilePath}", filePath);
@@ -72,7 +73,7 @@ public class ChangeService(ILogger<ChangeService> logger)
         {
             await foreach (FileChangeEvent changeEvent in _channel.Reader.ReadAllAsync(cancellationToken))
             {
-                _logger.LogInformation("File change detected: {FilePath} ({ChangeType})", 
+                _logger.LogInformation("File change detected: {FilePath} ({ChangeType})",
                     changeEvent.FilePath, changeEvent.ChangeType);
 
                 switch (changeEvent.ChangeType)
@@ -101,14 +102,14 @@ public class ChangeService(ILogger<ChangeService> logger)
                     case FileChangeType.Deleted:
                         _logger.LogInformation("File deleted: {FileName}", Path.GetFileName(changeEvent.FilePath));
                         await _onChangeAction?.Invoke(changeEvent.FilePath, false)!;
-                        
+
                         if (_onClientNotification != null)
                         {
                             await _onClientNotification();
                         }
                         break;
+                }
             }
-        }
         }
         catch (OperationCanceledException)
         {
@@ -139,7 +140,7 @@ public class ChangeService(ILogger<ChangeService> logger)
         {
             try
             {
-        using FileStream stream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.None);
+                using FileStream stream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.None);
                 return;
             }
             catch (IOException)
@@ -154,11 +155,11 @@ public class ChangeService(ILogger<ChangeService> logger)
 
     private bool IsServerFile(string filePath) =>
         filePath.StartsWith(_workspace!.ServerPath, StringComparison.OrdinalIgnoreCase);
-    
+
     private static bool IsIgnored(string filePath)
     {
         string fileName = Path.GetFileName(filePath);
-        
+
         return fileName.StartsWith('.')
                || fileName.EndsWith('~')
                || IgnoredFiles.Contains(fileName)

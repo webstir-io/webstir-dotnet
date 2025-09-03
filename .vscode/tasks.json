@@ -1,13 +1,57 @@
 {
-	"version": "2.0.0",
-	"tasks": [
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "dotnet",
+            "task": "build ./CLI/CLI.csproj",
+            "file": "./CLI/CLI.csproj",
+            "group": "build",
+            "problemMatcher": [],
+            "label": "build"
+        },
 		{
-			"type": "dotnet",
-			"task": "build ./CLI/CLI.csproj",
-			"file": "./CLI/CLI.csproj",
-			"group": "build",
+			"label": "check:docker",
+			"type": "shell",
+			"command": "docker",
+			"args": ["info"],
 			"problemMatcher": [],
-			"label": "build"
+			"presentation": {
+				"reveal": "silent"
+			}
+		},
+		{
+			"label": "format:verify (style+analyzers)",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"format",
+				"--verify-no-changes",
+				"--no-restore"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "format:verify:strict (include suggestions)",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"format",
+				"--verify-no-changes",
+				"--no-restore",
+				"--severity",
+				"info"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "format:fix",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"format",
+				"--no-restore"
+			],
+			"problemMatcher": []
 		}
 	]
 }

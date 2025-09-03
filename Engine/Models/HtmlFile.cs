@@ -1,3 +1,5 @@
+using Engine.Pipelines.Html.Constants;
+
 namespace Engine.Models;
 
 public class HtmlFile(string _filepath)
@@ -5,47 +7,31 @@ public class HtmlFile(string _filepath)
     private string _html = File.ReadAllText(_filepath);
 
     public string Html => _html;
-    
+
     public string Merge(string pageHtml)
     {
         string result = _html;
-        
+
         // Extract head content from the page
-        System.Text.RegularExpressions.Match headContentMatch = System.Text.RegularExpressions.Regex.Match(
-            pageHtml, 
-            @"<head[^>]*>(.*?)</head>", 
-            System.Text.RegularExpressions.RegexOptions.Singleline
-        );
-        
+        System.Text.RegularExpressions.Match headContentMatch = HtmlRegex.HeadContent().Match(pageHtml);
+
         if (headContentMatch.Success)
         {
             string headContent = headContentMatch.Groups[1].Value.Trim();
             // Insert head content before closing </head> tag in template
-            result = System.Text.RegularExpressions.Regex.Replace(
-                result,
-                @"</head>",
-                headContent + "\n</head>"
-            );
+            result = HtmlRegex.CloseHeadTag().Replace(result, headContent + "\n</head>");
         }
-        
+
         // Extract main content from the page
-        System.Text.RegularExpressions.Match mainContentMatch = System.Text.RegularExpressions.Regex.Match(
-            pageHtml, 
-            @"<main[^>]*>(.*?)</main>", 
-            System.Text.RegularExpressions.RegexOptions.Singleline
-        );
-        
+        System.Text.RegularExpressions.Match mainContentMatch = HtmlRegex.MainContent().Match(pageHtml);
+
         if (mainContentMatch.Success)
         {
             string mainContent = mainContentMatch.Groups[1].Value.Trim();
             // Replace <main> </main> with <main>content</main>
-            result = System.Text.RegularExpressions.Regex.Replace(
-                result,
-                @"<main([^>]*)>\s*</main>",
-                "<main$1>" + mainContent + "</main>"
-            );
+            result = HtmlRegex.EmptyMain().Replace(result, "<main$1>" + mainContent + "</main>");
         }
-        
+
         return result;
     }
 

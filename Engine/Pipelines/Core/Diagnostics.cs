@@ -9,11 +9,26 @@ public enum DiagnosticLevel
 
 public class Diagnostic
 {
-    public required DiagnosticLevel Level { get; init; }
-    public required string Message { get; init; }
-    public string? File { get; init; }
-    public int? Line { get; init; }
-    public int? Column { get; init; }
+    public required DiagnosticLevel Level
+    {
+        get; init;
+    }
+    public required string Message
+    {
+        get; init;
+    }
+    public string? File
+    {
+        get; init;
+    }
+    public int? Line
+    {
+        get; init;
+    }
+    public int? Column
+    {
+        get; init;
+    }
 
     public override string ToString()
     {

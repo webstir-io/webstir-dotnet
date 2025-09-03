@@ -5,15 +5,27 @@ namespace Engine.Pipelines.Core;
 
 public sealed class AssetManifest
 {
-    public string? Js { get; set; }
-    public string? Css { get; set; }
+    public string? Js
+    {
+        get; set;
+    }
+    public string? Css
+    {
+        get; set;
+    }
 
     public MapFiles Map { get; set; } = new();
 
     public sealed class MapFiles
     {
-        public string? Js { get; set; }
-        public string? Css { get; set; }
+        public string? Js
+        {
+            get; set;
+        }
+        public string? Css
+        {
+            get; set;
+        }
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new()

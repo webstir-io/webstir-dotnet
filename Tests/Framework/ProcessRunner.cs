@@ -7,13 +7,22 @@ public class ProcessRunner
 {
     public class ProcessResult
     {
-        public int ExitCode { get; set; }
+        public int ExitCode
+        {
+            get; set;
+        }
         public string Output { get; set; } = "";
         public string Error { get; set; } = "";
-        public bool TimedOut { get; set; }
-        public bool ReceivedReadySignal { get; set; }
+        public bool TimedOut
+        {
+            get; set;
+        }
+        public bool ReceivedReadySignal
+        {
+            get; set;
+        }
     }
-    
+
     public static ProcessResult Run(ProcessRunOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -30,11 +39,11 @@ public class ProcessRunner
                 CreateNoWindow = true
             }
         };
-        
+
         StringBuilder output = new();
         StringBuilder error = new();
         TaskCompletionSource<bool>? readySignalReceived = options.WaitForSignal == null ? null : new();
-        
+
         process.OutputDataReceived += (sender, e) =>
         {
             if (e.Data != null)
@@ -46,7 +55,7 @@ public class ProcessRunner
                 }
             }
         };
-        
+
         process.ErrorDataReceived += (sender, e) =>
         {
             if (e.Data != null)
@@ -54,22 +63,22 @@ public class ProcessRunner
                 error.AppendLine(e.Data);
             }
         };
-        
+
         process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
-        
+
         bool timedOut = false;
         bool receivedSignal = false;
-        
+
         if (options.WaitForSignal != null)
         {
             // Wait for the ready signal
             receivedSignal = readySignalReceived!.Task.Wait(options.WaitForSignalTimeoutMs);
-            
+
             // Send termination signal
             SendTerminationSignal(process, options.TerminationMethod);
-            
+
             // Wait for exit
             timedOut = !process.WaitForExit(options.ExitTimeoutMs);
         }
@@ -78,13 +87,13 @@ public class ProcessRunner
             // Simple timeout-based execution
             timedOut = !process.WaitForExit(options.ExitTimeoutMs);
         }
-        
+
         if (timedOut)
         {
             KillProcessTree(process);
             process.WaitForExit();
         }
-        
+
         return new ProcessResult
         {
             ExitCode = process.ExitCode,
@@ -94,7 +103,7 @@ public class ProcessRunner
             ReceivedReadySignal = receivedSignal
         };
     }
-    
+
     private static void SendTerminationSignal(Process process, TerminationMethod method)
     {
         switch (method)
@@ -119,13 +128,13 @@ public class ProcessRunner
                     KillProcessTree(process);
                 }
                 break;
-                
+
             case TerminationMethod.Kill:
                 KillProcessTree(process);
                 break;
         }
     }
-    
+
     private static void KillProcessTree(Process process)
     {
         try
@@ -158,22 +167,38 @@ public class ProcessRunner
         catch
         {
             // Fallback to simple kill
-            try { process.Kill(); } catch { }
+            try
+            {
+                process.Kill();
+            }
+            catch { }
         }
     }
 }
 
 public class ProcessRunOptions
 {
-    public required string FileName { get; set; }
-    public required string Arguments { get; set; }
-    public required string WorkingDirectory { get; set; }
-    
+    public required string FileName
+    {
+        get; set;
+    }
+    public required string Arguments
+    {
+        get; set;
+    }
+    public required string WorkingDirectory
+    {
+        get; set;
+    }
+
     // For simple command execution
     public int ExitTimeoutMs { get; set; } = 10000;
-    
+
     // For interactive processes that need graceful shutdown
-    public string? WaitForSignal { get; set; }
+    public string? WaitForSignal
+    {
+        get; set;
+    }
     public int WaitForSignalTimeoutMs { get; set; } = 5000;
     public TerminationMethod TerminationMethod { get; set; } = TerminationMethod.Kill;
 }

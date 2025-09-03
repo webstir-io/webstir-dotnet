@@ -1,4 +1,5 @@
 using Engine.Servers;
+
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Services;
@@ -20,15 +21,15 @@ public class DevService(
     {
         ArgumentNullException.ThrowIfNull(workspace);
         _logger.LogInformation("Starting {DevService} for {WorkspacePath}", App.DevService, workspace.WorkingPath);
-        
+
         try
         {
             await _webServer.StartAsync(workspace);
-            await _nodeServer.StartAsync(workspace);            
+            await _nodeServer.StartAsync(workspace);
             await _changeService.Initialize(workspace, onChangeAction, RestartNodeServerAsync, NotifyClientsAsync);
-            await _changeService.StartAsync();            
+            await _changeService.StartAsync();
             await _watchService.Watch(workspace);
-            
+
             // Wait for exit signal and ensure proper cleanup
             await WaitForExitSignalAsync();
         }
@@ -47,16 +48,16 @@ public class DevService(
     public async Task StopAsync()
     {
         _logger.LogInformation("Stopping {DevService}...", App.DevService);
-        
+
         try
         {
-            _watchService.Stop();            
-            await _changeService.StopAsync();            
+            _watchService.Stop();
+            await _changeService.StopAsync();
             await Task.WhenAll(
                 _webServer.StopAsync(),
                 _nodeServer.StopAsync()
             );
-            
+
             _logger.LogInformation("{DevService} stopped", App.DevService);
         }
         catch (Exception ex)
@@ -83,7 +84,7 @@ public class DevService(
             e.Cancel = true;
             exitEvent.SetResult(true);
         };
-        
+
         _logger.LogInformation("{DevService} is running. Press Ctrl+C to exit.", App.DevService);
 
         await exitEvent.Task;

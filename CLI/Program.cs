@@ -1,11 +1,8 @@
-using System.Text.Json;
-using Microsoft.Extensions.Configuration;
 using System.Globalization;
-using Microsoft.Extensions.DependencyInjection;
-using Serilog;
-using Serilog.Core;
+using System.Text.Json;
 
 using CLI;
+
 using Engine;
 using Engine.Pipelines.Assets;
 using Engine.Pipelines.Css;
@@ -21,6 +18,12 @@ using Engine.Servers;
 using Engine.Services;
 using Engine.Workers;
 using Engine.Workflows;
+
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+using Serilog;
+using Serilog.Core;
 
 Logger logger = new LoggerConfiguration()
     .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)

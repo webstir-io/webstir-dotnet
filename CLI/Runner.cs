@@ -1,5 +1,6 @@
 using Engine;
 using Engine.Services;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CLI;
@@ -8,7 +9,7 @@ public class Runner(IServiceProvider serviceProvider)
 {
     private AppWorkspace _workspace = null!;
     private IWorkflowFactory _workflowFactory = null!;
-        
+
     public async Task Run(string[] args)
     {
         ArgumentNullException.ThrowIfNull(args);
@@ -57,7 +58,7 @@ public class Runner(IServiceProvider serviceProvider)
         {
             command = Commands.Watch;
         }
-        
+
         await _workflowFactory.ExecuteAsync(command, args);
     }
 }

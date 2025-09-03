@@ -1,6 +1,7 @@
-using Engine.Pipelines.Css.Models;
-using Engine.Pipelines.Core.Parsing;
 using System.Text.RegularExpressions;
+
+using Engine.Pipelines.Core.Parsing;
+using Engine.Pipelines.Css.Models;
 
 namespace Engine.Pipelines.Css.Publish;
 
@@ -64,7 +65,7 @@ public static class Parser
             return importPath;
 
         string resolved = Path.GetFullPath(Path.Combine(baseDirectory, importPath));
-        
+
         if (!Path.HasExtension(resolved))
             resolved += Css.CssExt;
 

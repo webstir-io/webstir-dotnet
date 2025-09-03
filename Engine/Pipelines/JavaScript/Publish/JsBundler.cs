@@ -7,9 +7,9 @@ namespace Engine.Pipelines.JavaScript.Publish;
 public class JsBundler(AppWorkspace workspace)
 {
     private readonly JsModuleResolver _resolver = new(workspace);
-    
+
     public async Task BundleAsync(DiagnosticCollection? diagnostics = null) => await BundlePageScriptsAsync(diagnostics);
-    
+
     private async Task BundlePageScriptsAsync(DiagnosticCollection? diagnostics)
     {
         string pagesPath = workspace.ClientBuildPath.Combine(Folders.Pages);
@@ -17,12 +17,12 @@ public class JsBundler(AppWorkspace workspace)
         {
             return;
         }
-        
+
         foreach (string pageDir in pagesPath.Folders())
         {
             string pageName = pageDir.Filename();
             string pageScript = pageDir.Combine($"{Files.Index}{FileExtensions.Js}");
-            
+
             if (!pageScript.Exists())
             {
                 continue;
@@ -38,7 +38,7 @@ public class JsBundler(AppWorkspace workspace)
     {
         List<JsModuleInfo> result = [];
         HashSet<string> visited = [];
-        
+
         foreach (string entryPoint in graph.GetEntryPoints())
         {
             VisitModule(entryPoint, graph, visited, result);
@@ -53,18 +53,18 @@ public class JsBundler(AppWorkspace workspace)
         {
             return;
         }
-        
+
         JsModuleNode? node = graph.GetModule(modulePath);
         if (node?.Info == null)
         {
             return;
         }
-        
+
         foreach (string dependency in node.Dependencies)
         {
             VisitModule(dependency, graph, visited, result);
         }
-        
+
         result.Add(node.Info);
     }
 
@@ -75,10 +75,10 @@ public class JsBundler(AppWorkspace workspace)
         {
             moduleIdMap[modules[moduleIndex].FilePath] = moduleIndex;
         }
-        
+
         List<string> transformedModules = [];
         HashSet<string> usedExports = JsTreeShaker.AnalyzeUsage(graph);
-        
+
         for (int moduleIndex = 0; moduleIndex < modules.Count; moduleIndex++)
         {
             JsTransformedModule transformed = JsTransformer.Transform(modules[moduleIndex], moduleIndex, moduleIdMap);
@@ -88,7 +88,7 @@ public class JsBundler(AppWorkspace workspace)
                 Code = JsTransformer.RemoveUnusedCode(transformed.Code, modules[moduleIndex], usedExports),
                 SourceMap = transformed.SourceMap
             };
-            
+
             transformedModules.Add(transformed.Code);
         }
 

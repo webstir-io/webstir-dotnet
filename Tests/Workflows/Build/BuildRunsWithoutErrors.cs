@@ -1,4 +1,5 @@
 using Engine;
+
 using Tests.Framework;
 
 namespace Tests.Workflows.Build;
@@ -25,7 +26,11 @@ public sealed class BuildRunsWithoutErrors : ITestCase
         string seedBuild = Path.Combine(seedDir, Folders.Build);
         if (Directory.Exists(seedBuild))
         {
-            try { Directory.Delete(seedBuild, recursive: true); } catch { }
+            try
+            {
+                Directory.Delete(seedBuild, recursive: true);
+            }
+            catch { }
         }
 
         ProcessRunner.ProcessResult result = context.Cli.Run($"{Commands.Build} {ProjectOptions.ProjectName} seed", testDir, timeoutMs: 10000);

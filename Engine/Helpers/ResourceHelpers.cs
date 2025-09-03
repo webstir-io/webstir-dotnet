@@ -18,17 +18,17 @@ public static class ResourceHelpers
             {
                 continue;
             }
-            
+
             string resourcePath = resourceName.Replace(resourcePrefixWithDot, "");
             int lastDotIndex = resourcePath.LastIndexOf('.');
-            
-            string relativePath = lastDotIndex > 0 
+
+            string relativePath = lastDotIndex > 0
                 ? resourcePath[..lastDotIndex].Replace('.', Path.DirectorySeparatorChar) + resourcePath[lastDotIndex..]
                 : resourcePath.Replace('.', Path.DirectorySeparatorChar);
-                
+
             string outputPath = Path.Combine(destinationPath, relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-            
+
             using FileStream fileStream = File.Create(outputPath);
             await stream.CopyToAsync(fileStream);
         }
@@ -38,7 +38,7 @@ public static class ResourceHelpers
     {
         Assembly assembly = Assembly.GetExecutingAssembly();
         string prefixWithDot = $"{resourcePrefix}.";
-        
+
         string[] resources = [.. assembly.GetManifestResourceNames()
             .Where(name => name.StartsWith(prefixWithDot, StringComparison.Ordinal) && !name.StartsWith($"{prefixWithDot}{Folders.Src}.", StringComparison.Ordinal))];
 
@@ -49,10 +49,10 @@ public static class ResourceHelpers
             {
                 continue;
             }
-            
+
             string fileName = resourceName.Replace(prefixWithDot, "");
             string outputPath = Path.Combine(destinationPath, fileName);
-            
+
             using FileStream fileStream = File.Create(outputPath);
             await stream.CopyToAsync(fileStream);
         }

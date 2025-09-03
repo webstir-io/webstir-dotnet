@@ -9,7 +9,7 @@ public static class CssPathResolver
         { "@shared/", "shared/styles/" },
         { "@pages/", "pages/" }
     };
-    
+
     public static string ResolvePath(string path, string baseDirectory, string clientDirectory)
     {
         ArgumentNullException.ThrowIfNull(path);
@@ -24,13 +24,13 @@ public static class CssPathResolver
                 return Path.GetFullPath(clientPath);
             }
         }
-        
+
         if (path.StartsWith("./", StringComparison.Ordinal) || path.StartsWith("../", StringComparison.Ordinal))
         {
             string fullPath = Path.Combine(baseDirectory, path);
             return Path.GetFullPath(fullPath);
         }
-        
+
         string absolutePath = Path.Combine(clientDirectory, path);
         return Path.GetFullPath(absolutePath);
     }

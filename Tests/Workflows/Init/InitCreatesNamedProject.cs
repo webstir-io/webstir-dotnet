@@ -1,4 +1,5 @@
 using Engine;
+
 using Tests.Framework;
 
 namespace Tests.Workflows.Init;
@@ -19,7 +20,11 @@ public sealed class InitCreatesNamedProject : ITestCase
 
         if (Directory.Exists(namedDir))
         {
-            try { Directory.Delete(namedDir, recursive: true); } catch { }
+            try
+            {
+                Directory.Delete(namedDir, recursive: true);
+            }
+            catch { }
         }
 
         ProcessRunner.ProcessResult result = context.Cli.Run($"{Commands.Init} --project-name {projectName}", testDir, timeoutMs: 10000);

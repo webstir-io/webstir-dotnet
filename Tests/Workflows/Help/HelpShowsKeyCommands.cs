@@ -1,4 +1,5 @@
 using Engine;
+
 using Tests.Framework;
 
 namespace Tests.Workflows.Help;
@@ -25,6 +26,6 @@ public sealed class HelpShowsKeyCommands : ITestCase
 
         string lower = result.Output.ToLowerInvariant();
         Assert.Contains(Commands.Build, lower, $"Help does not mention {Commands.Build} command");
-        Assert.Contains(Commands.Demo, lower, $"Help does not mention {Commands.Demo} command");
+        // Demo command intentionally removed for now
     }
 }

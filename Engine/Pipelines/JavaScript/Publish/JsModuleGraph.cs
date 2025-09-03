@@ -12,7 +12,7 @@ public class JsModuleGraph
         ArgumentNullException.ThrowIfNull(moduleInfo);
         ArgumentNullException.ThrowIfNull(resolvedDependencies);
         _moduleInfos[filePath] = moduleInfo;
-        
+
         if (!_nodes.TryGetValue(filePath, out JsModuleNode? node))
         {
             node = new JsModuleNode
@@ -102,13 +102,13 @@ public class JsModuleGraph
         currentPath.RemoveAt(currentPath.Count - 1);
         recursionStack.Remove(module);
     }
-    
+
     public IEnumerable<string> GetEntryPoints() => _nodes.Where(n => n.Value != null && n.Value.IsEntryPoint).Select(n => n.Key);
-    
+
     public JsModuleNode? GetModule(string filePath) => _nodes.TryGetValue(filePath, out JsModuleNode? node) ? node : null;
-    
+
     public JsModuleInfo? GetModuleInfo(string filePath) => _moduleInfos.TryGetValue(filePath, out JsModuleInfo? info) ? info : null;
-    
+
     public List<JsCircularDependency> FindCircularDependencies()
     {
         List<List<string>> cycles = FindAllCircularDependencies();
@@ -141,12 +141,12 @@ public class JsModuleGraph
     {
         string srcFolder = Path.DirectorySeparatorChar + Folders.Src + Path.DirectorySeparatorChar;
         int srcIndex = fullPath.IndexOf(srcFolder, StringComparison.OrdinalIgnoreCase);
-        
+
         if (srcIndex >= 0)
         {
             return fullPath[(srcIndex + 1)..];
         }
-        
+
         return Path.GetFileName(fullPath);
     }
 
@@ -155,22 +155,22 @@ public class JsModuleGraph
         ArgumentNullException.ThrowIfNull(resolver);
         ArgumentNullException.ThrowIfNull(entryPoints);
         JsModuleGraph graph = new();
-        
+
         if (entryPoints.Length == 0)
         {
             return graph;
         }
-        
+
         HashSet<string> processedFiles = [];
-        
+
         List<Task> tasks = [];
         foreach (string entryPoint in entryPoints)
         {
             tasks.Add(ProcessModuleAsync(graph, resolver, processedFiles, entryPoint, isEntryPoint: true));
         }
-        
+
         await Task.WhenAll(tasks);
-        
+
         return graph;
     }
 
@@ -180,12 +180,12 @@ public class JsModuleGraph
         {
             return;
         }
-        
+
         string content = await File.ReadAllTextAsync(filePath);
         JsModuleInfo moduleInfo = JsModuleParser.ParseModule(filePath, content);
         List<string> resolvedDependencies = [];
         List<Task> dependencyTasks = [];
-        
+
         foreach (JsImportStatement import in moduleInfo.Imports)
         {
             string? resolvedPath = resolver.ResolvePath(import.Source, filePath)
@@ -193,20 +193,20 @@ public class JsModuleGraph
 
             import.ResolvedPath = resolvedPath;
             resolvedDependencies.Add(resolvedPath);
-            
+
             if (!resolvedPath.Contains(Folders.NodeModules, StringComparison.Ordinal) && !processedFiles.Contains(resolvedPath))
             {
                 dependencyTasks.Add(ProcessModuleAsync(graph, resolver, processedFiles, resolvedPath));
             }
         }
-        
+
         graph.AddModule(filePath, moduleInfo, resolvedDependencies);
-        
+
         if (isEntryPoint)
         {
             graph.MarkAsEntryPoint(filePath);
         }
-        
+
         await Task.WhenAll(dependencyTasks);
     }
 }

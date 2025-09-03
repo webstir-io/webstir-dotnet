@@ -1,5 +1,6 @@
-using Engine.Extensions;
 using System.Text.Json;
+
+using Engine.Extensions;
 
 namespace Engine.Pipelines.JavaScript.Publish;
 
@@ -14,10 +15,10 @@ public class JsModuleResolver(AppWorkspace workspace)
         ArgumentNullException.ThrowIfNull(fromFile);
         if (importPath.StartsWith(Prefixes.Relative, StringComparison.Ordinal) || importPath.StartsWith(Prefixes.ParentRelative, StringComparison.Ordinal))
             return ResolveRelativePath(importPath, fromFile);
-        
+
         if (importPath.StartsWith('/'))
             return ResolveAbsolutePath(importPath);
-        
+
         return ResolveBareImport(importPath);
     }
 
@@ -82,7 +83,7 @@ public class JsModuleResolver(AppWorkspace workspace)
     private string? ResolveBareImport(string importPath)
     {
         string nodeModulesPath = workspace.WorkingPath.Combine(Folders.NodeModules);
-        
+
         if (!Directory.Exists(nodeModulesPath))
             return null;
 
@@ -127,13 +128,13 @@ public class JsModuleResolver(AppWorkspace workspace)
     {
         string content = File.ReadAllText(packageJsonPath);
         JsonDocument doc = JsonDocument.Parse(content);
-        
+
         if (doc.RootElement.TryGetProperty(PackageJsonFields.Main, out JsonElement mainElement))
             return mainElement.GetString();
 
         if (doc.RootElement.TryGetProperty(PackageJsonFields.Module, out JsonElement moduleElement))
             return moduleElement.GetString();
-        
+
         return null;
     }
 }
