@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Engine;
 using Engine.Models;
 
@@ -9,7 +12,9 @@ public static class Help
     {
         [Commands.Init] = GetInitCommand(),
         [Commands.AddPage] = GetAddPageCommand(),
+        [Commands.AddTest] = GetAddTestCommand(),
         [Commands.Build] = GetBuildCommand(),
+        [Commands.Test] = GetTestCommand(),
         [Commands.Watch] = GetWatchCommand(),
         [Commands.Publish] = GetPublishCommand(),
         [Commands.Help] = GetHelpCommand()
@@ -85,6 +90,14 @@ public static class Help
             ],
             "[options]");
 
+    private static CommandHelp GetTestCommand() =>
+        CreateCommand(Commands.Test,
+            "Run tests and print a summary",
+            [
+                Example($"{App.Name} {Commands.Test}", "Build (incremental) and run tests"),
+                Example($"{App.Name} {Commands.Test} ./my-app", "Run in ./my-app")
+            ]);
+
     private static CommandHelp GetWatchCommand() =>
         CreateCommand(Commands.Watch,
             "Build and watch for changes (default)",
@@ -100,6 +113,16 @@ public static class Help
             [
                 Example($"{App.Name} {Commands.Publish}", "Create optimized production build")
             ]);
+
+    private static CommandHelp GetAddTestCommand() =>
+        CreateCommand(Commands.AddTest,
+            "Scaffold a starter test",
+            [
+                Example($"{App.Name} {Commands.AddTest} example", "Create src/tests/example.test.ts"),
+                Example($"{App.Name} {Commands.AddTest} client/app/pages/home/sometest", "Create src/client/app/pages/home/tests/sometest.test.ts")
+            ],
+            null,
+            "<name-or-path>");
 
     private static CommandHelp GetHelpCommand() =>
         CreateCommand(Commands.Help,

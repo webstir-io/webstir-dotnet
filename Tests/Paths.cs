@@ -1,3 +1,6 @@
+using System;
+using System.IO;
+
 namespace Tests;
 
 public static class Paths

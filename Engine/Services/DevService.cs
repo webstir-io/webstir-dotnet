@@ -1,3 +1,6 @@
+using System;
+using System.Threading.Tasks;
+using System.Threading;
 using Engine.Servers;
 
 using Microsoft.Extensions.Logging;
@@ -17,21 +20,21 @@ public class DevService(
     private readonly NodeServer _nodeServer = nodeServer;
     private readonly ILogger<DevService> _logger = logger;
 
-    public async Task StartAsync(AppWorkspace workspace, Func<string?, bool, Task>? onChangeAction = null)
+    public async Task StartAsync(AppWorkspace workspace, Func<string?, bool, Task>? onChangeAction = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(workspace);
         _logger.LogInformation("Starting {DevService} for {WorkspacePath}", App.DevService, workspace.WorkingPath);
 
         try
         {
-            await _webServer.StartAsync(workspace);
-            await _nodeServer.StartAsync(workspace);
+            await _webServer.StartAsync(workspace, cancellationToken);
+            await _nodeServer.StartAsync(workspace, cancellationToken);
             await _changeService.Initialize(workspace, onChangeAction, RestartNodeServerAsync, NotifyClientsAsync);
             await _changeService.StartAsync();
             await _watchService.Watch(workspace);
 
             // Wait for exit signal and ensure proper cleanup
-            await WaitForExitSignalAsync();
+            await WaitForExitSignalAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -76,7 +79,7 @@ public class DevService(
 
     public async Task NotifyClientsAsync() => await _webServer.UpdateClientsAsync();
 
-    private async Task WaitForExitSignalAsync()
+    private async Task WaitForExitSignalAsync(CancellationToken cancellationToken)
     {
         TaskCompletionSource<bool> exitEvent = new();
         Console.CancelKeyPress += (sender, e) =>
@@ -86,7 +89,13 @@ public class DevService(
         };
 
         _logger.LogInformation("{DevService} is running. Press Ctrl+C to exit.", App.DevService);
-
-        await exitEvent.Task;
+        try
+        {
+            await Task.WhenAny(exitEvent.Task, Task.Delay(Timeout.Infinite, cancellationToken));
+        }
+        catch (OperationCanceledException)
+        {
+            // cancelled
+        }
     }
 }

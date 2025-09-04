@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Engine.Pipelines.Css.Models;
 
 public record CssProcessedModule

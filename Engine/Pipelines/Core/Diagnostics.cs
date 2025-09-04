@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+
 namespace Engine.Pipelines.Core;
 
 public enum DiagnosticLevel
@@ -61,4 +64,3 @@ public class DiagnosticCollection
     public void AddError(string message, string? file = null, int? line = null, int? column = null) =>
         _items.Add(Diagnostic.Error(message, file, line, column));
 }
-

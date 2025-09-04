@@ -1,3 +1,5 @@
+using System;
+
 namespace Tests.Framework;
 
 public static class TestMode

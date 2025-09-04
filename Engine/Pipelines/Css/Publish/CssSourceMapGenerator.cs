@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -124,7 +128,7 @@ public class SourceMapGenerator
     private static string GetRelativePath(string filePath)
     {
         string currentDir = Directory.GetCurrentDirectory();
-        Uri fileUri = new(filePath);
+        Uri fileUri = new( filePath);
         Uri currentUri = new(currentDir + Path.DirectorySeparatorChar);
         return currentUri.MakeRelativeUri(fileUri).ToString();
     }

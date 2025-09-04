@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Engine.Pipelines.Core;
 
 public class BundleResult
@@ -29,4 +31,3 @@ public class OutputFile
         get; init;
     }
 }
-

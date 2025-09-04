@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Engine.Pipelines.Core.Parsing;
 
 public class JavaScriptParser

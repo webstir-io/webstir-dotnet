@@ -41,6 +41,11 @@ dotnet_diagnostic.CA1310.severity = error     # Specify StringComparison for str
 dotnet_diagnostic.CA1510.severity = warning   # Prefer ArgumentNullException.ThrowIfNull
 dotnet_diagnostic.CA1869.severity = warning   # Cache JsonSerializerOptions instances
 dotnet_diagnostic.SYSLIB1045.severity = warning   # Prefer GeneratedRegexAttribute for regexes
+dotnet_diagnostic.CA2016.severity = error     # Forward CancellationToken in async methods
+# Scope CA1822 to testing pipeline only to avoid repo-wide churn
+
+[Engine/Pipelines/Core/Testing/*.cs]
+dotnet_diagnostic.CA1822.severity = error     # Mark members static when possible
 
 # Naming
 dotnet_naming_rule.interfaces_should_start_with_i.severity = warning
@@ -80,6 +85,9 @@ dotnet_diagnostic.CA1852.severity = error     # Seal types with no subtypes
 csharp_style_prefer_collection_expression = true:warning
 dotnet_diagnostic.IDE0028.severity = error     # Simplify collection initialization
 dotnet_diagnostic.IDE0305.severity = error     # Use collection expressions
+dotnet_diagnostic.IDE0301.severity = error     # Collection initialization can be simplified
+dotnet_diagnostic.IDE0300.severity = error     # Collection initialization can be simplified
+dotnet_diagnostic.IDE0270.severity = error     # Null check can be simplified
 
 # General formatting
 csharp_style_allow_blank_line_after_colon_in_constructor_initializer = false:warning

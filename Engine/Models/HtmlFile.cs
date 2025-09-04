@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using Engine.Pipelines.Html.Constants;
 
 namespace Engine.Models;

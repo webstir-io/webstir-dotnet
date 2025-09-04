@@ -1,3 +1,6 @@
+using System;
+using System.IO;
+
 namespace Tests.Framework;
 
 public sealed class Cli

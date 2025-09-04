@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Engine.Pipelines.JavaScript.Models;
 
 public class JsModuleNode

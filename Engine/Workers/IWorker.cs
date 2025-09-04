@@ -1,5 +1,7 @@
 using Engine.Models;
 
+using System.Threading.Tasks;
+
 namespace Engine.Workers;
 
 public interface IWorker

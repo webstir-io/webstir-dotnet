@@ -1,5 +1,7 @@
+using System;
 using System.Diagnostics;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Tests.Framework;
 

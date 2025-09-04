@@ -1,4 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 
 using Engine.Extensions;
@@ -39,7 +45,7 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
         path.EndsWith(FileExtensions.Svg, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Webp, StringComparison.OrdinalIgnoreCase) ||
         path.EndsWith(FileExtensions.Ico, StringComparison.OrdinalIgnoreCase);
 
-    public async Task StartAsync(AppWorkspace workspace)
+    public async Task StartAsync(AppWorkspace workspace, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(workspace);
         if (!workspace.ClientBuildPath.Exists())
@@ -60,19 +66,19 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
         _app = builder.Build();
         ConfigureMiddleware(_app, workspace.ClientBuildPath);
 
-        await _app.StartAsync();
+        await _app.StartAsync(cancellationToken);
         logger.LogInformation("Web server running at {WebServerUrl}", options.Value.WebServerUrl);
     }
 
-    public async Task StopAsync()
+    public async Task StopAsync(CancellationToken cancellationToken = default)
     {
         byte[] shutdownMessage = Encoding.UTF8.GetBytes("data: shutdown\n\n");
         Task[] tasks = [.. _sseClients.Select(async client =>
         {
             try
             {
-                await client.Response.Body.WriteAsync(shutdownMessage);
-                await client.Response.Body.FlushAsync();
+                await client.Response.Body.WriteAsync(shutdownMessage, cancellationToken);
+                await client.Response.Body.FlushAsync(cancellationToken);
             }
             catch { }
         })];
@@ -90,13 +96,13 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
 
         if (_app != null)
         {
-            await _app.StopAsync();
+            await _app.StopAsync(cancellationToken);
             await _app.DisposeAsync();
             _app = null;
         }
     }
 
-    public async Task UpdateClientsAsync()
+    public async Task UpdateClientsAsync(CancellationToken cancellationToken = default)
     {
         string message = "data: reload\n\n";
         byte[] bytes = Encoding.UTF8.GetBytes(message);
@@ -105,8 +111,8 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
         {
             try
             {
-                await client.Response.Body.WriteAsync(bytes);
-                await client.Response.Body.FlushAsync();
+                await client.Response.Body.WriteAsync(bytes, cancellationToken);
+                await client.Response.Body.FlushAsync(cancellationToken);
             }
             catch
             {

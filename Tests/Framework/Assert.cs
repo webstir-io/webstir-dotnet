@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace Tests.Framework;
 
 public static class Assert

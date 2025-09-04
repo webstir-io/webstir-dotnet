@@ -1,5 +1,10 @@
+using System;
 using System.Diagnostics;
+using System.Globalization;
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Engine.Extensions;
 
@@ -14,10 +19,10 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
     private readonly ILogger<NodeServer> _logger = logger;
     private Process? _process;
 
-    public async Task StartAsync(AppWorkspace workspace)
+    public async Task StartAsync(AppWorkspace workspace, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(workspace);
-        await KillProcessOnPort(_settings.ApiServerPort);
+        await KillProcessOnPort(_settings.ApiServerPort, cancellationToken);
 
         string serverIndexPath = workspace.ServerBuildPath.Combine("index.js");
         if (!File.Exists(serverIndexPath))
@@ -73,25 +78,25 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
         _process.BeginOutputReadLine();
         _process.BeginErrorReadLine();
 
-        await startupComplete.Task;
+        await startupComplete.Task.WaitAsync(cancellationToken);
     }
 
-    public async Task StopAsync()
+    public async Task StopAsync(CancellationToken cancellationToken = default)
     {
         if (_process != null && !_process.HasExited)
         {
             _process.Kill(entireProcessTree: true);
-            await _process.WaitForExitAsync();
+            await _process.WaitForExitAsync(cancellationToken);
             _process.Dispose();
             _process = null;
         }
     }
 
-    private async Task KillProcessOnPort(int port)
+    private async Task KillProcessOnPort(int port, CancellationToken cancellationToken = default)
     {
         try
         {
-            string? pid = await GetProcessIdOnPort(port);
+            string? pid = await GetProcessIdOnPort(port, cancellationToken);
             if (pid == null)
             {
                 return;
@@ -123,7 +128,7 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
 
             if (killProcess != null)
             {
-                await killProcess.WaitForExitAsync();
+                await killProcess.WaitForExitAsync(cancellationToken);
             }
         }
         catch (Exception ex)
@@ -132,7 +137,7 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
         }
     }
 
-    private static async Task<string?> GetProcessIdOnPort(int port)
+    private static async Task<string?> GetProcessIdOnPort(int port, CancellationToken cancellationToken)
     {
         try
         {
@@ -166,8 +171,8 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
                 return null;
             }
 
-            string output = await process.StandardOutput.ReadToEndAsync();
-            await process.WaitForExitAsync();
+            string output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
 
             if (string.IsNullOrWhiteSpace(output))
             {

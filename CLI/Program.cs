@@ -1,8 +1,7 @@
+using System;
 using System.Globalization;
 using System.Text.Json;
-
 using CLI;
-
 using Engine;
 using Engine.Pipelines.Assets;
 using Engine.Pipelines.Css;
@@ -18,10 +17,8 @@ using Engine.Servers;
 using Engine.Services;
 using Engine.Workers;
 using Engine.Workflows;
-
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-
 using Serilog;
 using Serilog.Core;
 
@@ -83,6 +80,8 @@ try
     services.AddTransient<IWorkflow, BuildWorkflow>();
     services.AddTransient<IWorkflow, PublishWorkflow>();
     services.AddTransient<IWorkflow, AddPageWorkflow>();
+    services.AddTransient<IWorkflow, AddTestWorkflow>();
+    services.AddTransient<IWorkflow, TestWorkflow>();
     services.AddTransient<IWorkflow, WatchWorkflow>();
 
     using ServiceProvider provider = services.BuildServiceProvider();

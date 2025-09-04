@@ -3,6 +3,10 @@ using System.Text.Json;
 
 using Engine.Pipelines.JavaScript.Models;
 
+using System.Collections.Generic;
+using System.Linq;
+using System;
+
 namespace Engine.Pipelines.JavaScript.Publish;
 
 public class JsSourceMapGenerator

@@ -1,3 +1,5 @@
+using System;
+
 namespace Tests.Framework;
 
 public sealed class TestCaseContext

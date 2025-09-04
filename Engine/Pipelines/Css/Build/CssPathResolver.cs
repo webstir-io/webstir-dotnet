@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+
 namespace Engine.Pipelines.Css.Build;
 
 public static class CssPathResolver

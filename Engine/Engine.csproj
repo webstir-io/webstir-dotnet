@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Templates\**\*" />
+    <EmbeddedResource Include="Pipelines\Core\Testing\tester.js" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,11 @@
 using Engine.Pipelines.JavaScript.Models;
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+
 namespace Engine.Pipelines.JavaScript.Publish;
 
 public class JsModuleGraph
