@@ -18,40 +18,40 @@ public sealed class AddTestWorkflow(AppWorkspace context,
 
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
-        string[] filtered = [.. args.Where(a => a != WorkflowName)];
-        string? nameOrPath = filtered.FirstOrDefault(a => !a.StartsWith('-'));
+        string[] filtered = [.. args.Where(arg => arg != WorkflowName)];
+        string? nameOrPath = filtered.FirstOrDefault(arg => !arg.StartsWith('-'));
         if (string.IsNullOrWhiteSpace(nameOrPath))
         {
             Console.WriteLine("Please specify a test name or path. See 'webstir help add-test'.");
             return;
         }
 
-        string rel = nameOrPath!.Trim().Trim('/', '\\');
-        bool hasSlash = rel.Contains('/') || rel.Contains('\\');
-        string targetDir;
+        string relativePath = nameOrPath!.Trim().Trim('/', '\\');
+        bool hasSlash = relativePath.Contains('/') || relativePath.Contains('\\');
+        string targetDirectory;
         string fileName;
 
         if (hasSlash)
         {
             // Treat as relative to src
-            int extLen = ($"{Files.Test}{FileExtensions.Ts}").Length;
-            string withoutExt = rel.EndsWith($"{Files.Test}{FileExtensions.Ts}", StringComparison.OrdinalIgnoreCase)
-                ? rel[..^extLen]
-                : rel;
+            int extensionLength = (Files.Test + FileExtensions.Ts).Length;
+            string withoutExtension = relativePath.EndsWith(Files.Test + FileExtensions.Ts, StringComparison.OrdinalIgnoreCase)
+                ? relativePath[..^extensionLength]
+                : relativePath;
 
-            string parent = Path.GetDirectoryName(withoutExt) ?? string.Empty;
-            string leaf = Path.GetFileName(withoutExt);
-            targetDir = Context.SrcPath.Combine(parent, Folders.Tests);
+            string parent = Path.GetDirectoryName(withoutExtension) ?? string.Empty;
+            string leaf = Path.GetFileName(withoutExtension);
+            targetDirectory = Context.SrcPath.Combine(parent, Folders.Tests);
             fileName = leaf + Files.Test + FileExtensions.Ts;
         }
         else
         {
-            targetDir = Context.SrcPath.Combine(Folders.Tests);
-            fileName = rel + Files.Test + FileExtensions.Ts;
+            targetDirectory = Context.SrcPath.Combine(Folders.Tests);
+            fileName = relativePath + Files.Test + FileExtensions.Ts;
         }
 
-        Directory.CreateDirectory(targetDir);
-        string targetFile = targetDir.Combine(fileName);
+        Directory.CreateDirectory(targetDirectory);
+        string targetFile = targetDirectory.Combine(fileName);
 
         if (!File.Exists(targetFile))
         {
@@ -68,16 +68,18 @@ public sealed class AddTestWorkflow(AppWorkspace context,
 
     private async Task EnsureTypesAsync()
     {
-        string typesDir = Context.WorkingPath.Combine("types");
-        Directory.CreateDirectory(typesDir);
-        string typesFile = typesDir.Combine("w-test.d.ts");
+        string typesRoot = Context.WorkingPath.Combine(Folders.Types);
+        Directory.CreateDirectory(typesRoot);
+        string typesPackageDir = typesRoot.Combine(App.Name);
+        Directory.CreateDirectory(typesPackageDir);
+        string typesFile = typesPackageDir.Combine(Files.Index + FileExtensions.Dts);
         if (!File.Exists(typesFile))
         {
             await File.WriteAllTextAsync(typesFile, TypesDtsContent);
             Console.WriteLine($"Added types: {Path.GetRelativePath(Context.WorkingPath, typesFile)}");
         }
 
-        string tsconfig = Context.WorkingPath.Combine("base.tsconfig.json");
+        string tsconfig = Context.WorkingPath.Combine(Files.BaseTsConfigJson);
         if (File.Exists(tsconfig))
         {
             try
@@ -93,7 +95,7 @@ public sealed class AddTestWorkflow(AppWorkspace context,
                     }
                     if (compilerOptions["typeRoots"] is null)
                     {
-                        JsonArray roots = ["./types", "./node_modules/@types"];
+                        JsonArray roots = [$"./{Folders.Types}", $"./{Folders.NodeModules}/@types"];
                         compilerOptions["typeRoots"] = roots;
                         await File.WriteAllTextAsync(tsconfig, obj.ToJsonString(new System.Text.Json.JsonSerializerOptions
                         {
@@ -103,9 +105,10 @@ public sealed class AddTestWorkflow(AppWorkspace context,
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore malformed tsconfig, do not fail the command.
+                // Ignore malformed tsconfig, do not fail the command; log for visibility.
+                Console.Error.WriteLine($"Warning: Could not update {Files.BaseTsConfigJson}: {ex.Message}");
             }
         }
     }
@@ -117,11 +120,15 @@ test('sample passes', () => {
 """;
 
     private const string TypesDtsContent = """
-declare function test(name: string, fn?: () => unknown | Promise<unknown>): void;
-declare namespace assert {
-  function isTrue(value: unknown, message?: string): void;
-  function equal<T>(expected: T, actual: T, message?: string): void;
-  function fail(message: string): never;
+export {};
+
+declare global {
+  function test(name: string, fn?: () => unknown | Promise<unknown>): void;
+  namespace assert {
+    function isTrue(value: unknown, message?: string): void;
+    function equal<T>(expected: T, actual: T, message?: string): void;
+    function fail(message: string): never;
+  }
 }
 """;
 }

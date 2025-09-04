@@ -15,6 +15,7 @@ public static class Folders
     public const string Client = "client";
     public const string Server = "server";
     public const string Shared = "shared";
+    public const string Types = "types";
     public const string App = "app";
     public const string Pages = "pages";
     public const string Styles = "styles";
@@ -31,6 +32,8 @@ public static class Files
     public const string PackageJson = "package.json";
     public const string PackageLockJson = "package-lock.json";
     public const string TsBuildInfo = ".tsbuildinfo";
+    public const string BaseTsConfigJson = "base.tsconfig.json";
+    public const string ManifestJson = "manifest.json";
     public const string Test = ".test";
     public const string Index = "index";
     public const string IndexHtml = "index.html";
@@ -41,6 +44,7 @@ public static class FileExtensions
 {
     public const string Html = ".html";
     public const string Css = ".css";
+    public const string Dts = ".d.ts";
     public const string Ts = ".ts";
     public const string Js = ".js";
     public const string Map = ".map";
@@ -60,4 +64,5 @@ public static class Templates
     public const string ClientPath = $"{SrcPath}.{Folders.Client}";
     public const string ServerPath = $"{SrcPath}.{Folders.Server}";
     public const string SharedPath = $"{SrcPath}.{Folders.Shared}";
+    public const string TypesPath = $"{Path}.types";
 }

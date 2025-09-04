@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Text.Json;
 
+using Engine;
+
 namespace Engine.Pipelines.Core;
 
 public sealed class AssetManifest
@@ -41,7 +43,7 @@ public sealed class AssetManifest
     public static AssetManifest Load(string pageDistDirectory)
     {
         ArgumentNullException.ThrowIfNull(pageDistDirectory);
-        string manifestPath = Path.Combine(pageDistDirectory, "manifest.json");
+        string manifestPath = Path.Combine(pageDistDirectory, Files.ManifestJson);
         if (!File.Exists(manifestPath))
         {
             return new AssetManifest();
@@ -79,9 +81,10 @@ public sealed class AssetManifest
     {
         ArgumentNullException.ThrowIfNull(pageDistDirectory);
         Directory.CreateDirectory(pageDistDirectory);
-        string manifestPath = Path.Combine(pageDistDirectory, "manifest.json");
+        string manifestPath = Path.Combine(pageDistDirectory, Files.ManifestJson);
         string json = JsonSerializer.Serialize(this, JsonOptions);
-        string tempPath = Path.Combine(pageDistDirectory, $"manifest.{Guid.NewGuid():N}.tmp");
+        string baseName = Path.GetFileNameWithoutExtension(Files.ManifestJson);
+        string tempPath = Path.Combine(pageDistDirectory, $"{baseName}.{Guid.NewGuid():N}.tmp");
         File.WriteAllText(tempPath, json);
         File.Move(tempPath, manifestPath, overwrite: true);
     }

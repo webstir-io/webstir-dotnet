@@ -21,7 +21,9 @@ public class Runner(IServiceProvider serviceProvider)
             : string.Empty;
 
         if (IsHelpRequested(command, args))
+        {
             return;
+        }
 
         string workingPath = Directory.GetCurrentDirectory();
         string[] workflowArgs = args;
@@ -57,7 +59,7 @@ public class Runner(IServiceProvider serviceProvider)
 
     private async Task ExecuteCommand(string command, string[] args)
     {
-        if (command is "")
+        if (string.IsNullOrEmpty(command))
         {
             command = Commands.Watch;
         }

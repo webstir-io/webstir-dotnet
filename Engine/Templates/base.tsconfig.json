@@ -15,6 +15,10 @@
     "forceConsistentCasingInFileNames": true,
     "sourceMap": true,
     "declaration": false,
-    "removeComments": true
+    "removeComments": true,
+    "typeRoots": [
+      "./types",
+      "./node_modules/@types"
+    ]
   }
 }

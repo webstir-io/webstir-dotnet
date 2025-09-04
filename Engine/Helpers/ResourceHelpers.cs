@@ -24,11 +24,26 @@ public static class ResourceHelpers
             }
 
             string resourcePath = resourceName.Replace(resourcePrefixWithDot, "");
-            int lastDotIndex = resourcePath.LastIndexOf('.');
 
-            string relativePath = lastDotIndex > 0
-                ? resourcePath[..lastDotIndex].Replace('.', Path.DirectorySeparatorChar) + resourcePath[lastDotIndex..]
-                : resourcePath.Replace('.', Path.DirectorySeparatorChar);
+            string relativePath;
+            if (resourcePath.EndsWith(FileExtensions.Dts, StringComparison.Ordinal))
+            {
+                string basePart = resourcePath[..^FileExtensions.Dts.Length];
+                relativePath = basePart.Replace('.', Path.DirectorySeparatorChar) + FileExtensions.Dts;
+            }
+            else if (resourcePath.EndsWith(Files.Test + FileExtensions.Ts, StringComparison.Ordinal))
+            {
+                string testTs = Files.Test + FileExtensions.Ts;
+                string basePart = resourcePath[..^testTs.Length];
+                relativePath = basePart.Replace('.', Path.DirectorySeparatorChar) + testTs;
+            }
+            else
+            {
+                int lastDotIndex = resourcePath.LastIndexOf('.');
+                relativePath = lastDotIndex > 0
+                    ? resourcePath[..lastDotIndex].Replace('.', Path.DirectorySeparatorChar) + resourcePath[lastDotIndex..]
+                    : resourcePath.Replace('.', Path.DirectorySeparatorChar);
+            }
 
             string outputPath = Path.Combine(destinationPath, relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);

@@ -30,6 +30,10 @@
   function evaluateModule(file) {
     const code = fs.readFileSync(file, 'utf8');
     const context = vm.createContext({
+      // expose the runner's globals so user code sees them as bare identifiers
+      test: defineTest,
+      assert: { isTrue, equal, fail },
+      // also expose the real globalThis for advanced cases
       globalThis,
       console,
       setTimeout,
@@ -100,4 +104,3 @@
   try { files = JSON.parse(input); } catch { files = []; }
   await run(Array.isArray(files) ? files : []);
 })();
-

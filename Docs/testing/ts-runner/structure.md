@@ -37,20 +37,23 @@ This framework lives inside Webstir. Projects do not contain framework files.
     - `reporter` — formats console output (MVP: minimal).
 
 ## Project Types (optional)
-- `types/w-test.d.ts`
+- `types/webstir/index.d.ts`
   - Purpose: Editor type hints so `test` and `assert` compile (no runtime code).
-  - Members:
-    - `declare function test(name: string, fn?: () => unknown | Promise<unknown>): void;`
-    - `declare namespace assert {`
-    - `  function isTrue(value: unknown, message?: string): void;`
-    - `  function equal<T>(expected: T, actual: T, message?: string): void;`
-    - `  function fail(message: string): never;`
+  - Shape:
+    - `export {};`
+    - `declare global {`
+    - `  function test(name: string, fn?: () => unknown | Promise<unknown>): void;`
+    - `  namespace assert {`
+    - `    function isTrue(value: unknown, message?: string): void;`
+    - `    function equal<T>(expected: T, actual: T, message?: string): void;`
+    - `    function fail(message: string): never;`
+    - `  }`
     - `}`
 
 ### TS Config Integration
 - Preferred: Add to root `base.tsconfig.json`:
   - `compilerOptions.typeRoots = ["./types", "./node_modules/@types"]`
-- The `add-test` command creates `types/w-test.d.ts` if missing and updates `base.tsconfig.json` accordingly.
+- The `add-test` command creates `types/webstir/index.d.ts` if missing and updates `base.tsconfig.json` accordingly.
 
 ## Path Mapping (source → compiled)
 - Source: `src/client/**/tests/**/*.ts` → Compiled: `build/client/**/tests/**/*.js`

@@ -12,8 +12,6 @@ namespace Engine.Pipelines.JavaScript.Build;
 
 public partial class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
 {
-    private const string RefreshJsFile = "refresh.js";
-    private const string BaseTsConfig = "base.tsconfig.json";
 
     public void Build(DiagnosticCollection? diagnostics = null)
     {
@@ -27,18 +25,18 @@ public partial class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger
 
     private void CopyRefreshScript()
     {
-        string sourceRefreshJsApp = workspace.ClientAppPath.Combine(RefreshJsFile);
-        string targetRefreshJs = workspace.ClientBuildPath.Combine(RefreshJsFile);
+        string sourceRefreshJsApp = workspace.ClientAppPath.Combine(Files.RefreshJs);
+        string targetRefreshJs = workspace.ClientBuildPath.Combine(Files.RefreshJs);
 
         if (sourceRefreshJsApp.Exists())
             File.Copy(sourceRefreshJsApp, targetRefreshJs, true);
         else
-            logger.LogWarning("{RefreshJsFile} not found in {SourcePath}", RefreshJsFile, sourceRefreshJsApp);
+            logger.LogWarning("{RefreshJsFile} not found in {SourcePath}", Files.RefreshJs, sourceRefreshJsApp);
     }
 
     private void CompileTypeScriptFiles(DiagnosticCollection? diagnostics)
     {
-        string baseTsConfigPath = workspace.WorkingPath.Combine(BaseTsConfig);
+        string baseTsConfigPath = workspace.WorkingPath.Combine(Files.BaseTsConfigJson);
         try
         {
             RunProcess("tsc", $"--build \"{baseTsConfigPath}\"", "TypeScript compilation");

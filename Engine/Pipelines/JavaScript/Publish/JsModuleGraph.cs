@@ -1,14 +1,14 @@
-using Engine.Pipelines.JavaScript.Models;
-
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
+using Engine.Pipelines.JavaScript.Models;
+
 namespace Engine.Pipelines.JavaScript.Publish;
 
-public class JsModuleGraph
+public sealed class JsModuleGraph
 {
     private readonly Dictionary<string, JsModuleNode> _nodes = [];
     private readonly Dictionary<string, JsModuleInfo> _moduleInfos = [];
@@ -40,12 +40,12 @@ public class JsModuleGraph
         {
             node.Dependencies.Add(dependency);
 
-            if (!_nodes.TryGetValue(dependency, out JsModuleNode? depNode))
+            if (!_nodes.TryGetValue(dependency, out JsModuleNode? dependencyNode))
             {
-                depNode = new JsModuleNode { FilePath = dependency };
-                _nodes[dependency] = depNode;
+                dependencyNode = new JsModuleNode { FilePath = dependency };
+                _nodes[dependency] = dependencyNode;
             }
-            depNode.Dependents.Add(filePath);
+            dependencyNode.Dependents.Add(filePath);
         }
     }
 
@@ -169,13 +169,11 @@ public class JsModuleGraph
 
         HashSet<string> processedFiles = [];
 
-        List<Task> tasks = [];
+        // Process entry points sequentially to avoid concurrent mutations
         foreach (string entryPoint in entryPoints)
         {
-            tasks.Add(ProcessModuleAsync(graph, resolver, processedFiles, entryPoint, isEntryPoint: true));
+            await ProcessModuleAsync(graph, resolver, processedFiles, entryPoint, isEntryPoint: true);
         }
-
-        await Task.WhenAll(tasks);
 
         return graph;
     }
@@ -190,7 +188,7 @@ public class JsModuleGraph
         string content = await File.ReadAllTextAsync(filePath);
         JsModuleInfo moduleInfo = JsModuleParser.ParseModule(filePath, content);
         List<string> resolvedDependencies = [];
-        List<Task> dependencyTasks = [];
+        // Process dependencies depth-first to avoid concurrent mutations
 
         foreach (JsImportStatement import in moduleInfo.Imports)
         {
@@ -202,7 +200,7 @@ public class JsModuleGraph
 
             if (!resolvedPath.Contains(Folders.NodeModules, StringComparison.Ordinal) && !processedFiles.Contains(resolvedPath))
             {
-                dependencyTasks.Add(ProcessModuleAsync(graph, resolver, processedFiles, resolvedPath));
+                await ProcessModuleAsync(graph, resolver, processedFiles, resolvedPath);
             }
         }
 
@@ -213,6 +211,6 @@ public class JsModuleGraph
             graph.MarkAsEntryPoint(filePath);
         }
 
-        await Task.WhenAll(dependencyTasks);
+        // No outstanding tasks due to sequential processing
     }
 }

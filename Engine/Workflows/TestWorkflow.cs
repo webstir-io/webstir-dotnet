@@ -41,32 +41,39 @@ public sealed class TestWorkflow(
 
     private static void PrintResults(RunResult result)
     {
-        foreach (TestResult r in result.Results)
+        bool anyFailures = false;
+        foreach (TestResult testResult in result.Results)
         {
-            if (r.Passed)
+            if (testResult.Passed)
             {
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.Write("PASS ");
-                Console.ResetColor();
-                Console.WriteLine($"{r.Name}");
+                continue;
             }
-            else
+
+            anyFailures = true;
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Write("FAIL ");
+            Console.ResetColor();
+            Console.WriteLine($"{testResult.Name}");
+            if (!string.IsNullOrWhiteSpace(testResult.Message))
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.Write("FAIL ");
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.WriteLine($"  {testResult.File}");
                 Console.ResetColor();
-                Console.WriteLine($"{r.Name}");
-                if (!string.IsNullOrWhiteSpace(r.Message))
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkGray;
-                    Console.WriteLine($"  {r.File}");
-                    Console.ResetColor();
-                    Console.WriteLine($"  {r.Message}");
-                }
+                Console.WriteLine($"  {testResult.Message}");
             }
         }
 
-        Console.WriteLine();
-        Console.WriteLine($"Passed: {result.Passed}, Failed: {result.Failed}, Total: {result.Total} in {result.DurationMs}ms");
+        if (anyFailures)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"Passed: {result.Passed}, Failed: {result.Failed}, Total: {result.Total} in {result.DurationMs}ms");
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("✔ ");
+            Console.ResetColor();
+            Console.WriteLine("All tests passed");
+        }
     }
 }

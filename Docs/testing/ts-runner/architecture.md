@@ -67,7 +67,7 @@
 - No framework files written to the project; tests rely on existing build outputs. (SR-07)
 
 ## Editor Types (Optional)
-- Provide ambient declarations via `types/w-test.d.ts` for `test` and `assert`.
+- Provide ambient declarations via `types/webstir/index.d.ts` for `test` and `assert`.
 - `base.tsconfig.json` includes `compilerOptions.typeRoots = ["./types", "./node_modules/@types"]`.
 - `add-test` scaffolds the file and updates config if missing.
 
