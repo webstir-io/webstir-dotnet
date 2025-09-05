@@ -3,7 +3,6 @@
 This folder is the hub for defining bundling/build features, requirements, and plans. It also tracks parity with modern bundlers via the category docs.
 
 ## Prioritized Backlog
-(highest → lowest priority)
 1. Exports/conditions resolution (package exports/imports maps and env conditions) — [Graph & Resolution](./graph-resolution/parity.md)
 2. Aliases & TS paths (resolve aliases and tsconfig paths; custom hooks) — [Graph & Resolution](./graph-resolution/parity.md)
 3. Production JS transform (esbuild/SWC: TS/JSX, targets, minify, sourcemaps) — [Transforms & Assets](./transforms-assets/parity.md)
