@@ -14,5 +14,3 @@ Create a web application development strategy to maximize productivity by levera
 ## Vision
 
 This is just a project I'm doing for fun, because I love coding and engineering solutions. There many, enterprise-level solutions out there that you should use for production environments and this is NOT one of them (yet). I'm doing this because I like coding-freedom and I want to learn all the technical intricacies of web application development. I'm heavily leveraging LLMs and agentic assistants because this is the AI era now. 🤘
-
-See also: [Requirements Based Development System (RBDS)](rbds.md) for how we define and prioritize requirements.
