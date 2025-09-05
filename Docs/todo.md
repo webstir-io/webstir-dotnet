@@ -1,4 +1,0 @@
-- Use latest TypeScript
-- Use latest Node
-- Only build watched page
-- Cache busting

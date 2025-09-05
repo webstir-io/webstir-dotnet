@@ -1,6 +1,6 @@
 # Mission
 
-Create a web application solution that enables coding freedom. To learn the intricacies of front-end development. To maximize productivity by leveraging the power of agentic assistants.
+Create a web application development strategy to maximize productivity by leveraging the power of agentic assistants.
 
 ## Customer Requirements
 
@@ -13,6 +13,6 @@ Create a web application solution that enables coding freedom. To learn the intr
 
 ## Vision
 
-I know I should not be doing this. I should not be re-inventing the wheel. I've read countless valid reasons not to do it but I just do not enjoy using frameworks, especially frontend frameworks (Microsoft .net being the one, lone exception). I've been trying for years and they always just seem to be creative abstractions (distractions?) that hide the nature of the underlying technology. Not to take anything away from the good work the authors of those frameworks have done, they're great products. Some genuinely game-changing solutions have come and gone. And maybe I'm naive or too dumb to understand what I'm getting myself into, but my gut just keeps saying DO it. Make your own. Be an engineer. Learn something while you're at it. I've spent nearly 20 years coding backends, designing database schemas, constructing APIs, configuring dev ops environments and architecting software solutions. Now in the age of LLMs and agentic coding assistants, it's time to embrace a new paradigm, where we can imagine something and then just build it. With our words. This framework is the bridge between words and code.
+This is just a project I'm doing for fun, because I love coding and engineering solutions. There many, enterprise-level solutions out there that you should use for production environments and this is NOT one of them (yet). I'm doing this because I like coding-freedom and I want to learn all the technical intricacies of web application development. I'm heavily leveraging LLMs and agentic assistants because this is the AI era now. 🤘
 
 See also: [Requirements Based Development System (RBDS)](rbds.md) for how we define and prioritize requirements.
