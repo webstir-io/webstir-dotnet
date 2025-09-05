@@ -46,6 +46,13 @@ Aggregate of feature backlogs.
 - Remote modules via ESM import maps (optional) — [bundling/platform-advanced](features/bundling/platform-advanced/requirements.md)
 - SSR/SSG/Streaming primitives — [framework/ssr-ssg-streaming](features/framework/ssr-ssg-streaming/requirements.md)
 - Deployment adapters & targets — [framework/deployment](features/framework/deployment/requirements.md)
+ - Dev server ready signal and watch scope — [dev-service](features/dev-service/requirements.md)
+ - CLI command contracts and help — [cli-host](features/cli-host/requirements.md)
+ - Init outputs and generators acceptance — [scaffolding](features/scaffolding/requirements.md)
+ - Workspace roots and constants invariants — [workspace](features/workspace/requirements.md)
+ - Diagnostics levels and error surfaces — [observability](features/observability/requirements.md)
+ - Sandbox flows, health checks, ports — [sandbox](features/sandbox/requirements.md)
+ - CLI environment precedence and safe exposure — [cli-host/environment](features/cli-host/environment.md)
 
 ## Done
 - None yet
