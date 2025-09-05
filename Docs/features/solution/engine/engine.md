@@ -21,7 +21,7 @@ Core implementation that powers the CLI. The engine owns workflows, pipelines, s
 - Services — dev, watch, change coordination: [dev service](../../devservice/devservice.md)
 - Workers — per‑area units (client/server/shared)
 - Servers — dev static server (ASP.NET Core) + Node API host
-- Templates — embedded project scaffolding: [templates](../../templates/templates.md)
+- Templates — embedded project scaffolding: [templates](../templates/templates.md)
 - Workspace — paths and constants: [workspace](../../workspace/workspace.md)
 
 ## Workflows
@@ -98,4 +98,4 @@ See [dev service](../../devservice/devservice.md) for behavior and lifecycle.
 - Dev service — [devservice](../../devservice/devservice.md)
 - Workflows — [workflows](../../workflows/workflows.md)
 - Workspace and paths — [workspace](../../workspace/workspace.md)
-- Templates — [templates](../../templates/templates.md)
+- Templates — [templates](../templates/templates.md)

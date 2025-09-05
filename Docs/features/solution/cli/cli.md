@@ -173,6 +173,6 @@ Options:
 
 ## Related Docs
 - High‑level solution overview — [solution](../solution.md)
-- Templates — [templates](../../templates/templates.md)
+- Templates — [templates](../templates/templates.md)
 - Testing philosophy — [.codex/testing.md](../../../../../.codex/testing.md), [testing](../../testing/testing.md)
 - Workspace and paths — [workspace](../../workspace/workspace.md)

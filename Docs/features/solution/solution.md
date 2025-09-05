@@ -14,10 +14,10 @@ Hub for the CLI and host tooling. This doc explains what the solution is, how it
   - [Workflows](../workflows/workflows.md): Orchestrations for init, build, watch, test, publish, add-page, add-test.
   - [Workers](engine/engine.md#workers): Per‑area units: ClientWorker, ServerWorker, SharedWorker.
   - [Pipelines](../pipelines/pipelines.md): HTML, CSS, JS compilers/bundlers and diagnostics.
-  - [Services](../devservice/devservice.md): DevService, WatchService, ChangeService.
-  - [Servers](engine/engine.md#servers): Static web server (ASP.NET Core) + Node API host.
-  - [Templates](../templates/templates.md): Embedded project template (client/server/shared/types).
-  - [Workspace & constants](../workspace/workspace.md): Centralized paths and workspace utilities.
+  - [Services](services/services.md): DevService, WatchService, ChangeService.
+  - [Servers](servers/servers.md): Static web server (ASP.NET Core) + Node API host.
+  - [Templates](templates/templates.md): Embedded project template (client/server/shared/types).
+  - [Workspace](workspace/workspace.md): Centralized paths and workspace utilities.
 - [Tests](tests/tests.md): .NET test harness validating CLI workflows end‑to‑end.
 - [Sandbox](sandbox/sandbox.md): Docker Compose setup to run a published client (nginx) and the template API server.
 - [Utilities](utilities/utilities.md): Repo helper scripts (format, whitespace, build, seed deploy).
@@ -75,7 +75,7 @@ See also: [CLI reference](cli/cli.md)
 
 ## Related Docs
 - Mission & feature index — [Features](../../README.md#features)
-- Templates — [templates](../templates/templates.md)
+- Templates — [templates](templates/templates.md)
 - Testing philosophy — [testing](../testing/testing.md) and [.codex/testing.md](../../../../.codex/testing.md)
 - Workspace & paths — [workspace](../workspace/workspace.md)
 - CLI reference — [cli reference](cli/cli.md)
