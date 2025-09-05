@@ -7,6 +7,7 @@
 - Avoid excessive comments; code should be self-documenting whenever possible
 - Strive for elegant code: simple, readable, consistent, concise, and easy to evolve
 - Code must be readable, maintainable and easily debuggable.
+- Use straightforward, concise language. Avoid jargon and marketing-speak.
 
 # Agent Application
 

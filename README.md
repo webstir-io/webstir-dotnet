@@ -106,7 +106,7 @@ dotnet run --project Tests -- --full
 # Run a specific workflow
 dotnet run --project Tests -- test publish
 ```
-See `Docs/testing/overview.md` and `Docs/testing/running.md` for the philosophy and commands.
+See `docs/features/testing/testing.md` for the philosophy and index. For C# runner usage, see `docs/features/testing/cs-runner/running.md`.
 
 ## Sandbox
 - Purpose: Run a published Webstir client alongside the seed API via Docker Compose.
@@ -114,12 +114,11 @@ See `Docs/testing/overview.md` and `Docs/testing/running.md` for the philosophy 
 - Start: `docker compose -f Sandbox/docker-compose.yml up --build`
 - Mounts: `CLI/out/seed/dist/client` (web), `CLI/out/seed` (api)
 
-## Roadmap
-- See `Docs/evolution/*` for design and evolution notes:
-  - Fullstack evolution and proxy architecture
-  - API route generation plan
-  - Help and demo command plans
-  - CSS architecture and future enhancements
+## Roadmap & Docs
+- Backlog (aggregated): `docs/backlog.md`
+- Feature hubs:
+  - Bundling: `docs/features/bundling/bundling.md`
+  - Framework: `docs/features/framework/framework.md`
 
 ## Notes & Limitations
 - TypeScript is invoked via `tsc`; ensure it’s on your PATH.
