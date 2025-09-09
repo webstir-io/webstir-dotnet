@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 echo "Fixing whitespace..."
-"${ROOT_DIR}/scripts/fix-whitespace.sh"
+"${ROOT_DIR}/utilities/fix-whitespace.sh"
 
 echo "Running dotnet format (style + analyzers)..."
 dotnet format style --no-restore

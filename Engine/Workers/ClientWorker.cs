@@ -52,7 +52,7 @@ public partial class ClientWorker(
         {
             Directory.CreateDirectory(workspace.ClientDistPath);
         }
-        
+
         foreach (IGrouping<int, IFrontendHandler> group in _frontendHandlers
                      .GroupBy(h => h.PublishOrder)
                      .OrderBy(g => g.Key))
@@ -75,7 +75,7 @@ public partial class ClientWorker(
         }
         await Task.WhenAll(tasks);
     }
-    
+
     private void TryClearDirectory(string path)
     {
         try
