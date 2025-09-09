@@ -27,6 +27,7 @@ Created by `webstir init` unless you choose client-only or server-only:
 - Uses an embedded `base.tsconfig.json` referenced by template tsconfigs.
 - ESM-only; compiled via `tsc --build` in dev and publish.
 - Shared code in `src/shared` is compiled for both frontend and backend.
+ - Dev tsconfig enables `sourceMap` and `inlineSources` for smooth debugging; publish never ships source maps and strips any `sourceMappingURL`.
 
 ## CSS & Assets
 - Plain CSS by default; optional CSS Modules in publish.

@@ -19,6 +19,7 @@
     "typeRoots": [
       "./types",
       "./node_modules/@types"
-    ]
+    ],
+    "inlineSources": true
   }
 }
