@@ -1,10 +1,11 @@
 using System.Threading.Tasks;
 using Engine.Helpers;
 using Engine.Models;
+using Engine.Workflows.Interfaces;
 
 namespace Engine.Workers;
 
-public class SharedWorker(AppWorkspace workspace) : IWorker
+public class SharedWorker(AppWorkspace workspace) : IWorkflowWorker
 {
     public int BuildOrder => 3; // Fast operation, can run with other fast operations
 
@@ -15,5 +16,4 @@ public class SharedWorker(AppWorkspace workspace) : IWorker
 
     public Task PublishAsync() => Task.CompletedTask;
 
-    public Task AddPageAsync(string pageName) => Task.CompletedTask;
 }

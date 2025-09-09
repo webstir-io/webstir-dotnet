@@ -3,22 +3,22 @@
 Development and runtime servers used by Webstir.
 
 ## Overview
-- Dev Web Server: ASP.NET Core app that serves built client assets, provides live reload via SSE, and applies clean URLs with dev caching.
-- Node API Server: Runs the compiled server entry (`build/server/index.js`), restarted on changes.
+- Dev Web Server: ASP.NET Core app that serves built frontend assets, provides live reload via SSE, and applies clean URLs with dev caching.
+- Node API Server: Runs the compiled backend entry (`build/backend/index.js`), restarted on changes.
 - Proxy: In dev, the web server proxies `/api/*` to the Node process.
 
 See also: [Engine](engine.md) and [Services](services.md).
 
 ## Dev Web Server
-- Serves `build/client/**` during `watch`.
+- Serves `build/frontend/**` during `watch`.
 - Clean URLs: `/about` serves `/pages/about/index.html`; `/` serves `/pages/home/index.html`.
-- Live reload: SSE endpoint notifies connected browsers after client rebuilds.
+- Live reload: SSE endpoint notifies connected browsers after frontend rebuilds.
 - Caching: static assets cache with short TTL in dev; HTML not cached.
 - Logs: prints server URL and proxy target on startup.
 
 ## Node API Server
-- Entry: `build/server/index.js` produced by the server compile step.
-- Lifecycle: spawned by the `watch` workflow; restarted on server file changes.
+- Entry: `build/backend/index.js` produced by the backend compile step.
+- Lifecycle: spawned by the `watch` workflow; restarted on backend file changes.
 - Environment: respects `PORT` and base URL env variables used by the template.
 - Health: template exposes `GET /api/health`.
 
@@ -28,10 +28,10 @@ See also: [Engine](engine.md) and [Services](services.md).
 - Errors: if the Node server is down, proxy responses reflect connection failure clearly.
 
 ## Production (Sandbox)
-- For production-like testing, use the Docker sandbox: nginx serves `dist/client/**` and forwards to the Node API. See [Sandbox](../how-to/sandbox.md).
+- For production-like testing, use the Docker sandbox: nginx serves `dist/frontend/**` and forwards to the Node API. See [Sandbox](../how-to/sandbox.md).
 
 ## Errors & Resilience
-- Dev server survives client rebuilds and continues serving.
+- Dev server survives frontend rebuilds and continues serving.
 - Proxy returns actionable messages if the API is unavailable.
 - Node server restarts are throttled to avoid loops on persistent errors.
 

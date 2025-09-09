@@ -1,6 +1,6 @@
 # Init
 
-Create a new project from embedded templates. Produces a ready-to-run layout with client, server, shared code, and types.
+Create a new project from embedded templates. Produces a ready-to-run layout with frontend, backend, shared code, and types.
 
 ## Purpose
 - Scaffold a clean workspace with sensible defaults.
@@ -20,14 +20,14 @@ Create a new project from embedded templates. Produces a ready-to-run layout wit
 
 ## Steps
 1. Validate or create the target directory.
-2. Copy templates: client, server, shared, types.
+2. Copy templates: frontend, backend, shared, types.
 3. Normalize names and placeholders (project name, defaults).
 4. Write minimal config files used by the engine and templates.
 
 ## Outputs
 - Source tree under `src/**` and `types/`.
-- Base HTML at `src/client/app/app.html` (must contain `<main>`).
-- Server entry at `src/server/index.ts`.
+- Base HTML at `src/frontend/app/app.html` (must contain `<main>`).
+- Backend entry at `src/backend/index.ts`.
 - Shared modules under `src/shared/**`.
 
 ## Errors & Exit Codes

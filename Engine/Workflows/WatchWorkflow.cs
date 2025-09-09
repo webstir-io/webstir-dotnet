@@ -5,17 +5,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using Engine.Pipelines.Core.Testing;
 using Engine.Services;
-using Engine.Workers;
+using Engine.Workflows.Interfaces;
 
 namespace Engine.Workflows;
 
 public class WatchWorkflow(
     AppWorkspace context,
-    FrontendWorker clientWorker,
-    BackendWorker serverWorker,
-    SharedWorker sharedWorker,
+    IEnumerable<IWorkflowWorker> workers,
     DevService devService)
-    : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
+    : BaseWorkflow(context, workers)
 {
     public override string WorkflowName => Commands.Watch;
 

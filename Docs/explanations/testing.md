@@ -11,7 +11,7 @@ How we test the Webstir solution and what we lock down. This expands the high-le
 - Workflows: init → build → watch → test → publish. See [workflows](../../workflows/workflows.md).
 - Generators: `add-page`, `add-test` create expected files and integrate with builds.
 - Contracts: directory layout, build artifacts, per-page `manifest.json`, rewritten HTML links.
-- Dev behavior: dev server serves pages, proxies `/api/*`, live reload via SSE.
+- Dev behavior: dev web server serves pages, proxies `/api/*`, live reload via SSE.
 - Error paths: invalid flags, missing `<main>` in `app.html`, TypeScript errors, failing tests → non-zero exit.
 
 ## What We Don’t Test
@@ -51,12 +51,12 @@ How we test the Webstir solution and what we lock down. This expands the high-le
 - For snapshots: generate output, normalize dynamic values, compare to the approved snapshot.
 
 ## Dev Server & Watch
-- Smoke test: after `watch` starts, the server responds and logs “watching” state.
-- Change test: touch a client file → expect client rebuild + reload signal; touch a server file → expect server restart.
+- Smoke test: after `watch` starts, the web server responds and logs “watching” state.
+- Change test: touch a frontend file → expect frontend rebuild + reload signal; touch a backend file → expect backend restart.
 - Proxy test: request under `/api/*` routes to the Node server.
 
 ## Publish Specifics
-- Fingerprinted assets: expect per-page `index.<timestamp>.{css|js}` written to `dist/client/pages/<page>/`.
+- Fingerprinted assets: expect per-page `index.<timestamp>.{css|js}` written to `dist/frontend/pages/<page>/`.
 - HTML rewrite: page HTML references fingerprinted assets using the per-page `manifest.json`.
 - Minification: HTML/CSS/JS are minified; comments and source maps removed.
 

@@ -5,20 +5,20 @@ Runtime helpers that coordinate builds, watching, and dev UX. Services keep work
 ## Overview
 - DevService: hosts the dev web server, live reload, and API proxy.
 - WatchService: watches `src/**`, batches changes, and triggers minimal work.
-- ChangeService: classifies changes (client/server/shared) and deduplicates.
+- ChangeService: classifies changes (frontend/backend/shared) and deduplicates.
 
 See also: [Engine](engine.md) and [Servers](servers.md).
 
 ## DevService
-- Serves `build/client/**` during `watch`.
-- Exposes an SSE endpoint to notify connected browsers to reload after client rebuilds.
-- Proxies `/api/*` to the Node API server that runs `build/server/index.js`.
+- Serves `build/frontend/**` during `watch`.
+- Exposes an SSE endpoint to notify connected browsers to reload after frontend rebuilds.
+- Proxies `/api/*` to the Node API server that runs `build/backend/index.js`.
 - Applies clean URLs and dev cache headers.
 
 Lifecycle
 - Start after initial `build` and `test` in the `watch` workflow.
-- On client changes: rebuild affected assets → broadcast reload via SSE.
-- On server changes: restart Node process (proxy keeps routing to the new process).
+- On frontend changes: rebuild affected assets → broadcast reload via SSE.
+- On backend changes: restart Node process (proxy keeps routing to the new process).
 
 Configuration
 - Picks a free port or uses a configured one from CLI options/env.
@@ -34,13 +34,13 @@ Behavior
 - Survives editor temp files; only triggers when effective content changes.
 
 ## ChangeService
-- Categorizes a change as client/server/shared based on path.
-- Computes the smallest rebuild unit (page, server, or both).
+- Categorizes a change as frontend/backend/shared based on path.
+- Computes the smallest rebuild unit (page, backend, or both).
 - Prevents duplicate or circular work.
 
 Routing examples
-- `src/client/pages/home/index.ts` → client rebuild for `home`.
-- `src/server/index.ts` → server rebuild and restart.
+- `src/frontend/pages/home/index.ts` → frontend rebuild for `home`.
+- `src/backend/index.ts` → backend rebuild and restart.
 - `src/shared/*.ts` → trigger both sides as needed.
 
 ## Responsibilities Split

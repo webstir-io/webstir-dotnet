@@ -12,6 +12,10 @@ Scaffold a new frontend page with `index.html|css|ts` under `src/frontend/pages/
 ## CLI
 - `webstir add-page <name>`
 
+## Notes
+- Frontend only: this command scaffolds files under `src/frontend/pages/` and does not touch backend or shared code.
+- Internals: the workflow injects `IEnumerable<IWorkflowWorker>` and resolves the single `IFrontendWorker` to create files.
+
 ## Inputs
 - `<name>`: normalized and validated page name. If the page already exists, the workflow fails.
 

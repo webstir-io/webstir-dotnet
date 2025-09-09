@@ -3,17 +3,17 @@
 Hosts the development web server, live reload, and API proxy. Runs during the `watch` workflow.
 
 ## Responsibilities
-- Serve `build/client/**` over HTTP with clean URLs.
-- Expose an SSE endpoint to notify connected browsers to reload after client rebuilds.
-- Proxy `/api/*` to the Node server that runs `build/server/index.js`.
+- Serve `build/frontend/**` over HTTP with clean URLs.
+- Expose an SSE endpoint to notify connected browsers to reload after frontend rebuilds.
+- Proxy `/api/*` to the Node server that runs `build/backend/index.js`.
 - Apply sensible cache headers in dev (HTML not cached; assets short-TTL).
 
 ## Lifecycle
 1. `watch` runs `build` and `test`.
-2. Start web server (serves client build) and start Node API server.
+2. Start web server (serves frontend build) and start Node API server.
 3. Begin watching `src/**`; on changes:
-   - Client change → rebuild affected assets → broadcast SSE reload.
-   - Server change → compile server → restart Node process.
+   - Frontend change → rebuild affected assets → broadcast SSE reload.
+   - Backend change → compile backend → restart Node process.
    - Shared change → trigger both as needed.
 
 ## Ports & Env

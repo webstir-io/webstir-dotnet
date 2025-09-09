@@ -9,35 +9,35 @@ Defines and manages all project paths. The engine builds an `AppWorkspace` from 
 
 ## Roots
 - Source roots
-  - Client: `src/client`
-  - Pages: `src/client/pages/<page>`
-  - App assets: `src/client/app`
-  - Images: `src/client/images`
-  - Fonts: `src/client/fonts`
-  - Media: `src/client/media`
-  - Server: `src/server`
+  - Frontend: `src/frontend`
+  - Pages: `src/frontend/pages/<page>`
+  - App assets: `src/frontend/app`
+  - Images: `src/frontend/images`
+  - Fonts: `src/frontend/fonts`
+  - Media: `src/frontend/media`
+  - Backend: `src/backend`
   - Shared: `src/shared`
   - Types: `types`
 - Build roots (dev)
-  - Client: `build/client`
-  - Pages: `build/client/pages/<page>`
-  - Images: `build/client/images`
-  - Fonts: `build/client/fonts`
-  - Media: `build/client/media`
-  - Server: `build/server`
+  - Frontend: `build/frontend`
+  - Pages: `build/frontend/pages/<page>`
+  - Images: `build/frontend/images`
+  - Fonts: `build/frontend/fonts`
+  - Media: `build/frontend/media`
+  - Backend: `build/backend`
 - Dist roots (publish)
-  - Client: `dist/client`
-  - Pages: `dist/client/pages/<page>`
-  - Images: `dist/client/images`
-  - Fonts: `dist/client/fonts`
-  - Media: `dist/client/media`
-  - App assets: `dist/client/app`
+  - Frontend: `dist/frontend`
+  - Pages: `dist/frontend/pages/<page>`
+  - Images: `dist/frontend/images`
+  - Fonts: `dist/frontend/fonts`
+  - Media: `dist/frontend/media`
+  - App assets: `dist/frontend/app`
 
 ## Conventions
-- Base HTML lives at `src/client/app/app.html` and contains a `<main>` where page HTML merges.
-- Pages live under `src/client/pages/<page>/` with `index.html|css|ts` (publish may produce `index.<timestamp>.{css|js}` and `manifest.json`).
-- Server entry is `src/server/index.ts` → compiled to `build/server/index.js`.
-- Shared modules under `src/shared/` are consumed by both client and server.
+- Base HTML lives at `src/frontend/app/app.html` and contains a `<main>` where page HTML merges.
+- Pages live under `src/frontend/pages/<page>/` with `index.html|css|ts` (publish may produce `index.<timestamp>.{css|js}` and `manifest.json`).
+- Backend entry is `src/backend/index.ts` → compiled to `build/backend/index.js`.
+- Shared modules under `src/shared/` are consumed by both frontend and backend.
 
 ## Constants & Helpers
 - Constants live in `Engine/Constants.cs` (folders, file names, extensions).
@@ -48,32 +48,32 @@ Defines and manages all project paths. The engine builds an `AppWorkspace` from 
 
 ## AppWorkspace
 - Created from the working directory (or an explicit path when provided by the CLI).
-- Exposes typed properties for common roots (e.g., `SourceClientRoot`, `BuildClientRoot`, `DistClientRoot`).
+- Exposes typed properties for common roots (e.g., `FrontendBuildPath`, `BackendBuildPath`, `FrontendDistPath`).
 - Provides methods to resolve page locations, outputs, and temp files.
 - Validates required inputs (e.g., base HTML, server entry) and raises clear errors when missing.
 
 ## Deriving Paths (Examples)
-- Page folder: `Combine(SourceClientRoot, "pages", pageName)`
-- Page dev HTML: `Combine(BuildClientRoot, "pages", pageName, "index.html")`
-- Page dist bundle: `Combine(DistClientRoot, "pages", pageName, "index.<timestamp>.js")`
-- Server build output: `Combine(BuildServerRoot, "index.js")`
-- Manifest: `Combine(DistClientRoot, "pages", pageName, "manifest.json")`
+- Page folder: `Combine(FrontendPath, "pages", pageName)`
+- Page dev HTML: `Combine(FrontendBuildPagesPath, pageName, "index.html")`
+- Page dist bundle: `Combine(FrontendDistPagesPath, pageName, "index.<timestamp>.js")`
+- Backend build output: `Combine(BackendBuildPath, "index.js")`
+- Manifest: `Combine(FrontendDistPagesPath, pageName, "manifest.json")`
 
 ## Watching & Ignore Rules
 - Watch `src/**` for changes and ignore `build/**` and `dist/**`.
 - Batch events to avoid thrashing on save bursts.
 - Route changes by area:
-  - Client change → rebuild affected page/assets.
-  - Server change → rebuild server and restart Node.
+  - Frontend change → rebuild affected page/assets.
+  - Backend change → rebuild backend and restart Node.
   - Shared change → rebuild both as needed.
 
 ## Contracts
 - The directory structure above is part of the public contract tested by E2E tests.
-- Fingerprinted assets and manifests under `dist/client/pages/<page>/` are required for publish.
+- Fingerprinted assets and manifests under `dist/frontend/pages/<page>/` are required for publish.
 - Clean URLs depend on the `pages/<page>/index.html` convention.
 
 ## Error Handling
-- Missing base HTML or server entry → fail fast with actionable messages.
+- Missing base HTML or backend entry → fail fast with actionable messages.
 - Invalid page names or paths → normalized and validated before use.
 
 ## Related Docs

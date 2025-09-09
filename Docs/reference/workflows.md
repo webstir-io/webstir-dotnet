@@ -20,9 +20,16 @@ See also: Engine internals — [engine](../explanations/engine.md)
 
 ## How They Fit In
 - CLI selects a workflow (`webstir <command>`), builds an `AppWorkspace`, then invokes the engine.
-- Workflows call workers (client/server/shared) and pipelines (HTML/CSS/TS) to do the actual work.
+- Workflows call workers (frontend/backend/shared) and pipelines (HTML/CSS/TS) to do the actual work.
 - Long-running behavior (serving, watching, proxying, reload) is handled by services. See [services](../explanations/services.md) and [servers](../explanations/servers.md).
 - All paths and file names come from the workspace and constants. See [workspace](../explanations/workspace.md).
+
+### Workers & DI
+- Contracts:
+  - `IWorkflowWorker`: common worker contract (BuildOrder, InitAsync, BuildAsync, PublishAsync).
+  - `IFrontendWorker`: extends `IWorkflowWorker` with `AddPageAsync` for page scaffolding.
+- DI pattern: all workers are registered as `IWorkflowWorker` and workflows inject `IEnumerable<IWorkflowWorker>`.
+- Filtering: workflows choose which workers to run based on project mode (client-only, server-only, fullstack). The `add-page` workflow resolves the single `IFrontendWorker` to add files.
 
 ## Initiation
 - CLI commands (primary):
@@ -43,21 +50,21 @@ See also: Engine internals — [engine](../explanations/engine.md)
 
 ## Lifecycle (By Workflow)
 ### init
-- Create a project from embedded templates (client, server, shared, types).
+- Create a project from embedded templates (frontend, backend, shared, types).
 - Normalize names/paths; write a ready-to-run structure.
 - Output: scaffolded source tree under `src/**` plus `types/`.
 
 ### build
 - Compile TypeScript, process CSS, and merge page HTML into `build/`.
-- Copy Images, Fonts, and Media to `build/client/{images|fonts|media}/**`.
+- Copy Images, Fonts, and Media to `build/frontend/{images|fonts|media}/**`.
 - Perform incremental work when possible; keep output readable in dev.
-- Output: `build/client/**`, `build/server/**`.
+- Output: `build/frontend/**`, `build/backend/**`.
 
 ### watch
 - Run an initial `build` and `test`.
 - Start the dev web server and Node API server; begin watching `src/**`.
-- On client change: rebuild affected assets and notify browsers via SSE reload.
-- On server change: rebuild server code and restart the Node process.
+- On frontend change: rebuild affected assets and notify browsers via SSE reload.
+- On backend change: rebuild backend code and restart the Node process.
 
 ### test
 - Build (if needed) and execute compiled tests in Node.
@@ -66,8 +73,8 @@ See also: Engine internals — [engine](../explanations/engine.md)
 ### publish
 - Produce optimized, fingerprinted assets in `dist/` per page.
 - Minify HTML/CSS/JS, remove comments and source maps, and rewrite HTML links using per-page manifests.
-- Copy Images, Fonts, and Media to `dist/client/{images|fonts|media}/**`.
-- Output: `dist/client/pages/<page>/index.html`, `index.<timestamp>.{css|js}`, `manifest.json`.
+- Copy Images, Fonts, and Media to `dist/frontend/{images|fonts|media}/**`.
+- Output: `dist/frontend/pages/<page>/index.html`, `index.<timestamp>.{css|js}`, `manifest.json`.
 
 ### generators
 - `add-page <name>`: scaffold `index.html|css|ts` under `src/frontend/pages/<name>/`.
@@ -75,8 +82,8 @@ See also: Engine internals — [engine](../explanations/engine.md)
 
 ## Contracts & Guarantees
 - Source roots: `src/frontend/**`, `src/backend/**`, `src/shared/**`, `types/**`.
-- Dev outputs: `build/client/**`, `build/server/**` (including `build/client/{images|fonts|media}/**`).
-- Prod outputs: `dist/client/pages/<page>/**` with per-page manifests, plus static assets under `dist/client/{images|fonts|media}/**`.
+- Dev outputs: `build/frontend/**`, `build/backend/**` (including `build/frontend/{images|fonts|media}/**`).
+- Prod outputs: `dist/frontend/pages/<page>/**` with per-page manifests, plus static assets under `dist/frontend/{images|fonts|media}/**`.
 - Dev server proxies `/api/*` to the Node process during `watch`.
 - Base HTML requires `<main>` in `src/frontend/app/app.html`.
 

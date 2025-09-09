@@ -4,15 +4,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Engine.Pipelines.Core.Testing;
-using Engine.Workers;
+using Engine.Workflows.Interfaces;
 
 namespace Engine.Workflows;
 
 public sealed class TestWorkflow(
     AppWorkspace context,
-    FrontendWorker clientWorker,
-    BackendWorker serverWorker,
-    SharedWorker sharedWorker) : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
+    IEnumerable<IWorkflowWorker> workers) : BaseWorkflow(context, workers)
 {
 
     public override string WorkflowName => Commands.Test;

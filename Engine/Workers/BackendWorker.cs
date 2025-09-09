@@ -8,10 +8,11 @@ using Engine.Helpers;
 using Engine.Models;
 
 using Microsoft.Extensions.Options;
+using Engine.Workflows.Interfaces;
 
 namespace Engine.Workers;
 
-public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options) : IWorker
+public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options) : IWorkflowWorker
 {
     private readonly AppSettings _settings = options.Value;
     private const string _tsConfigFile = "tsconfig.json";
@@ -157,5 +158,4 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
         return js.Trim();
     }
 
-    public Task AddPageAsync(string pageName) => Task.CompletedTask;
 }

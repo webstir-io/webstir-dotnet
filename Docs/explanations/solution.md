@@ -4,7 +4,7 @@ Hub for the CLI and host tooling. This doc explains what the solution is, how it
 
 ## What It Is
 - Opinionated, zero-config build tool and project scaffolder.
-- Full-stack by default: client (HTML/CSS/TS) + Node API server.
+ - Full-stack by default: frontend (HTML/CSS/TS) + Node API server.
 - Single CLI drives workflows: init, build, watch, test, publish, generators.
 - Minimal dependencies; pipelines are orchestrated via C#.
 
@@ -16,16 +16,17 @@ Hub for the CLI and host tooling. This doc explains what the solution is, how it
   - [Pipelines](pipelines.md): HTML, CSS, JS compilers/bundlers and diagnostics.
   - [Services](services.md): DevService, WatchService, ChangeService.
   - [Servers](servers.md): Static web server (ASP.NET Core) + Node API host.
-  - [Templates](../reference/templates.md): Embedded project template (client/server/shared/types).
+   - [Templates](../reference/templates.md): Embedded project template (frontend/backend/shared/types).
   - [Workspace](workspace.md): Centralized paths and workspace utilities.
+  - Worker contracts & DI: `IWorkflowWorker` (common) and `IFrontendWorker` (adds `AddPageAsync`). DI registers all workers as `IWorkflowWorker`; workflows inject `IEnumerable<IWorkflowWorker>` and filter by project mode.
 - [Tests](testing.md): .NET test harness validating CLI workflows end-to-end.
-- [Sandbox](../how-to/sandbox.md): Docker Compose setup to run a published client (nginx) and the template API server.
+ - [Sandbox](../how-to/sandbox.md): Docker Compose setup to run a published frontend (nginx) and the template API server.
 - [Utilities](utilities/utilities.md): Repo helper scripts (format, whitespace, build, seed deploy).
 
 ## Technology
 - Language/Runtime: C# (.NET 9 for CLI), TypeScript for template code.
-- Dev Web Server: ASP.NET Core minimal app serves `build/` with SSE for reload.
-- API Server: Node.js runs compiled `src/server/index.ts` (via `tsc`).
+ - Dev Web Server: ASP.NET Core minimal app serves `build/` with SSE for reload.
+ - API Server: Node.js runs compiled `src/backend/index.ts` (via `tsc`).
 - Build System: Custom C# pipelines for HTML, CSS, JS.
   - TypeScript: `tsc --build` using embedded `base.tsconfig.json`.
   - CSS: Import resolution, optional CSS Modules in publish, prefixing, minify.
@@ -35,34 +36,34 @@ Hub for the CLI and host tooling. This doc explains what the solution is, how it
 
 ## How It Works
 1. Init (`webstir init [options] [directory]`)
-   - Creates a full-stack project (or client/server-only) from embedded templates.
-   - Layout: `src/client/app`, `src/client/pages/<page>`, `src/server`, `src/shared`, `types/`.
+    - Creates a full-stack project (or frontend/backend-only) from embedded templates.
+    - Layout: `src/frontend/app`, `src/frontend/pages/<page>`, `src/backend`, `src/shared`, `types/`.
 2. Build (`webstir build`)
    - Compiles TS, processes CSS imports, merges page HTML with `app.html` into `build/`.
 3. Watch (`webstir watch`) — default
-   - Runs an initial build and tests, starts the web server and Node API server, then watches `src/**`.
-   - On change: incrementally rebuilds the affected area, restarts Node for server changes, and signals clients to reload via SSE.
+    - Runs an initial build and tests, starts the web server and Node API server, then watches `src/**`.
+    - On change: incrementally rebuilds the affected area, restarts Node for backend changes, and signals browsers to reload via SSE.
 4. Test (`webstir test`)
    - Builds then runs compiled tests with a lightweight Node runner; reports pass/fail summary.
 5. Publish (`webstir publish`)
    - Produces optimized assets in `dist/` per page: timestamped `index.<ts>.css/js` written alongside `manifest.json`.
    - HTML is minified and references are rewritten using the per-page manifest; source maps and comments are removed.
 6. Generators
-   - `webstir add-page <name>` scaffolds `index.html|css|ts` under `src/client/pages/<name>/`.
+    - `webstir add-page <name>` scaffolds `index.html|css|ts` under `src/frontend/pages/<name>/`.
    - `webstir add-test <name-or-path>` scaffolds a `.test.ts` under the closest `tests/` folder.
 
 ## Conventions & Structure
-- Base HTML: `src/client/app/app.html` must contain a `<main>`; page fragments merge into it.
-- Pages: `src/client/pages/<page>/index.html|css|ts` (publish supports `<page>/index.module.css`).
-- App assets: `src/client/app/*` copied as-is (e.g., `refresh.js`).
-- Shared types: `src/shared/` (consumed by both client and server).
-- Server: `src/server/index.ts` compiled to `build/server/index.js` and run by Node.
+ - Base HTML: `src/frontend/app/app.html` must contain a `<main>`; page fragments merge into it.
+ - Pages: `src/frontend/pages/<page>/index.html|css|ts` (publish supports `<page>/index.module.css`).
+ - App assets: `src/frontend/app/*` copied as-is (e.g., `refresh.js`).
+ - Shared types: `src/shared/` (consumed by both frontend and backend).
+ - Backend: `src/backend/index.ts` compiled to `build/backend/index.js` and run by Node.
 - Outputs:
-  - Dev: `build/client/**`, `build/server/**` with readable output and refresh support.
-- Prod: `dist/client/pages/<page>/index.<timestamp>.{css|js}`, HTML with rewritten links, per-page `manifest.json`.
+   - Dev: `build/frontend/**`, `build/backend/**` with readable output and refresh support.
+   - Prod: `dist/frontend/pages/<page>/index.<timestamp>.{css|js}`, HTML with rewritten links, per-page `manifest.json`.
 
 ## CLI Summary
-- `init [--client-only|--server-only] [--project-name|-p <name>] [directory]`
+ - `init [--client-only|--server-only] [--project-name|-p <name>] [directory]`
 - `build [--clean]`
 - `watch` (alias: no command)
 - `test`

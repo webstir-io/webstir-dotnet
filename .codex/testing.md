@@ -49,3 +49,27 @@ We care about what users see and touch — CLI commands, generated projects, bui
 
 ## Philosophy in One Line
 > *Test the experience, not the implementation.*
+
+---
+
+## Running Tests
+
+- Quick run (default: init, build, publish):
+  - `dotnet run --project Tests`
+
+- Full suite (adds watch, help, extras):
+  - `dotnet run --project Tests -- --full`
+  - Or set env: `WEBSTIR_TEST_MODE=full`
+
+- Run a single suite:
+  - `dotnet run --project Tests -- test init`
+  - `dotnet run --project Tests -- test build`
+  - `dotnet run --project Tests -- test watch`
+  - `dotnet run --project Tests -- test publish`
+
+- See runner help:
+  - `dotnet run --project Tests -- help`
+
+Notes
+- Requires .NET 9 SDK. Some tests invoke Node/tsc; ensure they’re on PATH.
+- The repo doesn’t use xUnit/NUnit; `dotnet test` will not execute this custom runner.

@@ -1,14 +1,13 @@
 using System.Threading.Tasks;
-using Engine.Workers;
+using System.Collections.Generic;
+using Engine.Workflows.Interfaces;
 
 namespace Engine.Workflows;
 
 public class BuildWorkflow(
     AppWorkspace context,
-    FrontendWorker clientWorker,
-    BackendWorker serverWorker,
-    SharedWorker sharedWorker)
-    : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
+    IEnumerable<IWorkflowWorker> workers)
+    : BaseWorkflow(context, workers)
 {
     public override string WorkflowName => Commands.Build;
 

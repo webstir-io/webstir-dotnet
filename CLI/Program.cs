@@ -20,6 +20,7 @@ using Engine.Servers;
 using Engine.Services;
 using Engine.Workers;
 using Engine.Workflows;
+using Engine.Workflows.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -79,9 +80,9 @@ try
     services.AddTransient<IFrontendHandler, FontsHandler>();
     services.AddTransient<IFrontendHandler, MediaHandler>();
 
-    services.AddTransient<FrontendWorker>();
-    services.AddTransient<BackendWorker>();
-    services.AddTransient<SharedWorker>();
+    services.AddTransient<IWorkflowWorker, FrontendWorker>();
+    services.AddTransient<IWorkflowWorker, BackendWorker>();
+    services.AddTransient<IWorkflowWorker, SharedWorker>();
 
     services.AddTransient<IWorkflow, InitWorkflow>();
     services.AddTransient<IWorkflow, BuildWorkflow>();

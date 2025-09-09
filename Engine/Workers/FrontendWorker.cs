@@ -7,13 +7,14 @@ using Engine.Helpers;
 using Engine.Models;
 using Engine.Pipelines.Core.Interfaces;
 using Microsoft.Extensions.Logging;
+using Engine.Workflows.Interfaces;
 
 namespace Engine.Workers;
 
 public partial class FrontendWorker(
     AppWorkspace workspace,
     IEnumerable<IFrontendHandler> frontendHandlers,
-    ILogger<FrontendWorker> logger) : IWorker
+    ILogger<FrontendWorker> logger) : IFrontendWorker
 {
     private readonly ILogger<FrontendWorker> _logger = logger;
     private readonly IEnumerable<IFrontendHandler> _frontendHandlers = frontendHandlers;

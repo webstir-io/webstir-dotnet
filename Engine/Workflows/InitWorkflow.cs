@@ -5,15 +5,14 @@ using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Models;
-using Engine.Workers;
+using System.Collections.Generic;
+using Engine.Workflows.Interfaces;
 
 namespace Engine.Workflows;
 
 public class InitWorkflow(
     AppWorkspace context,
-    FrontendWorker clientWorker,
-    BackendWorker serverWorker,
-    SharedWorker sharedWorker) : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
+    IEnumerable<IWorkflowWorker> workers) : BaseWorkflow(context, workers)
 {
     public override string WorkflowName => Commands.Init;
 

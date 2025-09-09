@@ -14,9 +14,9 @@ Files:
 
 ## Prerequisites
 - Docker and Docker Compose installed.
-- Published client and compiled server available locally:
-  - Client: `dist/client/**` (from `webstir publish`)
-  - Server: `build/server/index.js` (from `webstir build` or `watch`)
+- Published frontend and compiled backend available locally:
+  - Frontend: `dist/frontend/**` (from `webstir publish`)
+  - Backend: `build/backend/index.js` (from `webstir build` or `watch`)
 
 The provided compose mounts a seed output under `../CLI/out/seed/...`. Swap to your project paths as needed.
 
@@ -28,11 +28,11 @@ The provided compose mounts a seed output under `../CLI/out/seed/...`. Swap to y
 
 ## Volumes & Paths
 Default mounts (see compose):
-- Web root: `../CLI/out/seed/dist/client` → `/usr/share/nginx/html`
-- App assets: `../CLI/out/seed/dist/client/app` → `/usr/share/nginx/html/app`
-- API app root: `../CLI/out/seed` → `/app` (runs `build/server/index.js`)
+- Web root: `../CLI/out/seed/dist/frontend` → `/usr/share/nginx/html`
+- App assets: `../CLI/out/seed/dist/frontend/app` → `/usr/share/nginx/html/app`
+- API app root: `../CLI/out/seed` → `/app` (runs `build/backend/index.js`)
 
-To use your project, point volumes at your project’s `dist/client` and built server directory.
+To use your project, point volumes at your project’s `dist/frontend` and built backend directory.
 
 ## Nginx Behavior
 - Clean URLs: `/` serves `pages/home/index.html`; `/about` serves `pages/about/index.html`.
@@ -48,15 +48,15 @@ API container env (edit in compose if needed):
 
 ## Expected Dist Layout
 Produced by `webstir publish`:
-- `dist/client/pages/<page>/index.html`
-- `dist/client/pages/<page>/index.<timestamp>.{css|js}`
-- `dist/client/pages/<page>/manifest.json`
-- Shared app assets under `dist/client/app/*`
+- `dist/frontend/pages/<page>/index.html`
+- `dist/frontend/pages/<page>/index.<timestamp>.{css|js}`
+- `dist/frontend/pages/<page>/manifest.json`
+- Shared app assets under `dist/frontend/app/*`
 
 ## Troubleshooting
-- 404s for pages: ensure `dist/client/pages/<page>/index.html` exists and volumes point to the correct `dist` path.
+- 404s for pages: ensure `dist/frontend/pages/<page>/index.html` exists and volumes point to the correct `dist` path.
 - 404s for assets: verify fingerprinted files exist and nginx mapping matches page name.
-- API not reachable: check `api` logs and that `build/server/index.js` exists in the mounted directory.
+- API not reachable: check `api` logs and that `build/backend/index.js` exists in the mounted directory.
 - Caching issues: hard refresh; nginx caches static assets for 7 days by default.
 
 ## Related Docs

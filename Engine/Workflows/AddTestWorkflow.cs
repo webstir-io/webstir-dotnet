@@ -5,14 +5,13 @@ using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 using Engine.Extensions;
-using Engine.Workers;
+using System.Collections.Generic;
+using Engine.Workflows.Interfaces;
 
 namespace Engine.Workflows;
 
 public sealed class AddTestWorkflow(AppWorkspace context,
-    FrontendWorker clientWorker,
-    BackendWorker serverWorker,
-    SharedWorker sharedWorker) : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
+    IEnumerable<IWorkflowWorker> workers) : BaseWorkflow(context, workers)
 {
     public override string WorkflowName => Commands.AddTest;
 

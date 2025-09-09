@@ -3,16 +3,15 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Engine.Extensions;
-using Engine.Workers;
+using System.Collections.Generic;
+using Engine.Workflows.Interfaces;
 
 namespace Engine.Workflows;
 
 public class AddPageWorkflow(
     AppWorkspace context,
-    FrontendWorker clientWorker,
-    BackendWorker serverWorker,
-    SharedWorker sharedWorker)
-    : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
+    IEnumerable<IWorkflowWorker> workers)
+    : BaseWorkflow(context, workers)
 {
     public override string WorkflowName => Commands.AddPage;
 
@@ -37,6 +36,7 @@ public class AddPageWorkflow(
 
         pagePath.Create();
 
-        await ExecuteWorkersAsync(async worker => await worker.AddPageAsync(pageName));
+        // Only the frontend worker participates in adding pages
+        await Frontend.AddPageAsync(pageName);
     }
 }

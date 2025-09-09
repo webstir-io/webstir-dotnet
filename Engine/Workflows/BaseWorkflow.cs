@@ -6,17 +6,17 @@ using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Models;
 using Engine.Servers;
-using Engine.Workers;
+using Engine.Workflows.Interfaces;
 
 namespace Engine.Workflows;
 
 public abstract class BaseWorkflow(
     AppWorkspace context,
-    FrontendWorker clientWorker,
-    BackendWorker serverWorker,
-    SharedWorker sharedWorker) : IWorkflow
+    IEnumerable<IWorkflowWorker> workers) : IWorkflow
 {
     protected readonly AppWorkspace Context = context;
+    protected IEnumerable<IWorkflowWorker> Workers { get; } = workers;
+    protected IFrontendWorker Frontend => Workers.OfType<IFrontendWorker>().Single();
     public abstract string WorkflowName
     {
         get;
@@ -30,33 +30,33 @@ public abstract class BaseWorkflow(
 
     protected abstract Task ExecuteWorkflowAsync(string[] args);
 
-    protected async Task ExecuteWorkersAsync(Func<IWorker, Task> workerAction, ProjectMode? mode = null)
+    protected async Task ExecuteWorkersAsync(Func<IWorkflowWorker, Task> workerAction, ProjectMode? mode = null)
     {
         ArgumentNullException.ThrowIfNull(workerAction);
 
-        IEnumerable<IWorker> workers = GetFilteredWorkers(mode ?? Context.DetectProjectMode());
+        IEnumerable<IWorkflowWorker> workers = GetFilteredWorkers(mode ?? Context.DetectProjectMode());
 
-        IEnumerable<IGrouping<int, IWorker>> workerGroups = workers
+        IEnumerable<IGrouping<int, IWorkflowWorker>> workerGroups = workers
             .GroupBy(w => w.BuildOrder)
             .OrderBy(g => g.Key);
 
-        foreach (IGrouping<int, IWorker> group in workerGroups)
+        foreach (IGrouping<int, IWorkflowWorker> group in workerGroups)
         {
-            List<IWorker> workersInGroup = [.. group];
-            foreach (IWorker worker in workersInGroup)
+            List<IWorkflowWorker> workersInGroup = [.. group];
+            foreach (IWorkflowWorker worker in workersInGroup)
             {
                 await workerAction(worker);
             }
         }
     }
 
-    private IEnumerable<IWorker> GetFilteredWorkers(ProjectMode mode)
+    private IEnumerable<IWorkflowWorker> GetFilteredWorkers(ProjectMode mode)
     {
         return mode switch
         {
-            ProjectMode.ClientOnly => [clientWorker],
-            ProjectMode.ServerOnly => [serverWorker, sharedWorker],
-            _ => [clientWorker, serverWorker, sharedWorker]
+            ProjectMode.ClientOnly => Workers.Where(w => w is IFrontendWorker),
+            ProjectMode.ServerOnly => Workers.Where(w => w is not IFrontendWorker),
+            _ => Workers
         };
     }
 

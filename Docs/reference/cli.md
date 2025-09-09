@@ -58,7 +58,7 @@ What it does:
 - Runs an initial `build` and `test`.
 - Starts the dev web server (serves `build/frontend/**`) and the Node API server (runs `build/backend/index.js`).
 - Watches `src/**` for changes and performs targeted, incremental rebuilds.
-- Restarts the Node server on server changes; notifies browsers via SSE to reload on client changes.
+- Restarts the Node server on backend changes; notifies browsers via SSE to reload on frontend changes.
 
 ### test
 Usage: `webstir test`
@@ -128,7 +128,7 @@ Outputs:
 
 ## Examples
 - Create a full-stack app: `webstir init my-app && cd my-app && webstir watch`
-- Client-only app: `webstir init --client-only my-client && cd my-client && webstir watch`
+- Frontend-only app: `webstir init --client-only my-client && cd my-client && webstir watch`
 - Clean build: `webstir build --clean`
 - Add a page: `webstir add-page about && webstir watch`
 - Publish for production: `webstir publish`
@@ -140,11 +140,11 @@ webstir <command> [options]
 
 Commands:
   init        Create a new project
-  build       Build client and server
+  build       Build frontend and backend
   watch       Build, run servers, and watch (default)
   test        Build then run tests
   publish     Produce optimized dist outputs
-  add-page    Scaffold a new client page
+  add-page    Scaffold a new frontend page
   add-test    Scaffold a new test file
   help        Show help for a command
 
@@ -155,7 +155,7 @@ Options:
 $ webstir help build
 Usage: webstir build [--clean]
 
-Builds the client and server into ./build.
+Builds the frontend and backend into ./build.
 
 Options:
   --clean  Remove the ./build directory before compiling

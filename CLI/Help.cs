@@ -70,7 +70,7 @@ public static class Help
 
     private static CommandHelp GetAddPageCommand() =>
         CreateCommand(Commands.AddPage,
-            "Add a new page to your project",
+            "Add a new page (frontend only)",
             [
                 Example($"{App.Name} {Commands.AddPage} about", "Create a new about page")
             ],
@@ -157,6 +157,9 @@ public static class Help
         Console.WriteLine();
         Console.WriteLine("Path parameter:");
         Console.WriteLine("  You can specify a path as the last argument to run commands in a different directory.");
+        Console.WriteLine();
+        Console.WriteLine("Notes:");
+        Console.WriteLine("  Workers are injected (IWorkflowWorker); 'add-page' targets the frontend worker.");
         Console.WriteLine();
         Console.WriteLine("Examples:");
         Console.ForegroundColor = ConsoleColor.Gray;
