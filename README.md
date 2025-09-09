@@ -1,14 +1,14 @@
 # Webstir
 
-Modern, minimal fullstack TypeScript web framework and build tool. Webstir scaffolds projects, builds client and server code, runs a fast dev server with live reload and API proxying, and produces optimized production bundles.
+Modern, minimal full-stack TypeScript web framework and build tool. Webstir scaffolds projects, builds client and server code, runs a fast dev server with live reload and API proxying, and produces optimized production bundles.
 
 ## Highlights
 - Simple CLI: `init`, `watch` (default), `build`, `publish`, `add-page`, `help`
-- Fullstack by default: client + server + shared types
+- Full-stack by default: client + server + shared types
 - Dev server with live reload (SSE) and `/api` proxy to Node server
 - TypeScript-first: project references; single `tsc --build` for client/server/shared
 - HTML assembly: template + per-page HTML
-- JS bundling: ESM only, concatenation + tree‑shaking + minification
+- JS bundling: ESM only, concatenation + tree-shaking + minification
 - CSS pipeline: plain CSS and CSS Modules, import graph, autoprefix + minify
 - Asset manifest per page with timestamped filenames for cache busting
 
@@ -35,29 +35,16 @@ To build a single self-contained binary:
 # Produces a single-file executable named `webstir`
 ```
 
-## Commands
-- `watch`: Build and start dev services (default if no command provided)
-  - Serves `build/client` on `http://localhost:8088` with live reload
-  - Proxies `/api/*` to the Node server (default `http://localhost:8008`)
-- `init [options] [directory]`: Initialize a new project
-  - Options: `--client-only`, `--server-only`, `--project-name <name>`
-- `build [options]`: Build once (client/server/shared as needed)
-  - Options: `--clean`
-- `publish`: Production build (minified assets + per-page manifest + HTML tidy)
-- `add-page <page-name>`: Scaffolds a new page (HTML, CSS, TS)
-- `help [command]`: Show CLI help
+Getting started with usage and concepts:
+- Tutorials: [Getting Started](docs/tutorials/getting-started.md), [Your First App](docs/tutorials/first-app.md)
+- CLI reference: [docs/reference/cli.md](docs/reference/cli.md)
 
-Examples:
-```bash
-# Initialize in a folder via positional argument
-dotnet run --project CLI -- init my-app
-
-# Build a specific project in the current directory
-dotnet run --project CLI -- build --project-name my-app
-
-# Add a page to an existing project
-dotnet run --project CLI -- add-page about --project-name my-app
-```
+## Docs
+- Overview and index: [docs/README.md](docs/README.md)
+- Tutorials: [docs/tutorials/README.md](docs/tutorials/README.md)
+- How-to guides: [docs/how-to/README.md](docs/how-to/README.md)
+- Reference (CLI, workflows, templates, contracts): [docs/reference/README.md](docs/reference/README.md)
+- Explanations (engine, pipelines, services, servers, workspace, testing): [docs/explanations/README.md](docs/explanations/README.md)
 
 ## Project Structure
 ```
@@ -88,38 +75,14 @@ dist/                 # Production output
 - Ports can be customized in `AppSettings` (when running the published binary) or via environment variables used by the Node server (`PORT`, `WEB_SERVER_URL`, `API_SERVER_URL`).
 
 ## Build & Publish Pipelines
-- HTML: Validate base template, merge per-page content, strip dev-only scripts, collapse inter-tag whitespace (publish)
-- JavaScript: ESM graph build, concatenation, tree‑shaking, minification; timestamped filename; manifest update
-- CSS: Imports resolution, CSS Modules, URL rewriting, autoprefix, minification; timestamped filename; manifest update
+- See [docs/explanations/pipelines.md](docs/explanations/pipelines.md) for HTML, CSS, and JS/TS stages and publish details.
 
 ## Testing
-Webstir emphasizes workflow tests over unit tests.
-
-Run tests:
-```bash
-# Quick (default)
-dotnet run --project Tests
-
-# Full suite (includes watch, deeper publish checks)
-dotnet run --project Tests -- --full
-
-# Run a specific workflow
-dotnet run --project Tests -- test publish
-```
-See `docs/features/testing/testing.md` for the philosophy and index. For C# runner usage, see `docs/features/testing/cs-runner/running.md`.
+- Philosophy and scope: [docs/explanations/testing.md](docs/explanations/testing.md)
+- Repo harness: `dotnet run --project Tests` (see `Tests/Program.cs`)
 
 ## Sandbox
 - Purpose: Run a published Webstir client alongside the seed API via Docker Compose.
-- Docs: See `Sandbox/README.md`.
+- Docs: [docs/how-to/sandbox.md](docs/how-to/sandbox.md)
 - Start: `docker compose -f Sandbox/docker-compose.yml up --build`
 - Mounts: `CLI/out/seed/dist/client` (web), `CLI/out/seed` (api)
-
-## Roadmap & Docs
-- Backlog (aggregated): `docs/backlog.md`
-- Feature hubs:
-  - Bundling: `docs/features/bundling/bundling.md`
-  - Framework: `docs/features/framework/framework.md`
-
-## Notes & Limitations
-- TypeScript is invoked via `tsc`; ensure it’s on your PATH.
-- When multiple projects exist in the working directory, use `--project-name <name>` with commands.
