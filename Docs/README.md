@@ -53,3 +53,8 @@ This is just a project I'm doing for fun, because I love coding and engineering 
   - [Servers](./explanations/servers.md)
   - [Workspace](./explanations/workspace.md)
   - [Testing](./explanations/testing.md)
+
+- Planning — [README](./planning/README.md)
+  - [Backlog](./planning/backlog.md)
+  - [Roadmap](./planning/roadmap.md)
+  - Specs — [README](./specs/README.md), [Template](./specs/template.md)
