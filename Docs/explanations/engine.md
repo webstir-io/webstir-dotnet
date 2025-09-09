@@ -4,7 +4,7 @@ Core implementation that powers the CLI. The engine owns workflows, pipelines, s
 
 ## Overview
 - Orchestrates end-to-end workflows: init → build → watch/test → publish.
-- Implements HTML/CSS/TS pipelines and dev servers.
+- Implements HTML/CSS/TS and static asset pipelines (Images, Fonts, Media), plus dev servers.
 - Uses a strongly typed workspace (`AppWorkspace`) for all paths.
 - Keeps defaults simple; favors conventions over configuration.
 
@@ -45,6 +45,7 @@ Workers are incremental where possible: only touched pages or modules are reproc
 - HTML: Merge page fragments into `src/client/app/app.html` (requires a `<main>`), validate, write to `build/client/pages/<page>/index.html`. In publish, minify and rewrite links from the manifest.
 - CSS: Resolve `@import`/URLs, copy assets. In publish, apply autoprefix/minify and optional CSS Modules.
 - JS/TS: Use `tsc --build` with an embedded base config. ESM-only graph; tree-shake/minify in publish.
+- Assets: Copy Images, Fonts, and Media from `src/client/**` → `build/client/**` (dev) and from `build/**` → `dist/client/**` (publish) with structure preserved.
 
 See details in [pipelines](pipelines.md).
 

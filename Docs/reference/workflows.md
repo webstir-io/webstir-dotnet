@@ -49,6 +49,7 @@ See also: Engine internals — [engine](../explanations/engine.md)
 
 ### build
 - Compile TypeScript, process CSS, and merge page HTML into `build/`.
+- Copy Images, Fonts, and Media to `build/client/{images|fonts|media}/**`.
 - Perform incremental work when possible; keep output readable in dev.
 - Output: `build/client/**`, `build/server/**`.
 
@@ -65,6 +66,7 @@ See also: Engine internals — [engine](../explanations/engine.md)
 ### publish
 - Produce optimized, fingerprinted assets in `dist/` per page.
 - Minify HTML/CSS/JS, remove comments and source maps, and rewrite HTML links using per-page manifests.
+- Copy Images, Fonts, and Media to `dist/client/{images|fonts|media}/**`.
 - Output: `dist/client/pages/<page>/index.html`, `index.<timestamp>.{css|js}`, `manifest.json`.
 
 ### generators
@@ -73,8 +75,8 @@ See also: Engine internals — [engine](../explanations/engine.md)
 
 ## Contracts & Guarantees
 - Source roots: `src/client/**`, `src/server/**`, `src/shared/**`, `types/**`.
-- Dev outputs: `build/client/**`, `build/server/**`.
-- Prod outputs: `dist/client/pages/<page>/**` with per-page manifests.
+- Dev outputs: `build/client/**`, `build/server/**` (including `build/client/{images|fonts|media}/**`).
+- Prod outputs: `dist/client/pages/<page>/**` with per-page manifests, plus static assets under `dist/client/{images|fonts|media}/**`.
 - Dev server proxies `/api/*` to the Node process during `watch`.
 - Base HTML requires `<main>` in `src/client/app/app.html`.
 

@@ -18,10 +18,11 @@ Compile and stage the app for development. Processes client HTML/CSS/TS and comp
 2. Compile TypeScript for client/server using the embedded base config.
 3. Process CSS imports and copy assets.
 4. Merge page HTML into `src/client/app/app.html` and write to `build/client/pages/<page>/index.html`.
-5. Copy app assets to `build/client/app/`.
+5. Copy Images, Fonts, and Media to `build/client/{images|fonts|media}/**`.
+6. Copy app assets to `build/client/app/`.
 
 ## Outputs
-- `build/client/**` with readable assets and page HTML.
+- `build/client/**` with readable assets and page HTML (includes `build/client/{images|fonts|media}/**`).
 - `build/server/index.js` compiled server entry.
 
 ## Flags

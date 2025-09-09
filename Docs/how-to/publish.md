@@ -18,11 +18,13 @@ Produce optimized, fingerprinted assets in `dist/` and rewrite HTML to reference
 3. Minify HTML/CSS/JS and remove comments and source maps.
 4. Generate per-page `manifest.json`.
 5. Rewrite page HTML to reference fingerprinted assets from the manifest.
+6. Copy Images, Fonts, and Media to `dist/client/{images|fonts|media}/**`.
 
 ## Outputs
 - `dist/client/pages/<page>/index.html`
 - `dist/client/pages/<page>/index.<timestamp>.{css|js}`
 - `dist/client/pages/<page>/manifest.json`
+- Static assets: `dist/client/{images|fonts|media}/**`
 - Shared app assets under `dist/client/app/*`
 
 ## Errors & Exit Codes

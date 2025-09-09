@@ -10,15 +10,27 @@ Defines and manages all project paths. The engine builds an `AppWorkspace` from 
 ## Roots
 - Source roots
   - Client: `src/client`
+  - Pages: `src/client/pages/<page>`
+  - App assets: `src/client/app`
+  - Images: `src/client/images`
+  - Fonts: `src/client/fonts`
+  - Media: `src/client/media`
   - Server: `src/server`
   - Shared: `src/shared`
   - Types: `types`
 - Build roots (dev)
   - Client: `build/client`
+  - Pages: `build/client/pages/<page>`
+  - Images: `build/client/images`
+  - Fonts: `build/client/fonts`
+  - Media: `build/client/media`
   - Server: `build/server`
 - Dist roots (publish)
   - Client: `dist/client`
   - Pages: `dist/client/pages/<page>`
+  - Images: `dist/client/images`
+  - Fonts: `dist/client/fonts`
+  - Media: `dist/client/media`
   - App assets: `dist/client/app`
 
 ## Conventions

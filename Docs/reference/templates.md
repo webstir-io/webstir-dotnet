@@ -32,6 +32,7 @@ Created by `webstir init` unless you choose client-only or server-only:
 - Plain CSS by default; optional CSS Modules in publish.
 - `@import` and asset URLs are resolved; files copied to outputs.
 - Place static app assets under `src/client/app/*`.
+- Place Images, Fonts, and Media under `src/client/{images|fonts|media}/**`.
 
 ## Generators
 

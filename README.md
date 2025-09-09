@@ -51,19 +51,30 @@ Getting started with usage and concepts:
 src/
 ├─ client/            # Client app (HTML/CSS/TS)
 │  ├─ app/            # Base template (app.html, app.css, app.ts, refresh.js)
-│  └─ pages/<name>/   # Per-page index.html/css/ts
+│  ├─ pages/<name>/   # Per-page index.html/css/ts
+│  ├─ images/         # Static images (png, jpg, jpeg, gif, svg, webp, ico)
+│  ├─ fonts/          # Web fonts (woff2, woff, ttf, otf, eot, svg)
+│  └─ media/          # Media (mp3, m4a, wav, ogg, mp4, webm, mov)
 ├─ server/            # Server TypeScript (compiled to build/server, run by Node)
 └─ shared/            # Shared types and utilities
 
 build/                # Dev build output
 └─ client/            # Served by the dev server
+   ├─ pages/**
+   ├─ images/**
+   ├─ fonts/**
+   └─ media/**
 
 dist/                 # Production output
-└─ client/pages/<name>/
-   ├─ index.html
-   ├─ index.<timestamp>.js
-   ├─ index.<timestamp>.css
-   └─ manifest.json   # { js, css, map }
+└─ client/
+   ├─ pages/<name>/
+   │  ├─ index.html
+   │  ├─ index.<timestamp>.js
+   │  ├─ index.<timestamp>.css
+   │  └─ manifest.json   # { js, css }
+   ├─ images/**
+   ├─ fonts/**
+   └─ media/**
 ```
 
 ## Development Server
@@ -75,7 +86,7 @@ dist/                 # Production output
 - Ports can be customized in `AppSettings` (when running the published binary) or via environment variables used by the Node server (`PORT`, `WEB_SERVER_URL`, `API_SERVER_URL`).
 
 ## Build & Publish Pipelines
-- See [docs/explanations/pipelines.md](docs/explanations/pipelines.md) for HTML, CSS, and JS/TS stages and publish details.
+- See [docs/explanations/pipelines.md](docs/explanations/pipelines.md) for HTML, CSS, JS/TS, and static asset (Images, Fonts, Media) stages and publish details.
 
 ## Testing
 - Philosophy and scope: [docs/explanations/testing.md](docs/explanations/testing.md)
