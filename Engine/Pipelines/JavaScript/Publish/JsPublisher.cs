@@ -1,12 +1,10 @@
 using System;
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Engine;
 
 namespace Engine.Pipelines.JavaScript.Publish;
 
-public partial class JsAssetsPublisher(AppWorkspace workspace)
+public class JsPublisher(AppWorkspace workspace)
 {
     public async Task PublishAsync()
     {
@@ -35,8 +33,8 @@ public partial class JsAssetsPublisher(AppWorkspace workspace)
             if (sourceFile.EndsWith(FileExtensions.Js, StringComparison.OrdinalIgnoreCase))
             {
                 string content = await File.ReadAllTextAsync(sourceFile);
-                content = SourceMapLineRegex().Replace(content, string.Empty);
-                content = SourceMapBlockRegex().Replace(content, string.Empty);
+                content = JsRegex.SourceMapLine().Replace(content, string.Empty);
+                content = JsRegex.SourceMapBlock().Replace(content, string.Empty);
                 await File.WriteAllTextAsync(destination, content);
             }
             else
@@ -45,11 +43,4 @@ public partial class JsAssetsPublisher(AppWorkspace workspace)
             }
         }
     }
-
-    [GeneratedRegex(@"^\s*\/\/\#\s*sourceMappingURL=.*$", RegexOptions.Multiline)]
-    private static partial Regex SourceMapLineRegex();
-
-    [GeneratedRegex(@"\/\*\#\s*sourceMappingURL=.*?\*\/\s*$", RegexOptions.Singleline)]
-    private static partial Regex SourceMapBlockRegex();
 }
-

@@ -70,7 +70,7 @@ try
     services.AddTransient<JsBuilder>();
     services.AddTransient<CssBundler>();
     services.AddTransient<JsBundler>();
-    services.AddTransient<JsAssetsPublisher>();
+    services.AddTransient<JsPublisher>();
 
     services.AddTransient<IFrontendHandler, HtmlHandler>();
     services.AddTransient<IFrontendHandler, CssHandler>();

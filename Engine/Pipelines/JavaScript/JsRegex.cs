@@ -46,6 +46,13 @@ public static partial class JsRegex
     [GeneratedRegex(@"/\*[\s\S]*?\*/", RegexOptions.Multiline)]
     public static partial Regex MultiLineComment();
 
+    // Source map comment patterns
+    [GeneratedRegex(@"^\s*\/\/\#\s*sourceMappingURL=.*$", RegexOptions.Multiline)]
+    public static partial Regex SourceMapLine();
+
+    [GeneratedRegex(@"\/\*\#\s*sourceMappingURL=.*?\*\/\s*$", RegexOptions.Singleline)]
+    public static partial Regex SourceMapBlock();
+
     // Transform patterns - Variable declarations
     [GeneratedRegex(@"\blet\b|\bconst\b|\bvar\b", RegexOptions.Multiline)]
     public static partial Regex VariableDeclaration();

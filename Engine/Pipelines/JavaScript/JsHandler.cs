@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.JavaScript;
 
-public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bundler, JsAssetsPublisher assetsPublisher, ILogger<JsHandler> logger) : IPageHandler
+public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bundler, JsPublisher publisher, ILogger<JsHandler> logger) : IPageHandler
 {
     private readonly ILogger<JsHandler> _logger = logger;
     public int BuildOrder => 0;
@@ -30,7 +30,7 @@ public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bund
         DiagnosticCollection diagnostics = new();
         await bundler.BundleAsync(diagnostics);
         LogSummary("JS Publish", diagnostics);
-        await assetsPublisher.PublishAsync();
+        await publisher.PublishAsync();
     }
 
     public Task AddPageAsync(string pageName)
