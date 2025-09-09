@@ -1,6 +1,6 @@
 # Pipelines
 
-Build and publish stages for HTML, CSS, and JS/TS. These pipelines run under the Engine and are orchestrated by workflows (`build`, `watch`, `publish`).
+Build and publish stages for HTML, CSS, JS/TS, and static assets (Images, Fonts, Media). These pipelines run under the Engine and are orchestrated by workflows (`build`, `watch`, `publish`).
 
 ## Goals
 - Deterministic outputs for given inputs.
@@ -29,6 +29,15 @@ Build and publish stages for HTML, CSS, and JS/TS. These pipelines run under the
 - Graph: ESM only.
 - Dev: produce readable JS under `build/client/**` and `build/server/**`.
 - Publish: tree-shake and minify; write fingerprinted `index.<timestamp>.js` per page; emit manifest entries.
+
+## Assets (Images / Fonts / Media)
+- Source folders under `src/client/`:
+  - Images: `images/**` (png, jpg, jpeg, gif, svg, webp, ico)
+  - Fonts: `fonts/**` (woff2, woff, ttf, otf, eot, svg)
+  - Media: `media/**` (mp3, m4a, wav, ogg, mp4, webm, mov)
+- Dev: copy to `build/client/{images|fonts|media}/**`, preserving structure.
+- Publish: copy from `build/**` to `dist/client/{images|fonts|media}/**`, preserving structure.
+- No transforms or fingerprinting in v1; safe no-ops when folders are absent.
 
 ## Manifests
 - One `manifest.json` per page under `dist/client/pages/<page>/` listing fingerprinted assets.

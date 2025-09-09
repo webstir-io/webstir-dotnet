@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
+using Engine.Pipelines.Core.Interfaces;
 using Engine.Pipelines.Css.Build;
 using Engine.Pipelines.Css.Publish;
 
@@ -10,11 +11,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.Css;
 
-public class CssHandler(AppWorkspace workspace, CssBuilder builder, CssBundler bundler, ILogger<CssHandler> logger)
+public class CssHandler(AppWorkspace workspace, CssBuilder builder, CssBundler bundler, ILogger<CssHandler> logger) : IPageHandler
 {
     private readonly ILogger<CssHandler> _logger = logger;
+    public int BuildOrder => 1;
+    public int PublishOrder => 0;
 
-    public Task BuildAsync()
+    public Task BuildAsync(string? changedFilePath = null)
     {
         DiagnosticCollection diagnostics = new();
         builder.Build(diagnostics);

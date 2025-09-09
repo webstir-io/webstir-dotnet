@@ -21,12 +21,18 @@ public class AppWorkspace
     public string ClientAppPath => ClientPath.CreateSubDirectory(Folders.App);
     public string ClientPagesPath => ClientPath.CreateSubDirectory(Folders.Pages);
     public string ClientImagesPath => ClientPath.CreateSubDirectory(Folders.Images);
+    public string ClientFontsPath => ClientPath.CreateSubDirectory(Folders.Fonts);
+    public string ClientMediaPath => ClientPath.CreateSubDirectory(Folders.Media);
     public string ClientBuildPath => BuildPath.CreateSubDirectory(Folders.Client);
     public string ClientBuildAppPath => ClientBuildPath.CreateSubDirectory(Folders.App);
     public string ClientBuildPagesPath => ClientBuildPath.CreateSubDirectory(Folders.Pages);
     public string ClientBuildImagesPath => ClientBuildPath.CreateSubDirectory(Folders.Images);
+    public string ClientBuildFontsPath => ClientBuildPath.CreateSubDirectory(Folders.Fonts);
+    public string ClientBuildMediaPath => ClientBuildPath.CreateSubDirectory(Folders.Media);
     public string ClientDistPath => DistPath.CreateSubDirectory(Folders.Client);
     public string ClientDistImagesPath => ClientDistPath.CreateSubDirectory(Folders.Images);
+    public string ClientDistFontsPath => ClientDistPath.CreateSubDirectory(Folders.Fonts);
+    public string ClientDistMediaPath => ClientDistPath.CreateSubDirectory(Folders.Media);
     public string ClientDistPagesPath => ClientDistPath.CreateSubDirectory(Folders.Pages);
     public string ClientDistAppPath => ClientDistPath.CreateSubDirectory(Folders.App);
 

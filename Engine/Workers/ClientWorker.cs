@@ -1,23 +1,22 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
 using Engine.Helpers;
 using Engine.Models;
-using Engine.Pipelines.Assets;
-using Engine.Pipelines.Css;
-using Engine.Pipelines.Html;
-using Engine.Pipelines.JavaScript;
+using Engine.Pipelines.Core.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace Engine.Workers;
 
 public partial class ClientWorker(
     AppWorkspace workspace,
-    HtmlHandler htmlHandler,
-    CssHandler cssHandler,
-    JsHandler scriptsHandler,
-    AssetHandler imagesHandler) : IWorker
+    IEnumerable<IFrontendHandler> frontendHandlers,
+    ILogger<ClientWorker> logger) : IWorker
 {
+    private readonly ILogger<ClientWorker> _logger = logger;
+    private readonly IEnumerable<IFrontendHandler> _frontendHandlers = frontendHandlers;
     public int BuildOrder => 1;
 
     public async Task InitAsync(ProjectMode mode) =>
@@ -30,12 +29,17 @@ public partial class ClientWorker(
             return;
         }
 
-        await scriptsHandler.BuildAsync();
-        await Task.WhenAll(
-            htmlHandler.BuildAsync(),
-            cssHandler.BuildAsync(),
-            imagesHandler.BuildAsync()
-        );
+        foreach (IGrouping<int, IFrontendHandler> group in _frontendHandlers
+                     .GroupBy(h => h.BuildOrder)
+                     .OrderBy(g => g.Key))
+        {
+            List<Task> tasks = [];
+            foreach (IFrontendHandler handler in group)
+            {
+                tasks.Add(handler.BuildAsync(changedFilePath));
+            }
+            await Task.WhenAll(tasks);
+        }
     }
 
     public async Task PublishAsync()
@@ -49,86 +53,61 @@ public partial class ClientWorker(
             Directory.CreateDirectory(workspace.ClientDistPath);
         }
         
-        await Task.WhenAll(
-            cssHandler.PublishAsync(),
-            scriptsHandler.PublishAsync()
-        );
-
-        await htmlHandler.PublishAsync();
-        await imagesHandler.PublishAsync();
-
-        await PublishAppAssetsAsync();
+        foreach (IGrouping<int, IFrontendHandler> group in _frontendHandlers
+                     .GroupBy(h => h.PublishOrder)
+                     .OrderBy(g => g.Key))
+        {
+            List<Task> tasks = [];
+            foreach (IFrontendHandler handler in group)
+            {
+                tasks.Add(handler.PublishAsync());
+            }
+            await Task.WhenAll(tasks);
+        }
     }
 
     public async Task AddPageAsync(string pageName)
     {
-        await Task.WhenAll(
-            htmlHandler.AddPageAsync(pageName),
-            cssHandler.AddPageAsync(pageName),
-            scriptsHandler.AddPageAsync(pageName),
-            AssetHandler.AddPageAsync(pageName)
-        );
-    }
-    private async Task PublishAppAssetsAsync()
-    {
-        // Copy client app assets from build to dist, excluding source maps,
-        // and strip any sourceMappingURL comments from JS files.
-        string sourceApp = workspace.ClientBuildAppPath;
-        string destApp = workspace.ClientDistAppPath;
-
-        if (!Directory.Exists(sourceApp))
+        List<Task> tasks = [];
+        foreach (IPageHandler handler in _frontendHandlers.OfType<IPageHandler>())
         {
-            return;
+            tasks.Add(handler.AddPageAsync(pageName));
         }
-
-        Directory.CreateDirectory(destApp);
-
-        foreach (string sourceFile in Directory.GetFiles(sourceApp, "*", SearchOption.AllDirectories))
-        {
-            string relative = Path.GetRelativePath(sourceApp, sourceFile);
-            string destination = Path.Combine(destApp, relative);
-
-            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-
-            if (sourceFile.EndsWith(FileExtensions.Map, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            if (sourceFile.EndsWith(FileExtensions.Js, StringComparison.OrdinalIgnoreCase))
-            {
-                string content = await File.ReadAllTextAsync(sourceFile);
-                // Remove sourceMappingURL comments if present (both line and block forms)
-                content = SourceMapLineRegex().Replace(content, string.Empty);
-                content = SourceMapBlockRegex().Replace(content, string.Empty);
-                await File.WriteAllTextAsync(destination, content);
-            }
-            else
-            {
-                File.Copy(sourceFile, destination, true);
-            }
-        }
+        await Task.WhenAll(tasks);
     }
-
-    private static void TryClearDirectory(string path)
+    
+    private void TryClearDirectory(string path)
     {
         try
         {
-            foreach (string file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
+            foreach (string file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
             {
-                try { File.SetAttributes(file, FileAttributes.Normal); File.Delete(file); } catch { }
+                try
+                {
+                    File.SetAttributes(file, FileAttributes.Normal);
+                    File.Delete(file);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete file during cleanup: {File}", file);
+                }
             }
-            foreach (string dir in Directory.GetDirectories(path, "*", SearchOption.AllDirectories))
+
+            foreach (string dir in Directory.EnumerateDirectories(path, "*", SearchOption.AllDirectories))
             {
-                try { Directory.Delete(dir, true); } catch { }
+                try
+                {
+                    Directory.Delete(dir, true);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete directory during cleanup: {Directory}", dir);
+                }
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to clear directory: {Path}", path);
+        }
     }
-
-    [System.Text.RegularExpressions.GeneratedRegex(@"^\s*\/\/\#\s*sourceMappingURL=.*$", System.Text.RegularExpressions.RegexOptions.Multiline)]
-    private static partial System.Text.RegularExpressions.Regex SourceMapLineRegex();
-
-    [System.Text.RegularExpressions.GeneratedRegex(@"\/\*\#\s*sourceMappingURL=.*?\*\/\s*$", System.Text.RegularExpressions.RegexOptions.Singleline)]
-    private static partial System.Text.RegularExpressions.Regex SourceMapBlockRegex();
 }

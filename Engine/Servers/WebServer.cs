@@ -43,7 +43,14 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
         path.EndsWith(FileExtensions.Png, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Jpg, StringComparison.OrdinalIgnoreCase) ||
         path.EndsWith(FileExtensions.Jpeg, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Gif, StringComparison.OrdinalIgnoreCase) ||
         path.EndsWith(FileExtensions.Svg, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Webp, StringComparison.OrdinalIgnoreCase) ||
-        path.EndsWith(FileExtensions.Ico, StringComparison.OrdinalIgnoreCase);
+        path.EndsWith(FileExtensions.Ico, StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(FileExtensions.Woff, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Woff2, StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(FileExtensions.Ttf, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Otf, StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(FileExtensions.Eot, StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(FileExtensions.Mp3, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.M4a, StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(FileExtensions.Wav, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Ogg, StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(FileExtensions.Mp4, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Webm, StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(FileExtensions.Mov, StringComparison.OrdinalIgnoreCase);
 
     public async Task StartAsync(AppWorkspace workspace, CancellationToken cancellationToken = default)
     {
@@ -221,6 +228,8 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
             }
             else if (!path.Contains('.') &&
                 !path.StartsWith("/" + Folders.Images, StringComparison.Ordinal) &&
+                !path.StartsWith("/" + Folders.Fonts, StringComparison.Ordinal) &&
+                !path.StartsWith("/" + Folders.Media, StringComparison.Ordinal) &&
                 !path.StartsWith("/" + Folders.Pages, StringComparison.Ordinal) &&
                 !path.StartsWith(ApiRoute, StringComparison.Ordinal) &&
                 !path.StartsWith(SseRoute, StringComparison.Ordinal))

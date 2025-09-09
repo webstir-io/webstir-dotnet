@@ -1,3 +1,10 @@
 {
-    "chatgpt.openOnStartup": true
+    "chatgpt.openOnStartup": true,
+
+    // Run code actions on explicit save (VS Code expects strings)
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit",
+        "source.fixAll": "explicit"
+    },
+    "editor.formatOnSave": true
 }

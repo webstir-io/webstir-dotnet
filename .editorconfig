@@ -83,7 +83,9 @@ dotnet_diagnostic.CA1852.severity = error     # Seal types with no subtypes
 
 # Collections
 csharp_style_prefer_collection_expression = true:warning
-dotnet_diagnostic.IDE0028.severity = error     # Simplify collection initialization
+# Disable legacy suggestion that often appears only as an editor hint
+# and is superseded by IDE030x rules. This keeps editor and build aligned.
+dotnet_diagnostic.IDE0028.severity = none      # Simplify collection initialization (legacy)
 dotnet_diagnostic.IDE0305.severity = error     # Use collection expressions
 dotnet_diagnostic.IDE0301.severity = error     # Collection initialization can be simplified
 dotnet_diagnostic.IDE0300.severity = error     # Collection initialization can be simplified

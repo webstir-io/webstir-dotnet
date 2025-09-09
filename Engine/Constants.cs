@@ -21,6 +21,8 @@ public static class Folders
     public const string Styles = "styles";
     public const string Scripts = "scripts";
     public const string Images = "images";
+    public const string Fonts = "fonts";
+    public const string Media = "media";
     public const string Home = "home";
     public const string NodeModules = "node_modules";
     public const string Seed = "seed";
@@ -55,6 +57,18 @@ public static class FileExtensions
     public const string Svg = ".svg";
     public const string Webp = ".webp";
     public const string Ico = ".ico";
+    public const string Woff = ".woff";
+    public const string Woff2 = ".woff2";
+    public const string Ttf = ".ttf";
+    public const string Otf = ".otf";
+    public const string Eot = ".eot";
+    public const string Mp3 = ".mp3";
+    public const string M4a = ".m4a";
+    public const string Wav = ".wav";
+    public const string Ogg = ".ogg";
+    public const string Mp4 = ".mp4";
+    public const string Webm = ".webm";
+    public const string Mov = ".mov";
 }
 
 public static class Templates

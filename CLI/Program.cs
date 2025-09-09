@@ -3,16 +3,19 @@ using System.Globalization;
 using System.Text.Json;
 using CLI;
 using Engine;
-using Engine.Pipelines.Assets;
+using Engine.Pipelines.Core.Interfaces;
 using Engine.Pipelines.Css;
 using Engine.Pipelines.Css.Build;
 using Engine.Pipelines.Css.Publish;
+using Engine.Pipelines.Fonts;
 using Engine.Pipelines.Html;
 using Engine.Pipelines.Html.Build;
 using Engine.Pipelines.Html.Publish;
+using Engine.Pipelines.Images;
 using Engine.Pipelines.JavaScript;
 using Engine.Pipelines.JavaScript.Build;
 using Engine.Pipelines.JavaScript.Publish;
+using Engine.Pipelines.Media;
 using Engine.Servers;
 using Engine.Services;
 using Engine.Workers;
@@ -60,17 +63,21 @@ try
 
     services.AddScoped<AppWorkspace>();
     services.AddScoped<IWorkflowFactory, WorkflowFactory>();
-    services.AddTransient<HtmlHandler>();
     services.AddTransient<HtmlBuilder>();
     services.AddTransient<HtmlBundler>();
-    services.AddTransient<CssHandler>();
-    services.AddTransient<JsHandler>();
-    services.AddTransient<AssetHandler>();
 
     services.AddTransient<CssBuilder>();
     services.AddTransient<JsBuilder>();
     services.AddTransient<CssBundler>();
     services.AddTransient<JsBundler>();
+    services.AddTransient<JsAssetsPublisher>();
+
+    services.AddTransient<IFrontendHandler, HtmlHandler>();
+    services.AddTransient<IFrontendHandler, CssHandler>();
+    services.AddTransient<IFrontendHandler, JsHandler>();
+    services.AddTransient<IFrontendHandler, ImagesHandler>();
+    services.AddTransient<IFrontendHandler, FontsHandler>();
+    services.AddTransient<IFrontendHandler, MediaHandler>();
 
     services.AddTransient<ClientWorker>();
     services.AddTransient<ServerWorker>();

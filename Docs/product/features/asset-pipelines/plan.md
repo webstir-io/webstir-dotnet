@@ -57,16 +57,16 @@ Objective: Implement separate Images, Fonts, and Media pipelines (copy-only v1) 
 - No fingerprinting or transforms in v1; consider as follow-ups.
 
 ## TODO
-- [ ] Add `Folders.Fonts` and `Folders.Media` in `Engine/Constants.cs`.
-- [ ] Add font/media extensions in `FileExtensions`.
-- [ ] Extend `AppWorkspace` with fonts/media paths.
-- [ ] Move/rename `Engine/Pipelines/Assets/AssetHandler.cs` → `Engine/Pipelines/Images/ImagesHandler.cs` (class + file).
-- [ ] Add `Engine/Pipelines/Fonts/FontsHandler.cs`.
-- [ ] Add `Engine/Pipelines/Media/MediaHandler.cs`.
-- [ ] Update `Engine/Workers/ClientWorker.cs` (constructor, build/publish flows, watch filtering).
-- [ ] Update DI in `CLI/Program.cs` (register `ImagesHandler`, `FontsHandler`, `MediaHandler`).
-- [ ] Extend `Engine/Servers/WebServer.cs` static asset detection for new extensions.
-- [ ] Update `docs/explanations/pipelines.md` to describe images/fonts/media flows.
+- [x] Add `Folders.Fonts` and `Folders.Media` in `Engine/Constants.cs`.
+- [x] Add font/media extensions in `FileExtensions`.
+- [x] Extend `AppWorkspace` with fonts/media paths.
+- [x] Move/rename `Engine/Pipelines/Assets/AssetHandler.cs` → `Engine/Pipelines/Images/ImagesHandler.cs` (class + file).
+- [x] Add `Engine/Pipelines/Fonts/FontsHandler.cs`.
+- [x] Add `Engine/Pipelines/Media/MediaHandler.cs`.
+- [x] Update `Engine/Workers/ClientWorker.cs` (constructor, build/publish flows, watch filtering).
+- [x] Update DI in `CLI/Program.cs` (register `ImagesHandler`, `FontsHandler`, `MediaHandler`).
+- [x] Extend `Engine/Servers/WebServer.cs` static asset detection for new extensions.
+- [x] Update `docs/explanations/pipelines.md` to describe images/fonts/media flows.
 - [ ] Smoke test: build → verify `build/client/{images,fonts,media}`.
 - [ ] Smoke test: publish → verify `dist/client/{images,fonts,media}`.
 

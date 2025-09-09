@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
+using Engine.Pipelines.Core.Interfaces;
 using Engine.Pipelines.Html.Build;
 using Engine.Pipelines.Html.Publish;
 
@@ -10,11 +11,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.Html;
 
-public class HtmlHandler(AppWorkspace workspace, HtmlBuilder htmlBuilder, HtmlBundler htmlBundler, ILogger<HtmlHandler> logger)
+public class HtmlHandler(AppWorkspace workspace, HtmlBuilder htmlBuilder, HtmlBundler htmlBundler, ILogger<HtmlHandler> logger) : IPageHandler
 {
     private readonly ILogger<HtmlHandler> _logger = logger;
+    public int BuildOrder => 1;
+    public int PublishOrder => 1;
 
-    public async Task BuildAsync()
+    public async Task BuildAsync(string? changedFilePath = null)
     {
         DiagnosticCollection diagnostics = new();
         await htmlBuilder.BuildAsync(diagnostics);

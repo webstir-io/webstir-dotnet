@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
+using Engine.Pipelines.Core.Interfaces;
 using Engine.Pipelines.JavaScript.Build;
 using Engine.Pipelines.JavaScript.Publish;
 
@@ -10,11 +11,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.JavaScript;
 
-public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bundler, ILogger<JsHandler> logger)
+public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bundler, JsAssetsPublisher assetsPublisher, ILogger<JsHandler> logger) : IPageHandler
 {
     private readonly ILogger<JsHandler> _logger = logger;
+    public int BuildOrder => 0;
+    public int PublishOrder => 0;
 
-    public Task BuildAsync()
+    public Task BuildAsync(string? changedFilePath = null)
     {
         DiagnosticCollection diagnostics = new();
         builder.Build(diagnostics);
@@ -27,6 +30,7 @@ public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bund
         DiagnosticCollection diagnostics = new();
         await bundler.BundleAsync(diagnostics);
         LogSummary("JS Publish", diagnostics);
+        await assetsPublisher.PublishAsync();
     }
 
     public Task AddPageAsync(string pageName)
