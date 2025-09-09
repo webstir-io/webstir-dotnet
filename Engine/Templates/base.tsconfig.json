@@ -2,8 +2,8 @@
   "files": [],
   "references": [
     { "path": "src/shared" },
-    { "path": "src/client" },
-    { "path": "src/server" }
+    { "path": "src/frontend" },
+    { "path": "src/backend" }
   ],
   "compilerOptions": {
     "target": "ES2022",

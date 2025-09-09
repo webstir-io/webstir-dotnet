@@ -36,7 +36,7 @@ public class CssHandler(AppWorkspace workspace, CssBuilder builder, CssBundler b
             /* Add your page-specific styles here */
 
             """;
-        string pageDirectory = workspace.ClientPagesPath.Combine(pageName);
+        string pageDirectory = workspace.FrontendPagesPath.Combine(pageName);
         string cssFilePath = pageDirectory.Combine($"{Files.Index}.css");
         File.WriteAllText(cssFilePath, cssContent);
         return Task.CompletedTask;

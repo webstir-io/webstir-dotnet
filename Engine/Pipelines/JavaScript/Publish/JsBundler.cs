@@ -16,7 +16,7 @@ public class JsBundler(AppWorkspace workspace)
 
     private async Task BundlePageScriptsAsync(DiagnosticCollection? diagnostics)
     {
-        string pagesPath = workspace.ClientBuildPath.Combine(Folders.Pages);
+        string pagesPath = workspace.FrontendBuildPath.Combine(Folders.Pages);
         if (!pagesPath.Exists())
         {
             return;
@@ -130,7 +130,7 @@ public class JsBundler(AppWorkspace workspace)
         long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         string jsFileName = $"{Files.Index}.{timestamp}{FileExtensions.Js}";
 
-        string pageDistDir = workspace.ClientDistPath.Combine(Folders.Pages, pageName);
+        string pageDistDir = workspace.FrontendDistPath.Combine(Folders.Pages, pageName);
         pageDistDir.Create();
 
         string distJsPath = Path.Combine(pageDistDir, jsFileName);
@@ -141,7 +141,7 @@ public class JsBundler(AppWorkspace workspace)
 
     private Task UpdateJsManifestAsync(string pageName, string jsFileName)
     {
-        string pageDistDir = workspace.ClientDistPath.Combine(Folders.Pages, pageName);
+        string pageDistDir = workspace.FrontendDistPath.Combine(Folders.Pages, pageName);
         AssetManifest.Update(pageDistDir, m => m.Js = jsFileName);
         return Task.CompletedTask;
     }

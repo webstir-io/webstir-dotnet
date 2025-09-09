@@ -22,7 +22,7 @@ public class FontsHandler(AppWorkspace workspace) : IFrontendHandler
         // If incremental and change is outside fonts, no-op
         if (!string.IsNullOrEmpty(changedFilePath))
         {
-            string root = workspace.ClientFontsPath;
+            string root = workspace.FrontendFontsPath;
             if (!root.Exists())
             {
                 return Task.CompletedTask;
@@ -35,18 +35,18 @@ public class FontsHandler(AppWorkspace workspace) : IFrontendHandler
             }
         }
 
-        if (workspace.ClientFontsPath.Exists())
+        if (workspace.FrontendFontsPath.Exists())
         {
-            Copy(workspace.ClientFontsPath, workspace.ClientBuildFontsPath);
+            Copy(workspace.FrontendFontsPath, workspace.FrontendBuildFontsPath);
         }
         return Task.CompletedTask;
     }
 
     public Task PublishAsync()
     {
-        if (workspace.ClientBuildFontsPath.Exists())
+        if (workspace.FrontendBuildFontsPath.Exists())
         {
-            Copy(workspace.ClientBuildFontsPath, workspace.ClientDistFontsPath);
+            Copy(workspace.FrontendBuildFontsPath, workspace.FrontendDistFontsPath);
         }
         return Task.CompletedTask;
     }

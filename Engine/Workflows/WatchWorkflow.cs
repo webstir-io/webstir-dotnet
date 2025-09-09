@@ -11,8 +11,8 @@ namespace Engine.Workflows;
 
 public class WatchWorkflow(
     AppWorkspace context,
-    ClientWorker clientWorker,
-    ServerWorker serverWorker,
+    FrontendWorker clientWorker,
+    BackendWorker serverWorker,
     SharedWorker sharedWorker,
     DevService devService)
     : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)

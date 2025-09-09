@@ -12,8 +12,8 @@ namespace Engine.Workflows;
 
 public abstract class BaseWorkflow(
     AppWorkspace context,
-    ClientWorker clientWorker,
-    ServerWorker serverWorker,
+    FrontendWorker clientWorker,
+    BackendWorker serverWorker,
     SharedWorker sharedWorker) : IWorkflow
 {
     protected readonly AppWorkspace Context = context;

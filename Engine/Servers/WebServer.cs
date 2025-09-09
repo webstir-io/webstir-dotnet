@@ -55,15 +55,15 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
     public async Task StartAsync(AppWorkspace workspace, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(workspace);
-        if (!workspace.ClientBuildPath.Exists())
+        if (!workspace.FrontendBuildPath.Exists())
         {
-            logger.LogWarning("Client build path does not exist. Skipping web server.");
+            logger.LogWarning("Frontend build path does not exist. Skipping web server.");
             return;
         }
 
         WebApplicationBuilder builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
-            WebRootPath = workspace.ClientBuildPath
+            WebRootPath = workspace.FrontendBuildPath
         });
 
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
@@ -71,7 +71,7 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
         ConfigureServices(builder.Services);
 
         _app = builder.Build();
-        ConfigureMiddleware(_app, workspace.ClientBuildPath);
+        ConfigureMiddleware(_app, workspace.FrontendBuildPath);
 
         await _app.StartAsync(cancellationToken);
         logger.LogInformation("Web server running at {WebServerUrl}", options.Value.WebServerUrl);

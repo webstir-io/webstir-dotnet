@@ -9,19 +9,19 @@ Embedded scaffolding used by the CLI to create projects and generate files. Keep
 
 ## Layout
 Created by `webstir init` unless you choose client-only or server-only:
-- Client: `src/client/`
-  - App shell: `src/client/app/app.html`, `src/client/app/*.js|css|png` (copied as-is)
-  - Pages: `src/client/pages/<page>/index.html|css|ts` (seed includes `home`)
-- Server: `src/server/index.ts` (Node API server entry)
+- Frontend: `src/frontend/`
+  - App shell: `src/frontend/app/app.html`, `src/frontend/app/*.js|css|png` (copied as-is)
+  - Pages: `src/frontend/pages/<page>/index.html|css|ts` (seed includes `home`)
+- Backend: `src/backend/index.ts` (Node API server entry)
 - Shared: `src/shared/**` (types/modules used on both sides)
 - Types: `types/**` (ambient `.d.ts` and tsconfig support)
 - Tests: `tests/**` (optional; used by `webstir test`)
 
 ## Conventions
-- Base HTML requires a `<main>` in `src/client/app/app.html` for page merge.
+- Base HTML requires a `<main>` in `src/frontend/app/app.html` for page merge.
 - Page folder names must be URL-safe: letters, numbers, `_` and `-`.
 - Each page has `index.html`, `index.css`, `index.ts`.
-- Server entry is `src/server/index.ts` and must export an HTTP server.
+- Backend entry is `src/backend/index.ts` and must export an HTTP server.
 
 ## TypeScript
 - Uses an embedded `base.tsconfig.json` referenced by template tsconfigs.
@@ -31,32 +31,32 @@ Created by `webstir init` unless you choose client-only or server-only:
 ## CSS & Assets
 - Plain CSS by default; optional CSS Modules in publish.
 - `@import` and asset URLs are resolved; files copied to outputs.
-- Place static app assets under `src/client/app/*`.
-- Place Images, Fonts, and Media under `src/client/{images|fonts|media}/**`.
+- Place static app assets under `src/frontend/app/*`.
+- Place Images, Fonts, and Media under `src/frontend/{images|fonts|media}/**`.
 
 ## Generators
 
 ### add-page
 - Command: `webstir add-page <name>`
-- Creates `src/client/pages/<name>/index.html|css|ts` if not present.
+- Creates `src/frontend/pages/<name>/index.html|css|ts` if not present.
 - Does not modify existing pages or `app.html`.
 - Name normalization: trims, lowercases, replaces spaces with `-`.
 
 ### add-test
 - Command: `webstir add-test <name-or-path>`
 - Creates `<name>.test.ts` under the nearest `tests/` directory.
-- Works for both client and server tests.
+- Works for both frontend and backend tests.
 
-## Server Template
-- Minimal Node server at `src/server/index.ts`.
+## Backend Template
+- Minimal Node server at `src/backend/index.ts`.
 - Exposes health endpoint (e.g., `GET /api/health`).
 - Reads `PORT` env var; defaults handled by the CLI dev server proxy in dev.
 
 ## Publish Outputs
-- Per page: `dist/client/pages/<page>/index.html`
-- Fingerprinted assets: `dist/client/pages/<page>/index.<timestamp>.{css|js}`
+- Per page: `dist/frontend/pages/<page>/index.html`
+- Fingerprinted assets: `dist/frontend/pages/<page>/index.<timestamp>.{css|js}`
 - Per-page `manifest.json` listing hashed asset names.
-- App assets copied to `dist/client/app/*`.
+- App assets copied to `dist/frontend/app/*`.
 
 ## Customizing Templates
 - Edit templates under `Engine/Templates/` in the source.

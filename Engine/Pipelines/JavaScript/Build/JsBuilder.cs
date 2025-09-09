@@ -25,8 +25,8 @@ public partial class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger
 
     private void CopyRefreshScript()
     {
-        string sourceRefreshJsApp = workspace.ClientAppPath.Combine(Files.RefreshJs);
-        string targetRefreshJs = workspace.ClientBuildPath.Combine(Files.RefreshJs);
+        string sourceRefreshJsApp = workspace.FrontendAppPath.Combine(Files.RefreshJs);
+        string targetRefreshJs = workspace.FrontendBuildPath.Combine(Files.RefreshJs);
 
         if (sourceRefreshJsApp.Exists())
             File.Copy(sourceRefreshJsApp, targetRefreshJs, true);

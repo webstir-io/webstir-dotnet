@@ -70,15 +70,15 @@ See also: Engine internals — [engine](../explanations/engine.md)
 - Output: `dist/client/pages/<page>/index.html`, `index.<timestamp>.{css|js}`, `manifest.json`.
 
 ### generators
-- `add-page <name>`: scaffold `index.html|css|ts` under `src/client/pages/<name>/`.
+- `add-page <name>`: scaffold `index.html|css|ts` under `src/frontend/pages/<name>/`.
 - `add-test <name-or-path>`: scaffold a `.test.ts` in the nearest `tests/`.
 
 ## Contracts & Guarantees
-- Source roots: `src/client/**`, `src/server/**`, `src/shared/**`, `types/**`.
+- Source roots: `src/frontend/**`, `src/backend/**`, `src/shared/**`, `types/**`.
 - Dev outputs: `build/client/**`, `build/server/**` (including `build/client/{images|fonts|media}/**`).
 - Prod outputs: `dist/client/pages/<page>/**` with per-page manifests, plus static assets under `dist/client/{images|fonts|media}/**`.
 - Dev server proxies `/api/*` to the Node process during `watch`.
-- Base HTML requires `<main>` in `src/client/app/app.html`.
+- Base HTML requires `<main>` in `src/frontend/app/app.html`.
 
 ## Errors & Exit Codes
 - Validation failures (missing base HTML, bad flags, TS errors, failing tests) return non-zero exit codes.

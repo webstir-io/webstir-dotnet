@@ -49,9 +49,8 @@ public sealed class BuildRunsWithoutErrors : ITestCase
         string buildDir = Path.Combine(testDir, Folders.Seed, Folders.Build);
         Assert.IsTrue(Directory.Exists(buildDir), "seed/build directory does not exist");
 
-        string clientPageDir = Path.Combine(buildDir, Folders.Client, Folders.Pages, Folders.Home);
+        string clientPageDir = Path.Combine(buildDir, Folders.Frontend, Folders.Pages, Folders.Home);
         Assert.IsTrue(File.Exists(Path.Combine(clientPageDir, $"{Files.Index}{FileExtensions.Html}")), "client page index.html missing in build");
         Assert.IsTrue(File.Exists(Path.Combine(clientPageDir, $"{Files.Index}{FileExtensions.Js}")), "client page index.js missing in build");
     }
 }
-

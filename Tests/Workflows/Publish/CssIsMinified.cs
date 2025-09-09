@@ -16,7 +16,7 @@ public sealed class CssIsMinified : ITestCase
         ArgumentNullException.ThrowIfNull(context);
 
         string testDirectory = Paths.OutPath;
-        string clientPageDirectory = Path.Combine(testDirectory, Folders.Seed, Folders.Dist, Folders.Client, Folders.Pages, Folders.Home);
+        string clientPageDirectory = Path.Combine(testDirectory, Folders.Seed, Folders.Dist, Folders.Frontend, Folders.Pages, Folders.Home);
 
         Engine.Pipelines.Core.AssetManifest manifest = Engine.Pipelines.Core.AssetManifest.Load(clientPageDirectory);
         string expectedCssPath = !string.IsNullOrWhiteSpace(manifest.Css)
@@ -31,4 +31,3 @@ public sealed class CssIsMinified : ITestCase
         Assert.DoesNotContain("\n\n", css, "Client CSS should be minified without extra newlines");
     }
 }
-

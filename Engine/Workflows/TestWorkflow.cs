@@ -10,8 +10,8 @@ namespace Engine.Workflows;
 
 public sealed class TestWorkflow(
     AppWorkspace context,
-    ClientWorker clientWorker,
-    ServerWorker serverWorker,
+    FrontendWorker clientWorker,
+    BackendWorker serverWorker,
     SharedWorker sharedWorker) : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
 {
 

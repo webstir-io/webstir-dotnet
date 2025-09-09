@@ -10,21 +10,21 @@ using Microsoft.Extensions.Logging;
 
 namespace Engine.Workers;
 
-public partial class ClientWorker(
+public partial class FrontendWorker(
     AppWorkspace workspace,
     IEnumerable<IFrontendHandler> frontendHandlers,
-    ILogger<ClientWorker> logger) : IWorker
+    ILogger<FrontendWorker> logger) : IWorker
 {
-    private readonly ILogger<ClientWorker> _logger = logger;
+    private readonly ILogger<FrontendWorker> _logger = logger;
     private readonly IEnumerable<IFrontendHandler> _frontendHandlers = frontendHandlers;
     public int BuildOrder => 1;
 
     public async Task InitAsync(ProjectMode mode) =>
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Templates.ClientPath, workspace.ClientPath);
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Templates.FrontendPath, workspace.FrontendPath);
 
     public async Task BuildAsync(string? changedFilePath = null)
     {
-        if (!string.IsNullOrEmpty(changedFilePath) && !BuildHelpers.ContainsBuildFolder(changedFilePath, Folders.Client))
+        if (!string.IsNullOrEmpty(changedFilePath) && !BuildHelpers.ContainsBuildFolder(changedFilePath, Folders.Frontend))
         {
             return;
         }
@@ -44,13 +44,13 @@ public partial class ClientWorker(
 
     public async Task PublishAsync()
     {
-        if (Directory.Exists(workspace.ClientDistPath))
+        if (Directory.Exists(workspace.FrontendDistPath))
         {
-            TryClearDirectory(workspace.ClientDistPath);
+            TryClearDirectory(workspace.FrontendDistPath);
         }
         else
         {
-            Directory.CreateDirectory(workspace.ClientDistPath);
+            Directory.CreateDirectory(workspace.FrontendDistPath);
         }
 
         foreach (IGrouping<int, IFrontendHandler> group in _frontendHandlers

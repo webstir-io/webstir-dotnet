@@ -23,7 +23,7 @@ public class MediaHandler(AppWorkspace workspace) : IFrontendHandler
         // If incremental and change is outside media, no-op
         if (!string.IsNullOrEmpty(changedFilePath))
         {
-            string root = workspace.ClientMediaPath;
+            string root = workspace.FrontendMediaPath;
             if (!root.Exists())
             {
                 return Task.CompletedTask;
@@ -36,18 +36,18 @@ public class MediaHandler(AppWorkspace workspace) : IFrontendHandler
             }
         }
 
-        if (workspace.ClientMediaPath.Exists())
+        if (workspace.FrontendMediaPath.Exists())
         {
-            Copy(workspace.ClientMediaPath, workspace.ClientBuildMediaPath);
+            Copy(workspace.FrontendMediaPath, workspace.FrontendBuildMediaPath);
         }
         return Task.CompletedTask;
     }
 
     public Task PublishAsync()
     {
-        if (workspace.ClientBuildMediaPath.Exists())
+        if (workspace.FrontendBuildMediaPath.Exists())
         {
-            Copy(workspace.ClientBuildMediaPath, workspace.ClientDistMediaPath);
+            Copy(workspace.FrontendBuildMediaPath, workspace.FrontendDistMediaPath);
         }
         return Task.CompletedTask;
     }

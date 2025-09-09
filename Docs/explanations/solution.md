@@ -12,7 +12,7 @@ Hub for the CLI and host tooling. This doc explains what the solution is, how it
 - [CLI](../reference/cli.md): Command entrypoint and help text. Wires DI and invokes workflows.
 - [Engine](engine.md): Core logic and pipelines.
   - [Workflows](../reference/workflows.md): Orchestrations for init, build, watch, test, publish, add-page, add-test.
-  - [Workers](engine.md#workers): Per-area units: ClientWorker, ServerWorker, SharedWorker.
+  - [Workers](engine.md#workers): Per-area units: FrontendWorker, BackendWorker, SharedWorker.
   - [Pipelines](pipelines.md): HTML, CSS, JS compilers/bundlers and diagnostics.
   - [Services](services.md): DevService, WatchService, ChangeService.
   - [Servers](servers.md): Static web server (ASP.NET Core) + Node API host.

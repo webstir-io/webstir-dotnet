@@ -33,7 +33,7 @@ public class HtmlHandler(AppWorkspace workspace, HtmlBuilder htmlBuilder, HtmlBu
 
     public async Task AddPageAsync(string pageName)
     {
-        string pagePath = workspace.ClientPagesPath.Combine(pageName);
+        string pagePath = workspace.FrontendPagesPath.Combine(pageName);
         pagePath.Create();
         string htmlContent = GeneratePageTemplate(pageName);
         string outputPath = pagePath.Combine($"{Files.Index}{FileExtensions.Html}");

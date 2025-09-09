@@ -34,10 +34,9 @@ public sealed class InitCreatesDefaultProject : ITestCase
         Assert.AreEqual(0, result.ExitCode, $"{Commands.Init} command failed. Error: {result.Error}");
 
         // Verify essential files
-        Assert.IsTrue(File.Exists(Path.Combine(seedDir, Folders.Src, Folders.Client, Folders.App, "app.css")), "app.css missing");
-        Assert.IsTrue(File.Exists(Path.Combine(seedDir, Folders.Src, Folders.Client, Folders.App, "app.ts")), "app.ts missing");
-        Assert.IsTrue(File.Exists(Path.Combine(seedDir, Folders.Src, Folders.Client, Folders.App, "app.html")), "app.html missing");
+        Assert.IsTrue(File.Exists(Path.Combine(seedDir, Folders.Src, Folders.Frontend, Folders.App, "app.css")), "app.css missing");
+        Assert.IsTrue(File.Exists(Path.Combine(seedDir, Folders.Src, Folders.Frontend, Folders.App, "app.ts")), "app.ts missing");
+        Assert.IsTrue(File.Exists(Path.Combine(seedDir, Folders.Src, Folders.Frontend, Folders.App, "app.html")), "app.html missing");
         Assert.IsTrue(File.Exists(Path.Combine(seedDir, Files.PackageJson)), "package.json missing");
     }
 }
-

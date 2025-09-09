@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 
 namespace Engine.Workers;
 
-public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options) : IWorker
+public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options) : IWorker
 {
     private readonly AppSettings _settings = options.Value;
     private const string _tsConfigFile = "tsconfig.json";
@@ -19,11 +19,11 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
     public int BuildOrder => 2;
 
     public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack) =>
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Templates.ServerPath, workspace.ServerPath);
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Templates.BackendPath, workspace.BackendPath);
 
     public Task BuildAsync(string? changedFilePath = null)
     {
-        if (!string.IsNullOrEmpty(changedFilePath) && !BuildHelpers.ContainsBuildFolder(changedFilePath, Folders.Server))
+        if (!string.IsNullOrEmpty(changedFilePath) && !BuildHelpers.ContainsBuildFolder(changedFilePath, Folders.Backend))
         {
             return Task.CompletedTask;
         }
@@ -41,10 +41,10 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
 
     public Task PublishAsync()
     {
-        foreach (string jsFilepath in Directory.GetFiles(workspace.ServerBuildPath, "*.js", SearchOption.AllDirectories))
+        foreach (string jsFilepath in Directory.GetFiles(workspace.BackendBuildPath, "*.js", SearchOption.AllDirectories))
         {
-            string relativePath = Path.GetRelativePath(workspace.ServerBuildPath, jsFilepath);
-            string targetFilePath = Path.Combine(workspace.ServerDistPath, relativePath);
+            string relativePath = Path.GetRelativePath(workspace.BackendBuildPath, jsFilepath);
+            string targetFilePath = Path.Combine(workspace.BackendDistPath, relativePath);
 
             Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!);
 
@@ -58,7 +58,7 @@ public class ServerWorker(AppWorkspace workspace, IOptions<AppSettings> options)
 
     private void CompileTypeScriptFiles()
     {
-        string tsConfigPath = workspace.ServerPath.Combine(_tsConfigFile);
+        string tsConfigPath = workspace.BackendPath.Combine(_tsConfigFile);
 
         ProcessStartInfo processInfo = new()
         {

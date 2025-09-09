@@ -45,7 +45,7 @@ public sealed class HtmlWhitespaceCollapsed : ITestCase
         ProcessRunner.ProcessResult result = context.Cli.Run($"{Commands.Publish} {ProjectOptions.ProjectName} seed", testDirectory, timeoutMs: 15000);
         Assert.AreEqual(0, result.ExitCode, $"{Commands.Publish} command failed. Error: {result.Error}");
 
-        string distHtmlPath = Path.Combine(seedDirectory, Folders.Dist, Folders.Client, Folders.Pages, Folders.Home, $"{Files.Index}{FileExtensions.Html}");
+        string distHtmlPath = Path.Combine(seedDirectory, Folders.Dist, Folders.Frontend, Folders.Pages, Folders.Home, $"{Files.Index}{FileExtensions.Html}");
         Assert.IsTrue(File.Exists(distHtmlPath), "Dist index.html missing");
         string distHtml = File.ReadAllText(distHtmlPath);
 

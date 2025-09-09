@@ -16,7 +16,7 @@ public sealed class JsIsMinified : ITestCase
         ArgumentNullException.ThrowIfNull(context);
 
         string testDirectory = Paths.OutPath;
-        string clientPageDirectory = Path.Combine(testDirectory, Folders.Seed, Folders.Dist, Folders.Client, Folders.Pages, Folders.Home);
+        string clientPageDirectory = Path.Combine(testDirectory, Folders.Seed, Folders.Dist, Folders.Frontend, Folders.Pages, Folders.Home);
 
         Engine.Pipelines.Core.AssetManifest manifest = Engine.Pipelines.Core.AssetManifest.Load(clientPageDirectory);
         string expectedJsPath = !string.IsNullOrWhiteSpace(manifest.Js)
@@ -31,4 +31,3 @@ public sealed class JsIsMinified : ITestCase
         Assert.DoesNotContain("// ", distJs, "Client JS should not contain inline comments after minification");
     }
 }
-

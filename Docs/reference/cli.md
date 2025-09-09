@@ -31,8 +31,8 @@ Common patterns:
 Usage: `webstir init [--client-only|--server-only] [--project-name|-p <name>] [directory]`
 
 What it does:
-- Creates a new project from embedded templates (client, server, shared, and types).
-- Layout includes `src/client/app`, `src/client/pages/<page>`, `src/server`, `src/shared`, and `types/`.
+- Creates a new project from embedded templates (frontend, backend, shared, and types).
+- Layout includes `src/frontend/app`, `src/frontend/pages/<page>`, `src/backend`, `src/shared`, and `types/`.
 - Initializes a working dev setup that builds and runs with `webstir watch`.
 
 Notes:
@@ -45,8 +45,8 @@ Usage: `webstir build [--clean]`
 What it does:
 - Compiles TypeScript via `tsc --build` using the embedded base config.
 - Processes CSS imports; copies app assets.
-- Merges page HTML fragments with `src/client/app/app.html` and writes to `build/client/`.
-- Compiles server code to `build/server/`.
+- Merges page HTML fragments with `src/frontend/app/app.html` and writes to `build/frontend/`.
+- Compiles backend code to `build/backend/`.
 
 Notes:
 - `--clean` removes previous `build/` before compiling.
@@ -56,7 +56,7 @@ Usage: `webstir watch`
 
 What it does:
 - Runs an initial `build` and `test`.
-- Starts the dev web server (serves `build/client/**`) and the Node API server (runs `build/server/index.js`).
+- Starts the dev web server (serves `build/frontend/**`) and the Node API server (runs `build/backend/index.js`).
 - Watches `src/**` for changes and performs targeted, incremental rebuilds.
 - Restarts the Node server on server changes; notifies browsers via SSE to reload on client changes.
 
@@ -79,7 +79,7 @@ What it does:
 Usage: `webstir add-page <name>`
 
 What it does:
-- Scaffolds `index.html`, `index.css`, and `index.ts` in `src/client/pages/<name>/`.
+- Scaffolds `index.html`, `index.css`, and `index.ts` in `src/frontend/pages/<name>/`.
 - Ready to build and serve without extra configuration.
 
 ### add-test
@@ -87,7 +87,7 @@ Usage: `webstir add-test <name-or-path>`
 
 What it does:
 - Creates a `.test.ts` file under the nearest `tests/` folder relative to the path provided.
-- Works for both client and server test locations.
+- Works for both frontend and backend test locations.
 
 ## Dev Server & Watch
 - Serves `build/` over ASP.NET Core with an SSE endpoint for live reload.
@@ -96,14 +96,14 @@ What it does:
 - File watching uses a buffered queue to avoid thrashing on burst changes.
 
 Change impact:
-- Client change → rebuild affected page/assets → broadcast reload via SSE.
-- Server change → rebuild server → restart Node process.
+- Frontend change → rebuild affected page/assets → broadcast reload via SSE.
+- Backend change → rebuild backend → restart Node process.
 - Shared change → rebuild both sides that depend on shared modules.
 
 ## Build & Publish Pipelines
 
 HTML:
-- Page HTML merges into `src/client/app/app.html` (requires a `<main>` element) and is written to `build/client/pages/<page>/index.html` in dev.
+- Page HTML merges into `src/frontend/app/app.html` (requires a `<main>` element) and is written to `build/frontend/pages/<page>/index.html` in dev.
 - In publish, HTML is minified and rewritten to reference fingerprinted assets listed in a per-page manifest.
 
 CSS:
@@ -116,15 +116,15 @@ JavaScript/TypeScript:
 - Tree-shakes and minifies in publish.
 
 Outputs:
-- Dev: `build/client/**`, `build/server/**` with readable output and live-reload.
-- Prod: `dist/client/pages/<page>/index.<timestamp>.{css|js}`, HTML with rewritten links, and a per-page `manifest.json`.
+- Dev: `build/frontend/**`, `build/backend/**` with readable output and live-reload.
+- Prod: `dist/frontend/pages/<page>/index.<timestamp>.{css|js}`, HTML with rewritten links, and a per-page `manifest.json`.
 
 ## Project Layout
-- Base HTML: `src/client/app/app.html` contains a `<main>` used for page composition.
-- Pages: `src/client/pages/<page>/index.html|css|ts`.
-- App assets: `src/client/app/*` (copied as-is to `build/`).
+- Base HTML: `src/frontend/app/app.html` contains a `<main>` used for page composition.
+- Pages: `src/frontend/pages/<page>/index.html|css|ts`.
+- App assets: `src/frontend/app/*` (copied as-is to `build/`).
 - Shared types/modules: `src/shared/`.
-- Server entry: `src/server/index.ts` → `build/server/index.js`.
+- Backend entry: `src/backend/index.ts` → `build/backend/index.js`.
 
 ## Examples
 - Create a full-stack app: `webstir init my-app && cd my-app && webstir watch`

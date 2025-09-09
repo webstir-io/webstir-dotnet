@@ -18,7 +18,7 @@ public class CssBundler(AppWorkspace workspace)
 
     private async Task BundlePageStylesAsync()
     {
-        string pagesPath = workspace.ClientBuildPath.Combine(Folders.Pages);
+        string pagesPath = workspace.FrontendBuildPath.Combine(Folders.Pages);
         if (!pagesPath.Exists())
         {
             return;
@@ -70,7 +70,7 @@ public class CssBundler(AppWorkspace workspace)
     {
         long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         string cssFileName = $"{Files.Index}.{timestamp}{FileExtensions.Css}";
-        string pageDistDir = workspace.ClientDistPath.Combine(Folders.Pages, pageName);
+        string pageDistDir = workspace.FrontendDistPath.Combine(Folders.Pages, pageName);
         pageDistDir.Create();
 
         string distCssPath = Path.Combine(pageDistDir, cssFileName);
@@ -81,7 +81,7 @@ public class CssBundler(AppWorkspace workspace)
 
     private Task UpdateCssManifestAsync(string pageName, string cssFileName)
     {
-        string pageDistDir = workspace.ClientDistPath.Combine(Folders.Pages, pageName);
+        string pageDistDir = workspace.FrontendDistPath.Combine(Folders.Pages, pageName);
         AssetManifest.Update(pageDistDir, m => m.Css = cssFileName);
         return Task.CompletedTask;
     }

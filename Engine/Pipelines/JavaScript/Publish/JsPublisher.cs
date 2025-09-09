@@ -8,8 +8,8 @@ public class JsPublisher(AppWorkspace workspace)
 {
     public async Task PublishAsync()
     {
-        string sourceApp = workspace.ClientBuildAppPath;
-        string destApp = workspace.ClientDistAppPath;
+        string sourceApp = workspace.FrontendBuildAppPath;
+        string destApp = workspace.FrontendDistAppPath;
 
         if (!Directory.Exists(sourceApp))
         {

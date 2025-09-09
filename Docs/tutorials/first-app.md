@@ -18,7 +18,7 @@ webstir watch
 webstir add-page about
 ```
 
-Open `/about` in the browser; edit files in `src/client/pages/about/` and observe live reload.
+Open `/about` in the browser; edit files in `src/frontend/pages/about/` and observe live reload.
 
 ## Call the API
 Use the template API under `/api/health`. Requests are proxied by the dev server to the Node API.
@@ -29,7 +29,7 @@ webstir test
 webstir publish
 ```
 
-View `dist/client/pages/<page>/` for production outputs and manifests.
+View `dist/frontend/pages/<page>/` for production outputs and manifests.
 
 ## Next
 - Explore the pipelines — ../explanations/pipelines.md

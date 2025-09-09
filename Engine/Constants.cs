@@ -12,8 +12,8 @@ public static class Folders
     public const string Build = "build";
     public const string Dist = "dist";
     public const string Tests = "tests";
-    public const string Client = "client";
-    public const string Server = "server";
+    public const string Frontend = "frontend";
+    public const string Backend = "backend";
     public const string Shared = "shared";
     public const string Types = "types";
     public const string App = "app";
@@ -75,8 +75,8 @@ public static class Templates
 {
     public const string Path = "Engine.Templates";
     public const string SrcPath = $"{Path}.{Folders.Src}";
-    public const string ClientPath = $"{SrcPath}.{Folders.Client}";
-    public const string ServerPath = $"{SrcPath}.{Folders.Server}";
+    public const string FrontendPath = $"{SrcPath}.{Folders.Frontend}";
+    public const string BackendPath = $"{SrcPath}.{Folders.Backend}";
     public const string SharedPath = $"{SrcPath}.{Folders.Shared}";
     public const string TypesPath = $"{Path}.types";
 }

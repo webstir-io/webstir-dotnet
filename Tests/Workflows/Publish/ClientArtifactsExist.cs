@@ -19,7 +19,7 @@ public sealed class ClientArtifactsExist : ITestCase
 
         Assert.IsTrue(Directory.Exists(distDirectory), "seed/dist directory does not exist");
 
-        string clientPageDirectory = Path.Combine(distDirectory, Folders.Client, Folders.Pages, Folders.Home);
+        string clientPageDirectory = Path.Combine(distDirectory, Folders.Frontend, Folders.Pages, Folders.Home);
         Assert.IsTrue(
             File.Exists(Path.Combine(clientPageDirectory, $"{Files.Index}{FileExtensions.Html}")),
             "client page index.html missing in dist");

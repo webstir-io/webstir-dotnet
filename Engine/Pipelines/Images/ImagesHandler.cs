@@ -23,7 +23,7 @@ public class ImagesHandler(AppWorkspace workspace) : IFrontendHandler
         // If incremental and change is outside images, no-op
         if (!string.IsNullOrEmpty(changedFilePath))
         {
-            string root = workspace.ClientImagesPath;
+            string root = workspace.FrontendImagesPath;
             if (!root.Exists())
             {
                 return Task.CompletedTask;
@@ -36,18 +36,18 @@ public class ImagesHandler(AppWorkspace workspace) : IFrontendHandler
             }
         }
 
-        if (workspace.ClientImagesPath.Exists())
+        if (workspace.FrontendImagesPath.Exists())
         {
-            Copy(workspace.ClientImagesPath, workspace.ClientBuildImagesPath);
+            Copy(workspace.FrontendImagesPath, workspace.FrontendBuildImagesPath);
         }
         return Task.CompletedTask;
     }
 
     public Task PublishAsync()
     {
-        if (workspace.ClientBuildImagesPath.Exists())
+        if (workspace.FrontendBuildImagesPath.Exists())
         {
-            Copy(workspace.ClientBuildImagesPath, workspace.ClientDistImagesPath);
+            Copy(workspace.FrontendBuildImagesPath, workspace.FrontendDistImagesPath);
         }
         return Task.CompletedTask;
     }

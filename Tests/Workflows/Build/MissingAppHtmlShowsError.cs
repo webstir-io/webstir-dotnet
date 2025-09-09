@@ -25,7 +25,7 @@ public sealed class MissingAppHtmlShowsError : ITestCase
             Assert.AreEqual(0, init.ExitCode, $"{Commands.Init} command failed. Error: {init.Error}");
         }
 
-        string appHtml = Path.Combine(projectDir, Folders.Src, Folders.Client, Folders.App, "app.html");
+        string appHtml = Path.Combine(projectDir, Folders.Src, Folders.Frontend, Folders.App, "app.html");
         if (File.Exists(appHtml))
         {
             try
@@ -45,4 +45,3 @@ public sealed class MissingAppHtmlShowsError : ITestCase
         );
     }
 }
-

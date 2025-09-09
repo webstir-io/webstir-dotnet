@@ -24,10 +24,10 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
         ArgumentNullException.ThrowIfNull(workspace);
         await KillProcessOnPort(_settings.ApiServerPort, cancellationToken);
 
-        string serverIndexPath = workspace.ServerBuildPath.Combine("index.js");
+        string serverIndexPath = workspace.BackendBuildPath.Combine("index.js");
         if (!File.Exists(serverIndexPath))
         {
-            _logger.LogWarning("Server build not found. Skipping Node.js server.");
+            _logger.LogWarning("Backend build not found. Skipping Node.js server.");
             return;
         }
 

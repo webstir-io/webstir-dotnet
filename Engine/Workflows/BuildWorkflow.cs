@@ -5,8 +5,8 @@ namespace Engine.Workflows;
 
 public class BuildWorkflow(
     AppWorkspace context,
-    ClientWorker clientWorker,
-    ServerWorker serverWorker,
+    FrontendWorker clientWorker,
+    BackendWorker serverWorker,
     SharedWorker sharedWorker)
     : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
 {

@@ -18,7 +18,7 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
     public async Task BuildAsync(DiagnosticCollection? diagnostics = null)
     {
         DiagnosticCollection diag = diagnostics ?? new DiagnosticCollection();
-        string appHtmlPath = workspace.ClientAppPath.Combine(AppHtmlFileName);
+        string appHtmlPath = workspace.FrontendAppPath.Combine(AppHtmlFileName);
         if (!appHtmlPath.Exists())
         {
             _logger.LogError("Base application HTML file not found: {AppHtmlPath}", appHtmlPath);
@@ -40,7 +40,7 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
 
     private async Task BuildPageHtmlFilesAsync(HtmlFile appTemplate, DiagnosticCollection diagnostics)
     {
-        string pagesPath = workspace.ClientPagesPath;
+        string pagesPath = workspace.FrontendPagesPath;
         if (!pagesPath.Exists())
             return;
 
@@ -83,7 +83,7 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
         }
         string mergedHtml = appTemplate.Merge(pageFragment.Html);
 
-        string outputDir = workspace.ClientBuildPath
+        string outputDir = workspace.FrontendBuildPath
             .Combine(Folders.Pages, pageName);
         outputDir.Create();
 

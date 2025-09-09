@@ -35,8 +35,8 @@ Core implementation that powers the CLI. The engine owns workflows, pipelines, s
 Workflows call workers and services; they should not contain low-level file logic.
 
 ## Workers
-- ClientWorker: Runs HTML/CSS/TS client pipelines, copies app assets, writes to `build/client/`.
-- ServerWorker: Compiles server TS → `build/server/`, tracks restart state.
+- FrontendWorker: Runs HTML/CSS/TS frontend pipelines, copies app assets, writes to `build/frontend/`.
+- BackendWorker: Compiles backend TS → `build/backend/`, tracks restart state.
 - SharedWorker: Ensures shared types are compiled and available to both sides.
 
 Workers are incremental where possible: only touched pages or modules are reprocessed.

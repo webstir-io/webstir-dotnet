@@ -41,8 +41,8 @@ public static class CssImportProcessor
 
     internal static string ComputeOutputPathForSource(string sourceFilePath, AppWorkspace workspace)
     {
-        string relativePath = Path.GetRelativePath(workspace.ClientPath, sourceFilePath);
-        return workspace.ClientBuildPath.Combine(relativePath);
+        string relativePath = Path.GetRelativePath(workspace.FrontendPath, sourceFilePath);
+        return workspace.FrontendBuildPath.Combine(relativePath);
     }
 
     private static (string Path, string? Media) GetImportPathAndMedia(Match match, List<CssImportRule> parsedImports, int index)
@@ -68,7 +68,7 @@ public static class CssImportProcessor
         parsedIndex++;
 
         string replacement;
-        if (!TryResolveImport(importPath, context.SourceDirectory, context.Workspace.ClientPath, out string resolvedPath))
+        if (!TryResolveImport(importPath, context.SourceDirectory, context.Workspace.FrontendPath, out string resolvedPath))
         {
             context.Diagnostics.AddError($"Import file not found: {importPath}", context.SourceFilePath);
             replacement = $"/* ERROR: Import file not found: {importPath} */";
@@ -80,7 +80,7 @@ public static class CssImportProcessor
         }
         else
         {
-            string relativeImportPath = ComputeRelativeImportPath(resolvedPath, context.Workspace.ClientPath, context.Workspace.ClientBuildPath, context.OutputDirectory);
+            string relativeImportPath = ComputeRelativeImportPath(resolvedPath, context.Workspace.FrontendPath, context.Workspace.FrontendBuildPath, context.OutputDirectory);
             replacement = BuildImport(relativeImportPath, mediaTailContent);
         }
 

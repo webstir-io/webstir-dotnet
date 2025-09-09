@@ -10,8 +10,8 @@ using Engine.Workers;
 namespace Engine.Workflows;
 
 public sealed class AddTestWorkflow(AppWorkspace context,
-    ClientWorker clientWorker,
-    ServerWorker serverWorker,
+    FrontendWorker clientWorker,
+    BackendWorker serverWorker,
     SharedWorker sharedWorker) : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
 {
     public override string WorkflowName => Commands.AddTest;

@@ -27,14 +27,14 @@ public sealed class AddTestScaffoldsFile : ITestCase
 
         // Run add-test to create a home page test
         ProcessRunner.ProcessResult result = context.Cli.Run(
-            $"{Commands.AddTest} client/pages/home/home {ProjectOptions.ProjectName} {Folders.Seed}",
+            $"{Commands.AddTest} frontend/pages/home/home {ProjectOptions.ProjectName} {Folders.Seed}",
             testDir,
             timeoutMs: 10000);
 
         Assert.AreEqual(0, result.ExitCode, $"{Commands.AddTest} failed. Error: {result.Error}");
 
         // Verify file exists
-        string expectedTest = Path.Combine(seedDir, Folders.Src, Folders.Client, Folders.Pages, Folders.Home, Folders.Tests, "home.test.ts");
+        string expectedTest = Path.Combine(seedDir, Folders.Src, Folders.Frontend, Folders.Pages, Folders.Home, Folders.Tests, "home.test.ts");
         Assert.IsTrue(File.Exists(expectedTest), $"Test file not created at {expectedTest}");
 
         // Verify ambient types package exists
@@ -42,4 +42,3 @@ public sealed class AddTestScaffoldsFile : ITestCase
         Assert.IsTrue(File.Exists(typesIndex), "Ambient types not present at types/webstir/index.d.ts");
     }
 }
-

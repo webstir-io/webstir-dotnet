@@ -119,7 +119,7 @@ public static class Help
             "Scaffold a starter test",
             [
                 Example($"{App.Name} {Commands.AddTest} example", "Create src/tests/example.test.ts"),
-                Example($"{App.Name} {Commands.AddTest} client/app/pages/home/sometest", "Create src/client/app/pages/home/tests/sometest.test.ts")
+                Example($"{App.Name} {Commands.AddTest} frontend/app/pages/home/sometest", "Create src/frontend/app/pages/home/tests/sometest.test.ts")
             ],
             null,
             "<name-or-path>");

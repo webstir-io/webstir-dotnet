@@ -17,35 +17,35 @@ public class AppWorkspace
     public string BuildPath => WorkingPath.CreateSubDirectory(Folders.Build);
     public string DistPath => WorkingPath.CreateSubDirectory(Folders.Dist);
 
-    public string ClientPath => SrcPath.CreateSubDirectory(Folders.Client);
-    public string ClientAppPath => ClientPath.CreateSubDirectory(Folders.App);
-    public string ClientPagesPath => ClientPath.CreateSubDirectory(Folders.Pages);
-    public string ClientImagesPath => ClientPath.CreateSubDirectory(Folders.Images);
-    public string ClientFontsPath => ClientPath.CreateSubDirectory(Folders.Fonts);
-    public string ClientMediaPath => ClientPath.CreateSubDirectory(Folders.Media);
-    public string ClientBuildPath => BuildPath.CreateSubDirectory(Folders.Client);
-    public string ClientBuildAppPath => ClientBuildPath.CreateSubDirectory(Folders.App);
-    public string ClientBuildPagesPath => ClientBuildPath.CreateSubDirectory(Folders.Pages);
-    public string ClientBuildImagesPath => ClientBuildPath.CreateSubDirectory(Folders.Images);
-    public string ClientBuildFontsPath => ClientBuildPath.CreateSubDirectory(Folders.Fonts);
-    public string ClientBuildMediaPath => ClientBuildPath.CreateSubDirectory(Folders.Media);
-    public string ClientDistPath => DistPath.CreateSubDirectory(Folders.Client);
-    public string ClientDistImagesPath => ClientDistPath.CreateSubDirectory(Folders.Images);
-    public string ClientDistFontsPath => ClientDistPath.CreateSubDirectory(Folders.Fonts);
-    public string ClientDistMediaPath => ClientDistPath.CreateSubDirectory(Folders.Media);
-    public string ClientDistPagesPath => ClientDistPath.CreateSubDirectory(Folders.Pages);
-    public string ClientDistAppPath => ClientDistPath.CreateSubDirectory(Folders.App);
+    public string FrontendPath => SrcPath.CreateSubDirectory(Folders.Frontend);
+    public string FrontendAppPath => FrontendPath.CreateSubDirectory(Folders.App);
+    public string FrontendPagesPath => FrontendPath.CreateSubDirectory(Folders.Pages);
+    public string FrontendImagesPath => FrontendPath.CreateSubDirectory(Folders.Images);
+    public string FrontendFontsPath => FrontendPath.CreateSubDirectory(Folders.Fonts);
+    public string FrontendMediaPath => FrontendPath.CreateSubDirectory(Folders.Media);
+    public string FrontendBuildPath => BuildPath.CreateSubDirectory(Folders.Frontend);
+    public string FrontendBuildAppPath => FrontendBuildPath.CreateSubDirectory(Folders.App);
+    public string FrontendBuildPagesPath => FrontendBuildPath.CreateSubDirectory(Folders.Pages);
+    public string FrontendBuildImagesPath => FrontendBuildPath.CreateSubDirectory(Folders.Images);
+    public string FrontendBuildFontsPath => FrontendBuildPath.CreateSubDirectory(Folders.Fonts);
+    public string FrontendBuildMediaPath => FrontendBuildPath.CreateSubDirectory(Folders.Media);
+    public string FrontendDistPath => DistPath.CreateSubDirectory(Folders.Frontend);
+    public string FrontendDistImagesPath => FrontendDistPath.CreateSubDirectory(Folders.Images);
+    public string FrontendDistFontsPath => FrontendDistPath.CreateSubDirectory(Folders.Fonts);
+    public string FrontendDistMediaPath => FrontendDistPath.CreateSubDirectory(Folders.Media);
+    public string FrontendDistPagesPath => FrontendDistPath.CreateSubDirectory(Folders.Pages);
+    public string FrontendDistAppPath => FrontendDistPath.CreateSubDirectory(Folders.App);
 
-    public string ServerPath => SrcPath.CreateSubDirectory(Folders.Server);
-    public string ServerBuildPath => BuildPath.CreateSubDirectory(Folders.Server);
-    public string ServerDistPath => DistPath.CreateSubDirectory(Folders.Server);
+    public string BackendPath => SrcPath.CreateSubDirectory(Folders.Backend);
+    public string BackendBuildPath => BuildPath.CreateSubDirectory(Folders.Backend);
+    public string BackendDistPath => DistPath.CreateSubDirectory(Folders.Backend);
 
     public string SharedPath => SrcPath.CreateSubDirectory(Folders.Shared);
 
     public ProjectMode DetectProjectMode()
     {
-        string clientPath = WorkingPath.Combine(Folders.Src, Folders.Client);
-        string serverPath = WorkingPath.Combine(Folders.Src, Folders.Server);
+        string clientPath = WorkingPath.Combine(Folders.Src, Folders.Frontend);
+        string serverPath = WorkingPath.Combine(Folders.Src, Folders.Backend);
 
         bool hasClientDir = Directory.Exists(clientPath);
         bool hasServerDir = Directory.Exists(serverPath);

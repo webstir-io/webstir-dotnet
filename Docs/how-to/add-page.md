@@ -1,6 +1,6 @@
 # Add Page
 
-Scaffold a new client page with `index.html|css|ts` under `src/client/pages/<name>/`.
+Scaffold a new frontend page with `index.html|css|ts` under `src/frontend/pages/<name>/`.
 
 ## Purpose
 - Create a new routed page quickly with the expected files.
@@ -16,12 +16,12 @@ Scaffold a new client page with `index.html|css|ts` under `src/client/pages/<nam
 - `<name>`: normalized and validated page name. If the page already exists, the workflow fails.
 
 ## Steps
-1. Validate `<name>` and resolve `src/client/pages/<name>/`.
+1. Validate `<name>` and resolve `src/frontend/pages/<name>/`.
 2. Create the folder and write `index.html`, `index.css`, and `index.ts` from templates.
 3. Ensure references are compatible with `app.html` and client pipelines.
 
 ## Outputs
-- New page folder and files under `src/client/pages/<name>/`.
+- New page folder and files under `src/frontend/pages/<name>/`.
 - Picked up automatically by `build`, `watch`, and `publish`.
 
 ## Errors & Exit Codes

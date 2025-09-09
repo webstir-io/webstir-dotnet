@@ -49,24 +49,24 @@ Getting started with usage and concepts:
 ## Project Structure
 ```
 src/
-├─ client/            # Client app (HTML/CSS/TS)
+├─ frontend/          # Frontend app (HTML/CSS/TS)
 │  ├─ app/            # Base template (app.html, app.css, app.ts, refresh.js)
 │  ├─ pages/<name>/   # Per-page index.html/css/ts
 │  ├─ images/         # Static images (png, jpg, jpeg, gif, svg, webp, ico)
 │  ├─ fonts/          # Web fonts (woff2, woff, ttf, otf, eot, svg)
 │  └─ media/          # Media (mp3, m4a, wav, ogg, mp4, webm, mov)
-├─ server/            # Server TypeScript (compiled to build/server, run by Node)
+├─ backend/           # Backend TypeScript (compiled to build/backend, run by Node)
 └─ shared/            # Shared types and utilities
 
 build/                # Dev build output
-└─ client/            # Served by the dev server
+└─ frontend/          # Served by the dev server
    ├─ pages/**
    ├─ images/**
    ├─ fonts/**
    └─ media/**
 
 dist/                 # Production output
-└─ client/
+└─ frontend/
    ├─ pages/<name>/
    │  ├─ index.html
    │  ├─ index.<timestamp>.js
@@ -78,10 +78,10 @@ dist/                 # Production output
 ```
 
 ## Development Server
-- Web server (ASP.NET Core) serves `build/client` at `http://localhost:8088`
+- Web server (ASP.NET Core) serves `build/frontend` at `http://localhost:8088`
   - Injects SSE endpoint for reload notifications
   - Proxies `/api/*` to the Node server
-- Node server runs compiled `build/server/index.js` on `http://localhost:8008`
+- Node server runs compiled `build/backend/index.js` on `http://localhost:8008`
 - API proxy default target updated accordingly
 - Ports can be customized in `AppSettings` (when running the published binary) or via environment variables used by the Node server (`PORT`, `WEB_SERVER_URL`, `API_SERVER_URL`).
 
@@ -96,4 +96,4 @@ dist/                 # Production output
 - Purpose: Run a published Webstir client alongside the seed API via Docker Compose.
 - Docs: [docs/how-to/sandbox.md](docs/how-to/sandbox.md)
 - Start: `docker compose -f Sandbox/docker-compose.yml up --build`
-- Mounts: `CLI/out/seed/dist/client` (web), `CLI/out/seed` (api)
+- Mounts: `CLI/out/seed/dist/frontend` (web), `CLI/out/seed` (api)

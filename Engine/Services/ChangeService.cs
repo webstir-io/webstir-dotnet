@@ -91,7 +91,7 @@ public class ChangeService(ILogger<ChangeService> logger)
 
                         if (IsServerFile(changeEvent.FilePath))
                         {
-                            _logger.LogInformation("Server files changed, requesting server restart...");
+                            _logger.LogInformation("Backend files changed, requesting server restart...");
                             if (_onServerRestart != null)
                             {
                                 await _onServerRestart(_workspace!);
@@ -159,7 +159,7 @@ public class ChangeService(ILogger<ChangeService> logger)
     }
 
     private bool IsServerFile(string filePath) =>
-        filePath.StartsWith(_workspace!.ServerPath, StringComparison.OrdinalIgnoreCase);
+        filePath.StartsWith(_workspace!.BackendPath, StringComparison.OrdinalIgnoreCase);
 
     private static bool IsIgnored(string filePath)
     {

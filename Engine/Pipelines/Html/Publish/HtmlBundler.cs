@@ -13,7 +13,7 @@ public class HtmlBundler(AppWorkspace workspace)
 
     private async Task BundlePageHtmlAsync(DiagnosticCollection? diagnostics)
     {
-        string pagesPath = workspace.ClientBuildPath.Combine(Folders.Pages);
+        string pagesPath = workspace.FrontendBuildPath.Combine(Folders.Pages);
         if (!pagesPath.Exists())
         {
             return;
@@ -42,13 +42,13 @@ public class HtmlBundler(AppWorkspace workspace)
         htmlContent = HtmlRegex.Comment().Replace(htmlContent, string.Empty);
 
         // Rewrite asset references using per-page manifest if present
-        string pageDistDir = workspace.ClientDistPath.Combine(Folders.Pages, pageName);
+        string pageDistDir = workspace.FrontendDistPath.Combine(Folders.Pages, pageName);
         AssetManifest manifest = AssetManifest.Load(pageDistDir);
         htmlContent = RewriteAssetReferences(htmlContent, manifest, pageName);
 
         htmlContent = MinifyHtml(htmlContent);
 
-        string distPagePath = workspace.ClientDistPath.Combine(Folders.Pages, pageName, $"{Files.Index}{FileExtensions.Html}");
+        string distPagePath = workspace.FrontendDistPath.Combine(Folders.Pages, pageName, $"{Files.Index}{FileExtensions.Html}");
         distPagePath.DirectoryName().Create();
 
         await File.WriteAllTextAsync(distPagePath, htmlContent);

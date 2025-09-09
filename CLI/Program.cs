@@ -79,8 +79,8 @@ try
     services.AddTransient<IFrontendHandler, FontsHandler>();
     services.AddTransient<IFrontendHandler, MediaHandler>();
 
-    services.AddTransient<ClientWorker>();
-    services.AddTransient<ServerWorker>();
+    services.AddTransient<FrontendWorker>();
+    services.AddTransient<BackendWorker>();
     services.AddTransient<SharedWorker>();
 
     services.AddTransient<IWorkflow, InitWorkflow>();

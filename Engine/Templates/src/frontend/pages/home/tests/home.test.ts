@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 // __dirname is provided by the runner context and points to build/.../tests
-// Built HTML is at build/client/pages/home/index.html
+// Built HTML is at build/frontend/pages/home/index.html
 
 test('home page has expected parts', () => {
   const htmlPath = path.resolve(__dirname, '..', 'index.html');

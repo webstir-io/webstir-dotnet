@@ -35,7 +35,7 @@ public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bund
 
     public Task AddPageAsync(string pageName)
     {
-        string pageDirectory = workspace.ClientPagesPath.CreateSubDirectory(pageName);
+        string pageDirectory = workspace.FrontendPagesPath.CreateSubDirectory(pageName);
         string tsFilePath = pageDirectory.Combine($"{Files.Index}.ts");
         string tsContent = $"""
             import '../../{Folders.App}/workspace.js';

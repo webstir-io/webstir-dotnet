@@ -8,7 +8,7 @@ public class CssBuilder(AppWorkspace workspace)
 {
     public void Build(DiagnosticCollection? diagnostics = null)
     {
-        string[] cssFiles = workspace.ClientPath.Files("*.css", SearchOption.AllDirectories);
+        string[] cssFiles = workspace.FrontendPath.Files("*.css", SearchOption.AllDirectories);
 
         foreach (string srcFile in cssFiles)
         {

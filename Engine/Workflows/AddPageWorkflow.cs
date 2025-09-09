@@ -9,8 +9,8 @@ namespace Engine.Workflows;
 
 public class AddPageWorkflow(
     AppWorkspace context,
-    ClientWorker clientWorker,
-    ServerWorker serverWorker,
+    FrontendWorker clientWorker,
+    BackendWorker serverWorker,
     SharedWorker sharedWorker)
     : BaseWorkflow(context, clientWorker, serverWorker, sharedWorker)
 {
@@ -29,7 +29,7 @@ public class AddPageWorkflow(
             throw new ArgumentException($"Usage: {App.Name} {Commands.AddPage} <page-name> [--project-name <project>]");
         }
 
-        string pagePath = Context.ClientPagesPath.Combine(pageName);
+        string pagePath = Context.FrontendPagesPath.Combine(pageName);
         if (Directory.Exists(pagePath))
         {
             throw new InvalidOperationException($"Page '{pageName}' already exists");
