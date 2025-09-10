@@ -5,7 +5,10 @@ namespace Engine.Workflows.Interfaces;
 
 public interface IWorkflowWorker
 {
-    int BuildOrder { get; }
+    int BuildOrder
+    {
+        get;
+    }
     Task InitAsync(ProjectMode mode);
     Task BuildAsync(string? changedFilePath = null);
     Task PublishAsync();

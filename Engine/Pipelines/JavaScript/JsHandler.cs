@@ -38,7 +38,7 @@ public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bund
         string pageDirectory = workspace.FrontendPagesPath.CreateSubDirectory(pageName);
         string tsFilePath = pageDirectory.Combine($"{Files.Index}.ts");
         string tsContent = $"""
-            import '../../{Folders.App}/workspace.js';
+            import '../../{Folders.App}/app.js';
 
             console.log('{pageName} page loaded');
             """;

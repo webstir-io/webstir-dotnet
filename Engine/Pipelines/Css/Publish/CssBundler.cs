@@ -90,10 +90,14 @@ public class CssBundler(AppWorkspace workspace)
     {
         CssModule? existing = _graph.GetModule(filePath);
         if (existing != null)
+        {
             return existing;
+        }
 
         if (!filePath.Exists())
+        {
             throw new FileNotFoundException($"CSS file not found: {filePath}");
+        }
 
         string content = await File.ReadAllTextAsync(filePath);
         string directory = filePath.DirectoryName();
@@ -133,7 +137,8 @@ public class CssBundler(AppWorkspace workspace)
     {
         string content = module.Content;
 
-        content = CssRegex.BlockComment().Replace(content, string.Empty);
+        // Remove non-important comments only; preserve /*! ... */ license comments
+        content = CssRegex.NonImportantBlockComment().Replace(content, string.Empty);
 
         List<string> urls = Parser.ExtractUrls(content);
         if (urls.Count > 0)
@@ -142,15 +147,15 @@ public class CssBundler(AppWorkspace workspace)
             content = Parser.UpdateUrls(content, url => ResolveUrl(url, baseDir));
         }
 
-        if (module.Imports.Any(i => i.Media != null))
+        if (module.Imports.Any(importItem => importItem.Media != null))
         {
             StringBuilder wrapped = new();
-            foreach (CssImport import in module.Imports.Where(i => i.Media != null))
+            foreach (CssImport import in module.Imports.Where(importItem => importItem.Media != null))
             {
                 wrapped.AppendLine(FormattableString.Invariant($"@media {import.Media} {{"));
             }
             wrapped.Append(content);
-            foreach (CssImport import in module.Imports.Where(i => i.Media != null))
+            foreach (CssImport import in module.Imports.Where(importItem => importItem.Media != null))
             {
                 wrapped.AppendLine("}");
             }
@@ -164,10 +169,14 @@ public class CssBundler(AppWorkspace workspace)
     private static string ResolveUrl(string url, string baseDirectory)
     {
         if (url.StartsWith("http://", StringComparison.Ordinal) || url.StartsWith("https://", StringComparison.Ordinal) || url.StartsWith("data:", StringComparison.Ordinal))
+        {
             return url;
+        }
 
         if (url.StartsWith('/'))
+        {
             return url;
+        }
 
         string resolved = Path.GetRelativePath(Directory.GetCurrentDirectory(),
             Path.GetFullPath(baseDirectory.Combine(url)));

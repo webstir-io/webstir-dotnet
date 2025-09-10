@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 using Engine.Pipelines.Css.Models;
+using Engine.Pipelines.Css.Tokenization;
 
 namespace Engine.Pipelines.Css.Publish;
 
@@ -14,7 +14,9 @@ public static class Transformer
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(filePath);
         if (!filePath.EndsWith(Css.ModuleExt, StringComparison.OrdinalIgnoreCase))
+        {
             return new CssProcessedModule { Content = content, ClassMappings = [] };
+        }
 
         string hash = CssModuleGraph.GenerateHash(filePath);
         HashSet<string> classNames = Parser.ExtractClassNames(content);
@@ -34,110 +36,170 @@ public static class Transformer
         };
     }
 
-    // Autoprefixer
-    private static readonly Dictionary<string, string[]> PrefixMap = new()
-    {
-        ["display: flex"] = ["-webkit-box", "-ms-flexbox"],
-        ["display: inline-flex"] = ["-webkit-inline-box", "-ms-inline-flexbox"],
-        ["flex"] = ["-webkit-flex", "-ms-flex"],
-        ["flex-direction"] = ["-webkit-flex-direction", "-ms-flex-direction"],
-        ["flex-wrap"] = ["-webkit-flex-wrap", "-ms-flex-wrap"],
-        ["flex-flow"] = ["-webkit-flex-flow", "-ms-flex-flow"],
-        ["justify-content"] = ["-webkit-justify-content", "-ms-flex-pack"],
-        ["align-items"] = ["-webkit-align-items", "-ms-flex-align"],
-        ["align-self"] = ["-webkit-align-self", "-ms-flex-item-align"],
-        ["align-content"] = ["-webkit-align-content", "-ms-flex-line-pack"],
-        ["order"] = ["-webkit-order", "-ms-flex-order"],
-        ["flex-grow"] = ["-webkit-flex-grow", "-ms-flex-positive"],
-        ["flex-shrink"] = ["-webkit-flex-shrink", "-ms-flex-negative"],
-        ["flex-basis"] = ["-webkit-flex-basis", "-ms-flex-preferred-size"],
-        ["transform"] = ["-webkit-transform", "-ms-transform"],
-        ["transition"] = ["-webkit-transition"],
-        ["animation"] = ["-webkit-animation"],
-        ["user-select"] = ["-webkit-user-select", "-moz-user-select", "-ms-user-select"],
-        ["box-shadow"] = ["-webkit-box-shadow"],
-        ["border-radius"] = ["-webkit-border-radius"],
-        ["background-clip"] = ["-webkit-background-clip"],
-        ["background-size"] = ["-webkit-background-size"],
-        ["appearance"] = ["-webkit-appearance", "-moz-appearance"]
-    };
-
+    // Token-aware minimal prefixing for modern browsers
     public static string AddPrefixes(string css)
     {
-        return CssRegex.RuleBlock().Replace(css, match =>
+        ArgumentNullException.ThrowIfNull(css);
+
+        CssTokenizer tokenizer = new(css);
+        List<CssToken> tokens = tokenizer.Tokenize(preserveLicenseComments: true);
+        List<CssToken> output = [];
+
+        // Track per-block seen flags to avoid duplicates
+        Stack<(bool webkitUserSelect, bool webkitAppearance)> seenStack = new();
+        seenStack.Push((false, false));
+
+        int tokenIndex = 0;
+        while (tokenIndex < tokens.Count)
         {
-            string block = match.Groups[1].Value;
-            string prefixed = AddPrefixesToBlock(block);
-            return $"{{{prefixed}}}";
-        });
-    }
-
-    private static string AddPrefixesToBlock(string block)
-    {
-        Dictionary<string, string> properties = [];
-        List<string> orderedProperties = [];
-
-        MatchCollection matches = CssRegex.Property().Matches(block);
-        foreach (Match match in matches)
-        {
-            string property = match.Groups[1].Value.Trim();
-            string value = match.Groups[2].Value.Trim();
-            string key = $"{property}: {value}";
-
-            if (PrefixMap.TryGetValue(property, out string[]? prefixes))
+            CssToken token = tokens[tokenIndex];
+            if (token.Type == CssTokenType.Eof)
             {
-                foreach (string prefix in prefixes)
+                output.Add(token);
+                break;
+            }
+
+            if (token.Type == CssTokenType.LBrace)
+            {
+                // Enter new block
+                output.Add(token);
+                seenStack.Push((false, false));
+                tokenIndex++;
+                continue;
+            }
+            if (token.Type == CssTokenType.RBrace)
+            {
+                // Exit block
+                if (seenStack.Count > 1)
                 {
-                    string prefixedProp = $"{prefix}: {value}";
-                    if (!properties.ContainsKey(prefixedProp))
+                    seenStack.Pop();
+                }
+                output.Add(token);
+                tokenIndex++;
+                continue;
+            }
+
+            // Track existing prefixed declarations in the current block
+            if (token.Type == CssTokenType.Ident && seenStack.Count > 0)
+            {
+                string ident = token.Value;
+                (bool webkitUserSelect, bool webkitAppearance) flags = seenStack.Peek();
+                if (ident.Equals("-webkit-user-select", StringComparison.OrdinalIgnoreCase))
+                {
+                    seenStack.Pop();
+                    seenStack.Push((true, flags.webkitAppearance));
+                }
+                else if (ident.Equals("-webkit-appearance", StringComparison.OrdinalIgnoreCase))
+                {
+                    seenStack.Pop();
+                    seenStack.Push((flags.webkitUserSelect, true));
+                }
+
+                // Detect user-select / appearance property and inject prefixed version
+                if (ident.Equals("user-select", StringComparison.OrdinalIgnoreCase)
+                    || ident.Equals("appearance", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Lookahead for ':' and capture value tokens until ';' or '}'
+                    int afterNameIndex = tokenIndex + 1;
+                    while (afterNameIndex < tokens.Count && (tokens[afterNameIndex].Type == CssTokenType.Whitespace || tokens[afterNameIndex].Type == CssTokenType.Comment))
                     {
-                        properties[prefixedProp] = prefixedProp;
-                        orderedProperties.Add($"  {prefixedProp};");
+                        afterNameIndex++;
+                    }
+                    if (afterNameIndex < tokens.Count && tokens[afterNameIndex].Type == CssTokenType.Colon)
+                    {
+                        int valueStartIndex = afterNameIndex + 1;
+                        List<CssToken> valueTokens = [];
+                        bool endedWithSemicolon = false;
+                        while (valueStartIndex < tokens.Count)
+                        {
+                            CssToken valueToken = tokens[valueStartIndex];
+                            if (valueToken.Type == CssTokenType.Semicolon)
+                            {
+                                endedWithSemicolon = true;
+                                break;
+                            }
+                            if (valueToken.Type == CssTokenType.RBrace)
+                            {
+                                break;
+                            }
+                            valueTokens.Add(valueToken);
+                            valueStartIndex++;
+                        }
+
+                        // Insert prefixed declaration if not already present
+                        (bool webkitUserSelect, bool webkitAppearance) cur = seenStack.Peek();
+                        bool needWebkit = ident.Equals("user-select", StringComparison.OrdinalIgnoreCase) && !cur.webkitUserSelect
+                            || ident.Equals("appearance", StringComparison.OrdinalIgnoreCase) && !cur.webkitAppearance;
+                        if (needWebkit)
+                        {
+                            string prefixedName = ident.Equals("user-select", StringComparison.OrdinalIgnoreCase)
+                                ? "-webkit-user-select"
+                                : "-webkit-appearance";
+
+                            output.Add(new CssToken(CssTokenType.Ident, prefixedName, 0, 0));
+                            output.Add(new CssToken(CssTokenType.Colon, ":", 0, 0));
+                            foreach (CssToken vt in valueTokens)
+                            {
+                                output.Add(vt);
+                            }
+                            // Always terminate with semicolon; serializer will drop it if trailing
+                            output.Add(new CssToken(CssTokenType.Semicolon, ";", 0, 0));
+
+                            // Update seen flags
+                            if (ident.Equals("user-select", StringComparison.OrdinalIgnoreCase))
+                            {
+                                seenStack.Pop();
+                                seenStack.Push((true, cur.webkitAppearance));
+                            }
+                            else
+                            {
+                                seenStack.Pop();
+                                seenStack.Push((cur.webkitUserSelect, true));
+                            }
+                        }
+
+                        // Copy original declaration tokens as-is
+                        while (tokenIndex <= valueStartIndex && tokenIndex < tokens.Count)
+                        {
+                            output.Add(tokens[tokenIndex]);
+                            tokenIndex++;
+                        }
+                        // If ended by RBrace, do not consume it here; loop will process it
+                        if (!endedWithSemicolon && tokenIndex < tokens.Count && tokens[tokenIndex].Type == CssTokenType.RBrace)
+                        {
+                            // fall through; RBrace handled next iteration
+                        }
+                        continue;
                     }
                 }
             }
 
-            if (property == "display" && (value == "flex" || value == "inline-flex"))
-            {
-                string[] displayPrefixes = PrefixMap[$"display: {value}"];
-                foreach (string prefix in displayPrefixes)
-                {
-                    string prefixedProp = $"display: {prefix}";
-                    if (!properties.ContainsKey(prefixedProp))
-                    {
-                        properties[prefixedProp] = prefixedProp;
-                        orderedProperties.Add($"  {prefixedProp};");
-                    }
-                }
-            }
-
-            string originalProp = $"{property}: {value}";
-            if (!properties.ContainsKey(originalProp))
-            {
-                properties[originalProp] = originalProp;
-                orderedProperties.Add($"  {originalProp};");
-            }
+            // Default: copy token
+            output.Add(token);
+            tokenIndex++;
         }
 
-        return orderedProperties.Count > 0
-            ? "\n" + string.Join("\n", orderedProperties) + "\n"
-            : block;
+        // Serialize back
+        string result = CssSerializer.Serialize(output);
+        return result;
     }
 
-    // Minifier
+    // Minifier (token-based)
     public static string Minify(string css)
     {
-        css = CssRegex.BlockComment().Replace(css, string.Empty);
-        css = CssRegex.Whitespace().Replace(css, " ");
-        css = CssRegex.OperatorSpace().Replace(css, "$1");
-        css = CssRegex.ColonSpace().Replace(css, ":");
-        css = CssRegex.LastSemicolon().Replace(css, "}");
-        css = CssRegex.HexColor().Replace(css, "#$1$2$3");
-        css = CssRegex.LeadingZero().Replace(css, "$1");
-        css = CssRegex.TrailingZero().Replace(css, "$1");
-        css = CssRegex.ZeroUnit().Replace(css, "0");
-        css = css.Trim();
+        ArgumentNullException.ThrowIfNull(css);
 
-        return css;
+        // Tokenize with license comment preservation
+        CssTokenizer tokenizer = new(css);
+        List<CssToken> tokens = tokenizer.Tokenize(preserveLicenseComments: true);
+
+        // Token-level minification passes
+        List<CssToken> minified = CssTokenMinifier.Minify(tokens);
+
+        // Serialize with safe spacing and trailing semicolon removal
+        string result = CssSerializer.Serialize(minified);
+        return result.Trim();
     }
+
+    // (legacy helper removed; tokenization now handles sensitivity)
 }

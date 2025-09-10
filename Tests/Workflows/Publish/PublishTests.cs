@@ -21,7 +21,15 @@ public sealed class PublishTests : TestSuite
             new JsIsMinified(),
             new CssIsMinified(),
             new ManifestIntegrity(),
-            new HtmlWhitespaceCollapsed()
+            new HtmlWhitespaceCollapsed(),
+            // CSS minifier/prefixer invariants (quick)
+            new CssMinifierInvariants(),
+            new CssLicenseCommentsPreserved(),
+            new CssCalcSpacingValid(),
+            new CssModernPrefixesOnly(),
+            // Tokenizer/serializer unit tests (full only)
+            new CssTokenizerUnit(),
+            new CssSerializerMinifierUnit()
         ];
 
         foreach (ITestCase testCase in FilterByMode(cases))
@@ -35,7 +43,7 @@ public sealed class PublishTests : TestSuite
     private static IEnumerable<ITestCase> FilterByMode(IEnumerable<ITestCase> cases)
     {
         bool runFull = TestMode.IsFull;
-        return runFull ? cases : cases.Where(c => c.Category == TestCategory.Quick);
+        return runFull ? cases : cases.Where(testCase => testCase.Category == TestCategory.Quick);
     }
 
     private static TestCaseContext BuildContext()
