@@ -62,6 +62,7 @@ public class CssBundler(AppWorkspace workspace)
 
         string finalCss = bundled.ToString();
         finalCss = Transformer.AddPrefixes(finalCss);
+        finalCss = Transformer.StripLegacyPrefixes(finalCss);
         finalCss = Transformer.Minify(finalCss);
         return finalCss;
     }

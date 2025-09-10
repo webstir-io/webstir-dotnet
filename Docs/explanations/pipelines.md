@@ -22,6 +22,8 @@ Build and publish stages for HTML, CSS, JS/TS, and static assets (Images, Fonts,
 - Resolves `@import` and asset URLs; copies referenced assets.
 - Dev: keep readable, unminified CSS.
 - Publish: autoprefix and minify; optional CSS Modules; write fingerprinted `index.<timestamp>.css`.
+- Minifier: token-aware (preserves strings/urls); trims whitespace; normalizes numbers/zeros; shortens hex (incl. `#rrggbbaa→#rgba`); enforces spacing around `and/or/not` in `@media/@supports`; collapses zero shorthands (`margin/padding/inset`).
+- Legacy removal: strips `-ms-`, `-o-`, `-khtml-` prefixed declarations and legacy flexbox values; keeps a short allowlist of modern `-webkit-*` declarations.
 - Output paths follow the page layout in `build/frontend/pages/<page>/` and `dist/frontend/pages/<page>/`.
 
 ## JavaScript / TypeScript

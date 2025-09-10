@@ -16,6 +16,7 @@ public static class CssSerializer
         StringBuilder builder = new();
         bool pendingSpace = false;
         char lastNonWhitespaceChar = '\0';
+        bool inMediaOrSupportsPrelude = false;
 
         for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++)
         {
@@ -36,6 +37,49 @@ public static class CssSerializer
             if (token.Type == CssTokenType.Semicolon && IsTrailingSemicolon(tokens, tokenIndex))
             {
                 continue;
+            }
+
+            // Track @media/@supports prelude
+            if (token.Type == CssTokenType.AtKeyword)
+            {
+                string at = token.Value;
+                if (at.Equals("@media", StringComparison.OrdinalIgnoreCase)
+                    || at.Equals("@supports", StringComparison.OrdinalIgnoreCase))
+                {
+                    inMediaOrSupportsPrelude = true;
+                }
+            }
+
+            if (token.Type == CssTokenType.LBrace)
+            {
+                inMediaOrSupportsPrelude = false;
+            }
+
+            // Enforce spaces around logical operators in media/supports prelude
+            if (inMediaOrSupportsPrelude && token.Type == CssTokenType.Ident)
+            {
+                string ident = token.Value;
+                if (ident.Equals("and", StringComparison.OrdinalIgnoreCase)
+                    || ident.Equals("or", StringComparison.OrdinalIgnoreCase)
+                    || ident.Equals("not", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Ensure one space before operator
+                    if (pendingSpace || lastNonWhitespaceChar != ' ')
+                    {
+                        builder.Append(' ');
+                        lastNonWhitespaceChar = ' ';
+                        pendingSpace = false;
+                    }
+
+                    builder.Append(token.Value);
+                    lastNonWhitespaceChar = LastCharOf(token.Value, lastNonWhitespaceChar);
+
+                    // Ensure one space after operator
+                    builder.Append(' ');
+                    lastNonWhitespaceChar = ' ';
+                    pendingSpace = false;
+                    continue;
+                }
             }
 
             FlushPendingSpaceIfNeeded(builder, ref pendingSpace, ref lastNonWhitespaceChar, token);

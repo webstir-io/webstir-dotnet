@@ -29,7 +29,9 @@ public sealed class PublishTests : TestSuite
             new CssModernPrefixesOnly(),
             // Tokenizer/serializer unit tests (full only)
             new CssTokenizerUnit(),
-            new CssSerializerMinifierUnit()
+            new CssSerializerMinifierUnit(),
+            // Golden snapshot for seed home CSS (full only)
+            new CssSeedSnapshot()
         ];
 
         foreach (ITestCase testCase in FilterByMode(cases))

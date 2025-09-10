@@ -184,6 +184,165 @@ public static class Transformer
         return result;
     }
 
+    // Strip legacy prefixes and obsolete values for modern targets
+    public static string StripLegacyPrefixes(string css)
+    {
+        ArgumentNullException.ThrowIfNull(css);
+
+        CssTokenizer tokenizer = new(css);
+        List<CssToken> tokens = tokenizer.Tokenize(preserveLicenseComments: true);
+        List<CssToken> output = [];
+
+        int index = 0;
+        while (index < tokens.Count)
+        {
+            CssToken token = tokens[index];
+            if (token.Type == CssTokenType.Eof)
+            {
+                output.Add(token);
+                break;
+            }
+
+            // Detect a declaration: IDENT ':'
+            if (token.Type == CssTokenType.Ident)
+            {
+                string propName = token.Value;
+                int afterName = index + 1;
+                while (afterName < tokens.Count && (tokens[afterName].Type == CssTokenType.Whitespace || tokens[afterName].Type == CssTokenType.Comment))
+                {
+                    afterName++;
+                }
+                if (afterName < tokens.Count && tokens[afterName].Type == CssTokenType.Colon)
+                {
+                    // Capture declaration tokens (name through end before ';' or '}')
+                    int valueStart = afterName + 1;
+                    int cursor = valueStart;
+                    List<CssToken> declTokens = [];
+                    // Include name and tokens up to before terminator
+                    for (int i = index; i < valueStart; i++)
+                    {
+                        declTokens.Add(tokens[i]);
+                    }
+                    bool endedWithSemicolon = false;
+                    while (cursor < tokens.Count)
+                    {
+                        CssToken vt = tokens[cursor];
+                        if (vt.Type == CssTokenType.Semicolon)
+                        {
+                            endedWithSemicolon = true;
+                            break;
+                        }
+                        if (vt.Type == CssTokenType.RBrace)
+                        {
+                            break;
+                        }
+                        declTokens.Add(vt);
+                        cursor++;
+                    }
+
+                    // Decide drop/keep
+                    if (ShouldDropDeclaration(propName, declTokens))
+                    {
+                        // Skip declaration and optional semicolon
+                        index = endedWithSemicolon ? cursor + 1 : cursor;
+                        continue;
+                    }
+                    else
+                    {
+                        // Keep declaration as-is
+                        foreach (CssToken t in declTokens)
+                        {
+                            output.Add(t);
+                        }
+                        // Include semicolon if present
+                        if (endedWithSemicolon)
+                        {
+                            output.Add(tokens[cursor]);
+                            index = cursor + 1;
+                        }
+                        else
+                        {
+                            index = cursor;
+                        }
+                        continue;
+                    }
+                }
+            }
+
+            // Default: copy token
+            output.Add(token);
+            index++;
+        }
+
+        return CssSerializer.Serialize(output);
+    }
+
+    private static bool ShouldDropDeclaration(string propName, List<CssToken> declTokens)
+    {
+        // Normalize for comparisons
+        string name = propName.ToLowerInvariant();
+
+        // Drop vendor properties by prefix
+        if (name.StartsWith("-ms-", StringComparison.Ordinal)
+            || name.StartsWith("-o-", StringComparison.Ordinal)
+            || name.StartsWith("-khtml-", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        // Drop -webkit- properties unless explicitly allowed for modern Safari behavior
+        if (name.StartsWith("-webkit-", StringComparison.Ordinal))
+        {
+            if (!IsAllowedWebkitProperty(name))
+            {
+                return true;
+            }
+        }
+
+        // Drop legacy flexbox display values
+        if (name.Equals("display", StringComparison.Ordinal))
+        {
+            for (int i = 0; i < declTokens.Count; i++)
+            {
+                if (declTokens[i].Type == CssTokenType.Ident)
+                {
+                    string val = declTokens[i].Value;
+                    if (val.Equals("-webkit-box", StringComparison.OrdinalIgnoreCase)
+                        || val.Equals("-webkit-inline-box", StringComparison.OrdinalIgnoreCase)
+                        || val.Equals("-ms-flexbox", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsAllowedWebkitProperty(string lowerName)
+    {
+        // Keep a small allowlist of still-useful -webkit- properties
+        if (lowerName.Equals("-webkit-user-select", StringComparison.Ordinal)
+            || lowerName.Equals("-webkit-appearance", StringComparison.Ordinal)
+            || lowerName.Equals("-webkit-text-size-adjust", StringComparison.Ordinal)
+            || lowerName.Equals("-webkit-tap-highlight-color", StringComparison.Ordinal)
+            || lowerName.Equals("-webkit-overflow-scrolling", StringComparison.Ordinal)
+            || lowerName.Equals("-webkit-line-clamp", StringComparison.Ordinal)
+            || lowerName.Equals("-webkit-backdrop-filter", StringComparison.Ordinal)
+            || lowerName.Equals("-webkit-background-clip", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        if (lowerName.StartsWith("-webkit-mask", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     // Minifier (token-based)
     public static string Minify(string css)
     {

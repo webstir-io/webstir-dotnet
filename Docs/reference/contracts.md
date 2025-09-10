@@ -34,7 +34,7 @@ Public, user-visible guarantees that Webstir preserves across releases. These ar
 
 ## CSS
 - Resolves `@import` and asset URLs in dev.
-- Minified/autoprefixed in publish; CSS Modules supported in publish.
+- Publish minification/prefixing (modern-only): preserves strings/urls and license comments; trims whitespace and trailing `;`; normalizes numbers/zeros; collapses zero shorthands; shortens hex (`#rrggbb→#rgb`, `#rrggbbaa→#rgba`); strips legacy prefixes/values (`-ms-*`, `-o-*`, `-khtml-*`, legacy flexbox); adds minimal `-webkit-` where needed.
 
 ## Dev Server
 - Serves `build/frontend/**` with SSE reload and an `/api/*` proxy to the Node server.

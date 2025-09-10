@@ -51,9 +51,233 @@ public static class CssTokenMinifier
             }
         }
 
+        // Second pass: value-aware transforms (zero shorthand, color canonicalization)
+        List<CssToken> valuePass = ApplyValuePasses(output);
+
         // Ensure EOF token at end
-        output.Add(new CssToken(CssTokenType.Eof, string.Empty, 0, 0));
+        valuePass.Add(new CssToken(CssTokenType.Eof, string.Empty, 0, 0));
+        return valuePass;
+    }
+
+    private static List<CssToken> ApplyValuePasses(List<CssToken> tokens)
+    {
+        List<CssToken> output = [];
+
+        // Track when inside a declaration value
+        bool inDeclarationValue = false;
+        string currentProperty = string.Empty;
+        int parenDepth = 0;
+        int bracketDepth = 0;
+
+        for (int index = 0; index < tokens.Count; index++)
+        {
+            CssToken token = tokens[index];
+
+            if (token.Type == CssTokenType.LBrace)
+            {
+                inDeclarationValue = false;
+                currentProperty = string.Empty;
+                parenDepth = 0;
+                bracketDepth = 0;
+                output.Add(token);
+                continue;
+            }
+            if (token.Type == CssTokenType.RBrace)
+            {
+                inDeclarationValue = false;
+                currentProperty = string.Empty;
+                parenDepth = 0;
+                bracketDepth = 0;
+                output.Add(token);
+                continue;
+            }
+
+            if (!inDeclarationValue)
+            {
+                // Detect start of a declaration: IDENT ':'
+                if (token.Type == CssTokenType.Ident)
+                {
+                    output.Add(token);
+
+                    // lookahead for ':'
+                    int look = index + 1;
+                    while (look < tokens.Count && IsTrivia(tokens[look].Type))
+                    {
+                        output.Add(tokens[look]);
+                        look++;
+                    }
+                    if (look < tokens.Count && tokens[look].Type == CssTokenType.Colon)
+                    {
+                        // Emit ':' and enter value
+                        output.Add(tokens[look]);
+                        index = look;
+                        inDeclarationValue = true;
+                        currentProperty = token.Value;
+                        parenDepth = 0;
+                        bracketDepth = 0;
+                        continue;
+                    }
+
+                    // Not a declaration; continue normally
+                    continue;
+                }
+
+                // Default copy when not in a declaration
+                output.Add(token);
+                continue;
+            }
+
+            // We are inside a declaration value until ';' or '}'
+            if (token.Type == CssTokenType.Semicolon)
+            {
+                output.Add(token);
+                inDeclarationValue = false;
+                currentProperty = string.Empty;
+                parenDepth = 0;
+                bracketDepth = 0;
+                continue;
+            }
+            if (token.Type == CssTokenType.RBrace)
+            {
+                // Let the outer loop handle resetting state
+                output.Add(token);
+                inDeclarationValue = false;
+                currentProperty = string.Empty;
+                parenDepth = 0;
+                bracketDepth = 0;
+                continue;
+            }
+
+            // Track simple nesting for function/arrays to avoid rewriting inside functions
+            if (token.Type == CssTokenType.LParen)
+            {
+                parenDepth++;
+                output.Add(token);
+                continue;
+            }
+            if (token.Type == CssTokenType.RParen)
+            {
+                if (parenDepth > 0) { parenDepth--; }
+                output.Add(token);
+                continue;
+            }
+            if (token.Type == CssTokenType.LBracket)
+            {
+                bracketDepth++;
+                output.Add(token);
+                continue;
+            }
+            if (token.Type == CssTokenType.RBracket)
+            {
+                if (bracketDepth > 0) { bracketDepth--; }
+                output.Add(token);
+                continue;
+            }
+
+            // Attempt zero-shorthand collapse for certain properties at start of value
+            if (IsZeroShorthandProperty(currentProperty) && parenDepth == 0 && bracketDepth == 0)
+            {
+                // Capture the full value span from current index to before ';' or '}'
+                int valueStart = index;
+                int cursor = index;
+                bool allZero = true;
+                bool sawNonTrivia = false;
+                bool hasImportant = false;
+                while (cursor < tokens.Count)
+                {
+                    CssToken vt = tokens[cursor];
+                    if (vt.Type is CssTokenType.Semicolon or CssTokenType.RBrace)
+                    {
+                        break;
+                    }
+                    if (vt.Type == CssTokenType.Delim && vt.Value == "!")
+                    {
+                        hasImportant = true;
+                    }
+                    if (!IsTrivia(vt.Type))
+                    {
+                        sawNonTrivia = true;
+                        if (!(vt.Type == CssTokenType.Number && vt.Value == "0"))
+                        {
+                            allZero = false;
+                            break;
+                        }
+                    }
+                    cursor++;
+                }
+
+                if (sawNonTrivia && allZero && !hasImportant)
+                {
+                    // Replace the captured value with a single 0
+                    output.Add(new CssToken(CssTokenType.Number, "0", 0, 0));
+                    // Skip to just before the terminator; the loop will process ';' or '}' next
+                    index = cursor - 1;
+                    continue;
+                }
+            }
+
+            // Cautious color canonicalization: top-level value idents only
+            if (token.Type == CssTokenType.Ident && parenDepth == 0 && bracketDepth == 0)
+            {
+                CssToken? mapped = MapNamedColorToShortHex(token);
+                if (mapped.HasValue)
+                {
+                    output.Add(mapped.Value);
+                    continue;
+                }
+            }
+
+            // Default: copy
+            output.Add(token);
+        }
+
         return output;
+    }
+
+    private static bool IsTrivia(CssTokenType type)
+        => type is CssTokenType.Whitespace or CssTokenType.Comment;
+
+    private static bool IsZeroShorthandProperty(string property)
+        => property.Equals("margin", StringComparison.OrdinalIgnoreCase)
+            || property.Equals("padding", StringComparison.OrdinalIgnoreCase)
+            || property.Equals("inset", StringComparison.OrdinalIgnoreCase)
+            || property.Equals("inset-inline", StringComparison.OrdinalIgnoreCase)
+            || property.Equals("inset-block", StringComparison.OrdinalIgnoreCase);
+
+    private static CssToken? MapNamedColorToShortHex(CssToken identToken)
+    {
+        string ident = identToken.Value;
+        // Map only when the hex is strictly shorter than the ident
+        if (ident.Equals("white", StringComparison.OrdinalIgnoreCase))
+        {
+            return new CssToken(CssTokenType.Hash, "#fff", identToken.Start, identToken.End);
+        }
+        if (ident.Equals("black", StringComparison.OrdinalIgnoreCase))
+        {
+            return new CssToken(CssTokenType.Hash, "#000", identToken.Start, identToken.End);
+        }
+        if (ident.Equals("aqua", StringComparison.OrdinalIgnoreCase))
+        {
+            return new CssToken(CssTokenType.Hash, "#0ff", identToken.Start, identToken.End);
+        }
+        if (ident.Equals("lime", StringComparison.OrdinalIgnoreCase))
+        {
+            return new CssToken(CssTokenType.Hash, "#0f0", identToken.Start, identToken.End);
+        }
+        if (ident.Equals("fuchsia", StringComparison.OrdinalIgnoreCase))
+        {
+            return new CssToken(CssTokenType.Hash, "#f0f", identToken.Start, identToken.End);
+        }
+        if (ident.Equals("yellow", StringComparison.OrdinalIgnoreCase))
+        {
+            return new CssToken(CssTokenType.Hash, "#ff0", identToken.Start, identToken.End);
+        }
+        if (ident.Equals("transparent", StringComparison.OrdinalIgnoreCase))
+        {
+            // Modern: use 4-digit hex with alpha 0
+            return new CssToken(CssTokenType.Hash, "#0000", identToken.Start, identToken.End);
+        }
+        return null;
     }
 
     private static CssToken NormalizeNumber(CssToken token)
@@ -146,6 +370,19 @@ public static class CssTokenMinifier
             if (EqualHex(r1, r2) && EqualHex(g1, g2) && EqualHex(b1, b2))
             {
                 string shortHex = new(['#', ToLowerHex(r1), ToLowerHex(g1), ToLowerHex(b1)]);
+                return new CssToken(CssTokenType.Hash, shortHex, token.Start, token.End);
+            }
+        }
+        else if (text.Length == 9 && text[0] == '#')
+        {
+            char r1 = text[1], r2 = text[2];
+            char g1 = text[3], g2 = text[4];
+            char b1 = text[5], b2 = text[6];
+            char a1 = text[7], a2 = text[8];
+
+            if (EqualHex(r1, r2) && EqualHex(g1, g2) && EqualHex(b1, b2) && EqualHex(a1, a2))
+            {
+                string shortHex = new(['#', ToLowerHex(r1), ToLowerHex(g1), ToLowerHex(b1), ToLowerHex(a1)]);
                 return new CssToken(CssTokenType.Hash, shortHex, token.Start, token.End);
             }
         }
