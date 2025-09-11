@@ -9,7 +9,7 @@ namespace Tests.Workflows.Add;
 public sealed class AddTestScaffoldsFile : ITestCase
 {
     public string Name => "add-test creates test file and types";
-    public TestCategory Category => TestCategory.Quick;
+    public TestCategory Category => TestCategory.Full;
 
     public void Execute(TestCaseContext context)
     {

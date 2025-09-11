@@ -9,7 +9,7 @@ namespace Tests.Workflows.Add;
 public sealed class AddPageCreatesFiles : ITestCase
 {
     public string Name => "add-page creates page skeleton";
-    public TestCategory Category => TestCategory.Quick;
+    public TestCategory Category => TestCategory.Full;
 
     public void Execute(TestCaseContext context)
     {

@@ -54,18 +54,20 @@ We care about what users see and touch — CLI commands, generated projects, bui
 
 ## Running Tests
 
-- Quick run (default: init, build, publish):
+- Quick run (default suites: init, build, publish):
   - `dotnet run --project Tests`
 
-- Full suite (adds watch, help, extras):
+- Full suite (adds watch, help, add):
   - `dotnet run --project Tests -- --full`
   - Or set env: `WEBSTIR_TEST_MODE=full`
 
 - Run a single suite:
   - `dotnet run --project Tests -- test init`
   - `dotnet run --project Tests -- test build`
-  - `dotnet run --project Tests -- test watch`
   - `dotnet run --project Tests -- test publish`
+  - `dotnet run --project Tests -- test watch`
+  - `dotnet run --project Tests -- test help`
+  - `dotnet run --project Tests -- test add`
 
 - See runner help:
   - `dotnet run --project Tests -- help`

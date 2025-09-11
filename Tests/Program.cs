@@ -121,6 +121,7 @@ public class Program
         Console.WriteLine("  watch                - Tests the watch command");
         Console.WriteLine("  publish              - Tests the publish command");
         Console.WriteLine("  help                 - Tests the help command");
+        Console.WriteLine("  add                  - Tests add workflow");
         Console.WriteLine();
         Console.WriteLine("Examples:");
         Console.WriteLine("  dotnet run                    # Run quick tests");
