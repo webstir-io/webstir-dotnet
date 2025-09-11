@@ -48,4 +48,10 @@ public static partial class HtmlRegex
 
     [GeneratedRegex(@"\bintegrity=", RegexOptions.IgnoreCase)]
     public static partial Regex IntegrityAttr();
+
+    [GeneratedRegex(@"<meta\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    public static partial Regex MetaTag();
+
+    [GeneratedRegex(@"<link\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    public static partial Regex LinkTag();
 }
