@@ -128,8 +128,8 @@ public class JsBundler(AppWorkspace workspace)
 
     private async Task<string> WriteJsAsync(string pageName, string bundleCode)
     {
-        long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        string jsFileName = $"{Files.Index}.{timestamp}{FileExtensions.Js}";
+        string hash = ContentHashGenerator.ComputeHash(bundleCode);
+        string jsFileName = $"{Files.Index}.{hash}{FileExtensions.Js}";
 
         string pageDistDir = workspace.FrontendDistPath.Combine(Folders.Pages, pageName);
         pageDistDir.Create();

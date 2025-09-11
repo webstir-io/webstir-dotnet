@@ -73,8 +73,8 @@ public class CssBundler(AppWorkspace workspace)
 
     private async Task<string> WriteCssAsync(string pageName, string finalCss)
     {
-        long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        string cssFileName = $"{Files.Index}.{timestamp}{FileExtensions.Css}";
+        string hash = ContentHashGenerator.ComputeHash(finalCss);
+        string cssFileName = $"{Files.Index}.{hash}{FileExtensions.Css}";
         string pageDistDir = workspace.FrontendDistPath.Combine(Folders.Pages, pageName);
         pageDistDir.Create();
 

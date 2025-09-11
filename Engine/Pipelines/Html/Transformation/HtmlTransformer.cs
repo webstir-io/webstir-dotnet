@@ -55,4 +55,77 @@ public static class HtmlTransformer
         html = html.Replace($"'{oldPath}'", $"'{newPath}'");
         return html;
     }
+
+    public static string AddImageDimensions(string html, string pageBuildDirectory)
+    {
+        ArgumentNullException.ThrowIfNull(html);
+        ArgumentNullException.ThrowIfNull(pageBuildDirectory);
+
+        // Base directory examples: build/frontend/pages/<page>/
+        // Root (build/frontend) for absolute paths
+        string? pagesDir = System.IO.Path.GetDirectoryName(pageBuildDirectory.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar));
+        string? rootDir = pagesDir != null ? System.IO.Path.GetDirectoryName(pagesDir) : null;
+
+        return HtmlRegex.ImgTag().Replace(html, match =>
+        {
+            string tag = match.Value;
+            // Skip if width/height already exist
+            if (HtmlRegex.WidthAttr().IsMatch(tag) || HtmlRegex.HeightAttr().IsMatch(tag))
+            {
+                return tag;
+            }
+
+            Match srcMatch = HtmlRegex.ImgSrc().Match(tag);
+            if (!srcMatch.Success)
+            {
+                return tag;
+            }
+
+            string src = srcMatch.Groups["src"].Value;
+            if (src.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || src.StartsWith("https://", StringComparison.OrdinalIgnoreCase) || src.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                return tag;
+            }
+
+            string? fullPath = null;
+            try
+            {
+                if (src.StartsWith("/", StringComparison.Ordinal))
+                {
+                    if (!string.IsNullOrEmpty(rootDir))
+                    {
+                        fullPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(rootDir, src.TrimStart('/').Replace('/', System.IO.Path.DirectorySeparatorChar)));
+                    }
+                }
+                else
+                {
+                    fullPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(pageBuildDirectory, src.Replace('/', System.IO.Path.DirectorySeparatorChar)));
+                }
+            }
+            catch
+            {
+                fullPath = null;
+            }
+
+            if (string.IsNullOrEmpty(fullPath) || !System.IO.File.Exists(fullPath))
+            {
+                return tag;
+            }
+
+            if (!Engine.Pipelines.Images.ImageOptimizer.TryGetImageDimensions(fullPath, out int width, out int height))
+            {
+                return tag;
+            }
+
+            // Inject width and height before closing '>'
+            int insertIndex = tag.LastIndexOf('>');
+            if (insertIndex <= 0)
+            {
+                return tag;
+            }
+            string injection = FormattableString.Invariant($" width=\"{width}\" height=\"{height}\"");
+            string updated = tag.Insert(insertIndex, injection);
+            return updated;
+        });
+    }
 }

@@ -50,6 +50,13 @@ public class HtmlBundler(AppWorkspace workspace)
         AssetManifest manifest = AssetManifest.Load(pageDistDir);
         htmlContent = HtmlTransformer.RewriteAssetReferences(htmlContent, manifest, pageName);
 
+        // Inject width/height on <img> tags based on build image files
+        string pageBuildDir = workspace.FrontendBuildPath.Combine(Folders.Pages, pageName);
+        htmlContent = HtmlTransformer.AddImageDimensions(htmlContent, pageBuildDir);
+
+        // Add SRI for external scripts/styles (best-effort, network dependent)
+        htmlContent = await HtmlSecurityEnhancer.AddSRIForExternalResourcesAsync(htmlContent);
+
         string originalHtml = htmlContent;
         try
         {

@@ -27,4 +27,25 @@ public static partial class HtmlRegex
 
     [GeneratedRegex(@"<main([^>]*)>\s*</main>", RegexOptions.Singleline)]
     public static partial Regex EmptyMain();
+
+    [GeneratedRegex(@"<img\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    public static partial Regex ImgTag();
+
+    [GeneratedRegex(@"\bwidth\s*=", RegexOptions.IgnoreCase)]
+    public static partial Regex WidthAttr();
+
+    [GeneratedRegex(@"\bheight\s*=", RegexOptions.IgnoreCase)]
+    public static partial Regex HeightAttr();
+
+    [GeneratedRegex(@"\bsrc\s*=\s*(['""])(?<src>.*?)\1", RegexOptions.IgnoreCase)]
+    public static partial Regex ImgSrc();
+
+    [GeneratedRegex(@"<script\b(?<attrs>[^>]*?)src=""(?<url>https?://[^""]+)""(?<tail>[^>]*)>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    public static partial Regex ExternalScriptTag();
+
+    [GeneratedRegex(@"<link\b(?<attrs>[^>]*?)rel=""stylesheet""(?<mid>[^>]*?)href=""(?<url>https?://[^""]+)""(?<tail>[^>]*)>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    public static partial Regex ExternalStylesheetLink();
+
+    [GeneratedRegex(@"\bintegrity=", RegexOptions.IgnoreCase)]
+    public static partial Regex IntegrityAttr();
 }

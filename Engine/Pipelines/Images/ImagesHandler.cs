@@ -43,13 +43,12 @@ public class ImagesHandler(AppWorkspace workspace) : IFrontendHandler
         return Task.CompletedTask;
     }
 
-    public Task PublishAsync()
+    public async Task PublishAsync()
     {
         if (workspace.FrontendBuildImagesPath.Exists())
         {
-            Copy(workspace.FrontendBuildImagesPath, workspace.FrontendDistImagesPath);
+            await ImageOptimizer.OptimizeAsync(workspace.FrontendBuildImagesPath, workspace.FrontendDistImagesPath);
         }
-        return Task.CompletedTask;
     }
 
 

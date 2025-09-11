@@ -35,8 +35,8 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
     private const string ApiRoute = "/api";
     private const string HomeRoute = "/home";
 
-    [GeneratedRegex(@"\.\d{10}\.(css|js|png|jpg|jpeg|gif|svg|webp|ico)$")]
-    private static partial Regex TimestampedAssetPattern();
+    [GeneratedRegex(@"\.[a-f0-9]{8,64}\.(css|js|png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|otf|eot|mp3|m4a|wav|ogg|mp4|webm|mov)$", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    private static partial Regex ContentHashedAssetPattern();
 
     private static bool IsStaticAsset(string path) =>
         path.EndsWith(FileExtensions.Css, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Js, StringComparison.OrdinalIgnoreCase) ||
@@ -142,6 +142,8 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
     {
         app.Use(HandleServerSentEvents);
         app.UseMiddleware<ApiProxyMiddleware>();
+        app.UseMiddleware<SecurityHeadersMiddleware>();
+        app.UseMiddleware<PrecompressionMiddleware>();
         app.Use(SetCacheHeaders);
         app.Use(RewriteCleanUrls);
 
@@ -191,7 +193,7 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
 
         string path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
 
-        if (TimestampedAssetPattern().IsMatch(path))
+        if (ContentHashedAssetPattern().IsMatch(path))
         {
             context.Response.Headers.CacheControl = LongCache;
         }
