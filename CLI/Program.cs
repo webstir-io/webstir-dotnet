@@ -14,7 +14,7 @@ using Engine.Pipelines.Html.Publish;
 using Engine.Pipelines.Images;
 using Engine.Pipelines.JavaScript;
 using Engine.Pipelines.JavaScript.Build;
-using Engine.Pipelines.JavaScript.Publish;
+using Engine.Pipelines.JavaScript.Bundling;
 using Engine.Pipelines.Media;
 using Engine.Servers;
 using Engine.Services;
@@ -64,21 +64,6 @@ try
 
     services.AddScoped<AppWorkspace>();
     services.AddScoped<IWorkflowFactory, WorkflowFactory>();
-    services.AddTransient<HtmlBuilder>();
-    services.AddTransient<HtmlBundler>();
-
-    services.AddTransient<CssBuilder>();
-    services.AddTransient<JsBuilder>();
-    services.AddTransient<CssBundler>();
-    services.AddTransient<JsBundler>();
-    services.AddTransient<JsPublisher>();
-
-    services.AddTransient<IFrontendHandler, HtmlHandler>();
-    services.AddTransient<IFrontendHandler, CssHandler>();
-    services.AddTransient<IFrontendHandler, JsHandler>();
-    services.AddTransient<IFrontendHandler, ImagesHandler>();
-    services.AddTransient<IFrontendHandler, FontsHandler>();
-    services.AddTransient<IFrontendHandler, MediaHandler>();
 
     services.AddTransient<IWorkflowWorker, FrontendWorker>();
     services.AddTransient<IWorkflowWorker, BackendWorker>();
@@ -91,6 +76,20 @@ try
     services.AddTransient<IWorkflow, AddTestWorkflow>();
     services.AddTransient<IWorkflow, TestWorkflow>();
     services.AddTransient<IWorkflow, WatchWorkflow>();
+
+    services.AddTransient<IFrontendHandler, HtmlHandler>();
+    services.AddTransient<IFrontendHandler, CssHandler>();
+    services.AddTransient<IFrontendHandler, JsHandler>();
+    services.AddTransient<IFrontendHandler, ImagesHandler>();
+    services.AddTransient<IFrontendHandler, FontsHandler>();
+    services.AddTransient<IFrontendHandler, MediaHandler>();
+
+    services.AddTransient<HtmlBuilder>();
+    services.AddTransient<HtmlBundler>();
+    services.AddTransient<CssBuilder>();
+    services.AddTransient<CssBundler>();
+    services.AddTransient<JsBuilder>();
+    services.AddTransient<JsBundler>();
 
     using ServiceProvider provider = services.BuildServiceProvider();
     await provider.GetService<Runner>()!.Run(args);

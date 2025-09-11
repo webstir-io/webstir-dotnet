@@ -3,8 +3,9 @@ using System.IO;
 using System.Text.Json;
 
 using Engine.Extensions;
+using Engine.Pipelines.JavaScript.Common;
 
-namespace Engine.Pipelines.JavaScript.Publish;
+namespace Engine.Pipelines.JavaScript.Transformation;
 
 public class JsModuleResolver(AppWorkspace workspace)
 {

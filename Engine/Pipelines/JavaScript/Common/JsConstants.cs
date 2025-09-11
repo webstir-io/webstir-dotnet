@@ -1,4 +1,4 @@
-namespace Engine.Pipelines.JavaScript;
+namespace Engine.Pipelines.JavaScript.Common;
 
 public static class Js
 {
@@ -41,6 +41,7 @@ public static class PackageJsonFields
 
 public static class Syntax
 {
+    // String constants (existing)
     public const string OpenBrace = "{";
     public const string CloseBrace = "}";
     public const string OpenParen = "(";
@@ -52,4 +53,38 @@ public static class Syntax
     public const string Space = " ";
     public const string Asterisk = "*";
     public const string Assignment = " = ";
+
+    // Character constants for minification and parsing
+    public const char SlashChar = '/';
+    public const char BackslashChar = '\\';
+    public const char SingleQuoteChar = '\'';
+    public const char DoubleQuoteChar = '"';
+    public const char BacktickChar = '`';
+    public const char DollarChar = '$';
+    public const char OpenBraceChar = '{';
+    public const char CloseBraceChar = '}';
+    public const char OpenBracketChar = '[';
+    public const char CloseBracketChar = ']';
+    public const char OpenParenChar = '(';
+    public const char CloseParenChar = ')';
+    public const char AsteriskChar = '*';
+    public const char ExclamationChar = '!';
+    public const char NewlineChar = '\n';
+    public const char CarriageReturnChar = '\r';
+    public const char SpaceChar = ' ';
+    public const char PlusChar = '+';
+    public const char MinusChar = '-';
+    public const char CommaChar = ',';
+    public const char SemicolonChar = ';';
+    public const char ColonChar = ':';
+    public const char QuestionChar = '?';
+    public const char EqualsChar = '=';
+    public const char LessThanChar = '<';
+    public const char GreaterThanChar = '>';
+    public const char PercentChar = '%';
+    public const char AmpersandChar = '&';
+    public const char PipeChar = '|';
+    public const char CaretChar = '^';
+    public const char TildeChar = '~';
+    public const char NullChar = '\0';
 }

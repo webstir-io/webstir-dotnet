@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
+using Engine.Pipelines.JavaScript.Common;
 using Engine.Pipelines.JavaScript.Parsing;
 using Engine.Pipelines.JavaScript.Models;
 
-namespace Engine.Pipelines.JavaScript.Publish;
+namespace Engine.Pipelines.JavaScript.Transformation;
 
 public static class JsModuleParser
 {

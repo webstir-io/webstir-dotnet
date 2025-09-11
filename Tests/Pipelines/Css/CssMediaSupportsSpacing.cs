@@ -33,11 +33,19 @@ public sealed class CssMediaSupportsSpacing : ITestCase
         string seedDist = Path.Combine(seedDirectory, Folders.Dist);
         if (Directory.Exists(seedBuild))
         {
-            try { Directory.Delete(seedBuild, recursive: true); } catch { }
+            try
+            {
+                Directory.Delete(seedBuild, recursive: true);
+            }
+            catch { }
         }
         if (Directory.Exists(seedDist))
         {
-            try { Directory.Delete(seedDist, recursive: true); } catch { }
+            try
+            {
+                Directory.Delete(seedDist, recursive: true);
+            }
+            catch { }
         }
 
         ProcessRunner.ProcessResult result = context.Cli.Run($"{Commands.Publish} {ProjectOptions.ProjectName} seed", testDirectory, timeoutMs: 20000);

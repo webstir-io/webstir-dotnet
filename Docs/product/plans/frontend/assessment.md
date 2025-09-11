@@ -8,10 +8,10 @@ This document assesses the remaining gaps in Webstir's frontend pipeline for pro
 ### Core Optimization
 - **CSS Minification**: Token-based minification preserving correctness
 - **JavaScript Minification**: Custom minifier with template literal support
-- **HTML Assembly**: Template merging (pending minification implementation)
+- **HTML Assembly & Minification**: Template merge + safe, always-on minifier
 - **Asset Fingerprinting**: Timestamp-based cache busting (e.g., `index.1234567890.css`)
 - **HTTP Caching**: Proper cache headers for timestamped assets (1-year max-age)
-- **Precompression**: Brotli compression for CSS/JS (`.br` files)
+- **Precompression**: Brotli/gzip for HTML/CSS/JS (`.html/.css/.js` with `.br/.gz`)
 - **Source Maps**: Full support for CSS and JavaScript debugging
 - **Tree Shaking**: Dead code elimination for JavaScript
 - **ESM Bundling**: Modern module bundling with scope hoisting

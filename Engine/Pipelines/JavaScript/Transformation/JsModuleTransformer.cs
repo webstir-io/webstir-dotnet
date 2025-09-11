@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Engine.Pipelines.JavaScript.Common;
 using Engine.Pipelines.JavaScript.Models;
 
-namespace Engine.Pipelines.JavaScript.Publish;
+namespace Engine.Pipelines.JavaScript.Transformation;
 
 public static class JsModuleTransformer
 {

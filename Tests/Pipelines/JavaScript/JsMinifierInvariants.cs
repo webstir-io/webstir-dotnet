@@ -1,5 +1,5 @@
 using System;
-using Engine.Pipelines.JavaScript.Publish;
+using Engine.Pipelines.JavaScript.Minification;
 using Tests.Framework;
 
 namespace Tests.Pipelines.JavaScript;

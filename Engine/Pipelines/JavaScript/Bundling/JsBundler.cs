@@ -4,9 +4,11 @@ using System.IO;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
+using Engine.Pipelines.JavaScript.Minification;
 using Engine.Pipelines.JavaScript.Models;
+using Engine.Pipelines.JavaScript.Transformation;
 
-namespace Engine.Pipelines.JavaScript.Publish;
+namespace Engine.Pipelines.JavaScript.Bundling;
 
 public class JsBundler(AppWorkspace workspace)
 {
@@ -142,7 +144,7 @@ public class JsBundler(AppWorkspace workspace)
     {
         string pageDistDir = workspace.FrontendDistPath.Combine(Folders.Pages, pageName);
         AssetManifest.Update(pageDistDir, m => m.Js = jsFileName);
-        
+
         return Task.CompletedTask;
     }
 }

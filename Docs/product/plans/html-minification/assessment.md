@@ -1,105 +1,48 @@
-# HTML Minification Assessment
+# HTML Minification Assessment (Post‑Implementation)
 
 ## Overview
-This document assesses the implementation of HTML minification in Webstir's publish workflow, following the successful CSS minification approach.
+HTML minification is implemented and enabled by default in the publish workflow. The implementation uses a streaming, single‑pass minifier focused on safe, deterministic transforms.
 
 ## Current State
-- HTML files are assembled from templates (app.html + page fragments)
-- No minification currently applied
-- Published HTML retains all formatting, comments, and whitespace
+- HTML assembled from `app.html` + page fragments during build.
+- On publish, HTML is rewritten to use per‑page manifests, minified, and precompressed as `.html.br` and `.html.gz`.
 
-## Proposed Approach
+## Approach
+- Streaming minifier (`HtmlMinifier`): parses tags/text in one pass without a standalone tokenizer/serializer.
+- Opinionated defaults; no flags/configuration.
 
-### Token-Based Minification
-Similar to CSS, use a token-based approach to preserve correctness:
-1. **HtmlTokenizer**: Parse HTML into semantic tokens
-2. **HtmlTokenMinifier**: Apply safe minification rules
-3. **HtmlSerializer**: Reconstruct minified HTML
+### Optimizations Applied
+- Remove HTML comments (outside raw/sensitive blocks).
+- Collapse inter‑tag whitespace (whitespace‑only text nodes between tags).
+- Attribute optimizations (safe‑only):
+  - Collapse boolean attributes.
+  - Remove default `type` on `<script>` (`text/javascript`) and `<style>` (`text/css`).
+  - Safely unquote attribute values when unambiguous (no spaces/quotes/`<`/`>`/`=`).
 
-### Safe Optimizations
-- Remove HTML comments (preserve IE conditionals if needed)
-- Collapse whitespace between tags
-- Trim whitespace around block-level elements
-- Remove unnecessary quotes from attribute values
-- Collapse boolean attributes (`disabled="disabled"` → `disabled`)
-- Remove optional closing tags where safe (e.g., `</li>`, `</td>`)
-- Normalize attribute order for better gzip compression
+### Preserved Semantics
+- Do not alter contents of `<script>`, `<style>`, `<pre>`, `<code>`, `<textarea>`.
+- Do not reorder or lowercase attributes; preserve unknown/data attributes as‑is.
+- Do not remove optional opening/closing tags in v1.
 
-### Preserve Semantics In
-- `<pre>`, `<code>`, `<textarea>` - preserve exact whitespace
-- `<script>` tags - don't modify (handled by JS minifier)
-- `<style>` tags - don't modify (handled by CSS minifier)
-- Inline event handlers - preserve JavaScript as-is
-- Data attributes - preserve values exactly
-
-## Implementation Phases
-
-### Phase 1: Basic Tokenizer
-- Create `Engine/Pipelines/Html/Tokenization/HtmlTokenizer.cs`
-- Support core HTML5 elements and attributes
-- Handle self-closing tags and void elements
-- Parse comments, CDATA sections, and doctypes
-
-### Phase 2: Minification Rules
-- Create `Engine/Pipelines/Html/Tokenization/HtmlTokenMinifier.cs`
-- Implement whitespace collapsing rules
-- Remove comments (except conditionals)
-- Handle attribute optimization
-
-### Phase 3: Integration
-- Add to `PublishWorkflow` after HTML assembly
-- Create `HtmlMinifier.cs` in `Engine/Pipelines/Html/Publish/`
-- Add configuration options to control minification level
-
-## Expected Benefits
-- **Size Reduction**: 10-20% typical reduction
-- **Faster Parse Time**: Less HTML for browser to process
-- **Network Savings**: Reduced bandwidth usage
-- **Better Compression**: Normalized structure compresses better
+## Integration
+- Runs in `HtmlBundler` after asset reference rewriting.
+- Emits precompressed `.html.br` and `.html.gz` variants next to `index.html`.
+- Graceful fallback on errors (keep original HTML, log warning).
 
 ## Risks and Mitigations
-
-### Risk: Breaking Inline Whitespace
-**Mitigation**: Preserve single spaces between inline elements, use allowlist for elements requiring exact whitespace
-
-### Risk: JavaScript String Literals
-**Mitigation**: Don't modify content within `<script>` tags or inline event handlers
-
-### Risk: CSS Selectors Depending on HTML Structure  
-**Mitigation**: Don't remove "unnecessary" elements/attributes that might be CSS targets
-
-### Risk: Third-Party Integrations
-**Mitigation**: Provide option to disable minification per-page or globally
+- Risk: whitespace‑sensitive layouts → Mitigation: only collapse inter‑tag whitespace; preserve text nodes and sensitive elements.
+- Risk: attribute semantics → Mitigation: safe‑only transforms; no reordering/lowercasing; preserve unknown/data attrs.
+- Risk: inline JS/CSS → Mitigation: raw handling for `<script>/<style>`; no inline minification.
 
 ## Success Criteria
-- [ ] All existing tests pass with minification enabled
-- [ ] No visual differences in rendered pages
-- [ ] Clear error messages if minification fails
+- All existing tests pass with minification enabled (done).
+- No visual or functional regressions observed in workflow tests (done).
+- Clear warning on minifier failure with graceful fallback (done).
 
 ## Testing Strategy
-1. Create test cases for each token type
-2. Test whitespace preservation in sensitive contexts
-3. Verify no semantic changes in output
-4. Compare rendered output before/after minification
-5. Test with real-world HTML including:
-   - Complex forms
-   - Nested tables
-   - SVG content
-   - Inline scripts/styles
-   - Template syntax (if applicable)
+- Workflow tests only (no unit tests): whitespace collapse, attribute optimizations, precompressed artifact presence.
 
-## Timeline Estimate
-- Phase 1: 2-3 days (tokenizer)
-- Phase 2: 2-3 days (minification rules)
-- Phase 3: 1-2 days (integration)
-- Testing: 2-3 days
-- **Total: 7-11 days**
-
-## Decision
-**Recommendation**: Proceed with implementation following the token-based approach proven successful with CSS minification.
-
-## Next Steps
-1. Review and approve this assessment
-2. Create implementation plan with detailed token types
-3. Begin Phase 1 with HtmlTokenizer
-4. Create comprehensive test suite
+## Future Considerations (Optional)
+- Add file/line context to diagnostics where practical.
+- Consider tokenizer/serializer refactor if future rules get more advanced.
+- Evaluate opt‑in minification for inline `<script>/<style>` using existing JS/CSS minifiers.

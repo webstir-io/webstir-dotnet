@@ -157,7 +157,10 @@ public static class CssTokenMinifier
             }
             if (token.Type == CssTokenType.RParen)
             {
-                if (parenDepth > 0) { parenDepth--; }
+                if (parenDepth > 0)
+                {
+                    parenDepth--;
+                }
                 output.Add(token);
                 continue;
             }
@@ -169,7 +172,10 @@ public static class CssTokenMinifier
             }
             if (token.Type == CssTokenType.RBracket)
             {
-                if (bracketDepth > 0) { bracketDepth--; }
+                if (bracketDepth > 0)
+                {
+                    bracketDepth--;
+                }
                 output.Add(token);
                 continue;
             }

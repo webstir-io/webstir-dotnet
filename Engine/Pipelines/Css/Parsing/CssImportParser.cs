@@ -44,7 +44,7 @@ public sealed class CssImportParser
     private CssImportRule? ParseImport()
     {
         SkipTrivia();
-        
+
         string? path = ExtractImportPath();
         if (path == null)
         {
@@ -79,7 +79,7 @@ public sealed class CssImportParser
     private string? ExtractUrlPath()
     {
         Advance(); // consume 'url'
-        
+
         if (!Match(TokenType.OpenParen))
         {
             return null;
@@ -96,7 +96,7 @@ public sealed class CssImportParser
     private string ExtractUnquotedUrl()
     {
         List<string> tokenBuffer = [];
-        
+
         while (!Check(TokenType.CloseParen) && !IsAtEnd())
         {
             Token token = Current();
@@ -106,20 +106,20 @@ public sealed class CssImportParser
             }
             Advance();
         }
-        
+
         return StripQuotes(string.Join("", tokenBuffer).Trim());
     }
 
     private string? ExtractMediaQuery()
     {
         List<string> mediaParts = [];
-        
+
         while (!Check(TokenType.Semicolon) && !IsAtEnd())
         {
             mediaParts.Add(Current().Value);
             Advance();
         }
-        
+
         return mediaParts.Count > 0
             ? string.Join(" ", mediaParts).Trim()
             : null;
@@ -133,13 +133,14 @@ public sealed class CssImportParser
         }
     }
 
-    private static bool IsTrivia(TokenType type) => 
+    private static bool IsTrivia(TokenType type) =>
         type is TokenType.Whitespace or TokenType.Newline or TokenType.SingleLineComment or TokenType.MultiLineComment;
 
     private void SkipTrivia()
     {
         while (Match(TokenType.Whitespace, TokenType.Newline, TokenType.SingleLineComment, TokenType.MultiLineComment))
-        { }
+        {
+        }
     }
 
     private static string StripQuotes(string text)
@@ -176,7 +177,13 @@ public sealed class CssImportParser
 
 public sealed class CssImportRule
 {
-    public required string Path { get; set; }
+    public required string Path
+    {
+        get; set;
+    }
 
-    public string? Media { get; set; }
+    public string? Media
+    {
+        get; set;
+    }
 }

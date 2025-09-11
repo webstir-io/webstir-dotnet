@@ -40,28 +40,35 @@ public class HtmlBundler(AppWorkspace workspace)
         string htmlContent = await File.ReadAllTextAsync(sourceFile);
 
         htmlContent = HtmlRegex.RefreshScript().Replace(htmlContent, string.Empty);
-        htmlContent = HtmlRegex.Comment().Replace(htmlContent, string.Empty);
 
         // Rewrite asset references using per-page manifest if present
         string pageDistDir = workspace.FrontendDistPath.Combine(Folders.Pages, pageName);
         AssetManifest manifest = AssetManifest.Load(pageDistDir);
         htmlContent = RewriteAssetReferences(htmlContent, manifest, pageName);
 
-        htmlContent = MinifyHtml(htmlContent);
+        string originalHtml = htmlContent;
+        try
+        {
+            htmlContent = HtmlMinifier.Minify(htmlContent);
+        }
+        catch (System.Exception ex)
+        {
+            diagnostics?.Add(new Diagnostic
+            {
+                Level = DiagnosticLevel.Warning,
+                Message = $"HTML minification failed: {ex.Message}",
+                File = sourceFile
+            });
+            htmlContent = originalHtml; // graceful fallback
+        }
 
         string distPagePath = workspace.FrontendDistPath.Combine(Folders.Pages, pageName, $"{Files.Index}{FileExtensions.Html}");
         distPagePath.DirectoryName().Create();
 
         await File.WriteAllTextAsync(distPagePath, htmlContent);
-    }
 
-
-    private static string MinifyHtml(string html)
-    {
-        // Be safe: only collapse whitespace between tags; avoid touching content
-        // inside <script>, <style>, <pre>, <textarea>
-        html = HtmlRegex.InterTagWhitespace().Replace(html, "><");
-        return html.Trim();
+        // Create precompressed variants for transport (Brotli and gzip)
+        await Precompression.CreatePrecompressedVariantsAsync(distPagePath);
     }
 
     private static string RewriteAssetReferences(string html, AssetManifest manifest, string pageName)

@@ -26,7 +26,7 @@ public sealed class CssLegacyPrefixesStripped : ITestCase
         }
 
         string pageCss = Path.Combine(seedDirectory, Folders.Src, Folders.Frontend, Folders.Pages, Folders.Home, $"{Files.Index}{FileExtensions.Css}");
-        string rules = 
+        string rules =
             ".ms{ -ms-user-select:none; -ms-transform:rotate(10deg); }" +
             ".o{ -o-user-select:none; }" +
             ".k{ -khtml-user-select:none; }" +
@@ -36,8 +36,22 @@ public sealed class CssLegacyPrefixesStripped : ITestCase
 
         string seedBuild = Path.Combine(seedDirectory, Folders.Build);
         string seedDist = Path.Combine(seedDirectory, Folders.Dist);
-        if (Directory.Exists(seedBuild)) { try { Directory.Delete(seedBuild, recursive: true); } catch { } }
-        if (Directory.Exists(seedDist)) { try { Directory.Delete(seedDist, recursive: true); } catch { } }
+        if (Directory.Exists(seedBuild))
+        {
+            try
+            {
+                Directory.Delete(seedBuild, recursive: true);
+            }
+            catch { }
+        }
+        if (Directory.Exists(seedDist))
+        {
+            try
+            {
+                Directory.Delete(seedDist, recursive: true);
+            }
+            catch { }
+        }
 
         ProcessRunner.ProcessResult result = context.Cli.Run($"{Commands.Publish} {ProjectOptions.ProjectName} seed", testDirectory, timeoutMs: 20000);
         Assert.AreEqual(0, result.ExitCode, $"{Commands.Publish} command failed. Error: {result.Error}");

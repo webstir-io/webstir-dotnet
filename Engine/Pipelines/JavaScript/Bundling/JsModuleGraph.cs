@@ -5,8 +5,9 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Engine.Pipelines.JavaScript.Models;
+using Engine.Pipelines.JavaScript.Transformation;
 
-namespace Engine.Pipelines.JavaScript.Publish;
+namespace Engine.Pipelines.JavaScript.Bundling;
 
 public sealed class JsModuleGraph
 {

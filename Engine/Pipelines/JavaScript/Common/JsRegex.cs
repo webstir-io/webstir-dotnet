@@ -1,9 +1,22 @@
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using static Engine.Pipelines.JavaScript.Common.Syntax;
 
-namespace Engine.Pipelines.JavaScript;
+namespace Engine.Pipelines.JavaScript.Common;
 
 public static partial class JsRegex
 {
+    // Characters that can precede a regex literal in JavaScript
+    // Used to distinguish between division operator and regex literal
+    public static readonly HashSet<char> RegexPrefixChars =
+    [
+        NullChar, OpenParenChar, OpenBraceChar, OpenBracketChar,
+        CommaChar, SemicolonChar, ColonChar, QuestionChar,
+        EqualsChar, ExclamationChar, LessThanChar, GreaterThanChar,
+        PlusChar, MinusChar, AsteriskChar, PercentChar,
+        AmpersandChar, PipeChar, CaretChar, TildeChar,
+        NewlineChar, CarriageReturnChar
+    ];
     // Import patterns
     [GeneratedRegex(@"import\s+(\w+)\s+from\s+['""]([^'""]+)['""]", RegexOptions.Multiline)]
     public static partial Regex DefaultImport();

@@ -1,4 +1,4 @@
-namespace Engine.Pipelines.JavaScript;
+namespace Engine.Pipelines.JavaScript.Common;
 
 internal static class JsKeywords
 {

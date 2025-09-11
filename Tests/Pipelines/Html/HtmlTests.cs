@@ -16,7 +16,9 @@ public sealed class HtmlTests : TestSuite
 
         ITestCase[] cases =
         [
-            new HtmlWhitespaceCollapsed()
+            new HtmlWhitespaceCollapsed(),
+            new HtmlAttributesAndCommentsOptimized(),
+            new HtmlPrecompressedArtifactsExist()
         ];
 
         foreach (ITestCase testCase in FilterByMode(cases))

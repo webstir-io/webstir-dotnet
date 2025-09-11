@@ -7,10 +7,11 @@ Modern, minimal full-stack TypeScript web framework and build tool. Webstir scaf
 - Full-stack by default: client + server + shared types
 - Dev server with live reload (SSE) and `/api` proxy to Node server
 - TypeScript-first: project references; single `tsc --build` for client/server/shared
-- HTML assembly: template + per-page HTML
+- HTML assembly and minification: template merge + safe, always-on HTML minifier
 - JS bundling: ESM only, concatenation + tree-shaking + minification
 - CSS pipeline: plain CSS and CSS Modules, import graph, autoprefix + minify
 - Asset manifest per page with timestamped filenames for cache busting
+  and precompressed `.html.br/.gz`, `.css.br/.gz`, `.js.br/.gz` artifacts
 
 ## Prerequisites
 - .NET SDK 9.0+
