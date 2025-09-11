@@ -1,4 +1,4 @@
-namespace Engine.Pipelines.Css;
+namespace Engine.Pipelines.Css.Common;
 
 public static class Css
 {

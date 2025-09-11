@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Engine.Extensions;
 
-namespace Engine.Pipelines.Css.Tokenization;
+namespace Engine.Pipelines.Css.Minification;
 
 public sealed class CssTokenizer(string css)
 {

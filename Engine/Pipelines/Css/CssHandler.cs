@@ -5,7 +5,7 @@ using Engine.Extensions;
 using Engine.Pipelines.Core;
 using Engine.Pipelines.Core.Interfaces;
 using Engine.Pipelines.Css.Build;
-using Engine.Pipelines.Css.Publish;
+using Engine.Pipelines.Css.Bundling;
 
 using Microsoft.Extensions.Logging;
 

@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 
 using Engine.Pipelines.Css.Models;
 
-namespace Engine.Pipelines.Css.Publish;
+namespace Engine.Pipelines.Css.Bundling;
 
 public class SourceMapGenerator
 {

@@ -6,7 +6,7 @@ using Engine;
 using Engine.Pipelines.Core.Interfaces;
 using Engine.Pipelines.Css;
 using Engine.Pipelines.Css.Build;
-using Engine.Pipelines.Css.Publish;
+using Engine.Pipelines.Css.Bundling;
 using Engine.Pipelines.Fonts;
 using Engine.Pipelines.Html;
 using Engine.Pipelines.Html.Build;

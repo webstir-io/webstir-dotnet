@@ -1,6 +1,6 @@
 using System;
 
-namespace Engine.Pipelines.Css.Tokenization;
+namespace Engine.Pipelines.Css.Minification;
 
 public enum CssTokenType
 {

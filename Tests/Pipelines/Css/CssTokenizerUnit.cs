@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using Engine.Pipelines.Css.Tokenization;
+using Engine.Pipelines.Css.Minification;
 using Tests.Framework;
 
 namespace Tests.Pipelines.Css;

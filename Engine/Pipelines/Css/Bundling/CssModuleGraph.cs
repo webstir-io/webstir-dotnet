@@ -5,7 +5,7 @@ using System.Text;
 
 using Engine.Pipelines.Css.Models;
 
-namespace Engine.Pipelines.Css.Publish;
+namespace Engine.Pipelines.Css.Bundling;
 
 public class CssModuleGraph
 {

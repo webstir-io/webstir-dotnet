@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Engine.Pipelines.Css.Tokenization;
+namespace Engine.Pipelines.Css.Minification;
 
 public static class CssSerializer
 {

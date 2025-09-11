@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Engine.Pipelines.Css;
+namespace Engine.Pipelines.Css.Common;
 
 public static partial class CssRegex
 {

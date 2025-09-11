@@ -2,6 +2,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
+using CssConstants = Engine.Pipelines.Css.Common.Css;
 using Engine.Pipelines.Html.Constants;
 
 namespace Engine.Pipelines.Html.Publish;
@@ -73,8 +74,8 @@ public class HtmlBundler(AppWorkspace workspace)
             result = result.Replace($"\"{Files.Index}{FileExtensions.Css}\"", $"\"{cssQuoted}\"");
             result = result.Replace($"'{Files.Index}{FileExtensions.Css}'", $"'{cssQuoted}'");
             // Also replace module variant if present
-            result = result.Replace($"\"{Files.Index}{Css.Css.ModuleExt}\"", $"\"{cssQuoted}\"");
-            result = result.Replace($"'{Files.Index}{Css.Css.ModuleExt}'", $"'{cssQuoted}'");
+            result = result.Replace($"\"{Files.Index}{CssConstants.ModuleExt}\"", $"\"{cssQuoted}\"");
+            result = result.Replace($"'{Files.Index}{CssConstants.ModuleExt}'", $"'{cssQuoted}'");
         }
 
         if (!string.IsNullOrWhiteSpace(manifest.Js))

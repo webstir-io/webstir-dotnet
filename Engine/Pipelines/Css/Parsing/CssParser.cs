@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 
-using Engine.Pipelines.Css.Parsing;
+using CssConstants = Engine.Pipelines.Css.Common.Css;
+using Engine.Pipelines.Css.Common;
 using Engine.Pipelines.Css.Models;
 
-namespace Engine.Pipelines.Css.Publish;
+namespace Engine.Pipelines.Css.Parsing;
 
-public static class Parser
+public static class CssParser
 {
     public static List<CssImport> ExtractImports(string content, string baseDirectory)
     {
@@ -24,7 +25,7 @@ public static class Parser
                 Path = importPath,
                 ResolvedPath = ResolvePath(importPath, baseDirectory),
                 Media = media,
-                IsModuleImport = importPath.EndsWith(Css.ModuleExt, StringComparison.OrdinalIgnoreCase)
+                IsModuleImport = importPath.EndsWith(CssConstants.ModuleExt, StringComparison.OrdinalIgnoreCase)
             });
         }
         return imports;
@@ -118,7 +119,7 @@ public static class Parser
 
         if (!Path.HasExtension(resolved))
         {
-            resolved += Css.CssExt;
+            resolved += CssConstants.CssExt;
         }
 
         return resolved;

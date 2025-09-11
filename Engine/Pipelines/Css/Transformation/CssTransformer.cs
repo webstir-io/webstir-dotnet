@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 
+using Engine.Pipelines.Css.Bundling;
+using CssConstants = Engine.Pipelines.Css.Common.Css;
 using Engine.Pipelines.Css.Models;
-using Engine.Pipelines.Css.Tokenization;
+using Engine.Pipelines.Css.Minification;
+using Engine.Pipelines.Css.Parsing;
 
-namespace Engine.Pipelines.Css.Publish;
+namespace Engine.Pipelines.Css.Transformation;
 
 public static class Transformer
 {
@@ -13,13 +16,13 @@ public static class Transformer
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(filePath);
-        if (!filePath.EndsWith(Css.ModuleExt, StringComparison.OrdinalIgnoreCase))
+        if (!filePath.EndsWith(CssConstants.ModuleExt, StringComparison.OrdinalIgnoreCase))
         {
             return new CssProcessedModule { Content = content, ClassMappings = [] };
         }
 
         string hash = CssModuleGraph.GenerateHash(filePath);
-        HashSet<string> classNames = Parser.ExtractClassNames(content);
+        HashSet<string> classNames = CssParser.ExtractClassNames(content);
         Dictionary<string, string> mappings = [];
 
         foreach (string className in classNames)

@@ -6,9 +6,13 @@ using System.Text;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
+using CssConstants = Engine.Pipelines.Css.Common.Css;
+using Engine.Pipelines.Css.Common;
 using Engine.Pipelines.Css.Models;
+using Engine.Pipelines.Css.Parsing;
+using Engine.Pipelines.Css.Transformation;
 
-namespace Engine.Pipelines.Css.Publish;
+namespace Engine.Pipelines.Css.Bundling;
 
 public class CssBundler(AppWorkspace workspace)
 {
@@ -28,7 +32,7 @@ public class CssBundler(AppWorkspace workspace)
         {
             string pageName = pageDir.Filename();
             // Prefer CSS Modules if present; otherwise fall back to plain CSS
-            string moduleStylePath = pageDir.Combine($"{Files.Index}{Css.ModuleExt}");
+            string moduleStylePath = pageDir.Combine($"{Files.Index}{CssConstants.ModuleExt}");
             string plainStylePath = pageDir.Combine($"{Files.Index}{FileExtensions.Css}");
 
             string? entryStylePath = moduleStylePath.Exists()
@@ -106,11 +110,11 @@ public class CssBundler(AppWorkspace workspace)
         string content = await File.ReadAllTextAsync(filePath);
         string directory = filePath.DirectoryName();
 
-        List<CssImport> imports = Parser.ExtractImports(content, directory);
+        List<CssImport> imports = CssParser.ExtractImports(content, directory);
         content = CssRegex.Import().Replace(content, string.Empty);
 
         Dictionary<string, string> classMappings = [];
-        if (filePath.EndsWith(Css.ModuleExt, StringComparison.OrdinalIgnoreCase))
+        if (filePath.EndsWith(CssConstants.ModuleExt, StringComparison.OrdinalIgnoreCase))
         {
             CssProcessedModule processed = Transformer.ProcessModule(content, filePath);
             content = processed.Content;
@@ -144,11 +148,11 @@ public class CssBundler(AppWorkspace workspace)
         // Remove non-important comments only; preserve /*! ... */ license comments
         content = CssRegex.NonImportantBlockComment().Replace(content, string.Empty);
 
-        List<string> urls = Parser.ExtractUrls(content);
+        List<string> urls = CssParser.ExtractUrls(content);
         if (urls.Count > 0)
         {
             string baseDir = module.FilePath.DirectoryName();
-            content = Parser.UpdateUrls(content, url => ResolveUrl(url, baseDir));
+            content = CssParser.UpdateUrls(content, url => ResolveUrl(url, baseDir));
         }
 
         if (module.Imports.Any(importItem => importItem.Media != null))
