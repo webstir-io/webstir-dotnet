@@ -118,6 +118,16 @@ public static class CssSerializer
             return;
         }
 
+        // Preserve a single space after commas when input had whitespace there.
+        // This keeps function argument readability (e.g., linear-gradient(white, black)).
+        if (lastNonWhitespaceChar == ',')
+        {
+            builder.Append(' ');
+            lastNonWhitespaceChar = ' ';
+            pendingSpace = false;
+            return;
+        }
+
         // Avoid space before closers or immediately after openers
         if (!IsCloser(nextToken.Type) && !IsPrevOpener(lastNonWhitespaceChar))
         {

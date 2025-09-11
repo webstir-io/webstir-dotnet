@@ -4,7 +4,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
-using Engine.Pipelines.Core.Parsing;
+using Engine.Pipelines.Css.Parsing;
 
 namespace Engine.Pipelines.Css.Build;
 

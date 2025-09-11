@@ -2,6 +2,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Tests.Framework;
+using Tests.Pipelines.Css;
+using Tests.Pipelines.JavaScript;
+using Tests.Pipelines.Html;
+using Tests.Pipelines.Core;
 
 namespace Tests.Workflows.Publish;
 
@@ -9,39 +13,39 @@ public sealed class PublishTests : TestSuite
 {
     public override string Name => "Publish Tests";
 
-    public override Task<TestResult[]> RunAsync()
+    public override async Task<TestResult[]> RunAsync()
     {
-        TestCaseContext context = BuildContext();
         List<TestResult> results = [];
 
-        ITestCase[] cases =
+        // Workflow-level tests
+        TestCaseContext context = BuildContext();
+        ITestCase[] workflowCases =
         [
             new PublishRunsWithoutErrors(),
-            new ClientArtifactsExist(),
-            new JsIsMinified(),
-            new CssIsMinified(),
-            new CssPrecompressedArtifactsExist(),
-            new CssPrecompressedAreSmaller(),
-            new ManifestIntegrity(),
-            new HtmlWhitespaceCollapsed(),
-            // CSS minifier/prefixer invariants (quick)
-            new CssMinifierInvariants(),
-            new CssLicenseCommentsPreserved(),
-            new CssCalcSpacingValid(),
-            new CssModernPrefixesOnly(),
-            // Tokenizer/serializer unit tests (full only)
-            new CssTokenizerUnit(),
-            new CssSerializerMinifierUnit(),
-            // Golden snapshot for seed home CSS (full only)
-            new CssSeedSnapshot()
+            new ClientArtifactsExist()
         ];
 
-        foreach (ITestCase testCase in FilterByMode(cases))
+        foreach (ITestCase testCase in FilterByMode(workflowCases))
         {
             results.Add(RunTest(testCase.Name, () => testCase.Execute(context)));
         }
 
-        return Task.FromResult(results.ToArray());
+        // Run pipeline test suites
+        TestSuite[] pipelineSuites =
+        [
+            new CssTests(),
+            new JavaScriptTests(),
+            new HtmlTests(),
+            new CoreTests()
+        ];
+
+        foreach (TestSuite suite in pipelineSuites)
+        {
+            TestResult[] suiteResults = await suite.RunAsync();
+            results.AddRange(suiteResults);
+        }
+
+        return [.. results];
     }
 
     private static IEnumerable<ITestCase> FilterByMode(IEnumerable<ITestCase> cases)

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 
-using Engine.Pipelines.Core.Parsing;
+using Engine.Pipelines.Css.Parsing;
 using Engine.Pipelines.Css.Models;
 
 namespace Engine.Pipelines.Css.Publish;

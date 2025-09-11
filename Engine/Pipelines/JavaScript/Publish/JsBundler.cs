@@ -85,11 +85,11 @@ public class JsBundler(AppWorkspace workspace)
 
         for (int moduleIndex = 0; moduleIndex < modules.Count; moduleIndex++)
         {
-            JsTransformedModule transformed = JsTransformer.Transform(modules[moduleIndex], moduleIndex, moduleIdMap);
+            JsTransformedModule transformed = JsModuleTransformer.Transform(modules[moduleIndex], moduleIndex, moduleIdMap);
             transformed = new JsTransformedModule
             {
                 Id = transformed.Id,
-                Code = JsTransformer.RemoveUnusedCode(transformed.Code, modules[moduleIndex], usedExports),
+                Code = JsTreeShaker.RemoveUnusedCode(transformed.Code, modules[moduleIndex], usedExports),
                 SourceMap = transformed.SourceMap
             };
 
@@ -118,9 +118,7 @@ public class JsBundler(AppWorkspace workspace)
         }
 
         string bundleCode = ConcatenateModules(modules, graph);
-
-        // Minify bundle for production; no source maps in production.
-        bundleCode = JsTransformer.Minify(bundleCode);
+        bundleCode = JsMinifier.Minify(bundleCode);
 
         return bundleCode;
     }
@@ -135,6 +133,7 @@ public class JsBundler(AppWorkspace workspace)
 
         string distJsPath = Path.Combine(pageDistDir, jsFileName);
         await File.WriteAllTextAsync(distJsPath, bundleCode);
+        await Precompression.CreatePrecompressedVariantsAsync(distJsPath);
 
         return jsFileName;
     }
@@ -143,6 +142,7 @@ public class JsBundler(AppWorkspace workspace)
     {
         string pageDistDir = workspace.FrontendDistPath.Combine(Folders.Pages, pageName);
         AssetManifest.Update(pageDistDir, m => m.Js = jsFileName);
+        
         return Task.CompletedTask;
     }
 }

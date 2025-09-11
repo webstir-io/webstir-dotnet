@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-using Engine.Pipelines.Core.Parsing;
+using Engine.Pipelines.JavaScript.Parsing;
 using Engine.Pipelines.JavaScript.Models;
 
 namespace Engine.Pipelines.JavaScript.Publish;

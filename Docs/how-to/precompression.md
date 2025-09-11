@@ -1,6 +1,6 @@
 # Precompressed Assets
 
-Webstir precompresses assets at publish (CSS today; JS later) as sibling files:
+Webstir precompresses CSS and JS assets at publish as sibling files:
 
 - `.br`: Brotli (quality 11)
 - `.gz`: gzip (level ~9)
@@ -29,5 +29,5 @@ Artifacts live next to the emitted file in `dist/frontend/pages/<page>/`.
 - Avoid edge/on-demand compression for these files; it adds latency and can defeat deterministic caching.
 
 ## Notes
-- Currently only `.css` is precompressed. Images, fonts, and videos are already compressed and should not be double-compressed.
+- `.css` and `.js` are precompressed. Images, fonts, and videos are already compressed and should not be double-compressed.
 - Gzip MTIME is zeroed during publish for stable, repeatable artifacts.

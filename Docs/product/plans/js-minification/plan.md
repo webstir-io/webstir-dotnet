@@ -10,7 +10,7 @@ Modern defaults. No external tools. No configs. Publish-only.
 ## Non‑Goals
 - Identifier mangling or aggressive control‑flow transforms.
 - Supporting CommonJS bundling.
-- Source maps in publish.
+- Source maps in publish (see debugging notes below).
 
 ## Defaults (Modern Targets)
 - Assume evergreen browsers (latest Chrome, Firefox, Safari, Edge).
@@ -29,6 +29,12 @@ Status: Planned
   - Modes: code, single/double‑quoted string, template literal (including `${...}` passthrough), block comment, line comment, regex literal.
   - Regex literal detection: treat `/` as a regex when the previous significant token cannot end an expression (start of file or one of: `(`, `{`, `[`, `,`, `;`, `:`, `?`, operators, `=>`, keywords like `return|throw|case|of|delete|typeof|void|new|in|instanceof`).
   - Regex body handling: support escapes, character classes `[ ... ]`, and trailing flags.
+  - Test cases to document:
+    - `return /re/.test(x)` vs `return a / b / c`
+    - `if (x) /re/.test(s)`, `({}/re/g)`, `new /re/`, `throw /re/`
+    - ASI: `return\n/re/`, `break\n/re/`
+    - Operator adjacency: `a++/b`, `a--/b`, `a + /re/`
+    - Complex patterns: `/[/]/g`, `/a\\/*b/`, `/a[^]b/g`
 - [] Whitespace rules (conservative): collapse only when unambiguous.
   - Keep newlines after `return|throw|break|continue|yield` unless a `;` is emitted.
   - Insert a single space if removal would merge tokens (identifier/identifier, identifier/number, number/identifier) or create `++/--` adjacency pitfalls.
@@ -45,21 +51,22 @@ Status: Planned
 - [ ] Token categories: value, punctuator, operator, keyword, trivia; decide regex vs. division using previous token category.
 - [ ] Serializer: minimal spaces and newlines; emit semicolons where required; preserve `?.`, `??`, bigint (`123n`), numeric separators, private fields (`#x`), and `import.meta` as-is.
 - [ ] Do not alter the bytes of strings, template literals, or regex bodies.
-- [ ] Migrate `JsTransformer.Minify` to operate on tokens; keep the public API.
+- [ ] Migrate `JsMinifier.Minify` to operate on tokens; keep the public API.
 - [ ] Tests: ASI edge cases, operator adjacency, regex boundaries, template interpolation.
+- [ ] Performance: Log minify time and bytes saved per page using Stopwatch; avoid strict time asserts for stability.
+- [ ] Optional "full" test mode: Record timings in output rather than failing on thresholds.
 
 ### Phase 3 — Transport Compression (publish)
-Objective: Generate precompressed JS at publish using .NET built-ins.
+Objective: Generate precompressed JS at publish using existing Precompression utility.
 Status: Planned
 
 #### TODO
 
-- [ ] Publish step: create `.js.br` (Brotli) and `.js.gz` (gzip) alongside originals.
-- [ ] Implementation: use `BrotliStream` (quality 11) and `GZipStream` (level 6–9); no external tools.
-- [ ] Scope: compress `.js` only; skip already‑compressed binaries (images, fonts, videos).
-- [ ] Determinism: stable outputs for identical inputs; avoid per‑request/on‑the‑fly compression.
-- [ ] Docs: serving guidance (`Content-Encoding`, `Vary: Accept-Encoding`); CDN cache key notes.
-- [ ] Tests: publish fixtures include `.br/.gz` for JS; verify presence and that sizes are smaller than originals; confirm binaries are not precompressed.
+- [ ] Wire existing `Precompression.cs` for JS bundles (already used for CSS at `CssBundler.cs:81`).
+- [ ] Call `Precompression.CompressFile()` after writing JS bundle in `JsBundler.cs:136`.
+- [ ] Verify `.js.br` files are created alongside originals using existing Brotli quality 11 settings.
+- [ ] Update `docs/how-to/precompression.md` to mention JS support.
+- [ ] Tests: publish fixtures include `.br` for JS; verify presence and that sizes are smaller than originals.
 
 ### Phase 4 — Safe Enhancements (optional)
 Objective: Add small, safe reductions post-tokenization.
@@ -68,7 +75,8 @@ Status: Planned
 #### TODO
 
 - [ ] Merge adjacent `const`/`let` declarations (already prototyped; move to token stage).
-- [ ] Remove `debugger;` and strip `console.*` in publish (consider behind a flag later if needed).
+- [ ] Remove `debugger;` statements in publish.
+- [ ] Console stripping: Keep off by default (respects "no configs" and production debugging). Consider adding a single publish-time toggle later (env var or AppSettings boolean) if user demand appears.
 - [ ] Deduplicate trivial wrapper boilerplate in concatenation if introduced.
 
 ### Phase 5 — Tree Shaking Tightening (optional)
@@ -86,13 +94,12 @@ Status: Planned
 - Strings, template literals, and regex bodies are preserved byte‑for‑byte.
 - No `//# sourceMappingURL` lines or `/*# ... */` blocks in dist JS.
 - No CommonJS in bundles; diagnostics recorded if encountered.
-- Seed project JS size reduced by ≥15% vs. unminified output.
 - All new publish/unit tests pass.
  - Seed app still loads and renders in publish (smoke behavior unchanged).
  - Publish outputs precompressed `.js.br` and `.js.gz` for JS; binaries are not double‑compressed.
 
 ## Deliverables
-- Updated `JsTransformer.Minify` with token‑aware logic.
+- Updated `JsMinifier.Minify` with token‑aware logic.
 - Optional tokenizer extensions under `Engine/Pipelines/Core/Parsing/*`.
 - Publish compression utility using .NET `BrotliStream`/`GZipStream` and wiring in the publish pipeline.
 - Tests: invariants and publish fixtures covering edge cases.
@@ -116,8 +123,14 @@ Status: Planned
  - Scope: compress `.js` only. Skip already‑compressed binaries (images, fonts, videos).
 - Notes: this is orthogonal to minification; keep behavior deterministic by producing artifacts at publish rather than relying on ad‑hoc edge settings.
 
+## Debugging Without Source Maps
+Since publish strips source map comments and doesn't generate maps:
+- **Primary approach**: Reproduce issues using dev build/watch mode (source maps enabled).
+- **Fallback**: Temporarily publish without minification if needed to debug production-specific issues.
+- **Future**: Cross-link to source maps plan when available for more options.
+
 ## Rough Timeline
 - Phase 1: 1–2 days.
 - Phase 2: 1–2 weeks.
-- Phase 3: ~1 day.
+- Phase 3: ~1 day (leveraging existing Precompression).
 - Phase 4–5: optional, time‑boxed.

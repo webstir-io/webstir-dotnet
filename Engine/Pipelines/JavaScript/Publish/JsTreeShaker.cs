@@ -8,6 +8,7 @@ namespace Engine.Pipelines.JavaScript.Publish;
 
 public static class JsTreeShaker
 {
+    // Usage analysis
     public static HashSet<string> AnalyzeUsage(JsModuleGraph graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
@@ -41,6 +42,7 @@ public static class JsTreeShaker
         }
     }
 
+    // Identifier extraction helpers
     public static HashSet<string> ExtractUsedIdentifiers(string code)
     {
         HashSet<string> identifiers = [];
@@ -84,5 +86,123 @@ public static class JsTreeShaker
     {
         HashSet<string> keywords = ["true", "false", "null", "undefined", "this", "new", "typeof", "instanceof"];
         return keywords.Contains(token);
+    }
+
+    // Export pruning
+    public static bool HasUnusedExports(JsModuleInfo module, HashSet<string> usedExports)
+    {
+        ArgumentNullException.ThrowIfNull(module);
+        ArgumentNullException.ThrowIfNull(usedExports);
+        if (module.Exports.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (JsExportStatement export in module.Exports)
+        {
+            if (!IsExportUsed(module.FilePath, export, usedExports))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static string RemoveUnusedCode(string code, JsModuleInfo module, HashSet<string> usedExports)
+    {
+        ArgumentNullException.ThrowIfNull(module);
+        ArgumentNullException.ThrowIfNull(usedExports);
+        HashSet<string> unusedExports = GetUnusedExports(module, usedExports);
+
+        if (unusedExports.Count == 0)
+        {
+            return code;
+        }
+
+        string result = code;
+
+        foreach (string exportName in unusedExports)
+        {
+            result = RemoveExport(result, exportName);
+        }
+
+        result = RemoveOrphanedCode(result);
+
+        return result;
+    }
+
+    private static bool IsExportUsed(string modulePath, JsExportStatement export, HashSet<string> usedExports)
+    {
+        if (export.IsDefault)
+        {
+            return usedExports.Contains($"{modulePath}:default");
+        }
+
+        if (export.Specifiers.Count > 0)
+        {
+            foreach (string name in export.Specifiers)
+            {
+                if (usedExports.Contains($"{modulePath}:{name}"))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        return false;
+    }
+
+    private static HashSet<string> GetUnusedExports(JsModuleInfo module, HashSet<string> usedExports)
+    {
+        HashSet<string> unused = [];
+
+        foreach (JsExportStatement export in module.Exports)
+        {
+            if (!IsExportUsed(module.FilePath, export, usedExports))
+            {
+                if (export.IsDefault)
+                {
+                    unused.Add("default");
+                }
+                else if (export.Specifiers.Count > 0)
+                {
+                    foreach (string name in export.Specifiers)
+                    {
+                        unused.Add(name);
+                    }
+                }
+            }
+        }
+
+        return unused;
+    }
+
+    private static string RemoveExport(string code, string exportName)
+    {
+        if (exportName == "default")
+        {
+            code = JsRegex.ExportDefaultStatement().Replace(code, string.Empty);
+            code = JsRegex.ExportDefaultFunction().Replace(code, string.Empty);
+            code = JsRegex.ExportDefaultClass().Replace(code, string.Empty);
+        }
+        else
+        {
+            code = JsRegex.ExportNamedWithName(exportName).Replace(code, string.Empty);
+            code = JsRegex.ExportVariableWithName(exportName).Replace(code, string.Empty);
+            code = JsRegex.ExportFunctionWithName(exportName).Replace(code, string.Empty);
+            code = JsRegex.ExportClassWithName(exportName).Replace(code, string.Empty);
+        }
+
+        return code;
+    }
+
+    private static string RemoveOrphanedCode(string code)
+    {
+        code = JsRegex.ExcessiveNewlines().Replace(code, "\n\n");
+        code = code.Trim();
+
+        return code;
     }
 }

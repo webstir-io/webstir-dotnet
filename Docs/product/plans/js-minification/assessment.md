@@ -8,18 +8,19 @@
 ## What It Does Today
 - Build: Invokes `tsc --build` against base config (`Engine/Pipelines/JavaScript/Build/JsBuilder.cs:42`).
 - Module graph + bundling: Builds a graph and concatenates modules (`Engine/Pipelines/JavaScript/Publish/JsBundler.cs:102`, `Engine/Pipelines/JavaScript/Publish/JsBundler.cs:75`). CommonJS is flagged as an error in diagnostics (`Engine/Pipelines/JavaScript/Publish/JsBundler.cs:111`).
-- Parsing: Uses a tokenizer-based parser for imports/exports with a regex fallback (`Engine/Pipelines/Core/Parsing/JavaScriptParser.cs:12`, `Engine/Pipelines/JavaScript/Publish/JsModuleParser.cs:26`).
+- Parsing: Uses a tokenizer-based parser for imports/exports with a regex fallback (`Engine/Pipelines/JavaScript/Parsing/JavaScriptParser.cs:12`, `Engine/Pipelines/JavaScript/Publish/JsModuleParser.cs:26`).
 - Transforms:
-  - Removes import/export syntax, injects bindings, optional scope hoisting and simple declaration merging (`Engine/Pipelines/JavaScript/Publish/JsTransformer.cs:12`).
-  - Basic tree-shaking by tracking imported names across the graph (`Engine/Pipelines/JavaScript/Publish/JsTreeShaker.cs:9`).
-- Minification: Regex-based removal of comments/whitespace (`Engine/Pipelines/JavaScript/Publish/JsTransformer.cs:441`). Applied before writing dist (`Engine/Pipelines/JavaScript/Publish/JsBundler.cs:122`). No mangling.
+  - Removes import/export syntax, injects bindings, optional scope hoisting and simple declaration merging (`Engine/Pipelines/JavaScript/Publish/JsModuleTransformer.cs`).
+  - Scope hoisting utilities (`Engine/Pipelines/JavaScript/Publish/JsScopeHoister.cs`).
+  - Basic tree-shaking by tracking imported names across the graph (`Engine/Pipelines/JavaScript/Publish/JsTreeShaker.cs`).
+- Minification: Safe removal of comments/whitespace with literal preservation (`Engine/Pipelines/JavaScript/Publish/JsMinifier.cs`). Applied before writing dist (`Engine/Pipelines/JavaScript/Publish/JsBundler.cs`). No mangling.
 - Source maps: Generator exists but publish strips `sourceMappingURL` comments and does not ship maps (`Engine/Pipelines/JavaScript/Publish/JsPublisher.cs:33`, `Engine/Pipelines/JavaScript/Publish/JsPublisher.cs:36`).
 
 Key implementation files:
 - `Engine/Pipelines/JavaScript/JsHandler.cs:31`
 - `Engine/Pipelines/JavaScript/Publish/JsBundler.cs:102`
-- `Engine/Pipelines/JavaScript/Publish/JsTransformer.cs:441`
-- `Engine/Pipelines/Core/Parsing/JavaScriptParser.cs:12`
+- `Engine/Pipelines/JavaScript/Publish/JsMinifier.cs`
+- `Engine/Pipelines/JavaScript/Parsing/JavaScriptParser.cs:12`
 - `Engine/Pipelines/JavaScript/JsRegex.cs:5`
 - Test: `Tests/Workflows/Publish/JsIsMinified.cs:29`
 
@@ -59,4 +60,3 @@ Non-goals (for now)
 - ESM-only: no `require()`/`module.exports` in bundled modules; diagnostics raised if present.
 - ≥15% size reduction on the seed project JS vs. unminified bundle.
 - All publish/unit tests green.
-

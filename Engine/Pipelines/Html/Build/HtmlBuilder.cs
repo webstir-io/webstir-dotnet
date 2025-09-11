@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Engine.Extensions;
-using Engine.Models;
+using Engine.Pipelines.Html.Models;
 using Engine.Pipelines.Core;
 
 using Microsoft.Extensions.Logging;

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
+using Engine.Extensions;
 
 namespace Engine.Pipelines.Core.Parsing;
 
@@ -18,10 +19,10 @@ public class Tokenizer(string input, string filePath, DiagnosticCollection? diag
         List<Token> tokens = [];
         while (!IsAtEnd())
         {
-            Token? t = Next();
-            if (t != null && t.Type != TokenType.Whitespace)
+            Token? token = Next();
+            if (token != null && token.Type != TokenType.Whitespace)
             {
-                tokens.Add(t);
+                tokens.Add(token);
             }
         }
         tokens.Add(new Token { Type = TokenType.EndOfFile, Value = string.Empty, Line = _line, Column = _col });
@@ -34,67 +35,57 @@ public class Tokenizer(string input, string filePath, DiagnosticCollection? diag
         {
             return null;
         }
-        int sl = _line;
-        int sc = _col;
-        char c = Advance();
-        return c switch
+        int startLine = _line;
+        int startColumn = _col;
+        char currentChar = Advance();
+        return currentChar switch
         {
-            ' ' or '\t' or '\r' => Make(TokenType.Whitespace, c.ToString(), sl, sc),
-            '\n' => Newline(sl, sc),
-            '{' => Make(TokenType.OpenBrace, "{", sl, sc),
-            '}' => Make(TokenType.CloseBrace, "}", sl, sc),
-            '(' => Make(TokenType.OpenParen, "(", sl, sc),
-            ')' => Make(TokenType.CloseParen, ")", sl, sc),
-            '[' => Make(TokenType.OpenBracket, "[", sl, sc),
-            ']' => Make(TokenType.CloseBracket, "]", sl, sc),
-            ';' => Make(TokenType.Semicolon, ";", sl, sc),
-            ',' => Make(TokenType.Comma, ",", sl, sc),
-            '.' => Make(TokenType.Dot, ".", sl, sc),
-            '*' => Make(TokenType.Star, "*", sl, sc),
-            '=' => Make(TokenType.Equals, "=", sl, sc),
-            '"' or '\'' or '`' => ReadString(c, sl, sc),
-            '/' when Peek() == '/' => ReadSingleLineComment(sl, sc),
-            '/' when Peek() == '*' => ReadMultiLineComment(sl, sc),
-            '@' when IsLetter(Peek()) => ReadAtRule(sl, sc),
-            _ when IsLetter(c) => ReadIdentifierOrKeyword(c, sl, sc),
-            _ when IsDigit(c) => ReadNumber(c, sl, sc),
-            _ => Make(TokenType.Unknown, c.ToString(), sl, sc)
+            ' ' or '\t' or '\r' => CreateToken(TokenType.Whitespace, currentChar.ToString(), startLine, startColumn),
+            '\n' => Newline(startLine, startColumn),
+            '{' => CreateToken(TokenType.OpenBrace, "{", startLine, startColumn),
+            '}' => CreateToken(TokenType.CloseBrace, "}", startLine, startColumn),
+            '(' => CreateToken(TokenType.OpenParen, "(", startLine, startColumn),
+            ')' => CreateToken(TokenType.CloseParen, ")", startLine, startColumn),
+            '[' => CreateToken(TokenType.OpenBracket, "[", startLine, startColumn),
+            ']' => CreateToken(TokenType.CloseBracket, "]", startLine, startColumn),
+            ';' => CreateToken(TokenType.Semicolon, ";", startLine, startColumn),
+            ',' => CreateToken(TokenType.Comma, ",", startLine, startColumn),
+            '.' => CreateToken(TokenType.Dot, ".", startLine, startColumn),
+            '*' => CreateToken(TokenType.Star, "*", startLine, startColumn),
+            '=' => CreateToken(TokenType.Equals, "=", startLine, startColumn),
+            '"' or '\'' or '`' => ReadString(currentChar, startLine, startColumn),
+            '/' when Peek() == '/' => ReadSingleLineComment(startLine, startColumn),
+            '/' when Peek() == '*' => ReadMultiLineComment(startLine, startColumn),
+            '@' when IsLetter(Peek()) => ReadAtRule(startLine, startColumn),
+            _ when IsLetter(currentChar) => ReadIdentifierOrKeyword(currentChar, startLine, startColumn),
+            _ when IsDigit(currentChar) => ReadNumber(currentChar, startLine, startColumn),
+            _ => CreateToken(TokenType.Unknown, currentChar.ToString(), startLine, startColumn)
         };
     }
 
-    private Token ReadString(char quote, int line, int col)
+    private Token ReadString(char quote, int line, int column)
     {
         StringBuilder sb = new();
-        sb.Append(quote);
-        while (!IsAtEnd())
+        // We have already consumed the opening quote via Advance() in Next().
+        // Start the scanner one character back so it emits the opening quote.
+        int oldPos = _pos;
+        int index = _pos - 1;
+        TextScanner.ReadQuotedString(_input, ref index, quote, character => sb.Append(character));
+
+        // Advance _pos and _col by the number of characters consumed excluding the opening quote
+        int consumedExcludingOpening = index - oldPos;
+        _pos = index;
+        _col += consumedExcludingOpening;
+
+        if (_pos >= _input.Length && sb.Length > 0 && sb[^1] != quote)
         {
-            char p = Peek();
-            if (p == quote)
-            {
-                sb.Append(Advance());
-                break;
-            }
-            if (p == '\\')
-            {
-                sb.Append(Advance());
-                if (!IsAtEnd())
-                {
-                    sb.Append(Advance());
-                }
-            }
-            else
-            {
-                sb.Append(Advance());
-            }
+            _diagnostics.AddError("Unterminated string literal", _filePath, line, column);
         }
-        if (IsAtEnd() && sb.Length > 0 && sb[^1] != quote)
-        {
-            _diagnostics.AddError("Unterminated string literal", _filePath, line, col);
-        }
-        return Make(TokenType.String, sb.ToString(), line, col);
+
+        return CreateToken(TokenType.String, sb.ToString(), line, column);
     }
 
-    private Token ReadSingleLineComment(int line, int col)
+    private Token ReadSingleLineComment(int line, int column)
     {
         StringBuilder sb = new();
         sb.Append('/');
@@ -103,10 +94,10 @@ public class Tokenizer(string input, string filePath, DiagnosticCollection? diag
         {
             sb.Append(Advance());
         }
-        return Make(TokenType.SingleLineComment, sb.ToString(), line, col);
+        return CreateToken(TokenType.SingleLineComment, sb.ToString(), line, column);
     }
 
-    private Token ReadMultiLineComment(int line, int col)
+    private Token ReadMultiLineComment(int line, int column)
     {
         StringBuilder sb = new();
         sb.Append('/');
@@ -121,9 +112,9 @@ public class Tokenizer(string input, string filePath, DiagnosticCollection? diag
                 closed = true;
                 break;
             }
-            char c = Advance();
-            sb.Append(c);
-            if (c == '\n')
+            char character = Advance();
+            sb.Append(character);
+            if (character == '\n')
             {
                 _line++;
                 _col = 1;
@@ -131,12 +122,12 @@ public class Tokenizer(string input, string filePath, DiagnosticCollection? diag
         }
         if (!closed)
         {
-            _diagnostics.AddError("Unterminated block comment", _filePath, line, col);
+            _diagnostics.AddError("Unterminated block comment", _filePath, line, column);
         }
-        return Make(TokenType.MultiLineComment, sb.ToString(), line, col);
+        return CreateToken(TokenType.MultiLineComment, sb.ToString(), line, column);
     }
 
-    private Token ReadAtRule(int line, int col)
+    private Token ReadAtRule(int line, int column)
     {
         StringBuilder sb = new();
         sb.Append('@');
@@ -145,10 +136,10 @@ public class Tokenizer(string input, string filePath, DiagnosticCollection? diag
             sb.Append(Advance());
         }
         string rule = sb.ToString();
-        return Make(rule == "@import" ? TokenType.AtImport : TokenType.Identifier, rule, line, col);
+        return CreateToken(rule == "@import" ? TokenType.AtImport : TokenType.Identifier, rule, line, column);
     }
 
-    private Token ReadIdentifierOrKeyword(char first, int line, int col)
+    private Token ReadIdentifierOrKeyword(char first, int line, int column)
     {
         StringBuilder sb = new();
         sb.Append(first);
@@ -156,8 +147,8 @@ public class Tokenizer(string input, string filePath, DiagnosticCollection? diag
         {
             sb.Append(Advance());
         }
-        string id = sb.ToString();
-        TokenType type = id switch
+        string identifier = sb.ToString();
+        TokenType type = identifier switch
         {
             "import" => TokenType.Import,
             "export" => TokenType.Export,
@@ -166,10 +157,10 @@ public class Tokenizer(string input, string filePath, DiagnosticCollection? diag
             "as" => TokenType.As,
             _ => TokenType.Identifier
         };
-        return Make(type, id, line, col);
+        return CreateToken(type, identifier, line, column);
     }
 
-    private Token ReadNumber(char first, int line, int col)
+    private Token ReadNumber(char first, int line, int column)
     {
         StringBuilder sb = new();
         sb.Append(first);
@@ -177,27 +168,34 @@ public class Tokenizer(string input, string filePath, DiagnosticCollection? diag
         {
             sb.Append(Advance());
         }
-        return Make(TokenType.Number, sb.ToString(), line, col);
+        return CreateToken(TokenType.Number, sb.ToString(), line, column);
     }
 
-    private Token Newline(int line, int col)
+    private Token Newline(int line, int column)
     {
         _line++;
         _col = 1;
-        return Make(TokenType.Newline, "\n", line, col);
+        return CreateToken(TokenType.Newline, "\n", line, column);
     }
 
-    private Token Make(TokenType type, string value, int line, int col) => new() { Type = type, Value = value, Line = line, Column = col };
+    private static Token CreateToken(TokenType type, string value, int line, int column) => new()
+    {
+        Type = type,
+        Value = value,
+        Line = line,
+        Column = column
+    };
+
     private char Advance()
     {
-        char c = _input[_pos++];
+        char character = _input[_pos++];
         _col++;
-        return c;
+        return character;
     }
     private char Peek() => _pos < _input.Length ? _input[_pos] : '\0';
     private char PeekNext() => _pos + 1 < _input.Length ? _input[_pos + 1] : '\0';
     private bool IsAtEnd() => _pos >= _input.Length;
-    private static bool IsLetter(char c) => char.IsLetter(c);
-    private static bool IsDigit(char c) => c is >= '0' and <= '9';
-    private static bool IsLetterOrDigit(char c) => IsLetter(c) || IsDigit(c);
+    private static bool IsLetter(char character) => char.IsLetter(character);
+    private static bool IsDigit(char character) => character is >= '0' and <= '9';
+    private static bool IsLetterOrDigit(char character) => IsLetter(character) || IsDigit(character);
 }

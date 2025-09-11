@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Engine.Extensions;
 
 namespace Engine.Pipelines.Css.Tokenization;
 
@@ -169,23 +170,9 @@ public sealed class CssTokenizer(string css)
     {
         int segmentStart = index;
         char quote = Consume();
-        while (!IsEof())
-        {
-            char currentChar = Consume();
-            if (currentChar == '\\')
-            {
-                // skip escaped char
-                if (!IsEof())
-                {
-                    Consume();
-                }
-                continue;
-            }
-            if (currentChar == quote)
-            {
-                break;
-            }
-        }
+        int local = index - 1; // position of opening quote
+        TextScanner.ReadQuotedString(input, ref local, quote, _ => { });
+        index = local;
         return new CssToken(CssTokenType.String, input[segmentStart..index], segmentStart, index);
     }
 
