@@ -25,13 +25,13 @@ public static class SubresourceIntegrity
         {
             using HttpRequestMessage request = new(HttpMethod.Get, url);
             using HttpResponseMessage response = await http.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 // Non-success status codes are expected for external resources
                 return null;
             }
-            
+
             byte[] bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
             return Compute(bytes);
         }

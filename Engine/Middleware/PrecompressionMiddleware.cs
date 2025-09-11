@@ -17,7 +17,7 @@ public sealed class PrecompressionMiddleware(RequestDelegate next)
     public async Task Invoke(HttpContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        
+
         if (!ShouldTryCompression(context, out string? path))
         {
             await _next(context);
@@ -26,7 +26,7 @@ public sealed class PrecompressionMiddleware(RequestDelegate next)
 
         string physicalPath = GetPhysicalPath(context, path!);
         CompressedFile? compressed = FindCompressedVariant(physicalPath, context.Request.Headers["Accept-Encoding"]);
-        
+
         if (compressed == null)
         {
             await _next(context);
@@ -39,20 +39,20 @@ public sealed class PrecompressionMiddleware(RequestDelegate next)
     private static bool ShouldTryCompression(HttpContext context, out string? path)
     {
         path = context.Request.Path.Value;
-        
+
         if (string.IsNullOrEmpty(path))
             return false;
-            
+
         if (IsAlreadyCompressed(path))
             return false;
-            
+
         string? acceptEncoding = context.Request.Headers["Accept-Encoding"].ToString();
         return !string.IsNullOrEmpty(acceptEncoding);
     }
 
     private static bool IsAlreadyCompressed(string path)
     {
-        return path.EndsWith(FileExtensions.Br, StringComparison.OrdinalIgnoreCase) || 
+        return path.EndsWith(FileExtensions.Br, StringComparison.OrdinalIgnoreCase) ||
                path.EndsWith(FileExtensions.Gz, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -96,7 +96,7 @@ public sealed class PrecompressionMiddleware(RequestDelegate next)
     private void SetResponseHeaders(HttpContext context, string originalPath, string encoding)
     {
         string contentType = GetContentType(originalPath);
-        
+
         context.Response.Headers.Vary = "Accept-Encoding";
         context.Response.Headers["Content-Encoding"] = encoding;
         context.Response.ContentType = contentType;
@@ -112,14 +112,14 @@ public sealed class PrecompressionMiddleware(RequestDelegate next)
     private static async Task WriteFileToResponse(HttpContext context, string filePath)
     {
         await using FileStream stream = new(
-            filePath, 
-            FileMode.Open, 
-            FileAccess.Read, 
-            FileShare.Read, 
-            bufferSize: 64 * 1024, 
+            filePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 64 * 1024,
             useAsync: true
         );
-        
+
         await stream.CopyToAsync(context.Response.Body);
     }
 

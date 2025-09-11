@@ -16,6 +16,7 @@ using Engine.Pipelines.JavaScript;
 using Engine.Pipelines.JavaScript.Build;
 using Engine.Pipelines.JavaScript.Bundling;
 using Engine.Pipelines.Media;
+using Engine.Pipelines.Seo;
 using Engine.Servers;
 using Engine.Services;
 using Engine.Workers;
@@ -56,6 +57,8 @@ try
     services.AddSingleton<DevService>();
     services.AddSingleton<WebServer>();
     services.AddSingleton<NodeServer>();
+    services.AddSingleton<IErrorTrackingService, ErrorTrackingService>();
+    services.AddSingleton<ISourceMapService, SourceMapService>();
     services.AddSingleton(new JsonSerializerOptions
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -83,6 +86,7 @@ try
     services.AddTransient<IFrontendHandler, ImagesHandler>();
     services.AddTransient<IFrontendHandler, FontsHandler>();
     services.AddTransient<IFrontendHandler, MediaHandler>();
+    services.AddTransient<IFrontendHandler, RobotsTxtHandler>();
 
     services.AddTransient<HtmlBuilder>();
     services.AddTransient<HtmlBundler>();

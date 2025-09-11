@@ -140,6 +140,9 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
 
     private void ConfigureMiddleware(WebApplication app, string webRootPath)
     {
+        app.UseMiddleware<CorrelationIdMiddleware>();
+        app.UseMiddleware<ErrorHandlingMiddleware>();
+        app.UseMiddleware<SourceMapMiddleware>();
         app.Use(HandleServerSentEvents);
         app.UseMiddleware<ApiProxyMiddleware>();
         app.UseMiddleware<SecurityHeadersMiddleware>();
