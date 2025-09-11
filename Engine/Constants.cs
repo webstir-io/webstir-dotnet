@@ -46,6 +46,8 @@ public static class FileExtensions
 {
     public const string Html = ".html";
     public const string Css = ".css";
+    public const string Br = ".br";
+    public const string Gz = ".gz";
     public const string Dts = ".d.ts";
     public const string Ts = ".ts";
     public const string Js = ".js";

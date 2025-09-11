@@ -7,6 +7,7 @@ Task-oriented docs for doing specific things.
 - [Watch](./watch.md)
 - [Test](./test.md)
 - [Publish](./publish.md)
+- [Precompression](./precompression.md)
 - [Sandbox](./sandbox.md)
 - [Add Page](./add-page.md)
 - [Add Test](./add-test.md)

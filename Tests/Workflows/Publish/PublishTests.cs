@@ -20,6 +20,8 @@ public sealed class PublishTests : TestSuite
             new ClientArtifactsExist(),
             new JsIsMinified(),
             new CssIsMinified(),
+            new CssPrecompressedArtifactsExist(),
+            new CssPrecompressedAreSmaller(),
             new ManifestIntegrity(),
             new HtmlWhitespaceCollapsed(),
             // CSS minifier/prefixer invariants (quick)
