@@ -79,13 +79,16 @@ This document assesses the remaining gaps in Webstir's frontend pipeline for pro
 **Impact**: Protection against XSS, clickjacking, and supply chain attacks
 
 ### 5. Error Handling & Monitoring (Medium Priority)
-**Current State**: Default error responses
+**Current State**: Implemented
 
-**Missing**:
-- Custom 404/500 pages
-- Client-side error boundaries
-- **Error tracking hooks** for production monitoring
-- **Private source map upload** for error tracking services
+**Implemented**:
+- Custom 404/500 pages with default template
+- Client-side error boundary (`/app/error.js`) reporting to `POST /client-errors`
+- Error tracking hooks (`IErrorTrackingService`) wired for server and client reports
+- Private source map access gating via `SourceMapMiddleware` (`X-SourceMap-Token`)
+
+**Notes**:
+- Client reporting is throttled (1/sec), capped (20/session), and deduplicated (60s window). Server enforces JSON and a 32KB payload limit with 204/413/415 responses.
 
 **Impact**: Better user experience and debuggability
 

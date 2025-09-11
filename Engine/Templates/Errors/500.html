@@ -12,12 +12,7 @@
     p { color: #555; margin: 0.25rem 0 1rem }
     code { background: #eee; padding: 0.125rem 0.25rem; border-radius: 4px; }
   </style>
-  <script>
-    // Client-side error boundary hook
-    window.__WEBSTIR_ON_ERROR__ = window.__WEBSTIR_ON_ERROR__ || function(e){};
-    window.addEventListener('error', function (e) { try { window.__WEBSTIR_ON_ERROR__(e); } catch (_) {} });
-    window.addEventListener('unhandledrejection', function (e) { try { window.__WEBSTIR_ON_ERROR__(e); } catch (_) {} });
-  </script>
+  <script src="/app/error.js" async></script>
 </head>
 <body>
   <main>
@@ -27,4 +22,3 @@
   </main>
 </body>
 </html>
-

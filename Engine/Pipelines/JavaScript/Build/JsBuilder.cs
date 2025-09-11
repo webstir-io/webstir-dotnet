@@ -4,14 +4,14 @@ using System.IO;
 using System.Text.RegularExpressions;
 
 using Engine.Extensions;
-using Engine.Pipelines.Core;
 using Engine.Pipelines.Core.Utilities;
+using Engine.Pipelines.JavaScript.Common;
 
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.JavaScript.Build;
 
-public partial class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
+public class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
 {
 
     public void Build(DiagnosticCollection? diagnostics = null)
@@ -22,6 +22,7 @@ public partial class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger
 
         CompileTypeScriptFiles(diagnostics);
         CopyRefreshScript();
+        CopyErrorScript();
     }
 
     private void CopyRefreshScript()
@@ -35,6 +36,26 @@ public partial class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger
             logger.LogWarning("{RefreshJsFile} not found in {SourcePath}", Files.RefreshJs, sourceRefreshJsApp);
     }
 
+    private void CopyErrorScript()
+    {
+        string sourceErrorJs = workspace.FrontendAppPath.Combine("error.js");
+        string targetDir = workspace.FrontendBuildAppPath;
+        string targetErrorJs = targetDir.Combine("error.js");
+
+        try
+        {
+            Directory.CreateDirectory(targetDir);
+            if (sourceErrorJs.Exists())
+            {
+                File.Copy(sourceErrorJs, targetErrorJs, true);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to copy error.js from {Source} to {Target}", sourceErrorJs, targetErrorJs);
+        }
+    }
+
     private void CompileTypeScriptFiles(DiagnosticCollection? diagnostics)
     {
         string baseTsConfigPath = workspace.WorkingPath.Combine(Files.BaseTsConfigJson);
@@ -46,7 +67,7 @@ public partial class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger
         {
             if (diagnostics != null)
             {
-                ParseTscDiagnostics(ex.Message, (DiagnosticCollection)diagnostics);
+                ParseTscDiagnostics(ex.Message, diagnostics);
             }
             else
             {
@@ -105,8 +126,8 @@ public partial class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger
         // Support both classic and newer tsc formats:
         // 1) path.ts(10,5): error TS1234: Message
         // 2) path.ts:10:5 - error TS1234: Message
-        Regex classic = TscClassicErrorRegex();
-        Regex modern = TscModernErrorRegex();
+        Regex classic = JsRegex.TscClassicError();
+        Regex modern = JsRegex.TscModernError();
 
         int added = 0;
         foreach (Match match in classic.Matches(text))
@@ -134,14 +155,4 @@ public partial class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger
             diagnostics.AddError("TypeScript compilation failed", null, null, null);
         }
     }
-}
-
-// Generated regex helpers for parsing tsc diagnostics
-public partial class JsBuilder
-{
-    [GeneratedRegex(@"^(?<file>.+?)\((?<line>\d+),(?<col>\d+)\):\s*error\s+TS\d+:\s*(?<msg>.+)$", RegexOptions.Multiline)]
-    private static partial Regex TscClassicErrorRegex();
-
-    [GeneratedRegex(@"^(?<file>.+?):(?<line>\d+):(?<col>\d+)\s*-\s*error\s+TS\d+:\s*(?<msg>.+)$", RegexOptions.Multiline)]
-    private static partial Regex TscModernErrorRegex();
 }

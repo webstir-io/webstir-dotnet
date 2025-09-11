@@ -143,6 +143,7 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
         app.UseMiddleware<CorrelationIdMiddleware>();
         app.UseMiddleware<ErrorHandlingMiddleware>();
         app.UseMiddleware<SourceMapMiddleware>();
+        app.UseMiddleware<ClientErrorMiddleware>();
         app.Use(HandleServerSentEvents);
         app.UseMiddleware<ApiProxyMiddleware>();
         app.UseMiddleware<SecurityHeadersMiddleware>();

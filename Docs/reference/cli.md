@@ -94,6 +94,7 @@ What it does:
 - Proxies API requests from `/api/*` to the Node server.
 - Clean URLs and sensible cache headers for dev vs. prod.
 - File watching uses a buffered queue to avoid thrashing on burst changes.
+- Collects client errors at `POST /client-errors` (expects JSON, <=32KB). Responds with `204` on success; forwards to the error tracking hook.
 
 Change impact:
 - Frontend change → rebuild affected page/assets → broadcast reload via SSE.

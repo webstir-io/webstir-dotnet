@@ -82,6 +82,13 @@ See [dev service](devservice.md) for behavior and lifecycle.
 - Surface build/test failures with non-zero exit codes to the CLI.
 - Prefer structured logs that highlight the failing stage and file.
 
+## Client Error Reporting
+- Client handler: template includes `/app/error.js`, which installs `window.__WEBSTIR_ON_ERROR__` and listens for `error` and `unhandledrejection` events.
+- Endpoint: the web server exposes `POST /client-errors`. Payload must be `application/json` and <= 32KB.
+- Limits: server returns `415` for non-JSON and `413` for oversized payloads; `204` on success.
+- Correlation: handler includes a client-generated correlation id; server also reads `X-Correlation-ID` when present and forwards all reports to `IErrorTrackingService`.
+- Guardrails: client deduplicates repeats within 60s and throttles to 1 event/second with a 20-report cap per page session.
+
 ## Extensibility
 - No plugin system. Extend by adding pipeline stages or worker capabilities.
 - Keep changes local and behavior-preserving; prefer mechanical, minimal diffs.

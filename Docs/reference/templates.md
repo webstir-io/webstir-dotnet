@@ -35,6 +35,16 @@ Created by `webstir init` unless you choose client-only or server-only:
 - Place static app assets under `src/frontend/app/*`.
 - Place Images, Fonts, and Media under `src/frontend/{images|fonts|media}/**`.
 
+## Client Error Reporting
+- The base `app.html` includes `/app/error.js` which installs a lightweight client error handler.
+- It listens for `window` `error` and `unhandledrejection` and reports to `POST /client-errors` using `sendBeacon` (fallback to `fetch`).
+- Behavior:
+  - Throttled: max 1 event/second; capped at 20 per page session.
+  - Deduped: repeats suppressed within 60s using a fingerprint of type|message|file:line:col|stack-hash.
+  - Correlation: includes a client correlation id; server also accepts `X-Correlation-ID`.
+- Override: set `window.__WEBSTIR_ON_ERROR__ = (event) => { /* custom */ }` before errors occur to customize reporting.
+- Opt-out: remove the `<script src="/app/error.js" async></script>` tag from your `src/frontend/app/app.html`.
+
 ## Generators
 
 ### add-page

@@ -39,10 +39,15 @@ Public, user-visible guarantees that Webstir preserves across releases. These ar
 ## Dev Server
 - Serves `build/frontend/**` with SSE reload and an `/api/*` proxy to the Node server.
 - No-cache headers for HTML; short/no-cache for static assets in dev.
+- Accepts client error reports at `POST /client-errors`:
+  - Requires `Content-Type: application/json` and body <= 32KB.
+  - Returns `204` on success; `415` for unsupported media type; `413` if payload too large.
+  - Forwards to the error tracking hook with correlation id support (`X-Correlation-ID` or payload `correlationId`).
 
 ## Error Handling
 - Missing required inputs (base HTML, server entry) fails fast with clear messages.
 - Publish removes comments and source maps from outputs.
+ - Template includes a client error handler (`/app/error.js`) that throttles to 1/sec (max 20/session) and deduplicates repeats for 60s.
 
 ## CLI Guarantees
 - Commands: `init`, `build`, `watch`, `test`, `publish`, `add-page`, `add-test`, `help`.

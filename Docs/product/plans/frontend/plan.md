@@ -106,9 +106,9 @@ This plan addresses the critical gaps identified in the frontend readiness asses
 
 ---
 
-## Phase 2: User Experience & SEO ✅ MOSTLY COMPLETE
+## Phase 2: User Experience & SEO ✅ COMPLETE
 **Goal**: Improve error handling, monitoring readiness, and search engine optimization.
-**Status**: Completed 2025-09-11 (except client-side error boundary implementation)
+**Status**: Completed 2025-09-11
 
 ### 5. Error Handling & Monitoring ✅
 **Priority**: Medium | **Effort**: Medium | **Impact**: Medium
@@ -116,7 +116,7 @@ This plan addresses the critical gaps identified in the frontend readiness asses
 #### Implementation Tasks
 - [x] Create 404/500 error page templates (embedded defaults)
 - [x] Implement `ErrorHandlingMiddleware` with template support
-- [x] Add client-side error boundary integration points (hooks added, implementation pending)
+- [x] Add client-side error boundary with default handler (reports to /client-errors)
 - [x] Create error tracking service hooks (pluggable, no-op by default)
 - [x] Implement private source map handling for production
 - [x] Add structured logging with correlation IDs
@@ -134,6 +134,9 @@ This plan addresses the critical gaps identified in the frontend readiness asses
 - `Engine/AppSettings.cs` (extended with `SourceMapToken`)
 - `Engine/Servers/WebServer.cs` (middlewares registered)
 - `CLI/Program.cs` (services registered)
+ - `Engine/Middleware/ClientErrorMiddleware.cs` (created)
+ - `Engine/Templates/src/frontend/app/error.js` (created)
+ - `Engine/Templates/src/frontend/app/app.html` (inject script)
 
 #### Checkpoint
 - [x] Custom error pages display correctly

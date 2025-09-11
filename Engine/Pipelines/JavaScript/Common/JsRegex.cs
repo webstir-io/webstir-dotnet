@@ -128,4 +128,11 @@ public static partial class JsRegex
 
     public static Regex IdentifierBoundary(string identifier) =>
         new($@"\b{Regex.Escape(identifier)}\b");
+
+    // TypeScript compilation error patterns
+    [GeneratedRegex(@"^(?<file>.+?)\((?<line>\d+),(?<col>\d+)\):\s*error\s+TS\d+:\s*(?<msg>.+)$", RegexOptions.Multiline)]
+    public static partial Regex TscClassicError();
+
+    [GeneratedRegex(@"^(?<file>.+?):(?<line>\d+):(?<col>\d+)\s*-\s*error\s+TS\d+:\s*(?<msg>.+)$", RegexOptions.Multiline)]
+    public static partial Regex TscModernError();
 }
