@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using Engine.Models;
 
-namespace Engine.Workflows.Interfaces;
+namespace Engine.Interfaces;
 
 public interface IWorkflowWorker
 {

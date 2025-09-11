@@ -6,7 +6,7 @@ using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Models;
 using System.Collections.Generic;
-using Engine.Workflows.Interfaces;
+using Engine.Interfaces;
 
 namespace Engine.Workflows;
 

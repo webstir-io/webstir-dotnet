@@ -7,7 +7,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Engine.Pipelines.Core.Testing;
+namespace Engine.Pipelines.Testing;
 
 public sealed class TestRunner
 {

@@ -7,7 +7,7 @@ using Engine.Helpers;
 using Engine.Models;
 using Engine.Pipelines.Core.Interfaces;
 using Microsoft.Extensions.Logging;
-using Engine.Workflows.Interfaces;
+using Engine.Interfaces;
 
 namespace Engine.Workers;
 

@@ -21,8 +21,7 @@ public sealed class PublishTests : TestSuite
         TestCaseContext context = BuildContext();
         ITestCase[] workflowCases =
         [
-            new PublishRunsWithoutErrors(),
-            new ClientArtifactsExist()
+            new PublishRunsWithoutErrors()
         ];
 
         foreach (ITestCase testCase in FilterByMode(workflowCases))

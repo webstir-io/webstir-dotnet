@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Engine.Pipelines.Core.Testing;
+namespace Engine.Pipelines.Testing;
 
 public readonly record struct TestResult(
     string Name,

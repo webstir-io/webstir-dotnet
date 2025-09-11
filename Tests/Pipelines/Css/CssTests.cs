@@ -17,7 +17,6 @@ public sealed class CssTests : TestSuite
         ITestCase[] cases =
         [
             new CssIsMinified(),
-            new CssPrecompressedArtifactsExist(),
             new CssPrecompressedAreSmaller(),
             new CssMinifierInvariants(),
             new CssLicenseCommentsPreserved(),

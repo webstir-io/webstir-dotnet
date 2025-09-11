@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
 using Engine.Pipelines.Core.Interfaces;
+using Engine.Pipelines.Core.Utilities;
 using Engine.Pipelines.JavaScript.Build;
 using Engine.Pipelines.JavaScript.Bundling;
 using Engine.Pipelines.JavaScript.Common;

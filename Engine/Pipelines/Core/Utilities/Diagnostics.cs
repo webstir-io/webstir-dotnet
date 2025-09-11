@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Engine.Pipelines.Core;
+namespace Engine.Pipelines.Core.Utilities;
 
 public enum DiagnosticLevel
 {

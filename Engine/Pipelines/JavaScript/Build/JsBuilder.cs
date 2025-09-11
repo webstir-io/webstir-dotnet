@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 
 using Engine.Extensions;
 using Engine.Pipelines.Core;
+using Engine.Pipelines.Core.Utilities;
 
 using Microsoft.Extensions.Logging;
 
@@ -45,7 +46,7 @@ public partial class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger
         {
             if (diagnostics != null)
             {
-                ParseTscDiagnostics(ex.Message, diagnostics);
+                ParseTscDiagnostics(ex.Message, (DiagnosticCollection)diagnostics);
             }
             else
             {

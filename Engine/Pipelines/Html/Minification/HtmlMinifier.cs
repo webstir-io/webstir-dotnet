@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Engine.Pipelines.Html.Publish;
+namespace Engine.Pipelines.Html.Minification;
 
 public static class HtmlMinifier
 {

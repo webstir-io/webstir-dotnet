@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace Engine.Workflows.Interfaces;
+namespace Engine.Interfaces;
 
 public interface IFrontendWorker : IWorkflowWorker
 {

@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Engine.Pipelines.Html.Constants;
+namespace Engine.Pipelines.Html.Common;
 
 public static partial class HtmlRegex
 {

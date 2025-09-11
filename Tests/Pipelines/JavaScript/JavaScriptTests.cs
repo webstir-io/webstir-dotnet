@@ -18,7 +18,8 @@ public sealed class JavaScriptTests : TestSuite
         [
             new JsIsMinified(),
             new JsMinifierInvariants(),
-            new JsPrecompressedArtifactsExist()
+            // Precompression existence checks consolidated under Core tests
+            new JsTreeShakingRemovesUnusedExports()
         ];
 
         foreach (ITestCase testCase in FilterByMode(cases))

@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
+using Engine.Pipelines.Core.Utilities;
 using Engine.Pipelines.JavaScript.Minification;
 using Engine.Pipelines.JavaScript.Models;
 using Engine.Pipelines.JavaScript.Transformation;

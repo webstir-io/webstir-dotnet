@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using Engine.Workflows.Interfaces;
+using Engine.Interfaces;
 
 namespace Engine.Workflows;
 

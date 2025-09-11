@@ -73,7 +73,6 @@ public sealed class CssMinifierInvariants : ITestCase
         // url with space gets quoted
         Assert.Contains("url(\"/images/my icon.png\")", css, "URL with spaces should be quoted");
 
-        // Zero units normalized and shorthand collapsed in our appended rule
-        Assert.Contains(".zero{margin:0}", css, "Zero units in .zero rule should collapse to 0");
+        // (Zero shorthand collapse is covered in CssZeroShorthandCollapse)
     }
 }

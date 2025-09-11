@@ -2,10 +2,14 @@ using System.IO;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
+using Engine.Pipelines.Core.Utilities;
 using CssConstants = Engine.Pipelines.Css.Common.Css;
-using Engine.Pipelines.Html.Constants;
+using Engine.Pipelines.Html.Common;
+using Engine.Pipelines.Html.Parsing;
+using Engine.Pipelines.Html.Transformation;
+using Engine.Pipelines.Html.Minification;
 
-namespace Engine.Pipelines.Html.Publish;
+namespace Engine.Pipelines.Html.Bundling;
 
 public class HtmlBundler(AppWorkspace workspace)
 {
@@ -39,12 +43,12 @@ public class HtmlBundler(AppWorkspace workspace)
     {
         string htmlContent = await File.ReadAllTextAsync(sourceFile);
 
-        htmlContent = HtmlRegex.RefreshScript().Replace(htmlContent, string.Empty);
+        htmlContent = HtmlParser.RemoveRefreshScript(htmlContent);
 
         // Rewrite asset references using per-page manifest if present
         string pageDistDir = workspace.FrontendDistPath.Combine(Folders.Pages, pageName);
         AssetManifest manifest = AssetManifest.Load(pageDistDir);
-        htmlContent = RewriteAssetReferences(htmlContent, manifest, pageName);
+        htmlContent = HtmlTransformer.RewriteAssetReferences(htmlContent, manifest, pageName);
 
         string originalHtml = htmlContent;
         try
@@ -71,27 +75,4 @@ public class HtmlBundler(AppWorkspace workspace)
         await Precompression.CreatePrecompressedVariantsAsync(distPagePath);
     }
 
-    private static string RewriteAssetReferences(string html, AssetManifest manifest, string pageName)
-    {
-        string result = html;
-
-        if (!string.IsNullOrWhiteSpace(manifest.Css))
-        {
-            string cssQuoted = $"/{Folders.Pages}/{pageName}/{manifest.Css}";
-            result = result.Replace($"\"{Files.Index}{FileExtensions.Css}\"", $"\"{cssQuoted}\"");
-            result = result.Replace($"'{Files.Index}{FileExtensions.Css}'", $"'{cssQuoted}'");
-            // Also replace module variant if present
-            result = result.Replace($"\"{Files.Index}{CssConstants.ModuleExt}\"", $"\"{cssQuoted}\"");
-            result = result.Replace($"'{Files.Index}{CssConstants.ModuleExt}'", $"'{cssQuoted}'");
-        }
-
-        if (!string.IsNullOrWhiteSpace(manifest.Js))
-        {
-            string jsQuoted = $"/{Folders.Pages}/{pageName}/{manifest.Js}";
-            result = result.Replace($"\"{Files.Index}{FileExtensions.Js}\"", $"\"{jsQuoted}\"");
-            result = result.Replace($"'{Files.Index}{FileExtensions.Js}'", $"'{jsQuoted}'");
-        }
-
-        return result;
-    }
 }

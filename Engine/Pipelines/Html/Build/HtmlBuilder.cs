@@ -4,21 +4,23 @@ using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Html.Models;
 using Engine.Pipelines.Core;
+using Engine.Pipelines.Core.Utilities;
 
 using Microsoft.Extensions.Logging;
-using Engine.Pipelines.Html.Constants;
+using Engine.Pipelines.Html.Common;
+using Engine.Pipelines.Html.Parsing;
+using Engine.Pipelines.Html.Transformation;
 
 namespace Engine.Pipelines.Html.Build;
 
 public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
 {
-    private const string AppHtmlFileName = "app.html";
     private readonly ILogger<HtmlBuilder> _logger = logger;
 
     public async Task BuildAsync(DiagnosticCollection? diagnostics = null)
     {
         DiagnosticCollection diag = diagnostics ?? new DiagnosticCollection();
-        string appHtmlPath = workspace.FrontendAppPath.Combine(AppHtmlFileName);
+        string appHtmlPath = workspace.FrontendAppPath.Combine(HtmlConstants.AppHtmlFileName);
         if (!appHtmlPath.Exists())
         {
             _logger.LogError("Base application HTML file not found: {AppHtmlPath}", appHtmlPath);
@@ -29,7 +31,7 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
         HtmlFile appTemplate = new(appHtmlPath);
 
         // Validate template structure: require a <main> container to merge into
-        if (!HtmlRegex.MainContent().IsMatch(appTemplate.Html))
+        if (!HtmlParser.HasMainSection(appTemplate.Html))
         {
             _logger.LogError("Base template missing <main> container: {AppHtmlPath}", appHtmlPath);
             diag.Add(Diagnostic.Error("Base template missing <main> container", appHtmlPath));
@@ -71,12 +73,12 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
         HtmlFile pageFragment = new(sourceFile);
         // Diagnostics: warn on missing <head> or <main> fragments
         string fragment = pageFragment.Html;
-        if (!HtmlRegex.HeadContent().IsMatch(fragment))
+        if (!HtmlParser.HasHeadSection(fragment))
         {
             _logger.LogWarning("Page fragment missing <head> section: {SourceFile}", sourceFile);
             diagnostics.Add(new Diagnostic { Level = DiagnosticLevel.Warning, Message = "Page fragment missing <head> section", File = sourceFile });
         }
-        if (!HtmlRegex.MainContent().IsMatch(fragment))
+        if (!HtmlParser.HasMainSection(fragment))
         {
             _logger.LogWarning("Page fragment missing <main> section: {SourceFile}", sourceFile);
             diagnostics.Add(new Diagnostic { Level = DiagnosticLevel.Warning, Message = "Page fragment missing <main> section", File = sourceFile });

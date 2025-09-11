@@ -82,7 +82,7 @@ public class CssBundler(AppWorkspace workspace)
         await File.WriteAllTextAsync(distCssPath, finalCss);
 
         // Create precompressed variants for transport (Brotli and gzip)
-        await Engine.Pipelines.Core.Precompression.CreatePrecompressedVariantsAsync(distCssPath);
+        await Engine.Pipelines.Core.Utilities.Precompression.CreatePrecompressedVariantsAsync(distCssPath);
 
         return cssFileName;
     }

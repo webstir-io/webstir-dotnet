@@ -1,9 +1,9 @@
-namespace Engine.Pipelines.Core.Testing;
+namespace Engine.Pipelines.Testing;
 
 public static class TestConstants
 {
     public const string NodeExe = "node";
-    public const string TesterResource = "Engine.Pipelines.Core.Testing.tester.js";
+    public const string TesterResource = "Engine.Pipelines.Testing.tester.js";
 
     public static class JsonKeys
     {

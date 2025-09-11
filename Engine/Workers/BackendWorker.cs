@@ -8,7 +8,7 @@ using Engine.Helpers;
 using Engine.Models;
 
 using Microsoft.Extensions.Options;
-using Engine.Workflows.Interfaces;
+using Engine.Interfaces;
 
 namespace Engine.Workers;
 

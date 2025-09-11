@@ -16,7 +16,8 @@ public sealed class CoreTests : TestSuite
 
         ITestCase[] cases =
         [
-            new ManifestIntegrity()
+            new ManifestIntegrity(),
+            new PrecompressedArtifactsExist()
         ];
 
         foreach (ITestCase testCase in FilterByMode(cases))

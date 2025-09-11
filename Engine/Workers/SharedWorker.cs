@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using Engine.Helpers;
 using Engine.Models;
-using Engine.Workflows.Interfaces;
+using Engine.Interfaces;
 
 namespace Engine.Workers;
 
