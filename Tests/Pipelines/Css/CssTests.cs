@@ -28,6 +28,7 @@ public sealed class CssTests : TestSuite
             new CssZeroShorthandCollapse(),
             new CssTokenizerUnit(),
             new CssSerializerMinifierUnit(),
+            new CssFontDisplaySwapEnforced(),
             new CssSeedSnapshot()
         ];
 

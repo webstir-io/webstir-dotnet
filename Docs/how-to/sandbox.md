@@ -10,7 +10,9 @@ Run a published Webstir app behind nginx with the template API server via Docker
 
 Files:
 - Compose — `Sandbox/docker-compose.yml`
-- nginx config — `Sandbox/web/nginx.conf`
+- nginx site config — `Sandbox/web/nginx.conf`
+- nginx main config (loads Brotli modules) — `Sandbox/web/nginx.main.conf`
+- custom nginx image (builds `ngx_brotli`) — `Sandbox/web/Dockerfile`
 
 ## Prerequisites
 - Docker and Docker Compose installed.
@@ -21,7 +23,7 @@ Files:
 The provided compose mounts a seed output under `../CLI/out/seed/...`. Swap to your project paths as needed.
 
 ## Usage
-- From `Sandbox/` run: `docker compose up -d`
+- From `Sandbox/` run: `docker compose up --build -d`
 - Open: `http://localhost:8080` (web) and `http://localhost:8000` (api)
 - Logs: `docker compose logs -f web` or `docker compose logs -f api`
 - Stop: `docker compose down`
@@ -37,8 +39,11 @@ To use your project, point volumes at your project’s `dist/frontend` and built
 ## Nginx Behavior
 - Clean URLs: `/` serves `pages/home/index.html`; `/about` serves `pages/about/index.html`.
 - Page assets: `/index.*.(css|js)` map to `pages/home/*`; `/about/*` map to `pages/about/*`.
-- Static assets: cached for 7 days; HTML is not cached.
-- Source maps: not expected in publish; config serves only published assets.
+- Hashed assets: content‑hashed filenames receive `Cache-Control: public, max-age=31536000, immutable`.
+- HTML: `no-cache, no-store, must-revalidate`.
+- Compression: dynamic Brotli/gzip enabled; also serves precompressed `.br/.gz` when present.
+- Security headers: CSP and standard security headers are set.
+- Source maps: blocked in sandbox (404) to mirror production policy.
 
 ## Environment
 API container env (edit in compose if needed):
@@ -47,9 +52,10 @@ API container env (edit in compose if needed):
 - `API_SERVER_URL=http://api:8000`
 
 ## Expected Dist Layout
-Produced by `webstir publish`:
+Produced by `webstir publish` (content‑hash fingerprinting):
 - `dist/frontend/pages/<page>/index.html`
-- `dist/frontend/pages/<page>/index.<timestamp>.{css|js}`
+- `dist/frontend/pages/<page>/index.<hash>.css`
+- `dist/frontend/pages/<page>/index.<hash>.js`
 - `dist/frontend/pages/<page>/manifest.json`
 - Shared app assets under `dist/frontend/app/*`
 

@@ -54,4 +54,7 @@ public static partial class HtmlRegex
 
     [GeneratedRegex(@"<link\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     public static partial Regex LinkTag();
+
+    [GeneratedRegex(@"<a\b[^>]*href=""(?<href>[^\""]+)""[^>]*>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    public static partial Regex AnchorHref();
 }

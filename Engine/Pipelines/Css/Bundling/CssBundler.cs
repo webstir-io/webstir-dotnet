@@ -11,6 +11,7 @@ using Engine.Pipelines.Css.Common;
 using Engine.Pipelines.Css.Models;
 using Engine.Pipelines.Css.Parsing;
 using Engine.Pipelines.Css.Transformation;
+using Engine.Pipelines.Core.Utilities;
 
 namespace Engine.Pipelines.Css.Bundling;
 
@@ -66,6 +67,7 @@ public class CssBundler(AppWorkspace workspace)
 
         string finalCss = bundled.ToString();
         finalCss = Transformer.AddPrefixes(finalCss);
+        finalCss = FontFaceTweaks.EnsureFontDisplaySwap(finalCss);
         finalCss = Transformer.StripLegacyPrefixes(finalCss);
         finalCss = Transformer.Minify(finalCss);
         return finalCss;
@@ -82,7 +84,7 @@ public class CssBundler(AppWorkspace workspace)
         await File.WriteAllTextAsync(distCssPath, finalCss);
 
         // Create precompressed variants for transport (Brotli and gzip)
-        await Engine.Pipelines.Core.Utilities.Precompression.CreatePrecompressedVariantsAsync(distCssPath);
+        await Precompression.CreatePrecompressedVariantsAsync(distCssPath);
 
         return cssFileName;
     }

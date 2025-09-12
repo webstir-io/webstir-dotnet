@@ -51,4 +51,19 @@ public static partial class CssRegex
 
     [GeneratedRegex(@"([a-z-]+)\s*:\s*([^;]+);", RegexOptions.Multiline)]
     public static partial Regex Property();
+
+    [GeneratedRegex(@"@font-face\s*\{(?<body>[^}]*)\}", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    public static partial Regex FontFaceBlock();
+
+    [GeneratedRegex(@"font-display\s*:\s*", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    public static partial Regex FontDisplayDecl();
+
+    [GeneratedRegex(@"@font-face[\s\S]*?\{[\s\S]*?src:\s*([^;]*);[\s\S]*?\}", RegexOptions.IgnoreCase)]
+    public static partial Regex FontFaceWithSrc();
+
+    [GeneratedRegex(@"src:\s*([^;]+);", RegexOptions.IgnoreCase)]
+    public static partial Regex FontSrcDecl();
+
+    [GeneratedRegex(@"url\((['""]?)(?<url>[^)'""]+)\1\)", RegexOptions.IgnoreCase)]
+    public static partial Regex FontUrlExtractor();
 }

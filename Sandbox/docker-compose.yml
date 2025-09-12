@@ -2,7 +2,9 @@ name: webstir-sandbox
 
 services:
   web:
-    image: nginx:1.27-alpine
+    build:
+      context: ./web
+      dockerfile: Dockerfile
     ports:
       - "8080:80"
     volumes:

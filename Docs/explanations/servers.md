@@ -17,6 +17,15 @@ See also: [Engine](engine.md) and [Services](services.md).
 - Logs: prints server URL and proxy target on startup.
 - Client Errors: accepts `POST /client-errors` (JSON, <=32KB). Returns `204` on success, `415` for non-JSON, `413` if too large. Forwards to `IErrorTrackingService` and includes correlation id.
 
+### Prod‑parity Toggles (Kestrel only)
+The following flags affect only the ASP.NET Core dev server. They do nothing for nginx/S3/CloudFront.
+
+- `Engine:AppSettings:EnableSecurityHeaders`: adds CSP and standard security headers.
+- `Engine:AppSettings:EnablePrecompression`: serves precompressed `.br/.gz` files when available.
+- `Engine:AppSettings:EnableEarlyHints`: attempts HTTP 103 Early Hints and also adds `Link` headers to final responses.
+
+Defaults are `false` for fast, simple dev. Turn them on only when you want to simulate production locally.
+
 ## Node API Server
 - Entry: `build/backend/index.js` produced by the backend compile step.
 - Lifecycle: spawned by the `watch` workflow; restarted on backend file changes.

@@ -3,8 +3,6 @@ using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
 using Engine.Pipelines.Core.Utilities;
-using CssConstants = Engine.Pipelines.Css.Common.Css;
-using Engine.Pipelines.Html.Common;
 using Engine.Pipelines.Html.Parsing;
 using Engine.Pipelines.Html.Transformation;
 using Engine.Pipelines.Html.Minification;
@@ -45,17 +43,22 @@ public class HtmlBundler(AppWorkspace workspace)
 
         htmlContent = HtmlParser.RemoveRefreshScript(htmlContent);
 
-        // Rewrite asset references using per-page manifest if present
         string pageDistDir = workspace.FrontendDistPath.Combine(Folders.Pages, pageName);
         AssetManifest manifest = AssetManifest.Load(pageDistDir);
         htmlContent = HtmlTransformer.RewriteAssetReferences(htmlContent, manifest, pageName);
 
-        // Inject width/height on <img> tags based on build image files
         string pageBuildDir = workspace.FrontendBuildPath.Combine(Folders.Pages, pageName);
         htmlContent = HtmlTransformer.AddImageDimensions(htmlContent, pageBuildDir);
-
-        // Add SRI for external scripts/styles (best-effort, network dependent)
+        htmlContent = Images.LazyLoadEnhancer.AddLazyLoading(htmlContent);
         htmlContent = await HtmlSecurityEnhancer.AddSRIForExternalResourcesAsync(htmlContent);
+        htmlContent = ResourceHintInjector.Inject(htmlContent, manifest, pageName, workspace);
+        htmlContent = Css.CriticalCssExtractor.InlineCriticalCss(htmlContent, pageName, pageDistDir);
+
+        if (!string.IsNullOrWhiteSpace(manifest.Css))
+        {
+            string cssPath = Path.Combine(pageDistDir, manifest.Css);
+            htmlContent = FontPreloadInjector.InjectFromCss(htmlContent, cssPath, pageName);
+        }
 
         string originalHtml = htmlContent;
         try
@@ -70,15 +73,13 @@ public class HtmlBundler(AppWorkspace workspace)
                 Message = $"HTML minification failed: {ex.Message}",
                 File = sourceFile
             });
-            htmlContent = originalHtml; // graceful fallback
+            htmlContent = originalHtml;
         }
 
         string distPagePath = workspace.FrontendDistPath.Combine(Folders.Pages, pageName, $"{Files.Index}{FileExtensions.Html}");
         distPagePath.DirectoryName().Create();
 
         await File.WriteAllTextAsync(distPagePath, htmlContent);
-
-        // Create precompressed variants for transport (Brotli and gzip)
         await Precompression.CreatePrecompressedVariantsAsync(distPagePath);
     }
 

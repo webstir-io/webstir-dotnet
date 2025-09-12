@@ -146,10 +146,20 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
         app.UseMiddleware<ClientErrorMiddleware>();
         app.Use(HandleServerSentEvents);
         app.UseMiddleware<ApiProxyMiddleware>();
-        app.UseMiddleware<SecurityHeadersMiddleware>();
-        app.UseMiddleware<PrecompressionMiddleware>();
+        if (options.Value.EnableSecurityHeaders)
+        {
+            app.UseMiddleware<SecurityHeadersMiddleware>();
+        }
+        if (options.Value.EnablePrecompression)
+        {
+            app.UseMiddleware<PrecompressionMiddleware>();
+        }
         app.Use(SetCacheHeaders);
         app.Use(RewriteCleanUrls);
+        if (options.Value.EnableEarlyHints)
+        {
+            app.UseMiddleware<EarlyHintsMiddleware>();
+        }
 
         DefaultFilesOptions defaultFilesOptions = new();
         defaultFilesOptions.DefaultFileNames.Clear();
