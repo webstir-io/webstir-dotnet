@@ -22,12 +22,14 @@ Created by `webstir init` unless you choose client-only or server-only:
 - Page folder names must be URL-safe: letters, numbers, `_` and `-`.
 - Each page has `index.html`, `index.css`, `index.ts`.
 - Backend entry is `src/backend/index.ts` and must export an HTTP server.
+ - For optional app features (like the router), prefer absolute dynamic imports (e.g., `await import('/app/router.js')`). This avoids relative-path issues between dev (`build/`) and publish (`dist/`).
 
 ## TypeScript
 - Uses an embedded `base.tsconfig.json` referenced by template tsconfigs.
 - ESM-only; compiled via `tsc --build` in dev and publish.
 - Shared code in `src/shared` is compiled for both frontend and backend.
  - Dev tsconfig enables `sourceMap` and `inlineSources` for smooth debugging; publish never ships source maps and strips any `sourceMappingURL`.
+ - Dynamic imports are not bundled in v1; they load at runtime. Keep paths absolute (e.g., `/app/...`) for assets under `src/frontend/app/`.
 
 ## CSS & Assets
 - Plain CSS by default; optional CSS Modules in publish.

@@ -46,11 +46,17 @@ export class Router {
   
   private interceptLinkClicks() {
     document.addEventListener('click', (event) => {
-      const clickedLink = (event.target as HTMLElement).closest('a');
-      if (!clickedLink || !this.shouldInterceptLink(clickedLink)) return;
-      
+      const target = event.target as EventTarget | null;
+
+      // Only handle element targets; respect modifier keys and prior handlers
+      if (!(target instanceof Element)) return;
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+      const clickedLink = target.closest('a');
+      if (!clickedLink || !this.shouldInterceptLink(clickedLink as HTMLAnchorElement)) return;
+
       event.preventDefault();
-      this.navigate(clickedLink.href);
+      this.navigate((clickedLink as HTMLAnchorElement).href);
     });
   }
   
@@ -100,4 +106,21 @@ export class Router {
   }
 }
 
-export const router = new Router();
+let singleton: Router | null = null;
+
+export function startRouter(): Router {
+  if (!singleton) {
+    singleton = new Router();
+  }
+  return singleton;
+}
+
+export function getRouter(): Router | null {
+  return singleton;
+}
+
+export function navigate(url: string) {
+  return startRouter().navigate(url);
+}
+
+export type { RouteHandler, RouteParams };

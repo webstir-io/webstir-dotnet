@@ -9,6 +9,7 @@ using Engine.Pipelines.Core.Utilities;
 using Engine.Pipelines.JavaScript.Build;
 using Engine.Pipelines.JavaScript.Bundling;
 using Engine.Pipelines.JavaScript.Common;
+using Engine.Pipelines.JavaScript.Minification;
 
 using Microsoft.Extensions.Logging;
 
@@ -33,45 +34,35 @@ public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bund
         DiagnosticCollection diagnostics = new();
         await bundler.BundleAsync(diagnostics);
         LogSummary("JS Publish", diagnostics);
-        await CopyAppFilesToDistAsync();
+        await CopyErrorToDistAsync();
     }
 
-    private async Task CopyAppFilesToDistAsync()
+    private async Task CopyErrorToDistAsync()
     {
-        string sourceApp = workspace.FrontendBuildAppPath;
-        string destApp = workspace.FrontendDistAppPath;
-
-        if (!Directory.Exists(sourceApp))
+        string sourceErrorJs = workspace.FrontendBuildAppPath.Combine("error.js");
+        if (!File.Exists(sourceErrorJs))
         {
             return;
         }
 
+        string destApp = workspace.FrontendDistAppPath;
         Directory.CreateDirectory(destApp);
 
-        foreach (string sourceFile in Directory.GetFiles(sourceApp, "*", SearchOption.AllDirectories))
-        {
-            string relative = Path.GetRelativePath(sourceApp, sourceFile);
-            string destination = Path.Combine(destApp, relative);
+        // Minify content and fingerprint
+        string content = await File.ReadAllTextAsync(sourceErrorJs);
+        content = JsRegex.SourceMapLine().Replace(content, string.Empty);
+        content = JsRegex.SourceMapBlock().Replace(content, string.Empty);
+        content = JsMinifier.Minify(content);
 
-            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        string hash = ContentHashGenerator.ComputeHash(content);
+        string hashedFileName = $"error.{hash}{FileExtensions.Js}";
+        string hashedPath = Path.Combine(destApp, hashedFileName);
+        await File.WriteAllTextAsync(hashedPath, content);
+        await Precompression.CreatePrecompressedVariantsAsync(hashedPath);
 
-            if (sourceFile.EndsWith(FileExtensions.Map, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            if (sourceFile.EndsWith(FileExtensions.Js, StringComparison.OrdinalIgnoreCase))
-            {
-                string content = await File.ReadAllTextAsync(sourceFile);
-                content = JsRegex.SourceMapLine().Replace(content, string.Empty);
-                content = JsRegex.SourceMapBlock().Replace(content, string.Empty);
-                await File.WriteAllTextAsync(destination, content);
-            }
-            else
-            {
-                File.Copy(sourceFile, destination, true);
-            }
-        }
+        // Keep a stable path for error templates that reference /app/error.js
+        string stablePath = Path.Combine(destApp, "error.js");
+        await File.WriteAllTextAsync(stablePath, content);
     }
 
     public Task AddPageAsync(string pageName)

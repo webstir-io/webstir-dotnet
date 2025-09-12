@@ -30,9 +30,12 @@ Build and publish stages for HTML, CSS, JS/TS, and static assets (Images, Fonts,
 
 ## JavaScript / TypeScript
 - Compiler: `tsc --build` using an embedded base `tsconfig`.
-- Graph: ESM only.
+- Graph: ESM-only inputs; bundler analyzes static `import`/`export`.
 - Dev: produce readable JS under `build/frontend/**` and `build/backend/**`.
 - Publish: tree-shake and minify; write fingerprinted `index.<timestamp>.js` per page; emit manifest entries.
+- Output shape: publishes a single per-page bundle (concatenated IIFE). Scripts are referenced with `type="module"` for broad compatibility, but the bundle itself is not an ES module.
+- Dynamic imports: not inlined/code-split in v1. `import('...')` remains at runtime. Use absolute URLs (e.g., `/app/router.js`) for app assets so dev and publish resolve consistently.
+- Minification scope: whitespace and comment removal (incl. source map comments). No identifier mangling or advanced transforms.
 
 ## Assets (Images / Fonts / Media)
 - Source folders under `src/frontend/`:

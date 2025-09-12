@@ -1,2 +1,2 @@
 // TypeScript file for index page
-import '../../app/app.js';
+// Keep minimal; shared error handling loads via base HTML.

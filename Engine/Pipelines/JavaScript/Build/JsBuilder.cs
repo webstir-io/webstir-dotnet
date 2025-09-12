@@ -38,21 +38,10 @@ public class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
 
     private void CopyErrorScript()
     {
-        string sourceErrorJs = workspace.FrontendAppPath.Combine("error.js");
-        string targetDir = workspace.FrontendBuildAppPath;
-        string targetErrorJs = targetDir.Combine("error.js");
-
-        try
+        string compiledErrorJs = workspace.FrontendBuildAppPath.Combine("error.js");
+        if (!compiledErrorJs.Exists())
         {
-            Directory.CreateDirectory(targetDir);
-            if (sourceErrorJs.Exists())
-            {
-                File.Copy(sourceErrorJs, targetErrorJs, true);
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to copy error.js from {Source} to {Target}", sourceErrorJs, targetErrorJs);
+            logger.LogWarning("Compiled error.js not found at {Path}. Ensure src/frontend/app/error.ts is included in the build.", compiledErrorJs);
         }
     }
 

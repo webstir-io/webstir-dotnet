@@ -27,6 +27,10 @@ Produce optimized, fingerprinted assets in `dist/` and rewrite HTML to reference
 - Static assets: `dist/frontend/{images|fonts|media}/**`
 - Shared app assets under `dist/frontend/app/*`
 
+## Notes
+- Dynamic imports are not inlined by the bundler in v1. If your page (or app) uses `import('...')`, the call remains at runtime. For assets under the app shell, use absolute paths (e.g., `await import('/app/router.js')`) so they resolve correctly after publish.
+- JavaScript minification removes whitespace and comments but does not mangle identifiers.
+
 ## Errors & Exit Codes
 - Non-zero on pipeline failures or missing inputs.
 - Logs indicate which page or asset failed.

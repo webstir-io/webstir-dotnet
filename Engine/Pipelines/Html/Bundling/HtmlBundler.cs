@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
@@ -47,6 +48,16 @@ public class HtmlBundler(AppWorkspace workspace)
         AssetManifest manifest = AssetManifest.Load(pageDistDir);
         htmlContent = HtmlTransformer.RewriteAssetReferences(htmlContent, manifest, pageName);
 
+        // Rewrite shared error script to fingerprinted filename if available
+        string? hashedError = TryGetHashedErrorScriptFileName();
+        if (!string.IsNullOrWhiteSpace(hashedError))
+        {
+            string original = "/" + Folders.App + "/error" + FileExtensions.Js;
+            string replacement = "/" + Folders.App + "/" + hashedError;
+            htmlContent = htmlContent.Replace("\"" + original + "\"", "\"" + replacement + "\"");
+            htmlContent = htmlContent.Replace("'" + original + "'", "'" + replacement + "'");
+        }
+
         string pageBuildDir = workspace.FrontendBuildPath.Combine(Folders.Pages, pageName);
         htmlContent = HtmlTransformer.AddImageDimensions(htmlContent, pageBuildDir);
         htmlContent = Images.LazyLoadEnhancer.AddLazyLoading(htmlContent);
@@ -81,6 +92,33 @@ public class HtmlBundler(AppWorkspace workspace)
 
         await File.WriteAllTextAsync(distPagePath, htmlContent);
         await Precompression.CreatePrecompressedVariantsAsync(distPagePath);
+    }
+
+    private string? TryGetHashedErrorScriptFileName()
+    {
+        string appDistDir = workspace.FrontendDistPath.Combine(Folders.App);
+        if (!appDistDir.Exists())
+        {
+            return null;
+        }
+
+        try
+        {
+            string[] candidates = Directory.GetFiles(appDistDir, "error.*.js", SearchOption.TopDirectoryOnly);
+            // Prefer a single candidate; if multiple, take the latest modified
+            if (candidates.Length == 0)
+            {
+                return null;
+            }
+            string chosen = candidates
+                .OrderByDescending(File.GetLastWriteTimeUtc)
+                .First();
+            return Path.GetFileName(chosen);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
 }
