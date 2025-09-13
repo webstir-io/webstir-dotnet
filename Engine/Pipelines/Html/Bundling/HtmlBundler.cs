@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using System;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
@@ -48,14 +49,16 @@ public class HtmlBundler(AppWorkspace workspace)
         AssetManifest manifest = AssetManifest.Load(pageDistDir);
         htmlContent = HtmlTransformer.RewriteAssetReferences(htmlContent, manifest, pageName);
 
-        // Rewrite shared error script to fingerprinted filename if available
-        string? hashedError = TryGetHashedErrorScriptFileName();
-        if (!string.IsNullOrWhiteSpace(hashedError))
+        // Keep a single standard stylesheet link; no CSS preload/swap to avoid duplicate or broken loads.
+
+        // Rewrite shared error script to fingerprinted filename; fail-fast if referenced but missing
+        string originalErrorRef = "/" + Folders.App + "/error" + FileExtensions.Js;
+        if (htmlContent.Contains(originalErrorRef, StringComparison.Ordinal))
         {
-            string original = "/" + Folders.App + "/error" + FileExtensions.Js;
+            string hashedError = GetHashedErrorScriptFileNameOrThrow();
             string replacement = "/" + Folders.App + "/" + hashedError;
-            htmlContent = htmlContent.Replace("\"" + original + "\"", "\"" + replacement + "\"");
-            htmlContent = htmlContent.Replace("'" + original + "'", "'" + replacement + "'");
+            htmlContent = htmlContent.Replace("\"" + originalErrorRef + "\"", "\"" + replacement + "\"");
+            htmlContent = htmlContent.Replace("'" + originalErrorRef + "'", "'" + replacement + "'");
         }
 
         string pageBuildDir = workspace.FrontendBuildPath.Combine(Folders.Pages, pageName);
@@ -75,6 +78,9 @@ public class HtmlBundler(AppWorkspace workspace)
         try
         {
             htmlContent = HtmlMinifier.Minify(htmlContent);
+            // Ensure void tags don't use self-closing '/>' to avoid browsers
+            // accidentally treating the '/' as part of an unquoted attribute value.
+            htmlContent = htmlContent.Replace("/>", ">");
         }
         catch (System.Exception ex)
         {
@@ -94,31 +100,24 @@ public class HtmlBundler(AppWorkspace workspace)
         await Precompression.CreatePrecompressedVariantsAsync(distPagePath);
     }
 
-    private string? TryGetHashedErrorScriptFileName()
+    private string GetHashedErrorScriptFileNameOrThrow()
     {
         string appDistDir = workspace.FrontendDistPath.Combine(Folders.App);
         if (!appDistDir.Exists())
         {
-            return null;
+            throw new FileNotFoundException($"Missing dist app directory: {appDistDir}");
         }
 
-        try
+        string[] candidates = Directory.GetFiles(appDistDir, "error.*.js", SearchOption.TopDirectoryOnly);
+        if (candidates.Length == 0)
         {
-            string[] candidates = Directory.GetFiles(appDistDir, "error.*.js", SearchOption.TopDirectoryOnly);
-            // Prefer a single candidate; if multiple, take the latest modified
-            if (candidates.Length == 0)
-            {
-                return null;
-            }
-            string chosen = candidates
-                .OrderByDescending(File.GetLastWriteTimeUtc)
-                .First();
-            return Path.GetFileName(chosen);
+            throw new FileNotFoundException("Fingerprint for error.js not found in dist/frontend/app");
         }
-        catch
-        {
-            return null;
-        }
+
+        string chosen = candidates
+            .OrderByDescending(File.GetLastWriteTimeUtc)
+            .First();
+        return Path.GetFileName(chosen);
     }
 
 }

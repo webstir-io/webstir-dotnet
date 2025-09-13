@@ -4,12 +4,21 @@ using static Engine.Pipelines.JavaScript.Common.Syntax;
 
 namespace Engine.Pipelines.JavaScript.Minification;
 
-internal sealed class JsMinifyProcessor(string code)
+internal sealed class JsMinifyProcessor
 {
-    private readonly string _code = code;
-    private readonly int _length = code.Length;
-    private readonly StringBuilder _output = new(code.Length);
+    private readonly string _code;
+    private readonly int _length;
+    private readonly StringBuilder _output;
     private readonly MinifyState _state = new();
+    private readonly bool _compact;
+
+    public JsMinifyProcessor(string code, bool compact)
+    {
+        _code = code;
+        _length = code.Length;
+        _output = new StringBuilder(code.Length);
+        _compact = compact;
+    }
 
     public string Run()
     {
@@ -73,13 +82,22 @@ internal sealed class JsMinifyProcessor(string code)
 
         (bool sawNewline, char nextNonWhitespaceChar, int nextIndex) = TextScanner.ScanAsciiWhitespace(_code, _state.Index);
 
-        if (sawNewline)
+        // In compact mode, never emit newlines; only emit a single space when
+        // required to prevent token merging. In normal mode, preserve a single newline.
+        if (_compact)
         {
-            Emit(NewlineChar);
+            if (nextNonWhitespaceChar != '\0' && CharacterClassifier.ShouldInsertSpace(_state.LastNonWhitespaceChar, nextNonWhitespaceChar))
+            {
+                Emit(SpaceChar);
+            }
         }
         else
         {
-            if (nextNonWhitespaceChar != '\0' && CharacterClassifier.ShouldInsertSpace(_state.LastNonWhitespaceChar, nextNonWhitespaceChar))
+            if (sawNewline)
+            {
+                Emit(NewlineChar);
+            }
+            else if (nextNonWhitespaceChar != '\0' && CharacterClassifier.ShouldInsertSpace(_state.LastNonWhitespaceChar, nextNonWhitespaceChar))
             {
                 Emit(SpaceChar);
             }

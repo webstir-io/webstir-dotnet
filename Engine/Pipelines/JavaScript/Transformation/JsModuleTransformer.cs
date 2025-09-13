@@ -8,19 +8,22 @@ namespace Engine.Pipelines.JavaScript.Transformation;
 
 public static class JsModuleTransformer
 {
-    public static JsTransformedModule Transform(JsModuleInfo module, int moduleId, Dictionary<string, int> moduleIdMap)
+    public static JsTransformedModule Transform(JsModuleInfo module, int moduleId, Dictionary<string, int> moduleIdMap, bool emitComments = true, bool compactNames = false)
     {
         ArgumentNullException.ThrowIfNull(module);
         ArgumentNullException.ThrowIfNull(moduleIdMap);
 
         StringBuilder output = new();
 
-        output.AppendLine(FormattableString.Invariant($"{Js.CommentPrefix} Module {moduleId}: {module.FilePath}"));
+        if (emitComments)
+        {
+            output.AppendLine(FormattableString.Invariant($"{Js.CommentPrefix} Module {moduleId}: {module.FilePath}"));
+        }
         output.AppendLine(FormattableString.Invariant($"{Syntax.OpenParen}function{Syntax.OpenParen}{Syntax.CloseParen} {Syntax.OpenBrace}"));
 
-        AppendImports(output, module.Imports, moduleIdMap);
+        AppendImports(output, module.Imports, moduleIdMap, compactNames);
         AppendModuleContent(output, module.Content);
-        AppendExports(output, module.Exports, moduleId);
+        AppendExports(output, module.Exports, moduleId, compactNames);
 
         output.AppendLine(FormattableString.Invariant($"{Syntax.CloseBrace}{Syntax.CloseParen}{Syntax.OpenParen}{Syntax.CloseParen}{Syntax.Semicolon}"));
 
@@ -44,7 +47,7 @@ public static class JsModuleTransformer
         };
     }
 
-    private static void AppendImports(StringBuilder output, List<JsImportStatement> imports, Dictionary<string, int> moduleIdMap)
+    private static void AppendImports(StringBuilder output, List<JsImportStatement> imports, Dictionary<string, int> moduleIdMap, bool compactNames)
     {
         foreach (JsImportStatement import in imports)
         {
@@ -55,17 +58,20 @@ public static class JsModuleTransformer
 
             if (import.DefaultSpecifier != null)
             {
-                output.AppendLine(FormattableString.Invariant($"  {Js.Const} {import.DefaultSpecifier}{Syntax.Assignment}{Js.GetModuleDefault(sourceModuleId)}{Syntax.Semicolon}"));
+                string defVar = GetDefaultVar(sourceModuleId, compactNames);
+                output.AppendLine(FormattableString.Invariant($"  {Js.Const} {import.DefaultSpecifier}{Syntax.Assignment}{defVar}{Syntax.Semicolon}"));
             }
 
             foreach (string specifier in import.Specifiers)
             {
-                output.AppendLine(FormattableString.Invariant($"  {Js.Const} {specifier}{Syntax.Assignment}{Js.GetModuleExport(sourceModuleId, specifier)}{Syntax.Semicolon}"));
+                string expVar = GetExportVar(sourceModuleId, specifier, compactNames);
+                output.AppendLine(FormattableString.Invariant($"  {Js.Const} {specifier}{Syntax.Assignment}{expVar}{Syntax.Semicolon}"));
             }
 
             if (import.NamespaceSpecifier != null)
             {
-                output.AppendLine(FormattableString.Invariant($"  {Js.Const} {import.NamespaceSpecifier}{Syntax.Assignment}{Js.GetModuleVar(sourceModuleId)}{Syntax.Semicolon}"));
+                string nsVar = GetModuleVar(sourceModuleId, compactNames);
+                output.AppendLine(FormattableString.Invariant($"  {Js.Const} {import.NamespaceSpecifier}{Syntax.Assignment}{nsVar}{Syntax.Semicolon}"));
             }
         }
     }
@@ -76,18 +82,20 @@ public static class JsModuleTransformer
         output.AppendLine(cleanCode);
     }
 
-    private static void AppendExports(StringBuilder output, List<JsExportStatement> exports, int moduleId)
+    private static void AppendExports(StringBuilder output, List<JsExportStatement> exports, int moduleId, bool compactNames)
     {
         foreach (JsExportStatement export in exports)
         {
             if (export.IsDefault)
             {
-                output.AppendLine(FormattableString.Invariant($"  {Js.Var} {Js.GetModuleDefault(moduleId)}{Syntax.Assignment}undefined{Syntax.Semicolon}"));
+                string defVar = GetDefaultVar(moduleId, compactNames);
+                output.AppendLine(FormattableString.Invariant($"  {Js.Var} {defVar}{Syntax.Assignment}undefined{Syntax.Semicolon}"));
             }
 
             foreach (string specifier in export.Specifiers)
             {
-                output.AppendLine(FormattableString.Invariant($"  {Js.Var} {Js.GetModuleExport(moduleId, specifier)}{Syntax.Assignment}{specifier}{Syntax.Semicolon}"));
+                string expVar = GetExportVar(moduleId, specifier, compactNames);
+                output.AppendLine(FormattableString.Invariant($"  {Js.Var} {expVar}{Syntax.Assignment}{specifier}{Syntax.Semicolon}"));
             }
         }
     }
@@ -99,5 +107,56 @@ public static class JsModuleTransformer
 
         return code;
     }
-}
 
+    private static string GetModuleVar(int moduleId, bool compactNames) => compactNames ? $"m{moduleId}" : Js.GetModuleVar(moduleId);
+
+    private static string GetDefaultVar(int moduleId, bool compactNames) => compactNames ? $"md{moduleId}" : Js.GetModuleDefault(moduleId);
+
+    private static string GetExportVar(int moduleId, string exportName, bool compactNames)
+    {
+        if (!compactNames)
+        {
+            return Js.GetModuleExport(moduleId, exportName);
+        }
+
+        string shortToken = MapExportName(exportName);
+        return $"m{moduleId}{shortToken}";
+    }
+
+    private static string MapExportName(string name)
+    {
+        // Frequent names → shortest tokens. Otherwise, use '_' + original name.
+        // Deterministic and per‑module safe.
+        return name switch
+        {
+            "render" => "a",
+            "init" => "b",
+            "setup" => "c",
+            "start" => "d",
+            "stop" => "e",
+            "create" => "f",
+            "destroy" => "g",
+            "mount" => "h",
+            "unmount" => "i",
+            "onEnter" => "j",
+            "onLeave" => "k",
+            "onUpdate" => "l",
+            "load" => "m",
+            "save" => "n",
+            "open" => "o",
+            "close" => "p",
+            "fetch" => "q",
+            "post" => "r",
+            "get" => "s",
+            "set" => "t",
+            "update" => "u",
+            "remove" => "v",
+            "dispose" => "w",
+            "navigate" => "x",
+            "handle" => "y",
+            "build" => "z",
+
+            _ => "_" + name
+        };
+    }
+}

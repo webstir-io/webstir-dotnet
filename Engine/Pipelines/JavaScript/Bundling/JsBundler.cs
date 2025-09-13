@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -8,6 +7,7 @@ using Engine.Pipelines.Core.Utilities;
 using Engine.Pipelines.JavaScript.Minification;
 using Engine.Pipelines.JavaScript.Models;
 using Engine.Pipelines.JavaScript.Transformation;
+using Microsoft.Extensions.Options;
 
 namespace Engine.Pipelines.JavaScript.Bundling;
 
@@ -75,7 +75,7 @@ public class JsBundler(AppWorkspace workspace)
         result.Add(node.Info);
     }
 
-    private static string ConcatenateModules(List<JsModuleInfo> modules, JsModuleGraph graph)
+    private static string ConcatenateModules(List<JsModuleInfo> modules, JsModuleGraph graph, bool emitComments, bool compactNames)
     {
         Dictionary<string, int> moduleIdMap = [];
         for (int moduleIndex = 0; moduleIndex < modules.Count; moduleIndex++)
@@ -88,7 +88,7 @@ public class JsBundler(AppWorkspace workspace)
 
         for (int moduleIndex = 0; moduleIndex < modules.Count; moduleIndex++)
         {
-            JsTransformedModule transformed = JsModuleTransformer.Transform(modules[moduleIndex], moduleIndex, moduleIdMap);
+            JsTransformedModule transformed = JsModuleTransformer.Transform(modules[moduleIndex], moduleIndex, moduleIdMap, emitComments, compactNames);
             transformed = new JsTransformedModule
             {
                 Id = transformed.Id,
@@ -120,8 +120,10 @@ public class JsBundler(AppWorkspace workspace)
             }
         }
 
-        string bundleCode = ConcatenateModules(modules, graph);
-        bundleCode = JsMinifier.Minify(bundleCode);
+        bool emitComments = false;
+        string bundleCode = ConcatenateModules(modules, graph, emitComments, true);
+
+        bundleCode = JsMinifier.Minify(bundleCode, compact: true, dropConsole: true);
 
         return bundleCode;
     }

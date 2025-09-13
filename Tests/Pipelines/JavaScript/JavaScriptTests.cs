@@ -18,6 +18,7 @@ public sealed class JavaScriptTests : TestSuite
         [
             new JsIsMinified(),
             new JsMinifierInvariants(),
+            new JsCompactModeSpacing(),
             // Precompression existence checks consolidated under Core tests
             new JsTreeShakingRemovesUnusedExports()
         ];

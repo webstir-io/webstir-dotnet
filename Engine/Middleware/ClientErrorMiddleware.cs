@@ -136,29 +136,83 @@ public sealed class ClientErrorMiddleware(RequestDelegate next, ILogger<ClientEr
 
     private sealed class ClientErrorPayload
     {
-        public string? type { get; set; }
-        public string? message { get; set; }
-        public string? stack { get; set; }
-        public string? filename { get; set; }
-        public int? lineno { get; set; }
-        public int? colno { get; set; }
-        public string? pageUrl { get; set; }
-        public string? userAgent { get; set; }
-        public string? timestamp { get; set; }
-        public string? correlationId { get; set; }
+        public string? type
+        {
+            get; set;
+        }
+        public string? message
+        {
+            get; set;
+        }
+        public string? stack
+        {
+            get; set;
+        }
+        public string? filename
+        {
+            get; set;
+        }
+        public int? lineno
+        {
+            get; set;
+        }
+        public int? colno
+        {
+            get; set;
+        }
+        public string? pageUrl
+        {
+            get; set;
+        }
+        public string? userAgent
+        {
+            get; set;
+        }
+        public string? timestamp
+        {
+            get; set;
+        }
+        public string? correlationId
+        {
+            get; set;
+        }
     }
 }
 
 public sealed class ClientReportedException(string message) : Exception(message)
 {
-    public string? Type { get; init; }
-    public string? FileName { get; init; }
-    public int? Line { get; init; }
-    public int? Column { get; init; }
-    public string? Stack { get; init; }
-    public string? PageUrl { get; init; }
-    public string? UserAgent { get; init; }
-    public string? Timestamp { get; init; }
+    public string? Type
+    {
+        get; init;
+    }
+    public string? FileName
+    {
+        get; init;
+    }
+    public int? Line
+    {
+        get; init;
+    }
+    public int? Column
+    {
+        get; init;
+    }
+    public string? Stack
+    {
+        get; init;
+    }
+    public string? PageUrl
+    {
+        get; init;
+    }
+    public string? UserAgent
+    {
+        get; init;
+    }
+    public string? Timestamp
+    {
+        get; init;
+    }
 
     public override string? StackTrace => Stack ?? base.StackTrace;
 }

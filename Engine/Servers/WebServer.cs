@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 
 using Engine.Extensions;
 using Engine.Middleware;
+using Engine.Services;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -20,7 +21,7 @@ using Microsoft.Extensions.Options;
 
 namespace Engine.Servers;
 
-public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
+public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
 {
     private readonly List<HttpContext> _sseClients = [];
     private WebApplication? _app;
@@ -34,9 +35,6 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
     private const string SseRoute = "/sse";
     private const string ApiRoute = "/api";
     private const string HomeRoute = "/home";
-
-    [GeneratedRegex(@"\.[a-f0-9]{8,64}\.(css|js|png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|otf|eot|mp3|m4a|wav|ogg|mp4|webm|mov)$", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
-    private static partial Regex ContentHashedAssetPattern();
 
     private static bool IsStaticAsset(string path) =>
         path.EndsWith(FileExtensions.Css, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Js, StringComparison.OrdinalIgnoreCase) ||
@@ -130,6 +128,8 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
 
     private void ConfigureServices(IServiceCollection services)
     {
+        services.AddSingleton<IErrorTrackingService, ErrorTrackingService>();
+        services.AddSingleton<ISourceMapService, SourceMapService>();
         services.AddDirectoryBrowser();
         services.AddHttpClient("ApiProxy", client =>
         {
@@ -146,20 +146,10 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
         app.UseMiddleware<ClientErrorMiddleware>();
         app.Use(HandleServerSentEvents);
         app.UseMiddleware<ApiProxyMiddleware>();
-        if (options.Value.EnableSecurityHeaders)
-        {
-            app.UseMiddleware<SecurityHeadersMiddleware>();
-        }
-        if (options.Value.EnablePrecompression)
-        {
-            app.UseMiddleware<PrecompressionMiddleware>();
-        }
+        app.UseMiddleware<SecurityHeadersMiddleware>();
+        app.UseMiddleware<PrecompressionMiddleware>();
         app.Use(SetCacheHeaders);
         app.Use(RewriteCleanUrls);
-        if (options.Value.EnableEarlyHints)
-        {
-            app.UseMiddleware<EarlyHintsMiddleware>();
-        }
 
         DefaultFilesOptions defaultFilesOptions = new();
         defaultFilesOptions.DefaultFileNames.Clear();
@@ -207,7 +197,7 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
 
         string path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
 
-        if (ContentHashedAssetPattern().IsMatch(path))
+        if (WebServerRegexPatterns.ContentHashedAssetPattern().IsMatch(path))
         {
             context.Response.Headers.CacheControl = LongCache;
         }
@@ -262,4 +252,12 @@ public partial class WebServer(IOptions<AppSettings> options, ILogger<WebServer>
 
         await next();
     }
+}
+
+internal static partial class WebServerRegexPatterns
+{
+    // Matches content-hashed assets with 8-64 character hash before file extension
+    // Example: styles.abc123def456.css, script.1234567890abcdef.js
+    [GeneratedRegex(@"\.[a-f0-9]{8,64}\.(css|js|png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|otf|eot|mp3|m4a|wav|ogg|mp4|webm|mov)$", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    public static partial Regex ContentHashedAssetPattern();
 }

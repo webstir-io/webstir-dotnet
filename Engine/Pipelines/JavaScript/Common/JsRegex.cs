@@ -66,6 +66,18 @@ public static partial class JsRegex
     [GeneratedRegex(@"\/\*\#\s*sourceMappingURL=.*?\*\/\s*$", RegexOptions.Singleline)]
     public static partial Regex SourceMapBlock();
 
+    // Debugger and console removal (conservative)
+    [GeneratedRegex(@"\bdebugger\b\s*;?", RegexOptions.Multiline)]
+    public static partial Regex DebuggerStatement();
+
+    // Remove standalone console calls: console.xxx(...);
+    [GeneratedRegex(@"\bconsole\.[A-Za-z_$][A-Za-z0-9_$]*\s*\([^;]*?\)\s*;?", RegexOptions.Multiline)]
+    public static partial Regex ConsoleCall();
+
+    // Compact-mode: collapse indentation runs after punctuation or start of line
+    [GeneratedRegex(@"(?<=^|[;\)\}\],])[\t ]{2,}", RegexOptions.Multiline)]
+    public static partial Regex PunctWhitespaceRun();
+
     // Transform patterns - Variable declarations
     [GeneratedRegex(@"\blet\b|\bconst\b|\bvar\b", RegexOptions.Multiline)]
     public static partial Regex VariableDeclaration();

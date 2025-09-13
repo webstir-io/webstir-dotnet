@@ -21,7 +21,7 @@ public sealed class SecurityHeadersMiddleware(RequestDelegate next)
             headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
             headers.XXSSProtection = "0";
             headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()";
-            headers.ContentSecurityPolicy = ContentSecurityPolicy.BuildDefaultPolicy();
+            headers.ContentSecurityPolicy = ContentSecurityPolicy.BuildDefaultPolicy(isDevelopment: true);
             return Task.CompletedTask;
         });
 

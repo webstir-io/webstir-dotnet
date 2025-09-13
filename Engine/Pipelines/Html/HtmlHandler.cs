@@ -42,17 +42,18 @@ public class HtmlHandler(AppWorkspace workspace, HtmlBuilder htmlBuilder, HtmlBu
 
     private static string GeneratePageTemplate(string pageName)
     {
+        // Use raw string literal without escaping quotes to avoid outputting literal backslashes
         return $"""
         <head>
             <title>{pageName}</title>
-            <link rel=\"stylesheet\" href=\"{Files.Index}{FileExtensions.Css}\" />
+            <link rel="stylesheet" href="{Files.Index}{FileExtensions.Css}">
         </head>
         <body>
             <main>
                 <h1>{pageName}</h1>
                 <p>Content for the {pageName} page.</p>
             </main>
-            <script type=\"module\" src=\"{Files.Index}{FileExtensions.Js}\" async></script>
+            <script type="module" src="{Files.Index}{FileExtensions.Js}" async></script>
         </body>
         """;
     }

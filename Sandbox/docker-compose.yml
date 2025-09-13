@@ -2,17 +2,15 @@ name: webstir-sandbox
 
 services:
   web:
-    build:
-      context: ./web
-      dockerfile: Dockerfile
+    image: nginx:latest
     ports:
       - "8080:80"
     volumes:
-      # Mount the published client assets produced by `webstir publish`
-      # Expected structure: dist/client/pages/<name>/index.html, etc.
-      - ../CLI/out/seed/dist/client:/usr/share/nginx/html
-      # Serve app utilities from published dist (router, navigation) without maps
-      - ../CLI/out/seed/dist/client/app:/usr/share/nginx/html/app:ro
+      # Mount the published frontend assets produced by `webstir publish`
+      # Expected structure: dist/frontend/pages/<name>/index.html, etc.
+      - ../CLI/out/seed/dist/frontend:/usr/share/nginx/html
+      # Serve shared app scripts from published dist
+      - ../CLI/out/seed/dist/frontend/app:/usr/share/nginx/html/app:ro
       # Provide an nginx site config that supports clean URLs if needed
       - ./web/nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
@@ -23,7 +21,7 @@ services:
   api:
     image: node:20-alpine
     working_dir: /app
-    command: ["node", "build/server/index.js"]
+    command: ["node", "build/backend/index.js"]
     environment:
       # Match Webstir template server expectations
       - PORT=8000

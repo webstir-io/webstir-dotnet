@@ -9,7 +9,7 @@ using Engine.Pipelines.Html.Parsing;
 
 namespace Engine.Pipelines.Html.Transformation;
 
-public static class HtmlTransformer
+public static partial class HtmlTransformer
 {
     public static string MergeTemplates(string appTemplate, string pageFragment)
     {
@@ -47,6 +47,8 @@ public static class HtmlTransformer
             result = HtmlRegex.EmptyMain().Replace(result, $"<main$1>{pageMainContent}</main>");
         }
 
+        // Ensure href/src attribute values are quoted to avoid browsers capturing the tag-closing '/>'
+        result = QuoteUnquotedHrefSrc(result);
         return result;
     }
 
@@ -58,6 +60,7 @@ public static class HtmlTransformer
 
         if (!string.IsNullOrWhiteSpace(manifest.Css))
         {
+            // Use absolute path to ensure correct resolution even when the page is served at '/'
             string cssPath = $"/{Folders.Pages}/{pageName}/{manifest.Css}";
             result = RewriteAssetPath(result, $"{Files.Index}{FileExtensions.Css}", cssPath);
             result = RewriteAssetPath(result, $"{Files.Index}.module{FileExtensions.Css}", cssPath);
@@ -74,10 +77,27 @@ public static class HtmlTransformer
 
     private static string RewriteAssetPath(string html, string oldPath, string newPath)
     {
+        // Quoted attribute values
         html = html.Replace($"\"{oldPath}\"", $"\"{newPath}\"");
         html = html.Replace($"'{oldPath}'", $"'{newPath}'");
+        // Quoting for unquoted values handled in a separate pass
         return html;
     }
+
+    private static string QuoteUnquotedHrefSrc(string html)
+    {
+        // href=VALUE -> href="VALUE" (when VALUE is unquoted)
+        html = UnquotedHrefRegex().Replace(html, m => $"href=\"{m.Groups[1].Value}\"");
+        // src=VALUE -> src="VALUE"
+        html = UnquotedSrcRegex().Replace(html, m => $"src=\"{m.Groups[1].Value}\"");
+        return html;
+    }
+
+    [GeneratedRegex(@"href=([^""'\s>]+)", RegexOptions.IgnoreCase)]
+    private static partial Regex UnquotedHrefRegex();
+
+    [GeneratedRegex(@"src=([^""'\s>]+)", RegexOptions.IgnoreCase)]
+    private static partial Regex UnquotedSrcRegex();
 
     public static string AddImageDimensions(string html, string pageBuildDirectory)
     {
@@ -272,7 +292,7 @@ public static class HtmlTransformer
         if (attrs.TryGetValue("rel", out string? rel))
         {
             // split rel by whitespace
-            string[] parts = rel.Split((char[])[ ' ', '\t', '\n', '\r' ], StringSplitOptions.RemoveEmptyEntries);
+            string[] parts = rel.Split((char[])[' ', '\t', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries);
             foreach (string part in parts)
             {
                 if (part.Equals("canonical", StringComparison.OrdinalIgnoreCase))
@@ -310,35 +330,47 @@ public static class HtmlTransformer
         while (i < gt)
         {
             // skip whitespace
-            while (i < gt && IsAsciiWhitespace(tag[i])) i++;
-            if (i >= gt) break;
+            while (i < gt && IsAsciiWhitespace(tag[i]))
+                i++;
+            if (i >= gt)
+                break;
 
             // read name
             int nameStart = i;
-            while (i < gt && !IsAsciiWhitespace(tag[i]) && tag[i] != '=' && tag[i] != '/' && tag[i] != '>') i++;
-            if (nameStart == i) { i++; continue; }
+            while (i < gt && !IsAsciiWhitespace(tag[i]) && tag[i] != '=' && tag[i] != '/' && tag[i] != '>')
+                i++;
+            if (nameStart == i)
+            {
+                i++;
+                continue;
+            }
             string name = tag[nameStart..i];
 
             // skip whitespace
-            while (i < gt && IsAsciiWhitespace(tag[i])) i++;
+            while (i < gt && IsAsciiWhitespace(tag[i]))
+                i++;
 
             string value = string.Empty;
             if (i < gt && tag[i] == '=')
             {
                 i++;
-                while (i < gt && IsAsciiWhitespace(tag[i])) i++;
+                while (i < gt && IsAsciiWhitespace(tag[i]))
+                    i++;
                 if (i < gt && (tag[i] == '"' || tag[i] == '\''))
                 {
                     char quote = tag[i++];
                     int valStart = i;
-                    while (i < gt && tag[i] != quote) i++;
+                    while (i < gt && tag[i] != quote)
+                        i++;
                     value = tag[valStart..Math.Min(i, gt)];
-                    if (i < gt && tag[i] == quote) i++;
+                    if (i < gt && tag[i] == quote)
+                        i++;
                 }
                 else
                 {
                     int valStart = i;
-                    while (i < gt && !IsAsciiWhitespace(tag[i]) && tag[i] != '/' && tag[i] != '>') i++;
+                    while (i < gt && !IsAsciiWhitespace(tag[i]) && tag[i] != '/' && tag[i] != '>')
+                        i++;
                     value = tag[valStart..Math.Min(i, gt)];
                 }
             }

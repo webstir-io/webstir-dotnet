@@ -26,7 +26,7 @@ public static class FontPreloadInjector
     private static string? ExtractFirstFontUrl(string cssFilePath)
     {
         string css = File.ReadAllText(cssFilePath);
-        
+
         foreach (Match block in CssRegex.FontFaceWithSrc().Matches(css))
         {
             Match src = CssRegex.FontSrcDecl().Match(block.Value);
@@ -46,12 +46,12 @@ public static class FontPreloadInjector
         foreach (Match m in CssRegex.FontUrlExtractor().Matches(srcValue))
         {
             string url = m.Groups["url"].Value;
-            
+
             if (string.IsNullOrWhiteSpace(url) || url.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
                 continue;
 
             string lower = url.ToLowerInvariant();
-            if (lower.EndsWith(FileExtensions.Woff2, StringComparison.Ordinal) || 
+            if (lower.EndsWith(FileExtensions.Woff2, StringComparison.Ordinal) ||
                 lower.EndsWith(FileExtensions.Woff, StringComparison.Ordinal))
             {
                 return url;
@@ -78,14 +78,14 @@ public static class FontPreloadInjector
     {
         if (url.StartsWith('/'))
             return url;
-        
+
         return "/" + url.TrimStart('.').TrimStart('/');
     }
 
     private static string GetFontMimeType(string url)
     {
-        return url.EndsWith(FileExtensions.Woff2, StringComparison.OrdinalIgnoreCase) 
-            ? "font/woff2" 
+        return url.EndsWith(FileExtensions.Woff2, StringComparison.OrdinalIgnoreCase)
+            ? "font/woff2"
             : "font/woff";
     }
 }

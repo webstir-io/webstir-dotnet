@@ -35,7 +35,7 @@ public sealed class InitCreatesDefaultProject : ITestCase
 
         // Verify essential files
         Assert.IsTrue(File.Exists(Path.Combine(seedDir, Folders.Src, Folders.Frontend, Folders.App, "app.css")), "app.css missing");
-        Assert.IsTrue(File.Exists(Path.Combine(seedDir, Folders.Src, Folders.Frontend, Folders.App, "app.ts")), "app.ts missing");
+        // app.ts removed by design; pages import only what they need
         Assert.IsTrue(File.Exists(Path.Combine(seedDir, Folders.Src, Folders.Frontend, Folders.App, "app.html")), "app.html missing");
         Assert.IsTrue(File.Exists(Path.Combine(seedDir, Files.PackageJson)), "package.json missing");
     }

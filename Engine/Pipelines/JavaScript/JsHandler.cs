@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,10 +13,15 @@ using Engine.Pipelines.JavaScript.Common;
 using Engine.Pipelines.JavaScript.Minification;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Engine.Pipelines.JavaScript;
 
-public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bundler, ILogger<JsHandler> logger) : IPageHandler
+public class JsHandler(
+    AppWorkspace workspace,
+    JsBuilder builder,
+    JsBundler bundler,
+    ILogger<JsHandler> logger) : IPageHandler
 {
     private readonly ILogger<JsHandler> _logger = logger;
     public int BuildOrder => 0;
@@ -42,7 +48,7 @@ public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bund
         string sourceErrorJs = workspace.FrontendBuildAppPath.Combine("error.js");
         if (!File.Exists(sourceErrorJs))
         {
-            return;
+            throw new FileNotFoundException($"Compiled error.js not found: {sourceErrorJs}");
         }
 
         string destApp = workspace.FrontendDistAppPath;
@@ -52,7 +58,7 @@ public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bund
         string content = await File.ReadAllTextAsync(sourceErrorJs);
         content = JsRegex.SourceMapLine().Replace(content, string.Empty);
         content = JsRegex.SourceMapBlock().Replace(content, string.Empty);
-        content = JsMinifier.Minify(content);
+        content = JsMinifier.Minify(content, compact: true, dropConsole: true);
 
         string hash = ContentHashGenerator.ComputeHash(content);
         string hashedFileName = $"error.{hash}{FileExtensions.Js}";
@@ -60,9 +66,7 @@ public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bund
         await File.WriteAllTextAsync(hashedPath, content);
         await Precompression.CreatePrecompressedVariantsAsync(hashedPath);
 
-        // Keep a stable path for error templates that reference /app/error.js
-        string stablePath = Path.Combine(destApp, "error.js");
-        await File.WriteAllTextAsync(stablePath, content);
+        // Do not emit an un-hashed alias in dist; page HTML is rewritten to the hashed filename.
     }
 
     public Task AddPageAsync(string pageName)
@@ -70,9 +74,8 @@ public class JsHandler(AppWorkspace workspace, JsBuilder builder, JsBundler bund
         string pageDirectory = workspace.FrontendPagesPath.CreateSubDirectory(pageName);
         string tsFilePath = pageDirectory.Combine($"{Files.Index}.ts");
         string tsContent = $"""
-            import '../../{Folders.App}/app.js';
-
-            console.log('{pageName} page loaded');
+            // {pageName} page entry
+            // Import only what you need from '../../app/*' modules.
             """;
 
         File.WriteAllText(tsFilePath, tsContent);

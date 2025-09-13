@@ -2,6 +2,7 @@
   "name": "webstir-project",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "TypeScript type definitions for webstir project",
   "devDependencies": {
     "@types/node": "^20.0.0"

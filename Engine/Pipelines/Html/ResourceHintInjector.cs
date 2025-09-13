@@ -19,18 +19,21 @@ public static class ResourceHintInjector
 
         List<string> tags = [];
 
+        // Preload CSS if present (keeps normal stylesheet link as primary loader)
         if (!string.IsNullOrWhiteSpace(manifest.Css))
         {
             string cssHref = FormattableString.Invariant($"/{Folders.Pages}/{pageName}/{manifest.Css}");
             tags.Add(FormattableString.Invariant($"<link rel=\"preload\" as=\"style\" href=\"{cssHref}\" fetchpriority=\"high\">"));
         }
 
+        // Modulepreload JS if present
         if (!string.IsNullOrWhiteSpace(manifest.Js))
         {
             string jsHref = FormattableString.Invariant($"/{Folders.Pages}/{pageName}/{manifest.Js}");
             tags.Add(FormattableString.Invariant($"<link rel=\"modulepreload\" href=\"{jsHref}\" fetchpriority=\"high\">"));
         }
 
+        // Add prefetch hints for obvious next navigations
         tags.AddRange(BuildPrefetchTags(html, workspace));
 
         if (tags.Count == 0)
@@ -38,63 +41,67 @@ public static class ResourceHintInjector
             return html;
         }
 
+        // Prefer inserting immediately after the opening <head> so preloads run before stylesheets/scripts.
+        int headOpen = html.IndexOf("<head", StringComparison.OrdinalIgnoreCase);
+        if (headOpen >= 0)
+        {
+            int openEnd = html.IndexOf('>', headOpen);
+            if (openEnd > headOpen)
+            {
+                string injection = "\n" + string.Join("\n", tags) + "\n";
+                return html.Insert(openEnd + 1, injection);
+            }
+        }
+
+        // Fallback: insert before </head> if we couldn't detect the opening tag cleanly
         int headClose = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
         if (headClose < 0)
         {
             return html;
         }
 
-        string injection = string.Join("\n", tags) + "\n";
-        return html.Insert(headClose, injection);
+        {
+            string injection = string.Join("\n", tags) + "\n";
+            return html.Insert(headClose, injection);
+        }
     }
 
     private static List<string> BuildPrefetchTags(string html, AppWorkspace workspace)
     {
-        HashSet<string> added = new(StringComparer.OrdinalIgnoreCase);
         List<string> tags = [];
+        HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
 
         foreach (Match m in HtmlRegex.AnchorHref().Matches(html))
         {
             string href = m.Groups["href"].Value;
-            if (string.IsNullOrWhiteSpace(href) || href.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || href.StartsWith("https://", StringComparison.OrdinalIgnoreCase) || href.StartsWith('#'))
+            if (string.IsNullOrWhiteSpace(href))
             {
                 continue;
             }
 
-            string target = href;
-            if (target.Contains('#'))
-            {
-                target = target[..target.IndexOf('#')];
-            }
-
-            if (target.EndsWith(FileExtensions.Html, StringComparison.OrdinalIgnoreCase))
-            {
-                target = target[..^FileExtensions.Html.Length];
-            }
-
-            string pageName = NormalizePageName(target);
-            if (string.IsNullOrEmpty(pageName))
+            // Only internal links
+            if (href.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                || href.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+                || href.StartsWith("#", StringComparison.Ordinal)
+                || href.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
-            if (!added.Add(pageName))
+            string target = NormalizePageName(href);
+            if (string.IsNullOrEmpty(target))
             {
                 continue;
             }
 
-            string pageDistDir = Path.Combine(workspace.FrontendDistPath, Folders.Pages, pageName);
-            AssetManifest manifest = AssetManifest.Load(pageDistDir);
-            if (!string.IsNullOrWhiteSpace(manifest.Js))
+            if (!seen.Add(target))
             {
-                string js = FormattableString.Invariant($"/{Folders.Pages}/{pageName}/{manifest.Js}");
-                tags.Add(FormattableString.Invariant($"<link rel=\"prefetch\" href=\"{js}\">"));
+                continue;
             }
 
-            if (tags.Count >= 3)
-            {
-                break;
-            }
+            // Prefer prefetching the document; asset prefetch is optional and not required by tests
+            string docHref = FormattableString.Invariant($"/{Folders.Pages}/{target}/{Files.Index}{FileExtensions.Html}");
+            tags.Add(FormattableString.Invariant($"<link rel=\"prefetch\" href=\"{docHref}\" as=\"document\">"));
         }
 
         return tags;

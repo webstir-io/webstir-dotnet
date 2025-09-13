@@ -38,6 +38,11 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
         }
 
         await BuildPageHtmlFilesAsync(appTemplate, diag);
+
+        if (diag.HasErrors)
+        {
+            throw new InvalidOperationException("HTML build failed due to errors in page fragments or base template.");
+        }
     }
 
     private async Task BuildPageHtmlFilesAsync(HtmlFile appTemplate, DiagnosticCollection diagnostics)
@@ -56,6 +61,10 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
     private async Task ProcessPageHtmlFilesAsync(string pageDir, string pageName, HtmlFile appTemplate, DiagnosticCollection diagnostics)
     {
         string[] htmlFiles = pageDir.Files($"*{FileExtensions.Html}");
+        if (htmlFiles.Length == 0)
+        {
+            throw new InvalidOperationException($"No HTML fragments found under page directory: {pageDir}");
+        }
 
         foreach (string htmlFile in htmlFiles)
         {
@@ -75,13 +84,13 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
         string fragment = pageFragment.Html;
         if (!HtmlParser.HasHeadSection(fragment))
         {
-            _logger.LogWarning("Page fragment missing <head> section: {SourceFile}", sourceFile);
-            diagnostics.Add(new Diagnostic { Level = DiagnosticLevel.Warning, Message = "Page fragment missing <head> section", File = sourceFile });
+            _logger.LogError("Page fragment missing <head> section: {SourceFile}", sourceFile);
+            diagnostics.Add(Diagnostic.Error("Page fragment missing <head> section", sourceFile));
         }
         if (!HtmlParser.HasMainSection(fragment))
         {
-            _logger.LogWarning("Page fragment missing <main> section: {SourceFile}", sourceFile);
-            diagnostics.Add(new Diagnostic { Level = DiagnosticLevel.Warning, Message = "Page fragment missing <main> section", File = sourceFile });
+            _logger.LogError("Page fragment missing <main> section: {SourceFile}", sourceFile);
+            diagnostics.Add(Diagnostic.Error("Page fragment missing <main> section", sourceFile));
         }
         string mergedHtml = appTemplate.Merge(pageFragment.Html);
 

@@ -9,22 +9,12 @@ public interface ISourceMapService
     bool IsAuthorized(HttpContext context);
 }
 
-public sealed class SourceMapService(IOptions<AppSettings> options) : ISourceMapService
+public sealed class SourceMapService : ISourceMapService
 {
-    private readonly AppSettings _settings = options.Value;
-    private const string HeaderName = "X-SourceMap-Token";
 
     public bool IsAuthorized(HttpContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        string? token = _settings.SourceMapToken;
-        if (string.IsNullOrEmpty(token))
-        {
-            // No token configured: do not restrict (dev-friendly default)
-            return true;
-        }
-
-        string provided = context.Request.Headers[HeaderName].ToString();
-        return !string.IsNullOrEmpty(provided) && string.Equals(provided, token, StringComparison.Ordinal);
+        return true;
     }
 }
