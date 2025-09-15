@@ -4,14 +4,12 @@ using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core.Interfaces;
 using Engine.Pipelines.Core.Utilities;
-using Engine.Pipelines.Html.Build;
-using Engine.Pipelines.Html.Bundling;
 
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.Html;
 
-public class HtmlHandler(AppWorkspace workspace, HtmlBuilder htmlBuilder, HtmlBundler htmlBundler, ILogger<HtmlHandler> logger) : IPageHandler
+public class HtmlHandler(AppWorkspace workspace, HtmlBuilder htmlBuilder, ILogger<HtmlHandler> logger) : IPageHandler
 {
     private readonly ILogger<HtmlHandler> _logger = logger;
     public int BuildOrder => 1;
@@ -27,7 +25,7 @@ public class HtmlHandler(AppWorkspace workspace, HtmlBuilder htmlBuilder, HtmlBu
     public async Task PublishAsync()
     {
         DiagnosticCollection diagnostics = new();
-        await htmlBundler.BundleAsync(diagnostics);
+        await htmlBuilder.PublishAsync(diagnostics);
         LogSummary("HTML Publish", diagnostics);
     }
 

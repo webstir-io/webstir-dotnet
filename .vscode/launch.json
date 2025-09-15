@@ -21,7 +21,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/Tests/bin/Debug/net9.0/Tests.dll",
-            "args": ["test", "help"],
+            "args": ["--full"],
             "cwd": "${workspaceFolder}/Tests",
             "console": "integratedTerminal",
             "stopAtEntry": false

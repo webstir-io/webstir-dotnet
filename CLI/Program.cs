@@ -5,12 +5,8 @@ using CLI;
 using Engine;
 using Engine.Pipelines.Core.Interfaces;
 using Engine.Pipelines.Css;
-using Engine.Pipelines.Css.Build;
-using Engine.Pipelines.Css.Bundling;
 using Engine.Pipelines.Fonts;
 using Engine.Pipelines.Html;
-using Engine.Pipelines.Html.Build;
-using Engine.Pipelines.Html.Bundling;
 using Engine.Pipelines.Images;
 using Engine.Pipelines.JavaScript;
 using Engine.Pipelines.Media;
@@ -86,10 +82,6 @@ try
     services.AddTransient<IFrontendHandler, RobotsTxtHandler>();
 
     services.AddTransient<HtmlBuilder>();
-    services.AddTransient<HtmlBundler>();
-    services.AddTransient<CssBuilder>();
-    services.AddTransient<CssBundler>();
-    services.AddTransient<JsBuilder>();
 
     using ServiceProvider provider = services.BuildServiceProvider();
     await provider.GetService<Runner>()!.Run(args);

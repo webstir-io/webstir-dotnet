@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
+using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Models;
 using Engine.Pipelines.Core.Interfaces;
@@ -28,6 +29,13 @@ public partial class FrontendWorker(
         if (!string.IsNullOrEmpty(changedFilePath) && !BuildHelpers.ContainsBuildFolder(changedFilePath, Folders.Frontend))
         {
             return;
+        }
+
+        // Run npm install once at the worker level before any handlers
+        string packageJsonPath = workspace.WorkingPath.Combine(Files.PackageJson);
+        if (packageJsonPath.Exists())
+        {
+            NpmHelper.RunNpmInstall(workspace.WorkingPath);
         }
 
         foreach (IGrouping<int, IFrontendHandler> group in _frontendHandlers

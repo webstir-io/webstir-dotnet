@@ -59,8 +59,8 @@ dotnet run --project CLI -- --help
 - **Workers**: Handle specific build tasks (FrontendWorker, BackendWorker, SharedWorker)
 - **Pipelines**: Process different asset types
   - HTML: Template assembly, minification
-  - CSS: Import resolution, autoprefixing, minification, CSS Modules support
-  - JavaScript: TypeScript compilation, ESM bundling, tree-shaking, minification
+  - CSS & JavaScript: esbuild handles bundling, minification, and code-splitting
+  - TypeScript: tsc for type checking, esbuild for bundling
   - Assets: Images, Fonts, Media handling
 - **Servers**: WebServer (ASP.NET Core) and NodeServer for development
 - **Services**: WatchService (file monitoring), ChangeService (SSE), DevService (orchestration)
@@ -90,16 +90,13 @@ dist/              # Production build output
 
 1. **TypeScript Compilation**: Single `tsc --build` for all TypeScript (frontend/backend/shared)
 2. **HTML Assembly**: Merges page fragments with app.html template
-3. **CSS Processing**: 
-   - Resolves @import statements
-   - Processes CSS Modules (if enabled)
-   - Dev: readable output
-   - Publish: autoprefixed, minified, fingerprinted
-4. **JavaScript Bundling**:
-   - ESM-only module graph analysis
-   - Dev: readable concatenation
-   - Publish: tree-shaking, minification, fingerprinting
-5. **Asset Manifest**: Generated per page for cache-busted URLs
+3. **CSS & JavaScript Bundling** (via esbuild):
+   - Unified pipeline for CSS and JavaScript processing
+   - CSS: Resolves @import, processes CSS Modules, rewrites URLs
+   - JavaScript: ESM bundling with automatic code-splitting
+   - Dev: readable output with source maps
+   - Publish: minified, tree-shaken, fingerprinted assets
+4. **Asset Manifest**: Generated per page for cache-busted URLs
 
 ### Development Mode
 - WebServer (port 8088): Serves frontend, proxies /api/* to NodeServer
@@ -110,8 +107,8 @@ dist/              # Production build output
 ### Key Design Decisions
 - TypeScript-first with project references
 - ESM-only (no CommonJS support)
-- Per-page bundling strategy
-- Token-based CSS minification preserving correctness
+- Per-page bundling strategy with automatic code-splitting
+- esbuild for unified CSS/JS processing (10-100x faster)
 - Deterministic outputs for given inputs
 - Clear error messages with file/stage context
 
@@ -119,20 +116,17 @@ dist/              # Production build output
 
 Tests use a custom runner (not xUnit/NUnit) located in Tests/Program.cs. Test suites cover each workflow (init, build, watch, publish, help, add). Tests can be run in quick mode (default) or full mode (includes longer-running tests).
 
-## CSS Minification Implementation
+## CSS Processing
 
-The CSS minifier (Engine/Pipelines/Css/Tokenization/) uses a token-based approach:
-1. **CssTokenizer**: Parses CSS into tokens preserving semantics
-2. **CssTokenMinifier**: Applies minification rules per token type
-3. **CssSerializer**: Reconstructs minified CSS with proper spacing
-
-Key features:
-- Preserves strings and URLs exactly
-- Removes legacy vendor prefixes (-ms-, -o-, -khtml-)
-- Keeps essential -webkit- prefixes
-- Shortens hex colors including alpha (#rrggbbaa → #rgba)
-- Collapses zero-valued shorthands
-- Enforces spacing around and/or/not in media queries
+CSS is now handled by esbuild alongside JavaScript bundling:
+- **Development**: Bundled with source maps for debugging
+- **Production**: Minified and fingerprinted
+- **Features**:
+  - Automatic @import resolution
+  - CSS Modules support via .module.css extension
+  - URL rewriting for assets
+  - Modern CSS syntax including nesting
+  - Unified pipeline with JavaScript for better performance
 
 ## Precompression Support
 

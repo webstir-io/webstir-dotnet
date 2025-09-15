@@ -49,22 +49,38 @@ public async Task BundleCssAsync(string entryPoint, string outFile, EsbuildMode 
     {
         Quote(entryPoint),
         "--bundle",
-        $"--outfile={Quote(outFile)}",
         "--loader:.css=css",
-        "--loader:.module.css=local-css"  // CSS Modules support
+        "--loader:.module.css=local-css"  // CSS Modules support (requires esbuild 0.18.0+)
     };
 
     if (mode == EsbuildMode.Production)
     {
         args.Add("--minify");
-        args.Add($"--entry-names=[dir]/[name].[hash]");
+
+        // Note: --entry-names doesn't work with --outfile
+        // Build to temp file first, then rename with hash
+        var tempFile = $"{outFile}.tmp";
+        args.Add($"--outfile={Quote(tempFile)}");
+
+        await ExecuteEsbuildAsync(args, diagnostics);
+
+        // Calculate content hash and rename
+        var hash = await CalculateFileHashAsync(tempFile);
+        var hashedFile = Path.Combine(
+            Path.GetDirectoryName(outFile),
+            $"{Path.GetFileNameWithoutExtension(outFile)}.{hash}{Path.GetExtension(outFile)}"
+        );
+        File.Move(tempFile, hashedFile);
+        return hashedFile;
     }
     else
     {
         args.Add("--sourcemap");
+        args.Add($"--outfile={Quote(outFile)}");
     }
 
     await ExecuteEsbuildAsync(args, diagnostics);
+    return outFile;
 }
 ```
 
@@ -126,6 +142,11 @@ The `CssHandler` remains unchanged - it continues to orchestrate `CssBuilder` fo
 3. Check minification in production mode
 4. Confirm content hashing works
 5. Validate precompression still functions
+6. **CSS Modules verification**:
+   - Verify esbuild version is 0.18.0+ for `local-css` support
+   - Compare class name generation patterns (esbuild default: `[local]_[hash]`)
+   - Ensure scope isolation matches current behavior
+   - Validate JSON export format if consumed by other systems
 
 ### Step 6: Validate and Monitor
 
@@ -152,6 +173,8 @@ The `CssHandler` remains unchanged - it continues to orchestrate `CssBuilder` fo
 | Different @import behavior | Test thoroughly, document differences |
 | Missing features | MVP scope excludes non-essential features |
 | Unexpected output | Keep old implementation available for reference |
+| Hash generation complexity | Post-process files for production hashing |
+| CSS Modules compatibility | Verify class naming patterns match existing behavior |
 
 ## Success Criteria
 

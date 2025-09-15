@@ -53,8 +53,7 @@ public sealed class HtmlWhitespaceCollapsed : ITestCase
         Assert.DoesNotContain("> \n<", normalized, "Inter-tag whitespace should be collapsed");
         Assert.DoesNotContain(">\n<", normalized, "Inter-tag newlines should be collapsed");
         Assert.Contains("</head><body>", normalized, "Head/body boundary should be collapsed");
-        // Allow a trailing script before </body>; ensure boundaries are still collapsed
-        Assert.Contains("</main><script", normalized, "Expected collapsed main->script boundary");
-        Assert.Contains("</script></body>", normalized, "Expected collapsed script->body boundary");
+        // Main should be directly followed by body close (scripts are loaded in head with async)
+        Assert.Contains("</main></body>", normalized, "Expected collapsed main->body boundary");
     }
 }

@@ -3,8 +3,6 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Text.Json;
 
-using Engine;
-
 namespace Engine.Pipelines.Core;
 
 public sealed class AssetManifest
@@ -16,20 +14,6 @@ public sealed class AssetManifest
     public string? Css
     {
         get; set;
-    }
-
-    public MapFiles Map { get; set; } = new();
-
-    public sealed class MapFiles
-    {
-        public string? Js
-        {
-            get; set;
-        }
-        public string? Css
-        {
-            get; set;
-        }
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new()

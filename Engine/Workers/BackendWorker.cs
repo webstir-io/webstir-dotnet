@@ -2,11 +2,9 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
-
 using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Models;
-
 using Microsoft.Extensions.Options;
 using Engine.Interfaces;
 
@@ -32,7 +30,7 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
         string packageJsonPath = workspace.WorkingPath.Combine(Files.PackageJson);
         if (File.Exists(packageJsonPath))
         {
-            RunNpmInstall();
+            NpmHelper.RunNpmInstall(workspace.WorkingPath);
         }
 
         CompileTypeScriptFiles();
@@ -84,44 +82,6 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
             string errors = process.StandardError.ReadToEnd();
             string output = process.StandardOutput.ReadToEnd();
             string errorMessage = $"Server TypeScript compilation failed (Exit Code: {process.ExitCode})";
-            if (!string.IsNullOrWhiteSpace(errors))
-            {
-                errorMessage += $"\nErrors:\n{errors}";
-            }
-            if (!string.IsNullOrWhiteSpace(output))
-            {
-                errorMessage += $"\nOutput:\n{output}";
-            }
-            throw new Exception(errorMessage);
-        }
-    }
-
-    private void RunNpmInstall()
-    {
-        string packageLockPath = workspace.WorkingPath.Combine("package-lock.json");
-        string npmCommand = File.Exists(packageLockPath) ? "ci" : "install";
-
-        ProcessStartInfo processInfo = new()
-        {
-            FileName = "npm",
-            Arguments = npmCommand,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WorkingDirectory = workspace.WorkingPath
-        };
-
-        using Process process = Process.Start(processInfo)
-            ?? throw new Exception("Failed to start npm install process.");
-
-        process.WaitForExit();
-
-        if (process.ExitCode != 0)
-        {
-            string errors = process.StandardError.ReadToEnd();
-            string output = process.StandardOutput.ReadToEnd();
-            string errorMessage = $"npm install failed (Exit Code: {process.ExitCode})";
             if (!string.IsNullOrWhiteSpace(errors))
             {
                 errorMessage += $"\nErrors:\n{errors}";

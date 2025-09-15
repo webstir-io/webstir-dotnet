@@ -21,11 +21,17 @@ Build and publish stages for HTML, CSS, JS/TS, and static assets (Images, Fonts,
 - Errors: fail if base HTML is missing or lacks `<main>`.
 
 ## CSS
-- Resolves `@import` and asset URLs; copies referenced assets.
-- Dev: keep readable, unminified CSS.
-- Publish: autoprefix and minify; optional CSS Modules; write fingerprinted `index.<hash>.css`.
-- Minifier: token-aware (preserves strings/urls); trims whitespace; normalizes numbers/zeros; shortens hex (incl. `#rrggbbaa→#rgba`); enforces spacing around `and/or/not` in `@media/@supports`; collapses zero shorthands (`margin/padding/inset`).
-- Legacy removal: strips `-ms-`, `-o-`, `-khtml-` prefixed declarations and legacy flexbox values; keeps a short allowlist of modern `-webkit-*` declarations.
+- **Bundler**: esbuild handles CSS processing alongside JavaScript for unified pipeline.
+- Dev: esbuild bundles with `--sourcemap` for debugging; outputs readable CSS.
+- Publish: esbuild minifies CSS with `--minify`; writes fingerprinted `index-<hash>.css`.
+- Features:
+  - Automatic `@import` resolution and bundling
+  - CSS Modules support via `.module.css` extension
+  - URL rewriting for assets (images, fonts)
+  - Modern CSS syntax support including nesting
+- esbuild configuration:
+  - Development: `--bundle --sourcemap --loader:.css=css`
+  - Production: `--bundle --minify --loader:.css=css --entry-names=[dir]/index-[hash]`
 - Output paths follow the page layout in `build/frontend/pages/<page>/` and `dist/frontend/pages/<page>/`.
 
 ## JavaScript / TypeScript

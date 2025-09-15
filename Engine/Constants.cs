@@ -29,6 +29,7 @@ public static class Folders
     public const string NodeModules = "node_modules";
     public const string Seed = "seed";
     public const string Demo = "demo";
+    public const string Temp = "temp";
 }
 
 public static class Files

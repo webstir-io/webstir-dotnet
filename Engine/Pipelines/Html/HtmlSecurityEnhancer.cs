@@ -28,7 +28,7 @@ public static class HtmlSecurityEnhancer
 
     private static async Task<string> ProcessScriptsAsync(HttpClient http, string html)
     {
-        return await RegexReplaceAsync(html, Html.Common.HtmlRegex.ExternalScriptTag(), async m =>
+        return await RegexReplaceAsync(html, HtmlRegex.ExternalScriptTag(), async m =>
         {
             string tag = m.Value;
             string url = m.Groups["url"].Value;
@@ -38,7 +38,7 @@ public static class HtmlSecurityEnhancer
                 return tag;
             }
 
-            if (Html.Common.HtmlRegex.IntegrityAttr().IsMatch(tag))
+            if (HtmlRegex.IntegrityAttr().IsMatch(tag))
             {
                 return tag;
             }
@@ -55,7 +55,7 @@ public static class HtmlSecurityEnhancer
 
     private static async Task<string> ProcessStylesAsync(HttpClient http, string html)
     {
-        return await RegexReplaceAsync(html, Html.Common.HtmlRegex.ExternalStylesheetLink(), async m =>
+        return await RegexReplaceAsync(html, HtmlRegex.ExternalStylesheetLink(), async m =>
         {
             string tag = m.Value;
             string url = m.Groups["url"].Value;
@@ -65,7 +65,7 @@ public static class HtmlSecurityEnhancer
                 return tag;
             }
 
-            if (Html.Common.HtmlRegex.IntegrityAttr().IsMatch(tag))
+            if (HtmlRegex.IntegrityAttr().IsMatch(tag))
             {
                 return tag;
             }

@@ -49,7 +49,7 @@ Workers are incremental where possible: only touched pages or modules are reproc
 
 ## Pipelines
 - HTML: Merge page fragments into `src/frontend/app/app.html` (requires a `<main>`), validate, write to `build/frontend/pages/<page>/index.html`. In publish, minify and rewrite links from the manifest.
-- CSS: Resolve `@import`/URLs, copy assets. In publish, apply autoprefix/minify and optional CSS Modules.
+- CSS: **esbuild** handles CSS bundling alongside JavaScript for a unified pipeline. Resolves `@import`, processes CSS Modules, rewrites URLs. In publish, minifies and fingerprints output.
 - JS/TS: Use `tsc --build` for type checking, then **esbuild** for bundling (10-100x faster). ESM format; tree-shake/minify in publish.
 - Assets: Copy Images, Fonts, and Media from `src/frontend/**` → `build/frontend/**` (dev). In publish, optimize (compress images, convert fonts to WOFF2) when tools available, then copy to `dist/frontend/**`.
 

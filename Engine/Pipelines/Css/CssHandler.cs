@@ -3,36 +3,36 @@ using System.Linq;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
+using Engine.Pipelines.Core.Esbuild;
 using Engine.Pipelines.Core.Interfaces;
 using Engine.Pipelines.Core.Utilities;
-using Engine.Pipelines.Css.Build;
-using Engine.Pipelines.Css.Bundling;
-
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.Css;
 
-public class CssHandler(AppWorkspace workspace, CssBuilder builder, CssBundler bundler, ILogger<CssHandler> logger) : IPageHandler
+public class CssHandler(AppWorkspace workspace, ILogger<CssHandler> logger) : IPageHandler
 {
     private readonly ILogger<CssHandler> _logger = logger;
+    private readonly CssEsbuildAdapter _cssAdapter = new(new EsbuildRunner(workspace));
+
     public int BuildOrder => 1;
     public int PublishOrder => 0;
 
-    public Task BuildAsync(string? changedFilePath = null)
+    public async Task BuildAsync(string? changedFilePath = null)
     {
         DiagnosticCollection diagnostics = new();
-        builder.Build(diagnostics);
+        await ProcessPagesAsync(workspace.FrontendPagesPath, workspace.FrontendBuildPath, isProduction: false, diagnostics);
         LogSummary("CSS Build", diagnostics);
-        return Task.CompletedTask;
     }
 
-    public Task PublishAsync() => bundler.BundleAsync();
+    public async Task PublishAsync() =>
+        await ProcessPagesAsync(workspace.FrontendPagesPath, workspace.FrontendDistPath, isProduction: true);
 
     public Task AddPageAsync(string pageName)
     {
         string cssContent = $"""
             /* {pageName} Page Styles */
-            @import "@app/app.css";
+            @import "{CssConstants.AppImportAlias}";
 
             /* Add your page-specific styles here */
 
@@ -41,6 +41,42 @@ public class CssHandler(AppWorkspace workspace, CssBuilder builder, CssBundler b
         string cssFilePath = pageDirectory.Combine($"{Files.Index}.css");
         File.WriteAllText(cssFilePath, cssContent);
         return Task.CompletedTask;
+    }
+
+    private async Task ProcessPagesAsync(string sourceDir, string outputRootDir, bool isProduction, DiagnosticCollection? diagnostics = null)
+    {
+        if (!Directory.Exists(sourceDir))
+        {
+            return;
+        }
+
+        foreach (string pageDir in sourceDir.Folders())
+        {
+            string pageName = pageDir.Filename();
+            string moduleStylePath = pageDir.Combine($"{Files.Index}{CssConstants.ModuleExtension}{FileExtensions.Css}");
+            string plainStylePath = pageDir.Combine($"{Files.Index}{FileExtensions.Css}");
+            string? entryStylePath = moduleStylePath.Exists()
+                ? moduleStylePath
+                : (plainStylePath.Exists() ? plainStylePath : null);
+
+            if (string.IsNullOrEmpty(entryStylePath))
+            {
+                continue;
+            }
+
+            string pageOutputDir = outputRootDir.Combine(Folders.Pages, pageName);
+            pageOutputDir.Create();
+            string outputFile = Path.Combine(pageOutputDir, $"{Files.Index}{FileExtensions.Css}");
+
+            string producedPath = await _cssAdapter.BundleAsync(entryStylePath, outputFile, isProduction, diagnostics);
+
+            if (isProduction)
+            {
+                await Precompression.CreatePrecompressedVariantsAsync(producedPath);
+                string cssFileName = Path.GetFileName(producedPath);
+                AssetManifest.Update(pageOutputDir, m => m.Css = cssFileName);
+            }
+        }
     }
 
     private void LogSummary(string phase, DiagnosticCollection diagnostics)
