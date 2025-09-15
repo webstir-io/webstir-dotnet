@@ -38,12 +38,13 @@ public sealed class JsTreeShakingRemovesUnusedExports : ITestCase
         string pagesDir = Path.Combine(projectDir, Folders.Src, Folders.Frontend, Folders.Pages, Folders.Home);
         string usedTs = Path.Combine(pagesDir, "used.ts");
         string unusedTs = Path.Combine(pagesDir, "unused.ts");
-        File.WriteAllText(usedTs, "export function used(){ console.log('USED_MARK'); }\n");
-        File.WriteAllText(unusedTs, "export function unused(){ console.log('UNUSED_MARK'); }\n");
+        // Use unique function names that will survive minification
+        File.WriteAllText(usedTs, "export function usedFunction123(){ return 'USED_MARK_789'; }\n");
+        File.WriteAllText(unusedTs, "export function unusedFunction456(){ return 'UNUSED_MARK_012'; }\n");
 
         // Replace index.ts to import and call only the used symbol
         string indexTs = Path.Combine(pagesDir, $"{Files.Index}{FileExtensions.Ts}");
-        File.WriteAllText(indexTs, "import { used } from './used';\nused();\n");
+        File.WriteAllText(indexTs, "import { usedFunction123 } from './used';\nwindow.testResult = usedFunction123();\n");
 
         // Clean outputs if present
         string buildDir = Path.Combine(projectDir, Folders.Build);
@@ -79,8 +80,11 @@ public sealed class JsTreeShakingRemovesUnusedExports : ITestCase
         Assert.IsTrue(File.Exists(jsPath), "JS bundle missing in dist (checked via manifest)");
 
         string bundle = File.ReadAllText(jsPath);
-        // DropConsole may remove console markers; assert on structure instead.
-        Assert.Contains("used()", bundle, "Used symbol should be invoked in bundle");
-        Assert.IsFalse(bundle.Contains("UNUSED_MARK", StringComparison.Ordinal), "Unused symbol marker should have been removed by tree-shaking");
+        // Check that the used string literal is in the bundle (survives minification)
+        Assert.Contains("USED_MARK_789", bundle, "Used function's string literal should be in bundle");
+        // Check that the unused module's string literal was tree-shaken away
+        Assert.IsFalse(bundle.Contains("UNUSED_MARK_012", StringComparison.Ordinal), "Unused module's string literal should have been removed by tree-shaking");
+        // Also verify the unused function name doesn't appear
+        Assert.IsFalse(bundle.Contains("unusedFunction456", StringComparison.Ordinal), "Unused function name should have been removed by tree-shaking");
     }
 }

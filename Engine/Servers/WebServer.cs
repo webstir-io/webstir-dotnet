@@ -129,7 +129,6 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
     private void ConfigureServices(IServiceCollection services)
     {
         services.AddSingleton<IErrorTrackingService, ErrorTrackingService>();
-        services.AddSingleton<ISourceMapService, SourceMapService>();
         services.AddDirectoryBrowser();
         services.AddHttpClient("ApiProxy", client =>
         {
@@ -142,7 +141,6 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
     {
         app.UseMiddleware<CorrelationIdMiddleware>();
         app.UseMiddleware<ErrorHandlingMiddleware>();
-        app.UseMiddleware<SourceMapMiddleware>();
         app.UseMiddleware<ClientErrorMiddleware>();
         app.Use(HandleServerSentEvents);
         app.UseMiddleware<ApiProxyMiddleware>();

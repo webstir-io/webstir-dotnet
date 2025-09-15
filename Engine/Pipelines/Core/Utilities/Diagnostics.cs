@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Engine.Pipelines.Core.Utilities;
 
@@ -63,4 +65,36 @@ public class DiagnosticCollection
     public void Add(Diagnostic diagnostic) => _items.Add(diagnostic);
     public void AddError(string message, string? file = null, int? line = null, int? column = null) =>
         _items.Add(Diagnostic.Error(message, file, line, column));
+
+    public void ParseAndAddErrors(string text, Regex pattern, string fallbackMessage) => ParseAndAddErrors(text, [pattern], fallbackMessage);
+
+    public void ParseAndAddErrors(string text, IEnumerable<Regex> patterns, string fallbackMessage)
+    {
+        ArgumentNullException.ThrowIfNull(patterns);
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            AddError(fallbackMessage);
+            return;
+        }
+
+        int added = 0;
+        foreach (Regex pattern in patterns)
+        {
+            foreach (Match match in pattern.Matches(text))
+            {
+                string file = match.Groups["file"].Value.Trim();
+                int line = int.TryParse(match.Groups["line"].Value, out int ln) ? ln : 0;
+                int col = int.TryParse(match.Groups["col"].Value, out int cl) ? cl : 0;
+                string message = match.Groups["msg"].Value.Trim();
+                AddError(message, file, line, col);
+                added++;
+            }
+        }
+
+        if (added == 0)
+        {
+            AddError(fallbackMessage);
+        }
+    }
 }

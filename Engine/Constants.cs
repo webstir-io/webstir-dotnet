@@ -11,6 +11,7 @@ public static class Folders
     public const string Src = "src";
     public const string Build = "build";
     public const string Dist = "dist";
+    public const string Tools = ".tools";
     public const string Tests = "tests";
     public const string Frontend = "frontend";
     public const string Backend = "backend";
@@ -74,6 +75,11 @@ public static class FileExtensions
     public const string Mov = ".mov";
 }
 
+public static class ProcessCommands
+{
+    public const string FailedToStartFormat = "Failed to start {0} process.";
+}
+
 public static class Templates
 {
     public const string Path = "Engine.Templates";
@@ -82,4 +88,10 @@ public static class Templates
     public const string BackendPath = $"{SrcPath}.{Folders.Backend}";
     public const string SharedPath = $"{SrcPath}.{Folders.Shared}";
     public const string TypesPath = $"{Path}.types";
+
+    // Page template content
+    public const string PageTypeScriptTemplate = """
+        // {0} page entry
+        // Import only what you need from '../../app/*' modules.
+        """;
 }
