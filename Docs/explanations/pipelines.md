@@ -32,12 +32,13 @@ Build and publish stages for HTML, CSS, JS/TS, and static assets (Images, Fonts,
 - Compiler: `tsc --build` using an embedded base `tsconfig` for type checking.
 - Bundler: **esbuild** for exceptional performance (10-100x faster than traditional bundlers).
 - Dev: produce readable JS with source maps under `build/frontend/**`; esbuild bundles with `--sourcemap`.
-- Publish: esbuild handles tree-shaking, minification, and console stripping; write fingerprinted `index.<hash>.js` per page.
+- Publish: esbuild handles tree-shaking, minification, console stripping, and **automatic code-splitting**; write fingerprinted `index-<hash>.js` per page entry.
 - Output shape: ESM bundle format, referenced with `type="module"` for modern browser compatibility.
 - esbuild configuration:
   - Development: `--bundle --sourcemap --format=esm --define:process.env.NODE_ENV="development"`
-  - Production: `--bundle --minify --format=esm --drop:console --define:process.env.NODE_ENV="production"`
-- Content hashing: SHA256-based hashes replace timestamps for better cache integrity.
+  - Production: `--bundle --minify --format=esm --drop:console --splitting --chunk-names=chunks/[name]-[hash] --entry-names=[dir]/index-[hash] --metafile --define:process.env.NODE_ENV="production"`
+- Code-splitting (production): Automatically extracts shared dependencies into `chunks/` folder; entry points import chunks via ESM; browser handles chunk loading transparently.
+- Content hashing: esbuild manages hashes for both entries and chunks via `--entry-names` and `--chunk-names` patterns.
 - Entry points: Automatically discovered from `build/frontend/pages/*/index.js` (tsc output).
 
 ## Assets (Images / Fonts / Media)
@@ -57,7 +58,9 @@ Build and publish stages for HTML, CSS, JS/TS, and static assets (Images, Fonts,
 
 ## Outputs
 - Dev: `build/frontend/**`, `build/backend/**`.
-- Publish: `dist/frontend/pages/<page>/index.html`, `index.<hash>.{css|js}`, `manifest.json`.
+- Publish:
+  - Pages: `dist/frontend/pages/<page>/index.html`, `index-<hash>.js`, `index.<hash>.css`, `manifest.json`
+  - Shared chunks: `dist/frontend/chunks/*-<hash>.js` (vendor libraries, common code)
 
 ## Related Docs
 - Engine internals — engine.md

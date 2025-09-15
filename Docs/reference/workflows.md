@@ -73,10 +73,11 @@ See also: Engine internals — [engine](../explanations/engine.md)
 
 ### publish
 - Produce optimized, fingerprinted assets in `dist/` per page.
-- Use **esbuild** to bundle, tree-shake, and minify JavaScript with production optimizations.
+- Use **esbuild** to bundle, tree-shake, minify JavaScript, and perform **automatic code-splitting** with production optimizations.
+- esbuild extracts shared dependencies into `chunks/` folder; manages content hashing for entries (`index-<hash>.js`) and chunks (`chunks/*-<hash>.js`).
 - Minify HTML/CSS, remove comments and source maps, and rewrite HTML links using per-page manifests.
 - Optimize Images and Fonts when tools available, then copy to `dist/frontend/{images|fonts|media}/**`.
-- Output: `dist/frontend/pages/<page>/index.html`, `index.<hash>.{css|js}`, `manifest.json`.
+- Output: `dist/frontend/pages/<page>/index.html`, `index-<hash>.js`, `index.<hash>.css`, `manifest.json`, plus `dist/frontend/chunks/*-<hash>.js`.
 
 ### generators
 - `add-page <name>`: scaffold `index.html|css|ts` under `src/frontend/pages/<name>/`.
@@ -85,7 +86,7 @@ See also: Engine internals — [engine](../explanations/engine.md)
 ## Contracts & Guarantees
 - Source roots: `src/frontend/**`, `src/backend/**`, `src/shared/**`, `types/**`.
 - Dev outputs: `build/frontend/**`, `build/backend/**` (including `build/frontend/{images|fonts|media}/**`).
-- Prod outputs: `dist/frontend/pages/<page>/**` with per-page manifests, plus static assets under `dist/frontend/{images|fonts|media}/**`.
+- Prod outputs: `dist/frontend/pages/<page>/**` with per-page manifests, `dist/frontend/chunks/**` for shared code, plus static assets under `dist/frontend/{images|fonts|media}/**`.
 - Dev server proxies `/api/*` to the Node process during `watch`.
 - Base HTML requires `<main>` in `src/frontend/app/app.html`.
 
