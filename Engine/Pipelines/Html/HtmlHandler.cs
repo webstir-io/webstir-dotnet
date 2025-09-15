@@ -69,10 +69,19 @@ public class HtmlHandler(AppWorkspace workspace, HtmlBuilder htmlBuilder, HtmlBu
         if (errorCount > 0)
         {
             _logger.LogError("{Phase} diagnostics: {Errors} errors, {Warnings} warnings", phase, errorCount, warningCount);
+            // Surface individual error messages for visibility in CLI output
+            foreach (Diagnostic d in diagnostics.Errors)
+            {
+                _logger.LogError("{Message}", d.Message);
+            }
         }
         else
         {
             _logger.LogWarning("{Phase} diagnostics: {Warnings} warnings", phase, warningCount);
+            foreach (Diagnostic d in diagnostics.Warnings)
+            {
+                _logger.LogWarning("{Message}", d.Message);
+            }
         }
     }
 }

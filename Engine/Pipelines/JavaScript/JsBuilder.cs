@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
@@ -17,6 +18,10 @@ public class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
 {
     private readonly AppWorkspace _workspace = workspace;
     private readonly EsbuildRunner _esbuildRunner = new(workspace);
+    private static readonly JsonSerializerOptions EsbuildMetaJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     public void Build(DiagnosticCollection? diagnostics = null)
     {
@@ -26,7 +31,6 @@ public class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
 
         CompileTypeScriptFiles(diagnostics);
         CopyRefreshScript();
-        CopyErrorScript();
     }
 
     public async Task BundleAsync(EsbuildMode mode, DiagnosticCollection? diagnostics = null)
@@ -42,23 +46,8 @@ public class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
 
         if (mode == EsbuildMode.Production)
         {
-            await FingerprintAndMoveAsync(outDir);
+            await ProcessSplitBundlesAsync(outDir);
         }
-    }
-
-    public async Task<string> BundleSingleFileAsync(string inputFile, EsbuildMode mode, bool minify)
-    {
-        ArgumentNullException.ThrowIfNull(inputFile);
-        if (!File.Exists(inputFile))
-        {
-            throw new FileNotFoundException(string.Format(CultureInfo.InvariantCulture, JsConstants.InputFileNotFoundFormat, inputFile));
-        }
-
-        string outDir = _workspace.BuildPath.CreateSubDirectory(JsConstants.TempFolder).CreateSubDirectory(JsConstants.SingleFolder);
-        Directory.CreateDirectory(outDir);
-        string outFile = Path.Combine(outDir, Path.GetFileName(inputFile));
-
-        return await _esbuildRunner.BundleSingleFileAsync(inputFile, outFile, mode, minify, diagnostics: null);
     }
 
     private void CopyRefreshScript()
@@ -70,15 +59,6 @@ public class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
             File.Copy(sourceRefreshJsApp, targetRefreshJs, true);
         else
             logger.LogWarning(JsConstants.RefreshJsNotFoundLog, Files.RefreshJs, sourceRefreshJsApp);
-    }
-
-    private void CopyErrorScript()
-    {
-        string compiledErrorJs = _workspace.FrontendBuildAppPath.Combine(JsConstants.ErrorJs);
-        if (!compiledErrorJs.Exists())
-        {
-            logger.LogWarning(JsConstants.CompiledErrorJsNotFoundLog, compiledErrorJs);
-        }
     }
 
     private void CompileTypeScriptFiles(DiagnosticCollection? diagnostics)
@@ -124,7 +104,7 @@ public class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
         };
 
         using Process process = Process.Start(processInfo)
-            ?? throw new Exception(string.Format(CultureInfo.InvariantCulture, ProcessCommands.FailedToStartFormat, description));
+            ?? throw new Exception(string.Format(CultureInfo.InvariantCulture, JsConstants.FailedToStartFormat, description));
 
         process.WaitForExit();
 
@@ -168,45 +148,78 @@ public class JsBuilder(AppWorkspace workspace, ILogger<JsBuilder> logger)
     }
 
 
-    private async Task FingerprintAndMoveAsync(string outDir)
+    private async Task ProcessSplitBundlesAsync(string outDir)
     {
-        string pagesRoot = Path.Combine(outDir, Folders.Pages);
-        if (!Directory.Exists(pagesRoot))
+        string metaPath = Path.Combine(outDir, JsConstants.MetaJson);
+        string json = await File.ReadAllTextAsync(metaPath);
+        JsonSerializerOptions options = EsbuildMetaJsonOptions;
+        EsbuildMetafile? metafile = JsonSerializer.Deserialize<EsbuildMetafile>(json, options);
+        File.Delete(metaPath);
+
+        await outDir.CopyToAsync(_workspace.FrontendDistPath, recursive: true);
+
+        if (metafile?.Outputs is null || metafile.Outputs.Count == 0)
         {
             return;
         }
 
-        foreach (string pageDir in Directory.EnumerateDirectories(pagesRoot, "*", SearchOption.TopDirectoryOnly))
+        foreach (KeyValuePair<string, EsbuildOutputInfo> kvp in metafile.Outputs)
         {
-            string pageName = Path.GetFileName(pageDir);
-            string builtJs = Path.Combine(pageDir, Files.Index + FileExtensions.Js);
-            if (!File.Exists(builtJs))
+            string outputPath = kvp.Key;
+            EsbuildOutputInfo info = kvp.Value;
+            if (string.IsNullOrWhiteSpace(info.EntryPoint))
             {
                 continue;
             }
 
-            string code = await File.ReadAllTextAsync(builtJs);
-            code = StripSourceMapComments(code);
+            string pageName = ExtractPageName(info.EntryPoint);
+            if (string.IsNullOrWhiteSpace(pageName))
+            {
+                continue;
+            }
 
-            string hash = ContentHashGenerator.ComputeHash(code);
-            string jsFileName = $"{Files.Index}.{hash}{FileExtensions.Js}";
-
+            string entryFileName = Path.GetFileName(outputPath);
             string pageDistDir = _workspace.FrontendDistPath.Combine(Folders.Pages, pageName);
-            pageDistDir.Create();
-
-            string distJsPath = Path.Combine(pageDistDir, jsFileName);
-            await File.WriteAllTextAsync(distJsPath, code);
-            await Precompression.CreatePrecompressedVariantsAsync(distJsPath);
-
-            AssetManifest.Update(pageDistDir, m => m.Js = jsFileName);
+            AssetManifest.Update(pageDistDir, m => m.Js = entryFileName);
         }
+
+        await PrecompressJsFilesAsync(_workspace.FrontendDistPath);
     }
 
-    private static string StripSourceMapComments(string js)
+    private string ExtractPageName(string entryPoint)
     {
-        js = JsRegex.SourceMapLine().Replace(js, string.Empty);
-        js = JsRegex.SourceMapBlock().Replace(js, string.Empty);
+        string basePages = _workspace.FrontendBuildPagesPath;
+        string relative = Path.GetRelativePath(basePages, entryPoint);
+        relative = relative.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+        int sep = relative.IndexOf(Path.DirectorySeparatorChar);
+        return sep > 0 ? relative[..sep] : string.Empty;
+    }
 
-        return js;
+    private static async Task PrecompressJsFilesAsync(string root)
+    {
+        if (!Directory.Exists(root))
+        {
+            return;
+        }
+
+        List<Task> tasks = [];
+        foreach (string file in Directory.EnumerateFiles(root, "*.js", SearchOption.AllDirectories))
+        {
+            tasks.Add(Precompression.CreatePrecompressedVariantsAsync(file));
+        }
+        await Task.WhenAll(tasks);
+    }
+}
+
+internal sealed class EsbuildMetafile
+{
+    public Dictionary<string, EsbuildOutputInfo> Outputs { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+}
+
+internal sealed class EsbuildOutputInfo
+{
+    public string? EntryPoint
+    {
+        get; set;
     }
 }

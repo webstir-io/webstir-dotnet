@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Engine.Pipelines.Images.Common;
+namespace Engine.Pipelines.Images;
 
 public static partial class ImagesRegex
 {

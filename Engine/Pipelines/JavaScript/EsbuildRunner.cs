@@ -20,15 +20,6 @@ public class EsbuildRunner(AppWorkspace workspace)
         await ExecuteEsbuildAsync(args, diagnostics);
     }
 
-    public async Task<string> BundleSingleFileAsync(string inputFile, string outFile, EsbuildMode mode, bool minify, DiagnosticCollection? diagnostics = null)
-    {
-        List<string> args = BuildSingleFileArguments(inputFile, outFile, mode, minify);
-        await ExecuteEsbuildAsync(args, diagnostics);
-
-        string code = await File.ReadAllTextAsync(outFile);
-        return code;
-    }
-
     private List<string> BuildBundleArguments(List<string> entryPoints, string outDir, EsbuildMode mode)
     {
         string env = mode == EsbuildMode.Development ? JsConstants.EnvDevelopment : JsConstants.EnvProduction;
@@ -52,28 +43,11 @@ public class EsbuildRunner(AppWorkspace workspace)
         {
             args.Add(JsConstants.EsbuildMinify);
             args.Add(JsConstants.EsbuildDropConsole);
-        }
-
-        return args;
-    }
-
-    private static List<string> BuildSingleFileArguments(string inputFile, string outFile, EsbuildMode mode, bool minify)
-    {
-        string env = mode == EsbuildMode.Development ? JsConstants.EnvDevelopment : JsConstants.EnvProduction;
-
-        List<string> args =
-        [
-            Quote(inputFile),
-            JsConstants.EsbuildBundle,
-            JsConstants.EsbuildFormatEsm,
-            $"{JsConstants.EsbuildOutfile}{Quote(outFile)}",
-            $"{JsConstants.EsbuildDefineNodeEnv}\"{env}\""
-        ];
-
-        if (minify)
-        {
-            args.Add(JsConstants.EsbuildMinify);
-            args.Add(JsConstants.EsbuildDropConsole);
+            args.Add(JsConstants.EsbuildSplitting);
+            args.Add($"{JsConstants.EsbuildChunkNames}{Quote($"{Folders.Chunks}/{JsConstants.ChunkNamePattern}")}");
+            args.Add($"{JsConstants.EsbuildEntryNames}{Quote($"{JsConstants.EntryDirPattern}/{JsConstants.EntryNamePattern}")}");
+            string metaPath = Path.Combine(outDir, JsConstants.MetaJson);
+            args.Add($"{JsConstants.EsbuildMetafile}{Quote(metaPath)}");
         }
 
         return args;
@@ -147,4 +121,3 @@ public class EsbuildRunner(AppWorkspace workspace)
         return path;
     }
 }
-

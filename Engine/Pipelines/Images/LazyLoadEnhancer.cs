@@ -1,5 +1,4 @@
 using System;
-using Engine.Pipelines.Images.Common;
 
 namespace Engine.Pipelines.Images;
 

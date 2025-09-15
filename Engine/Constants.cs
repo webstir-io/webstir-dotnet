@@ -24,6 +24,7 @@ public static class Folders
     public const string Images = "images";
     public const string Fonts = "fonts";
     public const string Media = "media";
+    public const string Chunks = "chunks";
     public const string Home = "home";
     public const string NodeModules = "node_modules";
     public const string Seed = "seed";
@@ -75,11 +76,6 @@ public static class FileExtensions
     public const string Mov = ".mov";
 }
 
-public static class ProcessCommands
-{
-    public const string FailedToStartFormat = "Failed to start {0} process.";
-}
-
 public static class Templates
 {
     public const string Path = "Engine.Templates";
@@ -88,10 +84,4 @@ public static class Templates
     public const string BackendPath = $"{SrcPath}.{Folders.Backend}";
     public const string SharedPath = $"{SrcPath}.{Folders.Shared}";
     public const string TypesPath = $"{Path}.types";
-
-    // Page template content
-    public const string PageTypeScriptTemplate = """
-        // {0} page entry
-        // Import only what you need from '../../app/*' modules.
-        """;
 }

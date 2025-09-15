@@ -51,16 +51,6 @@ public class HtmlBundler(AppWorkspace workspace)
 
         // Keep a single standard stylesheet link; no CSS preload/swap to avoid duplicate or broken loads.
 
-        // Rewrite shared error script to fingerprinted filename; fail-fast if referenced but missing
-        string originalErrorRef = "/" + Folders.App + "/error" + FileExtensions.Js;
-        if (htmlContent.Contains(originalErrorRef, StringComparison.Ordinal))
-        {
-            string hashedError = GetHashedErrorScriptFileNameOrThrow();
-            string replacement = "/" + Folders.App + "/" + hashedError;
-            htmlContent = htmlContent.Replace("\"" + originalErrorRef + "\"", "\"" + replacement + "\"");
-            htmlContent = htmlContent.Replace("'" + originalErrorRef + "'", "'" + replacement + "'");
-        }
-
         string pageBuildDir = workspace.FrontendBuildPath.Combine(Folders.Pages, pageName);
         htmlContent = HtmlTransformer.AddImageDimensions(htmlContent, pageBuildDir);
         htmlContent = Images.LazyLoadEnhancer.AddLazyLoading(htmlContent);
@@ -100,24 +90,5 @@ public class HtmlBundler(AppWorkspace workspace)
         await Precompression.CreatePrecompressedVariantsAsync(distPagePath);
     }
 
-    private string GetHashedErrorScriptFileNameOrThrow()
-    {
-        string appDistDir = workspace.FrontendDistPath.Combine(Folders.App);
-        if (!appDistDir.Exists())
-        {
-            throw new FileNotFoundException($"Missing dist app directory: {appDistDir}");
-        }
-
-        string[] candidates = Directory.GetFiles(appDistDir, "error.*.js", SearchOption.TopDirectoryOnly);
-        if (candidates.Length == 0)
-        {
-            throw new FileNotFoundException("Fingerprint for error.js not found in dist/frontend/app");
-        }
-
-        string chosen = candidates
-            .OrderByDescending(File.GetLastWriteTimeUtc)
-            .First();
-        return Path.GetFileName(chosen);
-    }
 
 }

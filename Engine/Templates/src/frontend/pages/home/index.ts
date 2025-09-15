@@ -1,2 +1,6 @@
 // TypeScript file for index page
-// Keep minimal; shared error handling loads via base HTML.
+
+// Import shared app module (will be extracted as a chunk by esbuild)
+import '../../app/app';
+
+// Page-specific code here

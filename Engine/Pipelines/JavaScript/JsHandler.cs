@@ -34,26 +34,6 @@ public class JsHandler(
     {
         DiagnosticCollection diagnostics = new();
         await _builder.BundleAsync(EsbuildMode.Production, diagnostics);
-        await CopyErrorToDistAsync();
-    }
-
-    private async Task CopyErrorToDistAsync()
-    {
-        string sourceErrorJs = _workspace.FrontendBuildAppPath.Combine("error.js");
-        if (!File.Exists(sourceErrorJs))
-        {
-            throw new FileNotFoundException($"Compiled error.js not found: {sourceErrorJs}");
-        }
-
-        string destApp = _workspace.FrontendDistAppPath;
-        Directory.CreateDirectory(destApp);
-
-        string content = await _builder.BundleSingleFileAsync(sourceErrorJs, EsbuildMode.Production, minify: true);
-        string hash = ContentHashGenerator.ComputeHash(content);
-        string hashedFileName = $"error.{hash}{FileExtensions.Js}";
-        string hashedPath = Path.Combine(destApp, hashedFileName);
-        await File.WriteAllTextAsync(hashedPath, content);
-        await Precompression.CreatePrecompressedVariantsAsync(hashedPath);
     }
 
     public Task AddPageAsync(string pageName)
@@ -62,7 +42,11 @@ public class JsHandler(
         string tsFilePath = pageDirectory.Combine($"{Files.Index}.ts");
         string tsContent = $"""
             // {pageName} page entry
-            // Import only what you need from '../../app/*' modules.
+
+            // Import shared app initialization (includes error handling)
+            import '../../app/app';
+
+            // Page-specific code here
             """;
 
         File.WriteAllText(tsFilePath, tsContent);

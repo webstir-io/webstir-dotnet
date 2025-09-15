@@ -27,6 +27,10 @@ public static class JsConstants
     public const string EsbuildAllowOverwrite = "--allow-overwrite";
     public const string EsbuildMinify = "--minify";
     public const string EsbuildDropConsole = "--drop:console";
+    public const string EsbuildSplitting = "--splitting";
+    public const string EsbuildChunkNames = "--chunk-names=";
+    public const string EsbuildEntryNames = "--entry-names=";
+    public const string EsbuildMetafile = "--metafile=";
 
     // Environment values
     public const string EnvDevelopment = "development";
@@ -38,6 +42,7 @@ public static class JsConstants
     public const string EsbuildNotFoundPrefix = "esbuild not found at ";
     public const string EsbuildNotFoundSuffix = ". Please run 'npm install' to install dependencies.";
     public const string FailedToStartEsbuild = "Failed to start esbuild process";
+    public const string FailedToStartFormat = "Failed to start {0} process.";
 
     // Process descriptions
     public const string TypeScriptCompilationDesc = "TypeScript compilation";
@@ -45,8 +50,6 @@ public static class JsConstants
 
     // Log messages
     public const string RefreshJsNotFoundLog = "{RefreshJsFile} not found in {SourcePath}";
-    public const string CompiledErrorJsNotFoundLog = "Compiled error.js not found at {Path}. Ensure src/frontend/app/error.ts is included in the build.";
-    public const string InputFileNotFoundFormat = "Input file not found: {0}";
 
     // Error message formatting
     public const string ProcessFailedFormat = "{0} failed (Exit Code: {1})";
@@ -58,4 +61,10 @@ public static class JsConstants
     public const string ErrorJs = "error.js";
     public const string TempFolder = "temp";
     public const string SingleFolder = "single";
+    public const string MetaJson = "meta.json";
+
+    // Esbuild output patterns
+    public const string ChunkNamePattern = "[name].[hash]";
+    public const string EntryNamePattern = "[name].[hash]";
+    public const string EntryDirPattern = "[dir]";
 }
