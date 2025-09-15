@@ -1,5 +1,5 @@
+using System;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
@@ -18,38 +18,43 @@ public class CssHandler(AppWorkspace workspace, ILogger<CssHandler> logger) : IP
     public int BuildOrder => 1;
     public int PublishOrder => 0;
 
-    public async Task BuildAsync(string? changedFilePath = null)
-    {
-        DiagnosticCollection diagnostics = new();
-        await ProcessPagesAsync(workspace.FrontendPagesPath, workspace.FrontendBuildPath, isProduction: false, diagnostics);
-        LogSummary("CSS Build", diagnostics);
-    }
+    public async Task<bool> BuildAsync(string? changedFilePath = null) =>
+        await ProcessPagesAsync(workspace.FrontendPagesPath, workspace.FrontendBuildPath, isProduction: false);
 
-    public async Task PublishAsync() =>
+    public async Task<bool> PublishAsync() =>
         await ProcessPagesAsync(workspace.FrontendPagesPath, workspace.FrontendDistPath, isProduction: true);
 
-    public Task AddPageAsync(string pageName)
+    public Task<bool> AddPageAsync(string pageName)
     {
-        string cssContent = $"""
-            /* {pageName} Page Styles */
-            @import "{CssConstants.AppImportAlias}";
+        try
+        {
+            string cssContent = $"""
+                /* {pageName} Page Styles */
+                @import "{CssConstants.AppImportAlias}";
 
-            /* Add your page-specific styles here */
+                /* Add your page-specific styles here */
 
-            """;
-        string pageDirectory = workspace.FrontendPagesPath.Combine(pageName);
-        string cssFilePath = pageDirectory.Combine($"{Files.Index}.css");
-        File.WriteAllText(cssFilePath, cssContent);
-        return Task.CompletedTask;
+                """;
+            string pageDirectory = workspace.FrontendPagesPath.Combine(pageName);
+            string cssFilePath = pageDirectory.Combine($"{Files.Index}.css");
+            File.WriteAllText(cssFilePath, cssContent);
+            return Task.FromResult(true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("[CSS] Error creating page {PageName} - {Message}", pageName, ex.Message);
+            return Task.FromResult(false);
+        }
     }
 
-    private async Task ProcessPagesAsync(string sourceDir, string outputRootDir, bool isProduction, DiagnosticCollection? diagnostics = null)
+    private async Task<bool> ProcessPagesAsync(string sourceDir, string outputRootDir, bool isProduction)
     {
         if (!Directory.Exists(sourceDir))
         {
-            return;
+            return true; // No source directory is not an error
         }
 
+        bool overallSuccess = true;
         foreach (string pageDir in sourceDir.Folders())
         {
             string pageName = pageDir.Filename();
@@ -68,32 +73,35 @@ public class CssHandler(AppWorkspace workspace, ILogger<CssHandler> logger) : IP
             pageOutputDir.Create();
             string outputFile = Path.Combine(pageOutputDir, $"{Files.Index}{FileExtensions.Css}");
 
-            string producedPath = await _cssAdapter.BundleAsync(entryStylePath, outputFile, isProduction, diagnostics);
-
-            if (isProduction)
+            try
             {
-                await Precompression.CreatePrecompressedVariantsAsync(producedPath);
-                string cssFileName = Path.GetFileName(producedPath);
-                AssetManifest.Update(pageOutputDir, m => m.Css = cssFileName);
+                string? producedPath = await _cssAdapter.BundleAsync(entryStylePath, outputFile, isProduction, _logger);
+
+                if (producedPath == null)
+                {
+                    overallSuccess = false;
+                    continue;
+                }
+
+                if (isProduction)
+                {
+                    await Precompression.CreatePrecompressedVariantsAsync(producedPath);
+                    string cssFileName = Path.GetFileName(producedPath);
+                    AssetManifest.Update(pageOutputDir, m => m.Css = cssFileName);
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError("[CSS] Error in {Path} - {Message}", entryStylePath, ex.Message);
+                overallSuccess = false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("[CSS] Error processing {Path} - {Message}", entryStylePath, ex.Message);
+                overallSuccess = false;
             }
         }
+        return overallSuccess;
     }
 
-    private void LogSummary(string phase, DiagnosticCollection diagnostics)
-    {
-        int errorCount = diagnostics.Errors.Count();
-        int warningCount = diagnostics.Warnings.Count();
-        if (errorCount == 0 && warningCount == 0)
-        {
-            return;
-        }
-        if (errorCount > 0)
-        {
-            _logger.LogError("{Phase} diagnostics: {Errors} errors, {Warnings} warnings", phase, errorCount, warningCount);
-        }
-        else
-        {
-            _logger.LogWarning("{Phase} diagnostics: {Warnings} warnings", phase, warningCount);
-        }
-    }
 }

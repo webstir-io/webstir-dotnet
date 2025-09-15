@@ -1,20 +1,17 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using Engine.Pipelines.Core.Utilities;
+using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.Core.Esbuild;
 
-/// <summary>
-/// Adapter that configures esbuild specifically for JavaScript bundling.
-/// </summary>
 public class JsEsbuildAdapter(EsbuildRunner runner, AppWorkspace workspace)
 {
-    public async Task<EsbuildResult> BundleAsync(
+    public async Task<bool> BundleAsync(
         List<string> entryPoints,
         string outputDir,
         bool isProduction,
-        DiagnosticCollection? diagnostics = null)
+        ILogger logger)
     {
         EsbuildOptions options = new()
         {
@@ -49,6 +46,7 @@ public class JsEsbuildAdapter(EsbuildRunner runner, AppWorkspace workspace)
             options.AllowOverwrite = true;
         }
 
-        return await runner.RunAsync(options, diagnostics);
+        EsbuildResult result = await runner.RunAsync(options, logger);
+        return result.Success;
     }
 }

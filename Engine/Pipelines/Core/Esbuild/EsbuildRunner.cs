@@ -6,22 +6,15 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using Engine.Pipelines.Core.Utilities;
+using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.Core.Esbuild;
 
-/// <summary>
-/// Agnostic esbuild runner that executes esbuild with provided arguments.
-/// Each pipeline (JS, CSS, etc.) is responsible for constructing their own arguments.
-/// </summary>
 public class EsbuildRunner(AppWorkspace workspace)
 {
     private readonly AppWorkspace _workspace = workspace;
 
-    /// <summary>
-    /// Executes esbuild with the provided arguments and returns the result.
-    /// </summary>
-    public async Task<EsbuildResult> RunAsync(EsbuildOptions options, DiagnosticCollection? diagnostics = null)
+    public async Task<EsbuildResult> RunAsync(EsbuildOptions options, ILogger? logger = null)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -36,82 +29,67 @@ public class EsbuildRunner(AppWorkspace workspace)
             }
         }
 
-        await ExecuteEsbuildAsync(args, diagnostics);
+        bool success = await ExecuteEsbuildAsync(args, logger);
 
-        return new EsbuildResult { OutputPath = options.OutputPath, Success = true };
+        return new EsbuildResult { OutputPath = options.OutputPath, Success = success };
     }
 
-    private List<string> BuildArguments(EsbuildOptions options)
+    private static List<string> BuildArguments(EsbuildOptions options)
     {
-        List<string> args = new List<string>();
+        List<string> args = [];
 
-        // Add entry points
-        if (options.EntryPoints != null && options.EntryPoints.Count > 0)
-        {
+        if (options.EntryPoints?.Count > 0)
             args.AddRange(options.EntryPoints.Select(Quote));
-        }
 
-        // Add standard arguments
-        if (options.Bundle)
-            args.Add("--bundle");
-        if (options.Minify)
-            args.Add("--minify");
-        if (options.Sourcemap)
-            args.Add("--sourcemap");
-        if (options.Splitting)
-            args.Add("--splitting");
-        if (options.AllowOverwrite)
-            args.Add("--allow-overwrite");
+        AddBooleanFlags(args, options);
+        AddOutputOptions(args, options);
+        AddConfigOptions(args, options);
 
-        // Add output options
-        if (options.OutputPath != null)
-        {
-            args.Add($"--outfile={Quote(options.OutputPath)}");
-        }
-        else if (options.OutputDir != null)
-        {
-            args.Add($"--outdir={Quote(options.OutputDir)}");
-        }
-
-        if (options.Outbase != null)
-        {
-            args.Add($"--outbase={Quote(options.Outbase)}");
-        }
-
-        // Add format
-        if (options.Format != null)
-        {
-            args.Add($"--format={options.Format}");
-        }
-
-        // Add loaders
-        if (options.Loaders != null)
-        {
-            foreach (KeyValuePair<string, string> loader in options.Loaders)
-            {
-                args.Add($"--loader:{loader.Key}={loader.Value}");
-            }
-        }
-
-        // Add defines
-        if (options.Define != null)
-        {
-            foreach (KeyValuePair<string, string> define in options.Define)
-            {
-                args.Add($"--define:{define.Key}={define.Value}");
-            }
-        }
-
-        // Add custom arguments
         if (options.CustomArgs != null)
-        {
             args.AddRange(options.CustomArgs);
-        }
 
         return args;
     }
 
-    private async Task ExecuteEsbuildAsync(List<string> args, DiagnosticCollection? diagnostics)
+    private static void AddBooleanFlags(List<string> args, EsbuildOptions options)
+    {
+        if (options.Bundle) args.Add("--bundle");
+        if (options.Minify) args.Add("--minify");
+        if (options.Sourcemap) args.Add("--sourcemap");
+        if (options.Splitting) args.Add("--splitting");
+        if (options.AllowOverwrite) args.Add("--allow-overwrite");
+    }
+
+    private static void AddOutputOptions(List<string> args, EsbuildOptions options)
+    {
+        if (options.OutputPath != null)
+            args.Add($"--outfile={Quote(options.OutputPath)}");
+        else if (options.OutputDir != null)
+            args.Add($"--outdir={Quote(options.OutputDir)}");
+
+        if (options.Outbase != null)
+            args.Add($"--outbase={Quote(options.Outbase)}");
+    }
+
+    private static void AddConfigOptions(List<string> args, EsbuildOptions options)
+    {
+        if (options.Format != null)
+            args.Add($"--format={options.Format}");
+
+        if (options.Loaders != null)
+        {
+            foreach (KeyValuePair<string, string> loader in options.Loaders)
+                args.Add($"--loader:{loader.Key}={loader.Value}");
+        }
+
+        if (options.Define != null)
+        {
+            foreach (KeyValuePair<string, string> define in options.Define)
+                args.Add($"--define:{define.Key}={define.Value}");
+        }
+    }
+
+    private async Task<bool> ExecuteEsbuildAsync(List<string> args, ILogger? logger)
     {
         string esbuildPath = GetEsbuildPath();
         string builtArgs = string.Join(' ', args);
@@ -135,8 +113,10 @@ public class EsbuildRunner(AppWorkspace workspace)
 
         if (process.ExitCode != 0)
         {
-            HandleEsbuildError(process.ExitCode, stdOut, stdErr, diagnostics);
+            HandleEsbuildError(process.ExitCode, stdOut, stdErr, logger);
+            return false;
         }
+        return true;
     }
 
     private string GetEsbuildPath()
@@ -154,12 +134,15 @@ public class EsbuildRunner(AppWorkspace workspace)
         return esbuildPath;
     }
 
-    private static void HandleEsbuildError(int exitCode, string stdOut, string stdErr, DiagnosticCollection? diagnostics)
+    private static void HandleEsbuildError(int exitCode, string stdOut, string stdErr, ILogger? logger)
     {
-        if (diagnostics != null)
+        if (logger != null)
         {
-            // Let each pipeline handle error parsing with their own regex patterns
-            diagnostics.Add(Diagnostic.Error($"{EsbuildConstants.Failed} with exit code {exitCode}: {stdErr}"));
+            logger.LogError("[Esbuild] Failed with exit code {ExitCode}: {Error}", exitCode, stdErr);
+            if (!string.IsNullOrWhiteSpace(stdOut))
+            {
+                logger.LogError("[Esbuild] Output: {Output}", stdOut);
+            }
         }
         else
         {
@@ -167,20 +150,10 @@ public class EsbuildRunner(AppWorkspace workspace)
         }
     }
 
-    private static string Quote(string path)
-    {
-        if (string.IsNullOrEmpty(path))
-        {
-            return path;
-        }
-
-        if (path.Contains(' '))
-        {
-            return FormattableString.Invariant($"\"{path}\"");
-        }
-
-        return path;
-    }
+    private static string Quote(string path) =>
+        string.IsNullOrEmpty(path) || !path.Contains(' ')
+            ? path
+            : FormattableString.Invariant($"\"{path}\"");
 
 }
 

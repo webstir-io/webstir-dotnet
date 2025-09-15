@@ -4,5 +4,5 @@ namespace Engine.Pipelines.Core.Interfaces;
 
 public interface IPageHandler : IFrontendHandler
 {
-    Task AddPageAsync(string pageName);
+    Task<bool> AddPageAsync(string pageName);
 }

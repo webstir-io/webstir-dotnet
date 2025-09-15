@@ -27,28 +27,18 @@ public partial class FrontendWorker(
     public async Task BuildAsync(string? changedFilePath = null)
     {
         if (!string.IsNullOrEmpty(changedFilePath) && !BuildHelpers.ContainsBuildFolder(changedFilePath, Folders.Frontend))
-        {
             return;
-        }
 
-        // Run npm install once at the worker level before any handlers
         string packageJsonPath = workspace.WorkingPath.Combine(Files.PackageJson);
         if (packageJsonPath.Exists())
         {
             NpmHelper.RunNpmInstall(workspace.WorkingPath);
         }
 
-        foreach (IGrouping<int, IFrontendHandler> group in _frontendHandlers
-                     .GroupBy(h => h.BuildOrder)
-                     .OrderBy(g => g.Key))
-        {
-            List<Task> tasks = [];
-            foreach (IFrontendHandler handler in group)
-            {
-                tasks.Add(handler.BuildAsync(changedFilePath));
-            }
-            await Task.WhenAll(tasks);
-        }
+        await RunHandlersInOrderAsync(
+            h => h.BuildOrder,
+            h => h.BuildAsync(changedFilePath),
+            nameof(BuildAsync));
     }
 
     public async Task PublishAsync()
@@ -62,61 +52,65 @@ public partial class FrontendWorker(
             Directory.CreateDirectory(workspace.FrontendDistPath);
         }
 
-        foreach (IGrouping<int, IFrontendHandler> group in _frontendHandlers
-                     .GroupBy(h => h.PublishOrder)
-                     .OrderBy(g => g.Key))
+        await RunHandlersInOrderAsync(
+            h => h.PublishOrder,
+            h => h.PublishAsync(),
+            nameof(PublishAsync));
+    }
+
+    private async Task RunHandlersInOrderAsync(
+        Func<IFrontendHandler, int> orderSelector,
+        Func<IFrontendHandler, Task<bool>> handlerAction,
+        string operationName)
+    {
+        IOrderedEnumerable<IGrouping<int, IFrontendHandler>> handlersByOrder = _frontendHandlers
+            .GroupBy(orderSelector)
+            .OrderBy(g => g.Key);
+
+        foreach (IGrouping<int, IFrontendHandler> group in handlersByOrder)
         {
-            List<Task> tasks = [];
+            List<Task<bool>> tasks = [];
             foreach (IFrontendHandler handler in group)
             {
-                tasks.Add(handler.PublishAsync());
+                tasks.Add(handlerAction(handler));
             }
-            await Task.WhenAll(tasks);
+
+            bool[] results = await Task.WhenAll(tasks);
+            bool groupSuccess = results.All(r => r);
+
+            if (!groupSuccess)
+            {
+                _logger.LogError("{Operation} failed at order {Order} with errors", operationName, group.Key);
+                break;
+            }
         }
     }
 
     public async Task AddPageAsync(string pageName)
     {
-        List<Task> tasks = [];
+        List<Task<bool>> tasks = [];
         foreach (IPageHandler handler in _frontendHandlers.OfType<IPageHandler>())
         {
             tasks.Add(handler.AddPageAsync(pageName));
         }
-        await Task.WhenAll(tasks);
+        bool[] results = await Task.WhenAll(tasks);
+
+        if (!results.All(r => r))
+        {
+            _logger.LogError("Failed to add page {PageName}", pageName);
+        }
     }
 
     private void TryClearDirectory(string path)
     {
         try
         {
-            foreach (string file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
-            {
-                try
-                {
-                    File.SetAttributes(file, FileAttributes.Normal);
-                    File.Delete(file);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to delete file during cleanup: {File}", file);
-                }
-            }
-
-            foreach (string dir in Directory.EnumerateDirectories(path, "*", SearchOption.AllDirectories))
-            {
-                try
-                {
-                    Directory.Delete(dir, true);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to delete directory during cleanup: {Directory}", dir);
-                }
-            }
+            Directory.Delete(path, recursive: true);
+            Directory.CreateDirectory(path);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to clear directory: {Path}", path);
+            _logger.LogWarning("Failed to clear directory {Path}: {Message}", path, ex.Message);
         }
     }
 }

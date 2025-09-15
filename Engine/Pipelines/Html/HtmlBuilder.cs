@@ -12,15 +12,13 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
 {
     private readonly ILogger<HtmlBuilder> _logger = logger;
 
-    public async Task BuildAsync(DiagnosticCollection? diagnostics = null)
+    public async Task<bool> BuildAsync()
     {
-        DiagnosticCollection diag = diagnostics ?? new DiagnosticCollection();
         string appHtmlPath = workspace.FrontendAppPath.Combine(HtmlConstants.AppHtmlFileName);
         if (!appHtmlPath.Exists())
         {
-            _logger.LogError("Base application HTML file not found: {AppHtmlPath}", appHtmlPath);
-            diag.Add(Diagnostic.Error($"Base application HTML file not found: {appHtmlPath}", appHtmlPath));
-            return;
+            _logger.LogError("[HTML] Error in {Path} - Base application HTML file not found", appHtmlPath);
+            return false;
         }
 
         string appTemplateHtml = await File.ReadAllTextAsync(appHtmlPath);
@@ -28,41 +26,42 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
         // Validate template structure: require a <main> container to merge into
         if (!HtmlTransformer.HasMainSection(appTemplateHtml))
         {
-            _logger.LogError("Base template missing <main> container: {AppHtmlPath}", appHtmlPath);
-            diag.Add(Diagnostic.Error("Base template missing <main> container", appHtmlPath));
+            _logger.LogError("[HTML] Error in {Path} - Base template missing <main> container", appHtmlPath);
+            return false;
         }
 
-        await BuildPageHtmlFilesAsync(appTemplateHtml, diag);
-
-        if (diag.HasErrors)
-        {
-            throw new InvalidOperationException("HTML build failed due to errors in page fragments or base template.");
-        }
+        bool success = await BuildPageHtmlFilesAsync(appTemplateHtml);
+        return success;
     }
 
-    public async Task PublishAsync(DiagnosticCollection? diagnostics = null) => await PublishPageHtmlAsync(diagnostics);
+    public async Task<bool> PublishAsync() => await PublishPageHtmlAsync();
 
-    private async Task BuildPageHtmlFilesAsync(string appTemplateHtml, DiagnosticCollection diagnostics)
+    private async Task<bool> BuildPageHtmlFilesAsync(string appTemplateHtml)
     {
         string pagesPath = workspace.FrontendPagesPath;
         if (!pagesPath.Exists())
-            return;
+            return true; // No pages to build is not an error
 
+        bool overallSuccess = true;
         foreach (string pageDir in pagesPath.Folders())
         {
             string pageName = pageDir.Filename();
-            await ProcessPageHtmlFilesAsync(pageDir, pageName, appTemplateHtml, diagnostics);
+            bool success = await ProcessPageHtmlFilesAsync(pageDir, pageName, appTemplateHtml);
+            overallSuccess &= success;
         }
+        return overallSuccess;
     }
 
-    private async Task ProcessPageHtmlFilesAsync(string pageDir, string pageName, string appTemplateHtml, DiagnosticCollection diagnostics)
+    private async Task<bool> ProcessPageHtmlFilesAsync(string pageDir, string pageName, string appTemplateHtml)
     {
         string[] htmlFiles = pageDir.Files($"*{FileExtensions.Html}");
         if (htmlFiles.Length == 0)
         {
-            throw new InvalidOperationException($"No HTML fragments found under page directory: {pageDir}");
+            _logger.LogError("[HTML] Error in {Path} - No HTML fragments found under page directory", pageDir);
+            return false;
         }
 
+        bool overallSuccess = true;
         foreach (string htmlFile in htmlFiles)
         {
             string fileName = htmlFile.Filename();
@@ -70,24 +69,34 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
                 ? fileName
                 : fileName;
 
-            await ProcessSingleHtmlFileAsync(htmlFile, pageName, outputName, appTemplateHtml, diagnostics);
+            bool success = await ProcessSingleHtmlFileAsync(htmlFile, pageName, outputName, appTemplateHtml);
+            overallSuccess &= success;
         }
+        return overallSuccess;
     }
 
-    private async Task ProcessSingleHtmlFileAsync(string sourceFile, string pageName, string outputFileName, string appTemplateHtml, DiagnosticCollection diagnostics)
+    private async Task<bool> ProcessSingleHtmlFileAsync(string sourceFile, string pageName, string outputFileName, string appTemplateHtml)
     {
         string fragment = await File.ReadAllTextAsync(sourceFile);
-        // Diagnostics: warn on missing <head> or <main> fragments
+        bool hasErrors = false;
+
+        // Check for missing <head> or <main> fragments
         if (!HtmlTransformer.HasHeadSection(fragment))
         {
-            _logger.LogError("Page fragment missing <head> section: {SourceFile}", sourceFile);
-            diagnostics.Add(Diagnostic.Error("Page fragment missing <head> section", sourceFile));
+            _logger.LogError("[HTML] Error in {Path} - Page fragment missing <head> section", sourceFile);
+            hasErrors = true;
         }
         if (!HtmlTransformer.HasMainSection(fragment))
         {
-            _logger.LogError("Page fragment missing <main> section: {SourceFile}", sourceFile);
-            diagnostics.Add(Diagnostic.Error("Page fragment missing <main> section", sourceFile));
+            _logger.LogError("[HTML] Error in {Path} - Page fragment missing <main> section", sourceFile);
+            hasErrors = true;
         }
+
+        if (hasErrors)
+        {
+            return false;
+        }
+
         string mergedHtml = HtmlTransformer.MergeTemplates(appTemplateHtml, fragment);
 
         string outputDir = workspace.FrontendBuildPath
@@ -96,16 +105,18 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
 
         string outputPath = outputDir.Combine(outputFileName);
         await File.WriteAllTextAsync(outputPath, mergedHtml);
+        return true;
     }
 
-    private async Task PublishPageHtmlAsync(DiagnosticCollection? diagnostics)
+    private async Task<bool> PublishPageHtmlAsync()
     {
         string pagesPath = workspace.FrontendBuildPath.Combine(Folders.Pages);
         if (!pagesPath.Exists())
         {
-            return;
+            return true; // No pages to publish is not an error
         }
 
+        bool overallSuccess = true;
         foreach (string pageDir in pagesPath.Folders())
         {
             string pageName = pageDir.Filename();
@@ -113,12 +124,21 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
 
             if (!pageHtml.Exists())
             {
-                diagnostics?.Add(new Diagnostic { Level = DiagnosticLevel.Warning, Message = $"Missing page HTML: {pageHtml}", File = pageHtml });
+                _logger.LogWarning("[HTML] Warning - Missing page HTML: {Path}", pageHtml);
                 continue;
             }
 
-            await PublishHtmlFileAsync(pageHtml, pageName);
+            try
+            {
+                await PublishHtmlFileAsync(pageHtml, pageName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("[HTML] Error in {Path} - Failed to publish: {Message}", pageHtml, ex.Message);
+                overallSuccess = false;
+            }
         }
+        return overallSuccess;
     }
 
     private async Task PublishHtmlFileAsync(string sourceFile, string pageName)

@@ -1,25 +1,45 @@
+using System;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Engine.Pipelines.Core.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.Seo;
 
-public class RobotsTxtHandler(AppWorkspace workspace) : IFrontendHandler
+public class RobotsTxtHandler(AppWorkspace workspace, ILogger<RobotsTxtHandler> logger) : IFrontendHandler
 {
     public int BuildOrder => 3;
     public int PublishOrder => 3;
 
-    public async Task BuildAsync(string? changedFilePath = null)
+    public async Task<bool> BuildAsync(string? changedFilePath = null)
     {
-        string path = Path.Combine(workspace.FrontendBuildPath, Files.RobotsTxt);
-        await WriteAllowAllAsync(path);
+        try
+        {
+            string path = Path.Combine(workspace.FrontendBuildPath, Files.RobotsTxt);
+            await WriteAllowAllAsync(path);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("[SEO] Error creating robots.txt - {Message}", ex.Message);
+            return false;
+        }
     }
 
-    public async Task PublishAsync()
+    public async Task<bool> PublishAsync()
     {
-        string path = Path.Combine(workspace.FrontendDistPath, Files.RobotsTxt);
-        await WriteAllowAllAsync(path);
+        try
+        {
+            string path = Path.Combine(workspace.FrontendDistPath, Files.RobotsTxt);
+            await WriteAllowAllAsync(path);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("[SEO] Error publishing robots.txt - {Message}", ex.Message);
+            return false;
+        }
     }
 
     private static async Task WriteAllowAllAsync(string path)

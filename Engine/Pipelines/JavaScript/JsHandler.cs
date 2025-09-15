@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
@@ -28,58 +29,90 @@ public class JsHandler(AppWorkspace workspace, ILogger<JsHandler> logger) : IPag
     public int BuildOrder => 0;
     public int PublishOrder => 0;
 
-    public async Task BuildAsync(string? changedFilePath = null)
+    public async Task<bool> BuildAsync(string? changedFilePath = null)
     {
-        DiagnosticCollection diagnostics = new();
-        Build(diagnostics);
-        await BundleAsync(EsbuildMode.Development, diagnostics);
+        bool compileSuccess = Build();
+        if (!compileSuccess)
+        {
+            return false;
+        }
+
+        bool bundleSuccess = await BundleAsync(EsbuildMode.Development);
+        return bundleSuccess;
     }
 
-    public async Task PublishAsync()
+    public async Task<bool> PublishAsync() =>
+        await BundleAsync(EsbuildMode.Production);
+
+    public Task<bool> AddPageAsync(string pageName)
     {
-        DiagnosticCollection diagnostics = new();
-        await BundleAsync(EsbuildMode.Production, diagnostics);
+        try
+        {
+            string pageDirectory = _workspace.FrontendPagesPath.CreateSubDirectory(pageName);
+            string tsFilePath = pageDirectory.Combine($"{Files.Index}.ts");
+            string tsContent = $"""
+                // {pageName} page entry
+
+                // Import shared app initialization (includes error handling)
+                import '../../app/app';
+
+                // Page-specific code here
+                """;
+
+            File.WriteAllText(tsFilePath, tsContent);
+            return Task.FromResult(true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("[JS] Error creating page {PageName} - {Message}", pageName, ex.Message);
+            return Task.FromResult(false);
+        }
     }
 
-    public Task AddPageAsync(string pageName)
+    private bool Build()
     {
-        string pageDirectory = _workspace.FrontendPagesPath.CreateSubDirectory(pageName);
-        string tsFilePath = pageDirectory.Combine($"{Files.Index}.ts");
-        string tsContent = $"""
-            // {pageName} page entry
+        bool compileSuccess = CompileTypeScriptFiles();
+        if (!compileSuccess)
+        {
+            return false;
+        }
 
-            // Import shared app initialization (includes error handling)
-            import '../../app/app';
-
-            // Page-specific code here
-            """;
-
-        File.WriteAllText(tsFilePath, tsContent);
-        return Task.CompletedTask;
-    }
-
-    private void Build(DiagnosticCollection? diagnostics = null)
-    {
-        CompileTypeScriptFiles(diagnostics);
         CopyRefreshScript();
+        return true;
     }
 
-    private async Task BundleAsync(EsbuildMode mode, DiagnosticCollection? diagnostics = null)
+    private async Task<bool> BundleAsync(EsbuildMode mode)
     {
         List<string> entryPoints = GetEntryPoints();
         if (entryPoints.Count == 0)
         {
-            return;
+            return true; // No entry points is not an error
         }
 
         string outDir = GetOutputDirectory(mode);
 
         bool isProduction = mode == EsbuildMode.Production;
-        await _jsAdapter.BundleAsync(entryPoints, outDir, isProduction, diagnostics);
 
-        if (isProduction)
+        try
         {
-            await ProcessSplitBundlesAsync(outDir);
+            bool success = await _jsAdapter.BundleAsync(entryPoints, outDir, isProduction, _logger);
+
+            if (!success)
+            {
+                return false;
+            }
+
+            if (isProduction)
+            {
+                await ProcessSplitBundlesAsync(outDir);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("[JS] Error during bundling - {Message}", ex.Message);
+            return false;
         }
     }
 
@@ -94,25 +127,19 @@ public class JsHandler(AppWorkspace workspace, ILogger<JsHandler> logger) : IPag
             _logger.LogWarning(JsConstants.RefreshJsNotFoundLog, Files.RefreshJs, sourceRefreshJsApp);
     }
 
-    private void CompileTypeScriptFiles(DiagnosticCollection? diagnostics)
+    private bool CompileTypeScriptFiles()
     {
         string baseTsConfigPath = _workspace.WorkingPath.Combine(Files.BaseTsConfigJson);
         try
         {
             RunProcess(JsConstants.TscCommand, $"{JsConstants.TscBuildArg} \"{baseTsConfigPath}\"", JsConstants.TypeScriptCompilationDesc);
+            return true;
         }
         catch (Exception ex)
         {
-            if (diagnostics != null)
-            {
-                diagnostics.ParseAndAddErrors(ex.Message,
-                    [JsRegex.TscClassicError(), JsRegex.TscModernError()],
-                    JsConstants.TypeScriptCompilationFailed);
-            }
-            else
-            {
-                throw;
-            }
+            // Parse TypeScript errors from the exception message
+            ParseAndLogTypeScriptErrors(ex.Message);
+            return false;
         }
     }
 
@@ -219,6 +246,50 @@ public class JsHandler(AppWorkspace workspace, ILogger<JsHandler> logger) : IPag
         relative = relative.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
         int sep = relative.IndexOf(Path.DirectorySeparatorChar);
         return sep > 0 ? relative[..sep] : string.Empty;
+    }
+
+    private void ParseAndLogTypeScriptErrors(string errorText)
+    {
+        if (string.IsNullOrWhiteSpace(errorText))
+        {
+            _logger.LogError("[JS] {Message}", JsConstants.TypeScriptCompilationFailed);
+            return;
+        }
+
+        bool foundErrors = false;
+        Regex[] patterns = [JsRegex.TscClassicError(), JsRegex.TscModernError()];
+
+        foreach (Regex pattern in patterns)
+        {
+            foreach (Match match in pattern.Matches(errorText))
+            {
+                string file = match.Groups["file"].Value.Trim();
+                int line = int.TryParse(match.Groups["line"].Value, out int ln) ? ln : 0;
+                int col = int.TryParse(match.Groups["col"].Value, out int cl) ? cl : 0;
+                string message = match.Groups["msg"].Value.Trim();
+
+                if (!string.IsNullOrWhiteSpace(file) && line > 0 && col > 0)
+                {
+                    _logger.LogError("[JS] Error in {File}:{Line}:{Column} - {Message}",
+                        file, line, col, message);
+                }
+                else if (!string.IsNullOrWhiteSpace(file))
+                {
+                    _logger.LogError("[JS] Error in {File} - {Message}", file, message);
+                }
+                else
+                {
+                    _logger.LogError("[JS] {Message}", message);
+                }
+
+                foundErrors = true;
+            }
+        }
+
+        if (!foundErrors)
+        {
+            _logger.LogError("[JS] {Message}", JsConstants.TypeScriptCompilationFailed);
+        }
     }
 
     private static async Task PrecompressJsFilesAsync(string root)

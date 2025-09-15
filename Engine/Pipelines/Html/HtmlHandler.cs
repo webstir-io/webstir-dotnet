@@ -1,10 +1,9 @@
+using System;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core.Interfaces;
 using Engine.Pipelines.Core.Utilities;
-
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.Html;
@@ -15,27 +14,28 @@ public class HtmlHandler(AppWorkspace workspace, HtmlBuilder htmlBuilder, ILogge
     public int BuildOrder => 1;
     public int PublishOrder => 1;
 
-    public async Task BuildAsync(string? changedFilePath = null)
-    {
-        DiagnosticCollection diagnostics = new();
-        await htmlBuilder.BuildAsync(diagnostics);
-        LogSummary("HTML Build", diagnostics);
-    }
+    public async Task<bool> BuildAsync(string? changedFilePath = null) =>
+        await htmlBuilder.BuildAsync();
 
-    public async Task PublishAsync()
-    {
-        DiagnosticCollection diagnostics = new();
-        await htmlBuilder.PublishAsync(diagnostics);
-        LogSummary("HTML Publish", diagnostics);
-    }
+    public async Task<bool> PublishAsync() =>
+        await htmlBuilder.PublishAsync();
 
-    public async Task AddPageAsync(string pageName)
+    public async Task<bool> AddPageAsync(string pageName)
     {
-        string pagePath = workspace.FrontendPagesPath.Combine(pageName);
-        pagePath.Create();
-        string htmlContent = GeneratePageTemplate(pageName);
-        string outputPath = pagePath.Combine($"{Files.Index}{FileExtensions.Html}");
-        await File.WriteAllTextAsync(outputPath, htmlContent);
+        try
+        {
+            string pagePath = workspace.FrontendPagesPath.Combine(pageName);
+            pagePath.Create();
+            string htmlContent = GeneratePageTemplate(pageName);
+            string outputPath = pagePath.Combine($"{Files.Index}{FileExtensions.Html}");
+            await File.WriteAllTextAsync(outputPath, htmlContent);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("[HTML] Error creating page {PageName} - {Message}", pageName, ex.Message);
+            return false;
+        }
     }
 
     private static string GeneratePageTemplate(string pageName)
@@ -56,30 +56,4 @@ public class HtmlHandler(AppWorkspace workspace, HtmlBuilder htmlBuilder, ILogge
         """;
     }
 
-    private void LogSummary(string phase, DiagnosticCollection diagnostics)
-    {
-        int errorCount = diagnostics.Errors.Count();
-        int warningCount = diagnostics.Warnings.Count();
-        if (errorCount == 0 && warningCount == 0)
-        {
-            return;
-        }
-        if (errorCount > 0)
-        {
-            _logger.LogError("{Phase} diagnostics: {Errors} errors, {Warnings} warnings", phase, errorCount, warningCount);
-            // Surface individual error messages for visibility in CLI output
-            foreach (Diagnostic d in diagnostics.Errors)
-            {
-                _logger.LogError("{Message}", d.Message);
-            }
-        }
-        else
-        {
-            _logger.LogWarning("{Phase} diagnostics: {Warnings} warnings", phase, warningCount);
-            foreach (Diagnostic d in diagnostics.Warnings)
-            {
-                _logger.LogWarning("{Message}", d.Message);
-            }
-        }
-    }
 }

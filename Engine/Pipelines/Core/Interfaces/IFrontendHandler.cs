@@ -13,7 +13,7 @@ public interface IFrontendHandler
         get;
     }
 
-    Task BuildAsync(string? changedFilePath = null);
-    Task PublishAsync();
+    Task<bool> BuildAsync(string? changedFilePath = null);
+    Task<bool> PublishAsync();
 }
 
