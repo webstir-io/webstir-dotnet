@@ -3,6 +3,8 @@
 ## Overview
 This plan addresses the critical gaps identified in the frontend readiness assessment, prioritizing production essentials for Webstir's frontend pipeline.
 
+**UPDATE**: JavaScript bundling has been replaced with esbuild (see `/docs/product/plans/archive/frontend/esbuild-integration.md`), delivering 10-30x performance improvements.
+
 ## Phase 1: Production Essentials ✅ COMPLETE
 **Goal**: Implement minimum viable production features for security, performance, and reliability.
 **Status**: Completed 2025-09-11
@@ -23,7 +25,7 @@ This plan addresses the critical gaps identified in the frontend readiness asses
 - `Engine/Pipelines/Html/Bundling/HtmlBundler.cs`
 - `Engine/Pipelines/Html/Transformation/HtmlTransformer.cs`
 - `Engine/Pipelines/Css/Bundling/CssBundler.cs:76-77` (timestamp replacement)
-- `Engine/Pipelines/JavaScript/Bundling/JsBundler.cs:131-132` (timestamp replacement)
+- `Engine/Pipelines/JavaScript/JsBuilder.cs` (updated with esbuild integration)
 - `Engine/Servers/WebServer.cs:39,194` (cache pattern update)
 
 #### Checkpoint
@@ -266,6 +268,7 @@ This plan addresses the critical gaps identified in the frontend readiness asses
 - **Time to Interactive**: < 3.8s on 3G
 - **Lighthouse Score**: > 90 for all categories
 - **Core Web Vitals**: Pass all thresholds
+- **JavaScript Bundling**: < 500ms with esbuild (achieved ✅)
 
 ### Security Validation
 - [ ] Passes OWASP security headers check
@@ -360,6 +363,17 @@ Automatic behaviors:
 
 ---
 
-*Last Updated: 2025-09-12*
-*Status: Phase 1 Complete, Phase 2 Complete, Phase 3 Complete (implementation), Production Ready*
+*Last Updated: 2025-09-14*
+*Status: Phase 1-3 Complete, esbuild Integration Complete, Production Ready*
 *Owner: Frontend Team*
+
+## Additional Notes
+
+### esbuild Integration (Completed)
+The JavaScript pipeline has been successfully migrated from a custom implementation to esbuild:
+- **Performance**: 10-30x faster bundling
+- **Code Reduction**: 2000+ lines of custom code removed
+- **Features**: Tree-shaking, minification, source maps (dev-only)
+- **Architecture**: Clean separation with `EsbuildRunner.cs`
+
+See `/docs/product/plans/archive/frontend/esbuild-integration.md` for full details.

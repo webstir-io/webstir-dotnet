@@ -55,9 +55,10 @@ See also: Engine internals — [engine](../explanations/engine.md)
 - Output: scaffolded source tree under `src/**` plus `types/`.
 
 ### build
-- Compile TypeScript, process CSS, and merge page HTML into `build/`.
+- Compile TypeScript with `tsc --build`, then bundle JavaScript with **esbuild** for fast development builds.
+- Process CSS imports and merge page HTML into `build/`.
 - Copy Images, Fonts, and Media to `build/frontend/{images|fonts|media}/**`.
-- Perform incremental work when possible; keep output readable in dev.
+- Perform incremental work when possible; keep output readable with source maps in dev.
 - Output: `build/frontend/**`, `build/backend/**`.
 
 ### watch
@@ -72,9 +73,10 @@ See also: Engine internals — [engine](../explanations/engine.md)
 
 ### publish
 - Produce optimized, fingerprinted assets in `dist/` per page.
-- Minify HTML/CSS/JS, remove comments and source maps, and rewrite HTML links using per-page manifests.
-- Copy Images, Fonts, and Media to `dist/frontend/{images|fonts|media}/**`.
-- Output: `dist/frontend/pages/<page>/index.html`, `index.<timestamp>.{css|js}`, `manifest.json`.
+- Use **esbuild** to bundle, tree-shake, and minify JavaScript with production optimizations.
+- Minify HTML/CSS, remove comments and source maps, and rewrite HTML links using per-page manifests.
+- Optimize Images and Fonts when tools available, then copy to `dist/frontend/{images|fonts|media}/**`.
+- Output: `dist/frontend/pages/<page>/index.html`, `index.<hash>.{css|js}`, `manifest.json`.
 
 ### generators
 - `add-page <name>`: scaffold `index.html|css|ts` under `src/frontend/pages/<name>/`.

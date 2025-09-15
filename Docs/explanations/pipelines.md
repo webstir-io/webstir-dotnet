@@ -23,19 +23,22 @@ Build and publish stages for HTML, CSS, JS/TS, and static assets (Images, Fonts,
 ## CSS
 - Resolves `@import` and asset URLs; copies referenced assets.
 - Dev: keep readable, unminified CSS.
-- Publish: autoprefix and minify; optional CSS Modules; write fingerprinted `index.<timestamp>.css`.
+- Publish: autoprefix and minify; optional CSS Modules; write fingerprinted `index.<hash>.css`.
 - Minifier: token-aware (preserves strings/urls); trims whitespace; normalizes numbers/zeros; shortens hex (incl. `#rrggbbaa→#rgba`); enforces spacing around `and/or/not` in `@media/@supports`; collapses zero shorthands (`margin/padding/inset`).
 - Legacy removal: strips `-ms-`, `-o-`, `-khtml-` prefixed declarations and legacy flexbox values; keeps a short allowlist of modern `-webkit-*` declarations.
 - Output paths follow the page layout in `build/frontend/pages/<page>/` and `dist/frontend/pages/<page>/`.
 
 ## JavaScript / TypeScript
-- Compiler: `tsc --build` using an embedded base `tsconfig`.
-- Graph: ESM-only inputs; bundler analyzes static `import`/`export`.
-- Dev: produce readable JS under `build/frontend/**` and `build/backend/**`.
-- Publish: tree-shake and minify; write fingerprinted `index.<timestamp>.js` per page; emit manifest entries.
-- Output shape: publishes a single per-page bundle (concatenated IIFE). Scripts are referenced with `type="module"` for broad compatibility, but the bundle itself is not an ES module.
-- Dynamic imports: not inlined/code-split in v1. `import('...')` remains at runtime. Use absolute URLs (e.g., `/app/router.js`) for app assets so dev and publish resolve consistently.
-- Minification scope: whitespace and comment removal (incl. source map comments). No identifier mangling or advanced transforms.
+- Compiler: `tsc --build` using an embedded base `tsconfig` for type checking.
+- Bundler: **esbuild** for exceptional performance (10-100x faster than traditional bundlers).
+- Dev: produce readable JS with source maps under `build/frontend/**`; esbuild bundles with `--sourcemap`.
+- Publish: esbuild handles tree-shaking, minification, and console stripping; write fingerprinted `index.<hash>.js` per page.
+- Output shape: ESM bundle format, referenced with `type="module"` for modern browser compatibility.
+- esbuild configuration:
+  - Development: `--bundle --sourcemap --format=esm --define:process.env.NODE_ENV="development"`
+  - Production: `--bundle --minify --format=esm --drop:console --define:process.env.NODE_ENV="production"`
+- Content hashing: SHA256-based hashes replace timestamps for better cache integrity.
+- Entry points: Automatically discovered from `build/frontend/pages/*/index.js` (tsc output).
 
 ## Assets (Images / Fonts / Media)
 - Source folders under `src/frontend/`:
@@ -43,8 +46,10 @@ Build and publish stages for HTML, CSS, JS/TS, and static assets (Images, Fonts,
   - Fonts: `fonts/**` (woff2, woff, ttf, otf, eot, svg)
   - Media: `media/**` (mp3, m4a, wav, ogg, mp4, webm, mov)
 - Dev: copy to `build/frontend/{images|fonts|media}/**`, preserving structure.
-- Publish: copy from `build/**` to `dist/frontend/{images|fonts|media}/**`, preserving structure.
-- No transforms or fingerprinting in v1; safe no-ops when folders are absent.
+- Publish: optimize and copy to `dist/frontend/{images|fonts|media}/**`.
+  - Images: `ImageOptimizer` compresses and generates WebP/AVIF variants when tools available.
+  - Fonts: `FontOptimizer` converts to WOFF2 when possible, enforces `font-display: swap`.
+- Graceful fallback: optimization tools are optional; originals served if tools unavailable.
 
 ## Manifests
 - One `manifest.json` per page under `dist/frontend/pages/<page>/` listing fingerprinted assets.
@@ -52,7 +57,7 @@ Build and publish stages for HTML, CSS, JS/TS, and static assets (Images, Fonts,
 
 ## Outputs
 - Dev: `build/frontend/**`, `build/backend/**`.
-- Publish: `dist/frontend/pages/<page>/index.html`, `index.<timestamp>.{css|js}`, `manifest.json`.
+- Publish: `dist/frontend/pages/<page>/index.html`, `index.<hash>.{css|js}`, `manifest.json`.
 
 ## Related Docs
 - Engine internals — engine.md

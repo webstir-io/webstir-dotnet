@@ -50,8 +50,8 @@ Workers are incremental where possible: only touched pages or modules are reproc
 ## Pipelines
 - HTML: Merge page fragments into `src/frontend/app/app.html` (requires a `<main>`), validate, write to `build/frontend/pages/<page>/index.html`. In publish, minify and rewrite links from the manifest.
 - CSS: Resolve `@import`/URLs, copy assets. In publish, apply autoprefix/minify and optional CSS Modules.
-- JS/TS: Use `tsc --build` with an embedded base config. ESM-only graph; tree-shake/minify in publish.
-- Assets: Copy Images, Fonts, and Media from `src/frontend/**` → `build/frontend/**` (dev) and from `build/**` → `dist/frontend/**` (publish) with structure preserved.
+- JS/TS: Use `tsc --build` for type checking, then **esbuild** for bundling (10-100x faster). ESM format; tree-shake/minify in publish.
+- Assets: Copy Images, Fonts, and Media from `src/frontend/**` → `build/frontend/**` (dev). In publish, optimize (compress images, convert fonts to WOFF2) when tools available, then copy to `dist/frontend/**`.
 
 See details in [pipelines](pipelines.md).
 
@@ -75,7 +75,7 @@ See [dev service](devservice.md) for behavior and lifecycle.
 
 ## Outputs
 - Dev: `build/frontend/**` and `build/backend/**`, readable output with source context.
-- Prod: `dist/frontend/pages/<page>/index.<timestamp>.{css|js}`, HTML rewritten to fingerprinted assets, per-page `manifest.json`.
+- Prod: `dist/frontend/pages/<page>/index.<hash>.{css|js}`, HTML rewritten to fingerprinted assets, per-page `manifest.json`.
 
 ## Errors & Logging
 - Use clear, actionable errors; do not swallow exceptions silently.

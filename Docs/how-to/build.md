@@ -15,11 +15,12 @@ Compile and stage the app for development. Processes frontend HTML/CSS/TS and co
 
 ## Steps
 1. Validate workspace structure and required inputs.
-2. Compile TypeScript for frontend/backend using the embedded base config.
-3. Process CSS imports and copy assets.
-4. Merge page HTML into `src/frontend/app/app.html` and write to `build/frontend/pages/<page>/index.html`.
-5. Copy Images, Fonts, and Media to `build/frontend/{images|fonts|media}/**`.
-6. Copy app assets to `build/frontend/app/`.
+2. Compile TypeScript for frontend/backend using `tsc --build` with the embedded base config.
+3. Bundle JavaScript with **esbuild** for fast, development-friendly output with source maps.
+4. Process CSS imports and copy assets.
+5. Merge page HTML into `src/frontend/app/app.html` and write to `build/frontend/pages/<page>/index.html`.
+6. Copy Images, Fonts, and Media to `build/frontend/{images|fonts|media}/**`.
+7. Copy app assets to `build/frontend/app/`.
 
 ## Outputs
 - `build/frontend/**` with readable assets and page HTML (includes `build/frontend/{images|fonts|media}/**`).
