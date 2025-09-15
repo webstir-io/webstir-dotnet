@@ -53,6 +53,51 @@ public static class CriticalCssExtractor
         }
 
         string cssContent = File.ReadAllText(cssPath);
+
+        // Remove all link tags that reference this CSS file (both stylesheet and preload)
+        string cssHref = $"/{Folders.Pages}/{pageName}/{cssFileName}";
+        string searchPattern = $"href=\"{cssHref}\"";
+
+        int searchIndex = 0;
+        while ((searchIndex = html.IndexOf(searchPattern, searchIndex, StringComparison.Ordinal)) >= 0)
+        {
+            // Find the start of the <link tag
+            int linkStart = html.LastIndexOf("<link", searchIndex, StringComparison.OrdinalIgnoreCase);
+            if (linkStart >= 0)
+            {
+                // Find the end of the tag
+                int linkEnd = html.IndexOf(">", searchIndex, StringComparison.Ordinal);
+                if (linkEnd > linkStart)
+                {
+                    // Remove the entire link tag (including potential newline after it)
+                    int removeEnd = linkEnd + 1;
+                    if (removeEnd < html.Length && html[removeEnd] == '\n')
+                    {
+                        removeEnd++;
+                    }
+
+                    html = html.Remove(linkStart, removeEnd - linkStart);
+
+                    // Adjust headCloseIndex if the removal was before it
+                    if (linkStart < headCloseIndex)
+                    {
+                        headCloseIndex -= (removeEnd - linkStart);
+                    }
+
+                    // Adjust search index since we removed content
+                    searchIndex = linkStart;
+                }
+                else
+                {
+                    searchIndex++;
+                }
+            }
+            else
+            {
+                searchIndex++;
+            }
+        }
+
         StringBuilder builder = new(html.Length + cssContent.Length + 128);
         builder.Append(html.AsSpan(0, headCloseIndex));
         builder.Append("\n<style data-critical>\n");

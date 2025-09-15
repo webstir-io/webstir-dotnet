@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text.RegularExpressions;
 using Engine.Pipelines.Core;
 
@@ -8,7 +7,6 @@ namespace Engine.Pipelines.Html;
 
 public static class ResourceHintInjector
 {
-
     public static string Inject(string html, AssetManifest manifest, string pageName, AppWorkspace workspace)
     {
         ArgumentNullException.ThrowIfNull(html);
@@ -17,52 +15,27 @@ public static class ResourceHintInjector
         ArgumentNullException.ThrowIfNull(workspace);
 
         List<string> tags = [];
-
-        // Preload CSS if present (keeps normal stylesheet link as primary loader)
-        if (!string.IsNullOrWhiteSpace(manifest.Css))
-        {
-            string cssHref = FormattableString.Invariant($"/{Folders.Pages}/{pageName}/{manifest.Css}");
-            tags.Add(FormattableString.Invariant($"<link rel=\"preload\" as=\"style\" href=\"{cssHref}\" fetchpriority=\"high\">"));
-        }
-
-        // Modulepreload JS if present
-        if (!string.IsNullOrWhiteSpace(manifest.Js))
-        {
-            string jsHref = FormattableString.Invariant($"/{Folders.Pages}/{pageName}/{manifest.Js}");
-            tags.Add(FormattableString.Invariant($"<link rel=\"modulepreload\" href=\"{jsHref}\" fetchpriority=\"high\">"));
-        }
-
-        // Add prefetch hints for obvious next navigations
         tags.AddRange(BuildPrefetchTags(html, workspace));
-
         if (tags.Count == 0)
         {
             return html;
         }
 
-        // Prefer inserting immediately after the opening <head> so preloads run before stylesheets/scripts.
+        // Find and inject after the opening <head> tag
         int headOpen = html.IndexOf("<head", StringComparison.OrdinalIgnoreCase);
-        if (headOpen >= 0)
-        {
-            int openEnd = html.IndexOf('>', headOpen);
-            if (openEnd > headOpen)
-            {
-                string injection = "\n" + string.Join("\n", tags) + "\n";
-                return html.Insert(openEnd + 1, injection);
-            }
-        }
-
-        // Fallback: insert before </head> if we couldn't detect the opening tag cleanly
-        int headClose = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
-        if (headClose < 0)
+        if (headOpen < 0)
         {
             return html;
         }
 
+        int openEnd = html.IndexOf('>', headOpen);
+        if (openEnd <= headOpen)
         {
-            string injection = string.Join("\n", tags) + "\n";
-            return html.Insert(headClose, injection);
+            return html;
         }
+
+        string injection = "\n" + string.Join("\n", tags) + "\n";
+        return html.Insert(openEnd + 1, injection);
     }
 
     private static List<string> BuildPrefetchTags(string html, AppWorkspace workspace)
@@ -78,10 +51,9 @@ public static class ResourceHintInjector
                 continue;
             }
 
-            // Only internal links
             if (href.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
                 || href.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
-                || href.StartsWith("#", StringComparison.Ordinal)
+                || href.StartsWith('#')
                 || href.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
@@ -98,7 +70,6 @@ public static class ResourceHintInjector
                 continue;
             }
 
-            // Prefer prefetching the document; asset prefetch is optional and not required by tests
             string docHref = FormattableString.Invariant($"/{Folders.Pages}/{target}/{Files.Index}{FileExtensions.Html}");
             tags.Add(FormattableString.Invariant($"<link rel=\"prefetch\" href=\"{docHref}\" as=\"document\">"));
         }

@@ -1,138 +1,235 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using System.Text.RegularExpressions;
+using System.Linq;
+using System.Threading.Tasks;
+using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
+using AngleSharp.Html.Parser;
 using Engine.Pipelines.Core;
-using Engine.Pipelines.Html.Parsing;
 
 namespace Engine.Pipelines.Html;
 
-public static partial class HtmlTransformer
+public static class HtmlTransformer
 {
-    public static string MergeTemplates(string appTemplate, string pageFragment)
+    private static readonly IHtmlParser Parser = new HtmlParser();
+
+    public static async Task<string> MergeTemplatesAsync(string appTemplate, string pageFragment)
     {
         ArgumentNullException.ThrowIfNull(appTemplate);
         ArgumentNullException.ThrowIfNull(pageFragment);
-        string result = appTemplate;
 
-        (string? pageHeadContent, string? pageMainContent) = HtmlParser.ExtractSections(pageFragment);
+        using IHtmlDocument appDoc = await Parser.ParseDocumentAsync(appTemplate);
+        using IHtmlDocument pageDoc = await Parser.ParseDocumentAsync(pageFragment);
 
-        // Merge <head>: preserve template head, replace unique meta/link with page values, then append remaining page head
-        Match appHeadMatch = HtmlRegex.HeadContent().Match(appTemplate);
-        if (appHeadMatch.Success && pageHeadContent is not null)
+        IHtmlHeadElement? appHead = appDoc.Head;
+        IHtmlHeadElement? pageHead = pageDoc.Head;
+        if (appHead != null && pageHead != null)
         {
-            string appHeadInner = appHeadMatch.Groups[1].Value;
-            string mergedHeadInner = MergeHeadInner(appHeadInner, pageHeadContent);
-
-            // Replace the inner content of <head> with merged content
-            int innerIndex = appHeadMatch.Groups[1].Index;
-            int innerLength = appHeadMatch.Groups[1].Length;
-            StringBuilder sb = new(appTemplate.Length - innerLength + mergedHeadInner.Length);
-            sb.Append(appTemplate.AsSpan(0, innerIndex));
-            sb.Append(mergedHeadInner);
-            sb.Append(appTemplate.AsSpan(innerIndex + innerLength));
-            result = sb.ToString();
-        }
-        else if (pageHeadContent is not null)
-        {
-            // Fallback: if head content extraction failed on app template for some reason, append page head
-            result = HtmlRegex.CloseHeadTag().Replace(result, $"{pageHeadContent}\n</head>");
+            MergeHeadElements(appHead, pageHead);
         }
 
-        // Merge <main>
-        if (pageMainContent is not null)
+        IElement? appMain = appDoc.QuerySelector("main");
+        IElement? pageMain = pageDoc.QuerySelector("main");
+        if (appMain != null && pageMain != null)
         {
-            result = HtmlRegex.EmptyMain().Replace(result, $"<main$1>{pageMainContent}</main>");
+            appMain.InnerHtml = pageMain.InnerHtml;
         }
 
-        // Ensure href/src attribute values are quoted to avoid browsers capturing the tag-closing '/>'
-        result = QuoteUnquotedHrefSrc(result);
-        return result;
+        return appDoc.DocumentElement.OuterHtml;
     }
 
-    public static string RewriteAssetReferences(string html, AssetManifest manifest, string pageName)
+    public static string MergeTemplates(string appTemplate, string pageFragment) => MergeTemplatesAsync(appTemplate, pageFragment).GetAwaiter().GetResult();
+
+    private static void MergeHeadElements(IHtmlHeadElement appHead, IHtmlHeadElement pageHead)
+    {
+        Dictionary<string, IElement> appMetaTags = BuildMetaIndex(appHead);
+        Dictionary<string, IElement> appLinkTags = BuildLinkIndex(appHead);
+
+        foreach (IElement pageMeta in pageHead.QuerySelectorAll("meta"))
+        {
+            string? key = GetMetaKey(pageMeta);
+            if (key != null && appMetaTags.TryGetValue(key, out IElement? existingMeta))
+            {
+                existingMeta.Replace(pageMeta.Clone());
+            }
+            else if (key == null || !appMetaTags.ContainsKey(key))
+            {
+                appHead.AppendChild(pageMeta.Clone());
+            }
+        }
+
+        foreach (IElement pageLink in pageHead.QuerySelectorAll("link"))
+        {
+            string? key = GetLinkKey(pageLink);
+            if (key != null && appLinkTags.TryGetValue(key, out IElement? existingLink))
+            {
+                existingLink.Replace(pageLink.Clone());
+            }
+            else if (key == null || !appLinkTags.ContainsKey(key))
+            {
+                appHead.AppendChild(pageLink.Clone());
+            }
+        }
+
+        foreach (IElement element in pageHead.Children)
+        {
+            if (element.TagName is not "META" and not "LINK")
+            {
+                appHead.AppendChild(element.Clone());
+            }
+        }
+
+        HtmlFormatter.OptimizeHeadOrder(appHead);
+    }
+
+    private static Dictionary<string, IElement> BuildMetaIndex(IHtmlHeadElement head)
+    {
+        Dictionary<string, IElement> index = new(StringComparer.OrdinalIgnoreCase);
+        foreach (IElement meta in head.QuerySelectorAll("meta"))
+        {
+            string? key = GetMetaKey(meta);
+            if (key != null)
+            {
+                index[key] = meta;
+            }
+        }
+
+        return index;
+    }
+
+    private static Dictionary<string, IElement> BuildLinkIndex(IHtmlHeadElement head)
+    {
+        Dictionary<string, IElement> index = new(StringComparer.OrdinalIgnoreCase);
+        foreach (IElement link in head.QuerySelectorAll("link"))
+        {
+            string? key = GetLinkKey(link);
+            if (key != null)
+            {
+                index[key] = link;
+            }
+        }
+        
+        return index;
+    }
+
+    private static string? GetMetaKey(IElement meta)
+    {
+        if (meta.HasAttribute("charset"))
+        {
+            return "meta:charset";
+        }
+        if (meta.GetAttribute("http-equiv") is string httpEquiv && !string.IsNullOrEmpty(httpEquiv))
+        {
+            return $"meta:http-equiv:{httpEquiv.ToLowerInvariant()}";
+        }
+        if (meta.GetAttribute("name") is string name && !string.IsNullOrEmpty(name))
+        {
+            return $"meta:name:{name.ToLowerInvariant()}";
+        }
+        if (meta.GetAttribute("property") is string property && !string.IsNullOrEmpty(property))
+        {
+            return $"meta:property:{property.ToLowerInvariant()}";
+        }
+        
+        return null;
+    }
+
+    private static string? GetLinkKey(IElement link)
+    {
+        string? rel = link.GetAttribute("rel");
+        if (string.IsNullOrEmpty(rel))
+        {
+            return null;
+        }
+
+        string[] rels = rel.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (rels.Contains("canonical", StringComparer.OrdinalIgnoreCase))
+        {
+            return "link:rel:canonical";
+        }
+        if (rels.Contains("alternate", StringComparer.OrdinalIgnoreCase))
+        {
+            string? hreflang = link.GetAttribute("hreflang");
+            if (!string.IsNullOrEmpty(hreflang))
+            {
+                return $"link:rel:alternate:{hreflang.ToLowerInvariant()}";
+            }
+        }
+
+        return null;
+    }
+
+    public static async Task<string> RewriteAssetReferencesAsync(string html, AssetManifest manifest, string pageName)
     {
         ArgumentNullException.ThrowIfNull(manifest);
 
-        string result = html;
+        using IHtmlDocument doc = await Parser.ParseDocumentAsync(html);
 
         if (!string.IsNullOrWhiteSpace(manifest.Css))
         {
-            // Use absolute path to ensure correct resolution even when the page is served at '/'
             string cssPath = $"/{Folders.Pages}/{pageName}/{manifest.Css}";
-            result = RewriteAssetPath(result, $"{Files.Index}{FileExtensions.Css}", cssPath);
-            result = RewriteAssetPath(result, $"{Files.Index}.module{FileExtensions.Css}", cssPath);
+            RewriteStylesheetLinks(doc, $"{Files.Index}{FileExtensions.Css}", cssPath);
+            RewriteStylesheetLinks(doc, $"{Files.Index}.module{FileExtensions.Css}", cssPath);
         }
 
         if (!string.IsNullOrWhiteSpace(manifest.Js))
         {
             string jsPath = $"/{Folders.Pages}/{pageName}/{manifest.Js}";
-            result = RewriteAssetPath(result, $"{Files.Index}{FileExtensions.Js}", jsPath);
+            RewriteScriptSources(doc, $"{Files.Index}{FileExtensions.Js}", jsPath);
         }
 
-        return result;
+        return doc.DocumentElement.OuterHtml;
     }
 
-    private static string RewriteAssetPath(string html, string oldPath, string newPath)
+    public static string RewriteAssetReferences(string html, AssetManifest manifest, string pageName) => RewriteAssetReferencesAsync(html, manifest, pageName).GetAwaiter().GetResult();
+
+    private static void RewriteStylesheetLinks(IDocument doc, string oldPath, string newPath)
     {
-        // Quoted attribute values
-        html = html.Replace($"\"{oldPath}\"", $"\"{newPath}\"");
-        html = html.Replace($"'{oldPath}'", $"'{newPath}'");
-        // Quoting for unquoted values handled in a separate pass
-        return html;
+        foreach (IElement link in doc.QuerySelectorAll($"link[href='{oldPath}'], link[href=\"{oldPath}\"]"))
+        {
+            link.SetAttribute("href", newPath);
+        }
     }
 
-    private static string QuoteUnquotedHrefSrc(string html)
+    private static void RewriteScriptSources(IDocument doc, string oldPath, string newPath)
     {
-        // href=VALUE -> href="VALUE" (when VALUE is unquoted)
-        html = UnquotedHrefRegex().Replace(html, m => $"href=\"{m.Groups[1].Value}\"");
-        // src=VALUE -> src="VALUE"
-        html = UnquotedSrcRegex().Replace(html, m => $"src=\"{m.Groups[1].Value}\"");
-        return html;
+        foreach (IElement script in doc.QuerySelectorAll($"script[src='{oldPath}'], script[src=\"{oldPath}\"]"))
+        {
+            script.SetAttribute("src", newPath);
+        }
     }
 
-    [GeneratedRegex(@"href=([^""'\s>]+)", RegexOptions.IgnoreCase)]
-    private static partial Regex UnquotedHrefRegex();
-
-    [GeneratedRegex(@"src=([^""'\s>]+)", RegexOptions.IgnoreCase)]
-    private static partial Regex UnquotedSrcRegex();
-
-    public static string AddImageDimensions(string html, string pageBuildDirectory)
+    public static async Task<string> AddImageDimensionsAsync(string html, string pageBuildDirectory)
     {
         ArgumentNullException.ThrowIfNull(html);
         ArgumentNullException.ThrowIfNull(pageBuildDirectory);
 
-        // Base directory examples: build/frontend/pages/<page>/
-        // Root (build/frontend) for absolute paths
+        using IHtmlDocument doc = await Parser.ParseDocumentAsync(html);
+
         string? pagesDir = Path.GetDirectoryName(pageBuildDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
         string? rootDir = pagesDir != null ? Path.GetDirectoryName(pagesDir) : null;
 
-        return HtmlRegex.ImgTag().Replace(html, match =>
+        foreach (IElement img in doc.QuerySelectorAll("img"))
         {
-            string tag = match.Value;
-            // Skip if width/height already exist
-            if (HtmlRegex.WidthAttr().IsMatch(tag) || HtmlRegex.HeightAttr().IsMatch(tag))
+            if (img.HasAttribute("width") || img.HasAttribute("height"))
             {
-                return tag;
+                continue;
             }
 
-            Match srcMatch = HtmlRegex.ImgSrc().Match(tag);
-            if (!srcMatch.Success)
+            string? src = img.GetAttribute("src");
+            if (string.IsNullOrEmpty(src) ||
+                src.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                src.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+                src.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
             {
-                return tag;
-            }
-
-            string src = srcMatch.Groups["src"].Value;
-            if (src.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || src.StartsWith("https://", StringComparison.OrdinalIgnoreCase) || src.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
-            {
-                return tag;
+                continue;
             }
 
             string? fullPath = null;
             try
             {
-                if (src.StartsWith("/", StringComparison.Ordinal))
+                if (src.StartsWith('/'))
                 {
                     if (!string.IsNullOrEmpty(rootDir))
                     {
@@ -151,335 +248,44 @@ public static partial class HtmlTransformer
 
             if (string.IsNullOrEmpty(fullPath) || !File.Exists(fullPath))
             {
-                return tag;
-            }
-
-            if (!Images.ImageOptimizer.TryGetImageDimensions(fullPath, out int width, out int height))
-            {
-                return tag;
-            }
-
-            // Inject width and height before closing '>'
-            int insertIndex = tag.LastIndexOf('>');
-            if (insertIndex <= 0)
-            {
-                return tag;
-            }
-            string injection = FormattableString.Invariant($" width=\"{width}\" height=\"{height}\"");
-            string updated = tag.Insert(insertIndex, injection);
-            return updated;
-        });
-    }
-
-    private static string MergeHeadInner(string appHeadInner, string pageHeadInner)
-    {
-        // 1) Find unique keyed nodes in app and page
-        List<HeadNode> appNodes = FindHeadNodes(appHeadInner);
-        List<HeadNode> pageNodes = FindHeadNodes(pageHeadInner);
-
-        Dictionary<string, HeadNode> pagePreferredByKey = new(StringComparer.Ordinal);
-        Dictionary<string, List<HeadNode>> pageAllByKey = new(StringComparer.Ordinal);
-        foreach (HeadNode node in pageNodes)
-        {
-            if (node.Key is null)
-            {
                 continue;
             }
-            pagePreferredByKey[node.Key] = node; // last wins
-            if (!pageAllByKey.TryGetValue(node.Key, out List<HeadNode>? list))
-            {
-                list = [];
-                pageAllByKey[node.Key] = list;
-            }
-            list.Add(node);
-        }
 
-        // 2) Replace app nodes for keys present in page (prepare replacements on appHeadInner)
-        List<(int Index, int Length, string Replacement)> appReplacements = [];
-        HashSet<string> keysReplaced = new(StringComparer.Ordinal);
-        foreach (HeadNode appNode in appNodes)
-        {
-            if (appNode.Key is null)
+            if (Images.ImageOptimizer.TryGetImageDimensions(fullPath, out int width, out int height))
             {
-                continue;
-            }
-            if (pagePreferredByKey.TryGetValue(appNode.Key, out HeadNode preferred))
-            {
-                appReplacements.Add((appNode.Index, appNode.Length, preferred.Original));
-                keysReplaced.Add(appNode.Key);
+                img.SetAttribute("width", width.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                img.SetAttribute("height", height.ToString(System.Globalization.CultureInfo.InvariantCulture));
             }
         }
 
-        string merged = ApplyChanges(appHeadInner, appReplacements);
-
-        // 3) Deduplicate page content: keep only preferred per key; and drop ones that were used to replace
-        List<(int Index, int Length)> pageRemovals = [];
-        foreach (KeyValuePair<string, List<HeadNode>> kvp in pageAllByKey)
-        {
-            List<HeadNode> list = kvp.Value;
-            for (int i = 0; i < list.Count - 1; i++)
-            {
-                pageRemovals.Add((list[i].Index, list[i].Length)); // remove all but last
-            }
-        }
-
-        // Remove preferred page nodes that were used for replacement (avoid duplication on append)
-        foreach (string key in keysReplaced)
-        {
-            HeadNode preferred = pagePreferredByKey[key];
-            pageRemovals.Add((preferred.Index, preferred.Length));
-        }
-
-        string filteredPageHead = ApplyRemovals(pageHeadInner, pageRemovals);
-
-        if (!string.IsNullOrWhiteSpace(filteredPageHead))
-        {
-            if (merged.Length > 0 && !merged.EndsWith("\n", StringComparison.Ordinal))
-            {
-                merged += "\n";
-            }
-            merged += filteredPageHead;
-        }
-
-        return ReorderHeadStandards(merged);
+        return doc.DocumentElement.OuterHtml;
     }
 
-    private static List<HeadNode> FindHeadNodes(string headInner)
+    public static string AddImageDimensions(string html, string pageBuildDirectory) => AddImageDimensionsAsync(html, pageBuildDirectory).GetAwaiter().GetResult();
+
+    public static async Task<bool> HasHeadSectionAsync(string html)
     {
-        List<HeadNode> nodes = [];
-
-        foreach (Match m in HtmlRegex.MetaTag().Matches(headInner))
-        {
-            string? key = BuildMetaKey(m.Value);
-            nodes.Add(new HeadNode(m.Index, m.Length, m.Value, key));
-        }
-
-        foreach (Match m in HtmlRegex.LinkTag().Matches(headInner))
-        {
-            string? key = BuildLinkKey(m.Value);
-            nodes.Add(new HeadNode(m.Index, m.Length, m.Value, key));
-        }
-
-        return nodes;
+        using IHtmlDocument doc = await Parser.ParseDocumentAsync(html);
+        return doc.Head != null;
     }
 
-    private static string? BuildMetaKey(string tag)
+    public static bool HasHeadSection(string html) => HasHeadSectionAsync(html).GetAwaiter().GetResult();
+
+    public static async Task<bool> HasMainSectionAsync(string html)
     {
-        Dictionary<string, string> attrs = ParseAttributes(tag);
-        if (attrs.ContainsKey("charset"))
-        {
-            return "meta:charset";
-        }
-        if (attrs.TryGetValue("http-equiv", out string? httpEquiv))
-        {
-            return FormattableString.Invariant($"meta:http-equiv:{httpEquiv.ToLowerInvariant()}");
-        }
-        if (attrs.TryGetValue("name", out string? name))
-        {
-            return FormattableString.Invariant($"meta:name:{name.ToLowerInvariant()}");
-        }
-        if (attrs.TryGetValue("property", out string? prop))
-        {
-            return FormattableString.Invariant($"meta:property:{prop.ToLowerInvariant()}");
-        }
-        return null;
+        using IHtmlDocument doc = await Parser.ParseDocumentAsync(html);
+        return doc.QuerySelector("main") != null;
     }
 
-    private static string? BuildLinkKey(string tag)
+    public static bool HasMainSection(string html) => HasMainSectionAsync(html).GetAwaiter().GetResult();
+
+    public static async Task<string> RemoveRefreshScriptAsync(string html)
     {
-        Dictionary<string, string> attrs = ParseAttributes(tag);
-        if (attrs.TryGetValue("rel", out string? rel))
-        {
-            // split rel by whitespace
-            string[] parts = rel.Split((char[])[' ', '\t', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries);
-            foreach (string part in parts)
-            {
-                if (part.Equals("canonical", StringComparison.OrdinalIgnoreCase))
-                {
-                    return "link:rel:canonical";
-                }
-                if (part.Equals("alternate", StringComparison.OrdinalIgnoreCase))
-                {
-                    if (attrs.TryGetValue("hreflang", out string? hreflang) && !string.IsNullOrEmpty(hreflang))
-                    {
-                        return FormattableString.Invariant($"link:rel:alternate:{hreflang.ToLowerInvariant()}");
-                    }
-                }
-            }
-        }
-        return null;
+        using IHtmlDocument doc = await Parser.ParseDocumentAsync(html);
+        IElement? refreshScript = doc.QuerySelector("script[src='/refresh.js']");
+        refreshScript?.Remove();
+        return doc.DocumentElement.OuterHtml;
     }
 
-    private static Dictionary<string, string> ParseAttributes(string tag)
-    {
-        // Extract inside of tag: <name ...>
-        int lt = tag.IndexOf('<');
-        int gt = tag.IndexOf('>');
-        if (lt < 0 || gt <= lt)
-        {
-            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        }
-        int i = lt + 1;
-        while (i < gt && !IsAsciiWhitespace(tag[i]))
-        {
-            i++;
-        }
-
-        Dictionary<string, string> attrs = new(StringComparer.OrdinalIgnoreCase);
-        while (i < gt)
-        {
-            // skip whitespace
-            while (i < gt && IsAsciiWhitespace(tag[i]))
-                i++;
-            if (i >= gt)
-                break;
-
-            // read name
-            int nameStart = i;
-            while (i < gt && !IsAsciiWhitespace(tag[i]) && tag[i] != '=' && tag[i] != '/' && tag[i] != '>')
-                i++;
-            if (nameStart == i)
-            {
-                i++;
-                continue;
-            }
-            string name = tag[nameStart..i];
-
-            // skip whitespace
-            while (i < gt && IsAsciiWhitespace(tag[i]))
-                i++;
-
-            string value = string.Empty;
-            if (i < gt && tag[i] == '=')
-            {
-                i++;
-                while (i < gt && IsAsciiWhitespace(tag[i]))
-                    i++;
-                if (i < gt && (tag[i] == '"' || tag[i] == '\''))
-                {
-                    char quote = tag[i++];
-                    int valStart = i;
-                    while (i < gt && tag[i] != quote)
-                        i++;
-                    value = tag[valStart..Math.Min(i, gt)];
-                    if (i < gt && tag[i] == quote)
-                        i++;
-                }
-                else
-                {
-                    int valStart = i;
-                    while (i < gt && !IsAsciiWhitespace(tag[i]) && tag[i] != '/' && tag[i] != '>')
-                        i++;
-                    value = tag[valStart..Math.Min(i, gt)];
-                }
-            }
-
-            if (!string.IsNullOrEmpty(name))
-            {
-                attrs[name] = value;
-            }
-        }
-
-        return attrs;
-    }
-
-    private static bool IsAsciiWhitespace(char c) => c is ' ' or '\t' or '\n' or '\r' or '\f' or '\v';
-
-    private static string ApplyChanges(string source, List<(int Index, int Length, string Replacement)> changes)
-    {
-        if (changes.Count == 0)
-        {
-            return source;
-        }
-        changes.Sort((a, b) => b.Index.CompareTo(a.Index));
-        StringBuilder sb = new(source);
-        foreach ((int Index, int Length, string Replacement) change in changes)
-        {
-            sb.Remove(change.Index, change.Length);
-            sb.Insert(change.Index, change.Replacement);
-        }
-        return sb.ToString();
-    }
-
-    private static string ApplyRemovals(string source, List<(int Index, int Length)> removals)
-    {
-        if (removals.Count == 0)
-        {
-            return source;
-        }
-        removals.Sort((a, b) => b.Index.CompareTo(a.Index));
-        StringBuilder sb = new(source);
-        foreach ((int Index, int Length) rem in removals)
-        {
-            sb.Remove(rem.Index, rem.Length);
-        }
-        return sb.ToString();
-    }
-
-    private readonly record struct HeadNode(int Index, int Length, string Original, string? Key);
-
-    private static string ReorderHeadStandards(string headInner)
-    {
-        if (string.IsNullOrEmpty(headInner))
-        {
-            return headInner;
-        }
-
-        int charsetIndex = -1, charsetLength = 0;
-        int viewportIndex = -1, viewportLength = 0;
-        string? charsetTag = null;
-        string? viewportTag = null;
-
-        foreach (Match m in HtmlRegex.MetaTag().Matches(headInner))
-        {
-            Dictionary<string, string> attrs = ParseAttributes(m.Value);
-            if (charsetIndex < 0 && attrs.ContainsKey("charset"))
-            {
-                charsetIndex = m.Index;
-                charsetLength = m.Length;
-                charsetTag = m.Value;
-                continue;
-            }
-            if (attrs.TryGetValue("name", out string? name) && name.Equals("viewport", StringComparison.OrdinalIgnoreCase))
-            {
-                viewportIndex = m.Index;
-                viewportLength = m.Length;
-                viewportTag = m.Value;
-            }
-        }
-
-        List<(int Index, int Length)> removals = [];
-        if (viewportIndex >= 0)
-        {
-            removals.Add((viewportIndex, viewportLength));
-        }
-        if (charsetIndex >= 0)
-        {
-            removals.Add((charsetIndex, charsetLength));
-        }
-
-        string remaining = ApplyRemovals(headInner, removals);
-
-        StringBuilder sb = new(headInner.Length);
-        // Insert charset first if present
-        if (!string.IsNullOrEmpty(charsetTag))
-        {
-            sb.Append(charsetTag);
-            if (remaining.Length > 0 && !remaining.StartsWith("\n", StringComparison.Ordinal))
-            {
-                sb.Append('\n');
-            }
-        }
-        // Insert viewport next if present
-        if (!string.IsNullOrEmpty(viewportTag))
-        {
-            sb.Append(viewportTag);
-            if (remaining.Length > 0 && !remaining.StartsWith("\n", StringComparison.Ordinal) && sb.Length > 0)
-            {
-                sb.Append('\n');
-            }
-        }
-        sb.Append(remaining);
-        return sb.ToString();
-    }
+    public static string RemoveRefreshScript(string html) => RemoveRefreshScriptAsync(html).GetAwaiter().GetResult();
 }

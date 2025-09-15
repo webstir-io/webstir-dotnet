@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Pipelines.Core;
 using Engine.Pipelines.Core.Utilities;
-using Engine.Pipelines.Html.Parsing;
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.Html;
@@ -24,16 +23,16 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
             return;
         }
 
-        HtmlFile appTemplate = new(appHtmlPath);
+        string appTemplateHtml = await File.ReadAllTextAsync(appHtmlPath);
 
         // Validate template structure: require a <main> container to merge into
-        if (!HtmlParser.HasMainSection(appTemplate.Html))
+        if (!HtmlTransformer.HasMainSection(appTemplateHtml))
         {
             _logger.LogError("Base template missing <main> container: {AppHtmlPath}", appHtmlPath);
             diag.Add(Diagnostic.Error("Base template missing <main> container", appHtmlPath));
         }
 
-        await BuildPageHtmlFilesAsync(appTemplate, diag);
+        await BuildPageHtmlFilesAsync(appTemplateHtml, diag);
 
         if (diag.HasErrors)
         {
@@ -43,7 +42,7 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
 
     public async Task PublishAsync(DiagnosticCollection? diagnostics = null) => await PublishPageHtmlAsync(diagnostics);
 
-    private async Task BuildPageHtmlFilesAsync(HtmlFile appTemplate, DiagnosticCollection diagnostics)
+    private async Task BuildPageHtmlFilesAsync(string appTemplateHtml, DiagnosticCollection diagnostics)
     {
         string pagesPath = workspace.FrontendPagesPath;
         if (!pagesPath.Exists())
@@ -52,11 +51,11 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
         foreach (string pageDir in pagesPath.Folders())
         {
             string pageName = pageDir.Filename();
-            await ProcessPageHtmlFilesAsync(pageDir, pageName, appTemplate, diagnostics);
+            await ProcessPageHtmlFilesAsync(pageDir, pageName, appTemplateHtml, diagnostics);
         }
     }
 
-    private async Task ProcessPageHtmlFilesAsync(string pageDir, string pageName, HtmlFile appTemplate, DiagnosticCollection diagnostics)
+    private async Task ProcessPageHtmlFilesAsync(string pageDir, string pageName, string appTemplateHtml, DiagnosticCollection diagnostics)
     {
         string[] htmlFiles = pageDir.Files($"*{FileExtensions.Html}");
         if (htmlFiles.Length == 0)
@@ -71,26 +70,25 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
                 ? fileName
                 : fileName;
 
-            await ProcessSingleHtmlFileAsync(htmlFile, pageName, outputName, appTemplate, diagnostics);
+            await ProcessSingleHtmlFileAsync(htmlFile, pageName, outputName, appTemplateHtml, diagnostics);
         }
     }
 
-    private async Task ProcessSingleHtmlFileAsync(string sourceFile, string pageName, string outputFileName, HtmlFile appTemplate, DiagnosticCollection diagnostics)
+    private async Task ProcessSingleHtmlFileAsync(string sourceFile, string pageName, string outputFileName, string appTemplateHtml, DiagnosticCollection diagnostics)
     {
-        HtmlFile pageFragment = new(sourceFile);
+        string fragment = await File.ReadAllTextAsync(sourceFile);
         // Diagnostics: warn on missing <head> or <main> fragments
-        string fragment = pageFragment.Html;
-        if (!HtmlParser.HasHeadSection(fragment))
+        if (!HtmlTransformer.HasHeadSection(fragment))
         {
             _logger.LogError("Page fragment missing <head> section: {SourceFile}", sourceFile);
             diagnostics.Add(Diagnostic.Error("Page fragment missing <head> section", sourceFile));
         }
-        if (!HtmlParser.HasMainSection(fragment))
+        if (!HtmlTransformer.HasMainSection(fragment))
         {
             _logger.LogError("Page fragment missing <main> section: {SourceFile}", sourceFile);
             diagnostics.Add(Diagnostic.Error("Page fragment missing <main> section", sourceFile));
         }
-        string mergedHtml = appTemplate.Merge(pageFragment.Html);
+        string mergedHtml = HtmlTransformer.MergeTemplates(appTemplateHtml, fragment);
 
         string outputDir = workspace.FrontendBuildPath
             .Combine(Folders.Pages, pageName);
@@ -119,15 +117,15 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
                 continue;
             }
 
-            await PublishHtmlFileAsync(pageHtml, pageName, diagnostics);
+            await PublishHtmlFileAsync(pageHtml, pageName);
         }
     }
 
-    private async Task PublishHtmlFileAsync(string sourceFile, string pageName, DiagnosticCollection? diagnostics)
+    private async Task PublishHtmlFileAsync(string sourceFile, string pageName)
     {
         string htmlContent = await File.ReadAllTextAsync(sourceFile);
 
-        htmlContent = HtmlParser.RemoveRefreshScript(htmlContent);
+        htmlContent = HtmlTransformer.RemoveRefreshScript(htmlContent);
 
         string pageDistDir = workspace.FrontendDistPath.Combine(Folders.Pages, pageName);
         AssetManifest manifest = AssetManifest.Load(pageDistDir);
@@ -148,24 +146,9 @@ public class HtmlBuilder(AppWorkspace workspace, ILogger<HtmlBuilder> logger)
             htmlContent = FontPreloadInjector.InjectFromCss(htmlContent, cssPath, pageName);
         }
 
-        string originalHtml = htmlContent;
-        try
-        {
-            htmlContent = HtmlMinifier.Minify(htmlContent);
-            // Ensure void tags don't use self-closing '/>' to avoid browsers
-            // accidentally treating the '/' as part of an unquoted attribute value.
-            htmlContent = htmlContent.Replace("/>", ">");
-        }
-        catch (Exception ex)
-        {
-            diagnostics?.Add(new Diagnostic
-            {
-                Level = DiagnosticLevel.Warning,
-                Message = $"HTML minification failed: {ex.Message}",
-                File = sourceFile
-            });
-            htmlContent = originalHtml;
-        }
+
+        // Format HTML for consistent, readable output
+        htmlContent = HtmlFormatter.FormatHtml(htmlContent);
 
         string distPagePath = workspace.FrontendDistPath.Combine(Folders.Pages, pageName, $"{Files.Index}{FileExtensions.Html}");
         distPagePath.DirectoryName().Create();
