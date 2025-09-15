@@ -27,13 +27,10 @@ public sealed class CssPrecompressedAreSmaller : ITestCase
 
         FileInfo original = new(expectedCssPath);
         FileInfo br = new(expectedCssPath + FileExtensions.Br);
-        FileInfo gz = new(expectedCssPath + FileExtensions.Gz);
 
         Assert.IsTrue(br.Exists, ".css.br variant missing next to CSS");
-        Assert.IsTrue(gz.Exists, ".css.gz variant missing next to CSS");
 
-        // Expect both compressed variants to be smaller than the original CSS
+        // Expect Brotli compressed variant to be smaller than the original CSS
         Assert.LessThan(original.Length, br.Length, "Brotli output should be smaller than the original CSS");
-        Assert.LessThan(original.Length, gz.Length, "Gzip output should be smaller than the original CSS");
     }
 }

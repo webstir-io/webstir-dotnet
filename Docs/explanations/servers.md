@@ -21,7 +21,7 @@ See also: [Engine](engine.md) and [Services](services.md).
 The following flags affect only the ASP.NET Core dev server. They do nothing for nginx/S3/CloudFront.
 
 - `Engine:AppSettings:EnableSecurityHeaders`: adds CSP and standard security headers.
-- `Engine:AppSettings:EnablePrecompression`: serves precompressed `.br/.gz` files when available.
+- `Engine:AppSettings:EnablePrecompression`: serves precompressed `.br` files when available.
 - `Engine:AppSettings:EnableEarlyHints`: attempts HTTP 103 Early Hints and also adds `Link` headers to final responses.
 
 Defaults are `false` for fast, simple dev. Turn them on only when you want to simulate production locally.

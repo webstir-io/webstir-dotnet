@@ -63,7 +63,7 @@ Server.start(router);
 - **Body Parsing**: JSON, form data, multipart
 - **Static Files**: Serve build assets
 - **CORS**: Built-in handling
-- **Compression**: Native gzip/brotli
+- **Compression**: Native brotli
 
 ### 3. Native Database Layer
 

@@ -50,11 +50,8 @@ public sealed class PrecompressionMiddleware(RequestDelegate next)
         return !string.IsNullOrEmpty(acceptEncoding);
     }
 
-    private static bool IsAlreadyCompressed(string path)
-    {
-        return path.EndsWith(FileExtensions.Br, StringComparison.OrdinalIgnoreCase) ||
-               path.EndsWith(FileExtensions.Gz, StringComparison.OrdinalIgnoreCase);
-    }
+    private static bool IsAlreadyCompressed(string path) =>
+        path.EndsWith(FileExtensions.Br, StringComparison.OrdinalIgnoreCase);
 
     private static string GetPhysicalPath(HttpContext context, string requestPath)
     {
@@ -68,20 +65,12 @@ public sealed class PrecompressionMiddleware(RequestDelegate next)
         if (string.IsNullOrEmpty(acceptEncoding))
             return null;
 
-        // Try Brotli first (better compression)
+        // Check for Brotli support
         if (acceptEncoding.Contains("br", StringComparison.OrdinalIgnoreCase))
         {
             string brPath = physicalPath + FileExtensions.Br;
             if (File.Exists(brPath))
                 return new CompressedFile(brPath, "br");
-        }
-
-        // Fall back to gzip
-        if (acceptEncoding.Contains("gzip", StringComparison.OrdinalIgnoreCase))
-        {
-            string gzPath = physicalPath + FileExtensions.Gz;
-            if (File.Exists(gzPath))
-                return new CompressedFile(gzPath, "gzip");
         }
 
         return null;

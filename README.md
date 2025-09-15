@@ -11,7 +11,7 @@ Modern, minimal full-stack TypeScript web framework and build tool. Webstir scaf
 - JS bundling: ESM only, concatenation + tree-shaking + minification
 - CSS pipeline: plain CSS and CSS Modules, import graph, autoprefix + minify
 - Asset manifest per page with timestamped filenames for cache busting
-  and precompressed `.html.br/.gz`, `.css.br/.gz`, `.js.br/.gz` artifacts
+  and precompressed `.html.br`, `.css.br`, `.js.br` artifacts
 
 ## Prerequisites
 - .NET SDK 9.0+

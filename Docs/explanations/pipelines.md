@@ -17,7 +17,7 @@ Build and publish stages for HTML, CSS, JS/TS, and static assets (Images, Fonts,
 - Dev: merge page HTML into the base template → `build/frontend/pages/<page>/index.html`.
 - Publish: rewrite asset references using the per-page `manifest.json`,
   run HTML minifier (removes comments, collapses inter-tag whitespace,
-  safe attribute optimizations), and emit precompressed `.html.br/.html.gz`.
+  safe attribute optimizations), and emit precompressed `.html.br`.
 - Errors: fail if base HTML is missing or lacks `<main>`.
 
 ## CSS

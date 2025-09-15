@@ -109,7 +109,7 @@ public static class HtmlTransformer
                 index[key] = link;
             }
         }
-        
+
         return index;
     }
 
@@ -131,7 +131,7 @@ public static class HtmlTransformer
         {
             return $"meta:property:{property.ToLowerInvariant()}";
         }
-        
+
         return null;
     }
 

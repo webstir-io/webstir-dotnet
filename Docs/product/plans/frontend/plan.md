@@ -66,7 +66,7 @@ This plan addresses the critical gaps identified in the frontend readiness asses
 #### Implementation Tasks
 - [x] Create `PrecompressionMiddleware` for WebServer
 - [x] Check for `.br` files when `Accept-Encoding: br` present
-- [x] Fall back to `.gz` for gzip support
+- [x] Serve `.br` files when supported
 - [x] Set correct `Content-Encoding` header
 - [x] Add `Vary: Accept-Encoding` header
 - [x] Auto-detect and serve precompressed files
@@ -79,7 +79,7 @@ This plan addresses the critical gaps identified in the frontend readiness asses
 - [x] Browser receives `.br` files when supported
 - [x] Correct `Content-Encoding: br` header present
 - [x] 20-80% bandwidth reduction verified
-- [x] Falls back to `.gz` or uncompressed correctly
+- [x] Falls back to uncompressed correctly
 
 ---
 

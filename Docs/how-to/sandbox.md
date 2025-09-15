@@ -41,7 +41,7 @@ To use your project, point volumes at your project’s `dist/frontend` and built
 - Page assets: `/index.*.(css|js)` map to `pages/home/*`; `/about/*` map to `pages/about/*`.
 - Hashed assets: content‑hashed filenames receive `Cache-Control: public, max-age=31536000, immutable`.
 - HTML: `no-cache, no-store, must-revalidate`.
-- Compression: dynamic Brotli/gzip enabled; also serves precompressed `.br/.gz` when present.
+- Compression: dynamic Brotli/gzip enabled; also serves precompressed `.br` when present.
 - Security headers: CSP and standard security headers are set.
 - Source maps: blocked in sandbox (404) to mirror production policy.
 

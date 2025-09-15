@@ -123,7 +123,7 @@ This document provides a comprehensive assessment of Webstir's frontend pipeline
 **Impact**: Better developer experience, preserved application state
 
 ### 2. Precompression Delivery Configuration
-**Current State**: .br/.gz files generated but server configuration needed
+**Current State**: .br files generated but server configuration needed
 **Enhancement**: Auto-configure server for compressed asset delivery
 **Impact**: 20-80% bandwidth reduction
 
@@ -152,7 +152,7 @@ This document provides a comprehensive assessment of Webstir's frontend pipeline
 ### High Priority Enhancements
 1. **Hot Module Replacement**: Implement HMR for better DX
 2. **Dev Server Caching**: In-memory caching for instant rebuilds
-3. **Precompression Config**: Auto-configure server for .br/.gz delivery
+3. **Precompression Config**: Auto-configure server for .br delivery
 
 ### Medium Priority
 1. **Critical CSS**: Extract and inline above-the-fold styles
