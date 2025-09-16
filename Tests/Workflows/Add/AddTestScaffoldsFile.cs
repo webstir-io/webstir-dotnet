@@ -38,7 +38,7 @@ public sealed class AddTestScaffoldsFile : ITestCase
         Assert.IsTrue(File.Exists(expectedTest), $"Test file not created at {expectedTest}");
 
         // Verify ambient types package exists
-        string typesIndex = Path.Combine(seedDir, "types", "webstir", "index.d.ts");
-        Assert.IsTrue(File.Exists(typesIndex), "Ambient types not present at types/webstir/index.d.ts");
+        string typesIndex = Path.Combine(seedDir, "types", "@webstir", "test", "index.d.ts");
+        Assert.IsTrue(File.Exists(typesIndex), "Ambient types not present at types/@webstir/test/index.d.ts");
     }
 }

@@ -1,9 +1,9 @@
-namespace Engine.Pipelines.Testing;
+namespace Engine.Pipelines.Test;
 
 public static class TestConstants
 {
     public const string NodeExe = "node";
-    public const string TesterResource = "Engine.Pipelines.Testing.tester.js";
+    public const string TesterResource = "Engine.Pipelines.Test.tester.js";
 
     public static class JsonKeys
     {
@@ -24,4 +24,3 @@ public static class TestConstants
         public const string RunnerNoOutput = "No output from runner";
     }
 }
-

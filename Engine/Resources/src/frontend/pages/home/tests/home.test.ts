@@ -2,6 +2,7 @@
 // Use CommonJS require to avoid ESM in the runner context
 const fs = require('node:fs');
 const path = require('node:path');
+const { test, assert } = require('@webstir/test') as typeof import('@webstir/test');
 
 // __dirname is provided by the runner context and points to build/.../tests
 // Built HTML is at build/frontend/pages/home/index.html

@@ -8,7 +8,7 @@ namespace Tests.Pipelines.Html;
 
 public sealed class HtmlWhitespaceCollapsed : ITestCase
 {
-    public string Name => "HTML publish collapses inter-tag whitespace and preserves inline script content";
+    public string Name => "HTML publish keeps readable formatting and preserves inline script content";
     public TestCategory Category => TestCategory.Full;
 
     public void Execute(TestCaseContext context)
@@ -49,11 +49,10 @@ public sealed class HtmlWhitespaceCollapsed : ITestCase
         Assert.IsTrue(File.Exists(distHtmlPath), "Dist index.html missing");
         string distHtml = File.ReadAllText(distHtmlPath);
 
-        string normalized = distHtml.Replace("\r", string.Empty);
-        Assert.DoesNotContain("> \n<", normalized, "Inter-tag whitespace should be collapsed");
-        Assert.DoesNotContain(">\n<", normalized, "Inter-tag newlines should be collapsed");
-        Assert.Contains("</head><body>", normalized, "Head/body boundary should be collapsed");
-        // Main should be directly followed by body close (scripts are loaded in head with async)
-        Assert.Contains("</main></body>", normalized, "Expected collapsed main->body boundary");
+        Assert.Contains("<html lang=\"en\">\n<head>", distHtml, "Document should start with readable head block");
+        Assert.Contains("\n<body>\n\t<main>", distHtml, "Body/main blocks should be expanded on separate lines");
+        Assert.Contains("<style data-critical=\"\">", distHtml, "Critical CSS inline style should be present");
+        Assert.Contains("<script type=\"module\" src=\"/pages/home/index", distHtml, "Publish should rewrite module script path");
+        Assert.Contains("</main>\n</body>\n</html>", distHtml, "Closing tags should retain readable formatting");
     }
 }

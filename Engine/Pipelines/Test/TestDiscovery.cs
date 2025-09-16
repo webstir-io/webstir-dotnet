@@ -4,7 +4,7 @@ using System.IO;
 
 using Engine.Extensions;
 
-namespace Engine.Pipelines.Testing;
+namespace Engine.Pipelines.Test;
 
 public sealed class TestDiscovery
 {

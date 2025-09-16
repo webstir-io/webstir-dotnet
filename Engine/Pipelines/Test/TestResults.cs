@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Engine.Pipelines.Testing;
+namespace Engine.Pipelines.Test;
 
 public readonly record struct TestResult(
     string Name,
@@ -15,4 +15,3 @@ public readonly record struct RunResult(
     int Total,
     long DurationMs,
     IReadOnlyList<TestResult> Results);
-

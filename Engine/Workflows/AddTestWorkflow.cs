@@ -1,11 +1,11 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 using Engine.Extensions;
 using System.Collections.Generic;
+using Engine.Helpers;
 using Engine.Interfaces;
 
 namespace Engine.Workflows;
@@ -67,67 +67,40 @@ public sealed class AddTestWorkflow(AppWorkspace context,
 
     private async Task EnsureTypesAsync()
     {
-        string typesRoot = Context.WorkingPath.Combine(Folders.Types);
-        Directory.CreateDirectory(typesRoot);
-        string typesPackageDir = typesRoot.Combine(App.Name);
-        Directory.CreateDirectory(typesPackageDir);
-        string typesFile = typesPackageDir.Combine(Files.Index + FileExtensions.Dts);
-        if (!File.Exists(typesFile))
+        TypeEnsureResult result = await TestTypeRegistry.EnsureAsync(Context);
+
+        string typesFile = Context.WorkingPath
+            .Combine(Folders.Types, WebstirScopeFolder, TestModuleFolder, Files.Index + FileExtensions.Dts);
+
+        if (result.Migrated)
         {
-            await File.WriteAllTextAsync(typesFile, TypesDtsContent);
+            Console.WriteLine($"Migrated types: {Path.GetRelativePath(Context.WorkingPath, typesFile)}");
+        }
+        else if (result.Added)
+        {
             Console.WriteLine($"Added types: {Path.GetRelativePath(Context.WorkingPath, typesFile)}");
+        }
+        else if (result.Updated)
+        {
+            Console.WriteLine($"Updated types: {Path.GetRelativePath(Context.WorkingPath, typesFile)}");
         }
 
         string tsconfig = Context.WorkingPath.Combine(Files.BaseTsConfigJson);
-        if (File.Exists(tsconfig))
+        if (await TestTypeRegistry.EnsureTsConfigAsync(Context))
         {
-            try
-            {
-                string json = await File.ReadAllTextAsync(tsconfig);
-                JsonNode? root = JsonNode.Parse(json);
-                if (root is JsonObject obj)
-                {
-                    if (obj["compilerOptions"] is not JsonObject compilerOptions)
-                    {
-                        compilerOptions = [];
-                        obj["compilerOptions"] = compilerOptions;
-                    }
-                    if (compilerOptions["typeRoots"] is null)
-                    {
-                        JsonArray roots = [$"./{Folders.Types}", $"./{Folders.NodeModules}/@types"];
-                        compilerOptions["typeRoots"] = roots;
-                        await File.WriteAllTextAsync(tsconfig, obj.ToJsonString(new System.Text.Json.JsonSerializerOptions
-                        {
-                            WriteIndented = true
-                        }));
-                        Console.WriteLine("Updated base.tsconfig.json with typeRoots");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Ignore malformed tsconfig, do not fail the command; log for visibility.
-                Console.Error.WriteLine($"Warning: Could not update {Files.BaseTsConfigJson}: {ex.Message}");
-            }
+            Console.WriteLine($"Updated {Files.BaseTsConfigJson} for @webstir/test");
         }
     }
 
+    private const string WebstirScopeFolder = "@webstir";
+    private const string TestModuleFolder = "test";
+
     private const string SampleTestContent = """
+const { test, assert } = require('@webstir/test') as typeof import('@webstir/test');
+
 test('sample passes', () => {
   assert.isTrue(true);
 });
 """;
 
-    private const string TypesDtsContent = """
-export {};
-
-declare global {
-  function test(name: string, fn?: () => unknown | Promise<unknown>): void;
-  namespace assert {
-    function isTrue(value: unknown, message?: string): void;
-    function equal<T>(expected: T, actual: T, message?: string): void;
-    function fail(message: string): never;
-  }
-}
-""";
 }

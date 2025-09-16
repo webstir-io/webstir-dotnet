@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\**\*" />
-    <EmbeddedResource Include="Pipelines\Testing\tester.js" />
+    <EmbeddedResource Include="Pipelines\Test\tester.js" />
   </ItemGroup>
 
   <ItemGroup>

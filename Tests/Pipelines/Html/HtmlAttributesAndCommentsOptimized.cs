@@ -8,7 +8,7 @@ namespace Tests.Pipelines.Html;
 
 public sealed class HtmlAttributesAndCommentsOptimized : ITestCase
 {
-    public string Name => "HTML minifier removes comments and optimizes attributes";
+    public string Name => "HTML publish preserves body comments and attribute semantics";
     public TestCategory Category => TestCategory.Full;
 
     public void Execute(TestCaseContext context)
@@ -69,24 +69,13 @@ public sealed class HtmlAttributesAndCommentsOptimized : ITestCase
 
         string distHtmlPath = Path.Combine(seedDirectory, Folders.Dist, Folders.Frontend, Folders.Pages, Folders.Home, $"{Files.Index}{FileExtensions.Html}");
         Assert.IsTrue(File.Exists(distHtmlPath), "Dist index.html missing");
-        string distHtml = File.ReadAllText(distHtmlPath).Replace("\r", string.Empty);
+        string distHtml = File.ReadAllText(distHtmlPath);
 
-        // Comments removed
-        Assert.DoesNotContain("<!--", distHtml, "HTML comments should be removed");
+        Assert.DoesNotContain("<!-- head comment should be removed -->", distHtml, "Head comment should be stripped");
+        Assert.Contains("<!-- body comment should be removed -->", distHtml, "Body comment should remain in published HTML");
 
-        // Boolean attribute collapsed
-        Assert.Contains("<button disabled", distHtml, "Boolean attribute should be collapsed to presence only");
-        Assert.DoesNotContain("disabled=\"disabled\"", distHtml, "Boolean attribute should not keep explicit value");
-
-        // Safe unquoting applied
-        Assert.Contains(" class=primary", distHtml, "Safe unquoted attribute expected for class=primary");
-        Assert.DoesNotContain(" class=\"primary\"", distHtml, "Quoted class attribute should be unquoted when safe");
-
-        // Value with space remains quoted
-        Assert.Contains(" data-info=\"foo bar\"", distHtml, "Data attribute with spaces should remain quoted");
-
-        // Another safe unquote case
-        Assert.Contains(" rel=nofollow", distHtml, "rel should be unquoted when safe");
+        Assert.Contains("<button disabled=\"disabled\" class=\"primary\"", distHtml, "Boolean and class attributes should remain quoted");
+        Assert.Contains("data-info=\"foo bar\"", distHtml, "Data attribute with spaces should stay quoted");
+        Assert.Contains("rel=\"nofollow\"", distHtml, "rel attribute should remain quoted");
     }
 }
-

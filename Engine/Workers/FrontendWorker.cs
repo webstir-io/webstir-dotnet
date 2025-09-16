@@ -35,6 +35,9 @@ public partial class FrontendWorker(
             NpmHelper.RunNpmInstall(workspace.WorkingPath);
         }
 
+        await TestTypeRegistry.EnsureAsync(workspace);
+        await TestTypeRegistry.EnsureTsConfigAsync(workspace);
+
         await RunHandlersInOrderAsync(
             h => h.BuildOrder,
             h => h.BuildAsync(changedFilePath),
@@ -51,6 +54,9 @@ public partial class FrontendWorker(
         {
             workspace.FrontendDistPath.Create();
         }
+
+        await TestTypeRegistry.EnsureAsync(workspace);
+        await TestTypeRegistry.EnsureTsConfigAsync(workspace);
 
         await RunHandlersInOrderAsync(
             h => h.PublishOrder,

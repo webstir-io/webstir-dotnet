@@ -26,19 +26,50 @@
   const fs = require('fs');
   const vm = require('vm');
   const path = require('path');
+  const Module = require('module');
+
+  const assertApi = Object.freeze({ isTrue, equal, fail });
+  const testModuleExports = Object.freeze({
+    test: defineTest,
+    assert: assertApi
+  });
+
+  function createRuntimeRequire(file) {
+    const baseRequire = Module.createRequire(file);
+    function runtimeRequire(specifier) {
+      if (specifier === '@webstir/test') {
+        return testModuleExports;
+      }
+      return baseRequire(specifier);
+    }
+
+    // Mirror selected properties expected on require
+    runtimeRequire.resolve = (specifier, options) => {
+      if (specifier === '@webstir/test') {
+        return specifier;
+      }
+      return baseRequire.resolve(specifier, options);
+    };
+    runtimeRequire.cache = baseRequire.cache;
+    runtimeRequire.main = baseRequire.main;
+    runtimeRequire.extensions = baseRequire.extensions;
+
+    return runtimeRequire;
+  }
 
   function evaluateModule(file) {
     const code = fs.readFileSync(file, 'utf8');
+    const runtimeRequire = createRuntimeRequire(file);
     const context = vm.createContext({
       // expose the runner's globals so user code sees them as bare identifiers
       test: defineTest,
-      assert: { isTrue, equal, fail },
+      assert: assertApi,
       // also expose the real globalThis for advanced cases
       globalThis,
       console,
       setTimeout,
       clearTimeout,
-      require,
+      require: runtimeRequire,
       __dirname: path.dirname(file),
       __filename: file,
     });
