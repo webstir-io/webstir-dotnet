@@ -1,20 +1,39 @@
 name: webstir-sandbox
 
 services:
+  certs:
+    build:
+      context: ./mkcert
+    restart: "no"
+    environment:
+      - OUT=/out
+    volumes:
+      - ./certs:/out
+    networks:
+      - webstir
+
   web:
-    image: nginx:latest
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    depends_on:
+      certs:
+        condition: service_completed_successfully
+      api:
+        condition: service_started
     ports:
       - "8080:80"
+      - "8443:443"
     volumes:
       # Mount the published frontend assets produced by `webstir publish`
       # Expected structure: dist/frontend/pages/<name>/index.html, etc.
       - ../CLI/out/seed/dist/frontend:/usr/share/nginx/html
       # Serve shared app scripts from published dist
       - ../CLI/out/seed/dist/frontend/app:/usr/share/nginx/html/app:ro
-      # Provide an nginx site config that supports clean URLs if needed
+      # Provide an nginx site config that supports clean URLs + brotli
       - ./web/nginx.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      - api
+      # Mount self-signed TLS certs (generate via Sandbox/generate-certs.sh)
+      - ./certs:/etc/nginx/certs:ro
     networks:
       - webstir
 

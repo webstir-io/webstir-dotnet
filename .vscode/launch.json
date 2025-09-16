@@ -31,7 +31,7 @@
             "type": "node-terminal",
             "request": "launch",
             "preLaunchTask": "check:docker",
-            "command": "bash -lc './utilities/deploy-seed.sh && docker compose -f Sandbox/docker-compose.yml down -v --remove-orphans || true; docker compose -f Sandbox/docker-compose.yml up --build'",
+            "command": "bash -lc './utilities/deploy-seed.sh && (docker compose -f Sandbox/docker-compose.yml down -v --remove-orphans || true) && ./Sandbox/mkcert/trust-local-ca.sh && docker compose -f Sandbox/docker-compose.yml up --build'",
             "cwd": "${workspaceFolder}",
             "env": {
                 "COMPOSE_DOCKER_CLI_BUILD": "1"
