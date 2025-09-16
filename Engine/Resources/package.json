@@ -6,6 +6,14 @@
   "description": "TypeScript type definitions for webstir project",
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "autoprefixer": "^10.4.20",
     "esbuild": "^0.25.0"
-  }
+  },
+  "browserslist": [
+    "last 2 chrome versions",
+    "last 2 firefox versions",
+    "last 2 safari major versions",
+    "iOS >= 14",
+    "not dead"
+  ]
 }

@@ -7,9 +7,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.Core.Esbuild;
 
-public class CssEsbuildAdapter(EsbuildRunner runner)
+public class CssEsbuildAdapter(EsbuildRunner runner, CssAutoprefixer autoprefixer)
 {
     private readonly EsbuildRunner _runner = runner;
+    private readonly CssAutoprefixer _autoprefixer = autoprefixer;
 
     public async Task<string?> BundleAsync(
         string entryPoint,
@@ -41,7 +42,7 @@ public class CssEsbuildAdapter(EsbuildRunner runner)
             EntryPoints = [entryPoint],
             Bundle = true,
             Loaders = CreateCssLoaders(),
-            CustomArgs = CreateAppAlias(appPath)
+            Alias = CreateAppAlias(appPath)
         };
     }
 
@@ -59,8 +60,13 @@ public class CssEsbuildAdapter(EsbuildRunner runner)
         [EsbuildConstants.ExtModuleCss] = EsbuildConstants.LoaderLocalCss
     };
 
-    private static List<string> CreateAppAlias(string? appPath) =>
-        appPath != null ? [$"--alias:@app={appPath}"] : [];
+    private static Dictionary<string, string>? CreateAppAlias(string? appPath) =>
+        appPath != null
+            ? new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["@app"] = appPath
+            }
+            : null;
 
     private async Task<string?> BundleForProductionAsync(
         EsbuildOptions options,
@@ -76,18 +82,21 @@ public class CssEsbuildAdapter(EsbuildRunner runner)
             return null;
         }
 
-        return FindGeneratedCssFile(outputPath, entryPoint, logger);
+        string? cssFile = FindGeneratedCssFile(outputPath, entryPoint, logger);
+        if (cssFile == null)
+        {
+            return null;
+        }
+
+        bool prefixed = await _autoprefixer.ApplyAsync(cssFile, logger);
+        return prefixed ? cssFile : null;
     }
 
     private static void ConfigureProductionOptions(EsbuildOptions options, string outputPath)
     {
         options.OutputDir = Path.GetDirectoryName(outputPath);
         options.Minify = true;
-
-        // Append entry-names pattern to existing CustomArgs
-        List<string> customArgs = options.CustomArgs?.ToList() ?? [];
-        customArgs.Add($"--entry-names={EsbuildConstants.EntryNamePattern}");
-        options.CustomArgs = customArgs;
+        options.EntryNames = EsbuildConstants.EntryNamePattern;
     }
 
     private static string? FindGeneratedCssFile(
@@ -123,7 +132,13 @@ public class CssEsbuildAdapter(EsbuildRunner runner)
         options.Sourcemap = true;
 
         EsbuildResult result = await _runner.RunAsync(options, logger);
-        return result.Success ? outputPath : null;
+        if (!result.Success)
+        {
+            return null;
+        }
+
+        bool prefixed = await _autoprefixer.ApplyAsync(outputPath, logger);
+        return prefixed ? outputPath : null;
     }
 
     public async Task<List<string?>> BundleMultipleAsync(

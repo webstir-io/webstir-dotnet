@@ -59,4 +59,24 @@ public class EsbuildOptions
     {
         get; set;
     }
+    public Dictionary<string, string>? Alias
+    {
+        get; set;
+    }
+    public string? EntryNames
+    {
+        get; set;
+    }
+    public string? ChunkNames
+    {
+        get; set;
+    }
+    public string? MetafilePath
+    {
+        get; set;
+    }
+    public List<string>? Drop
+    {
+        get; set;
+    }
 }

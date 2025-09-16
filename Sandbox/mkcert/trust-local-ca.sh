@@ -20,8 +20,13 @@ fi
 os_name="$(uname -s)"
 case "$os_name" in
     Darwin)
-        common_name="$(openssl x509 -in "$ca_pem" -noout -subject | sed -n 's/^subject= *CN *= *//p')"
-        if security find-certificate -c "$common_name" /Library/Keychains/System.keychain >/dev/null 2>&1; then
+        fingerprint="$(openssl x509 -in "$ca_pem" -noout -fingerprint -sha1 | awk -F'=' '{print $2}' | tr -d ':')"
+        if [ -z "$fingerprint" ]; then
+            echo "[trust] Unable to read certificate fingerprint." >&2
+            exit 1
+        fi
+
+        if security find-certificate -a -Z /Library/Keychains/System.keychain 2>/dev/null | grep -F "$fingerprint" >/dev/null 2>&1; then
             echo "[trust] Certificate already trusted in System keychain."
         else
             echo "[trust] Adding certificate to System keychain (sudo may prompt)..."

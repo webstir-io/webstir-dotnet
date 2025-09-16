@@ -67,7 +67,7 @@ public sealed class ErrorHandlingMiddleware(
     private static string? LoadEmbeddedErrorTemplate(int statusCode)
     {
         string file = statusCode == StatusCodes.Status404NotFound ? "404.html" : "500.html";
-        string resourceName = $"Engine.Templates.Errors.{file}";
+        string resourceName = $"Engine.Resources.Errors.{file}";
         Assembly assembly = Assembly.GetExecutingAssembly();
         using Stream? stream = assembly.GetManifestResourceStream(resourceName);
         if (stream == null)
@@ -102,7 +102,7 @@ public sealed class ErrorHandlingMiddleware(
 
     private static string? LoadDefaultTemplate()
     {
-        string resourceName = "Engine.Templates.Errors.default.html";
+        string resourceName = "Engine.Resources.Errors.default.html";
         Assembly assembly = Assembly.GetExecutingAssembly();
         using Stream? stream = assembly.GetManifestResourceStream(resourceName);
         if (stream == null)

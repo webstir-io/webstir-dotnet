@@ -10,7 +10,7 @@ public class SharedWorker(AppWorkspace workspace) : IWorkflowWorker
     public int BuildOrder => 3; // Fast operation, can run with other fast operations
 
     public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack) =>
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Templates.SharedPath, workspace.SharedPath);
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.SharedPath, workspace.SharedPath);
 
     public Task BuildAsync(string? changedFilePath = null) => Task.CompletedTask;
 

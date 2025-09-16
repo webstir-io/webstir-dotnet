@@ -42,8 +42,8 @@ public class InitWorkflow(
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         ProjectMode mode = ParseProjectMode(args);
-        await ResourceHelpers.CopyEmbeddedRootFilesAsync(Templates.Path, Context.WorkingPath);
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Templates.TypesPath, Context.WorkingPath.Combine(Folders.Types));
+        await ResourceHelpers.CopyEmbeddedRootFilesAsync(Resources.Path, Context.WorkingPath);
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.TypesPath, Context.WorkingPath.Combine(Folders.Types));
         await ExecuteWorkersAsync(async worker => await worker.InitAsync(mode), mode);
     }
 

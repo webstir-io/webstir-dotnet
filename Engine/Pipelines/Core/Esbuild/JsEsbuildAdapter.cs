@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -32,13 +33,10 @@ public class JsEsbuildAdapter(EsbuildRunner runner, AppWorkspace workspace)
         {
             options.Minify = true;
             options.Splitting = true;
-            options.CustomArgs =
-            [
-                EsbuildConstants.DropConsole,
-                $"{EsbuildConstants.ChunkNames}{EsbuildConstants.ChunksFolder}/{EsbuildConstants.ChunkNamePattern}",
-                $"{EsbuildConstants.EntryNames}{EsbuildConstants.EntryDirPattern}/{EsbuildConstants.EntryNamePattern}",
-                $"{EsbuildConstants.Metafile}{Path.Combine(outputDir, EsbuildConstants.MetaJson)}"
-            ];
+            options.Drop = ["console"];
+            options.ChunkNames = FormattableString.Invariant($"{EsbuildConstants.ChunksFolder}/{EsbuildConstants.ChunkNamePattern}");
+            options.EntryNames = FormattableString.Invariant($"{EsbuildConstants.EntryDirPattern}/{EsbuildConstants.EntryNamePattern}");
+            options.MetafilePath = Path.Combine(outputDir, EsbuildConstants.MetaJson);
         }
         else
         {

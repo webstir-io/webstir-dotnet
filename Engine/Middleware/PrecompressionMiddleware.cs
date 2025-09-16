@@ -51,7 +51,8 @@ public sealed class PrecompressionMiddleware(RequestDelegate next)
     }
 
     private static bool IsAlreadyCompressed(string path) =>
-        path.EndsWith(FileExtensions.Br, StringComparison.OrdinalIgnoreCase);
+        path.EndsWith(FileExtensions.Br, StringComparison.OrdinalIgnoreCase)
+        || path.EndsWith(FileExtensions.Gz, StringComparison.OrdinalIgnoreCase);
 
     private static string GetPhysicalPath(HttpContext context, string requestPath)
     {
@@ -73,6 +74,13 @@ public sealed class PrecompressionMiddleware(RequestDelegate next)
                 return new CompressedFile(brPath, "br");
         }
 
+        if (acceptEncoding.Contains("gzip", StringComparison.OrdinalIgnoreCase))
+        {
+            string gzipPath = physicalPath + FileExtensions.Gz;
+            if (File.Exists(gzipPath))
+                return new CompressedFile(gzipPath, "gzip");
+        }
+
         return null;
     }
 
@@ -91,7 +99,7 @@ public sealed class PrecompressionMiddleware(RequestDelegate next)
         context.Response.ContentType = contentType;
     }
 
-    private string GetContentType(string path)
+    private static string GetContentType(string path)
     {
         return ContentTypes.TryGetContentType(path, out string? detected) && !string.IsNullOrEmpty(detected)
             ? detected

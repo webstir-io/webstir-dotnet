@@ -22,7 +22,7 @@ public partial class FrontendWorker(
     public int BuildOrder => 1;
 
     public async Task InitAsync(ProjectMode mode) =>
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Templates.FrontendPath, workspace.FrontendPath);
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.FrontendPath, workspace.FrontendPath);
 
     public async Task BuildAsync(string? changedFilePath = null)
     {

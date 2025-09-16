@@ -13,7 +13,7 @@ namespace Engine.Pipelines.Css;
 public class CssHandler(AppWorkspace workspace, ILogger<CssHandler> logger) : IPageHandler
 {
     private readonly ILogger<CssHandler> _logger = logger;
-    private readonly CssEsbuildAdapter _cssAdapter = new(new EsbuildRunner(workspace));
+    private readonly CssEsbuildAdapter _cssAdapter = new(new EsbuildRunner(workspace), new CssAutoprefixer(workspace));
 
     public int BuildOrder => 1;
     public int PublishOrder => 0;

@@ -59,7 +59,8 @@ public static class ResourceHelpers
         string prefixWithDot = $"{resourcePrefix}.";
 
         string[] resources = [.. assembly.GetManifestResourceNames()
-            .Where(name => name.StartsWith(prefixWithDot, StringComparison.Ordinal) && !name.StartsWith($"{prefixWithDot}{Folders.Src}.", StringComparison.Ordinal))];
+            .Where(name => name.StartsWith(prefixWithDot, StringComparison.Ordinal)
+                && !name.StartsWith($"{prefixWithDot}{Folders.Src}.", StringComparison.Ordinal))];
 
         foreach (string resourceName in resources)
         {
@@ -76,4 +77,5 @@ public static class ResourceHelpers
             await stream.CopyToAsync(fileStream);
         }
     }
+
 }

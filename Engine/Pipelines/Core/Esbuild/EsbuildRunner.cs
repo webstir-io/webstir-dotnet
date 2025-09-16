@@ -39,53 +39,115 @@ public class EsbuildRunner(AppWorkspace workspace)
         List<string> args = [];
 
         if (options.EntryPoints?.Count > 0)
+        {
             args.AddRange(options.EntryPoints.Select(Quote));
+        }
 
         AddBooleanFlags(args, options);
         AddOutputOptions(args, options);
         AddConfigOptions(args, options);
 
         if (options.CustomArgs != null)
+        {
             args.AddRange(options.CustomArgs);
+        }
 
         return args;
     }
 
     private static void AddBooleanFlags(List<string> args, EsbuildOptions options)
     {
-        if (options.Bundle) args.Add("--bundle");
-        if (options.Minify) args.Add("--minify");
-        if (options.Sourcemap) args.Add("--sourcemap");
-        if (options.Splitting) args.Add("--splitting");
-        if (options.AllowOverwrite) args.Add("--allow-overwrite");
+        if (options.Bundle)
+        {
+            args.Add("--bundle");
+        }
+        if (options.Minify)
+        {
+            args.Add("--minify");
+        }
+        if (options.Sourcemap)
+        {
+            args.Add("--sourcemap");
+        }
+        if (options.Splitting)
+        {
+            args.Add("--splitting");
+        }
+        if (options.AllowOverwrite)
+        {
+            args.Add("--allow-overwrite");
+        }
     }
 
     private static void AddOutputOptions(List<string> args, EsbuildOptions options)
     {
         if (options.OutputPath != null)
+        {
             args.Add($"--outfile={Quote(options.OutputPath)}");
+        }
         else if (options.OutputDir != null)
+        {
             args.Add($"--outdir={Quote(options.OutputDir)}");
+        }
 
         if (options.Outbase != null)
+        {
             args.Add($"--outbase={Quote(options.Outbase)}");
+        }
+
+        if (!string.IsNullOrEmpty(options.EntryNames))
+        {
+            args.Add($"--entry-names={options.EntryNames}");
+        }
+
+        if (!string.IsNullOrEmpty(options.ChunkNames))
+        {
+            args.Add($"--chunk-names={options.ChunkNames}");
+        }
+
+        if (!string.IsNullOrEmpty(options.MetafilePath))
+        {
+            args.Add($"--metafile={Quote(options.MetafilePath)}");
+        }
+
+        if (options.Drop is { Count: > 0 })
+        {
+            foreach (string item in options.Drop)
+            {
+                args.Add($"--drop:{item}");
+            }
+        }
     }
 
     private static void AddConfigOptions(List<string> args, EsbuildOptions options)
     {
         if (options.Format != null)
+        {
             args.Add($"--format={options.Format}");
+        }
 
         if (options.Loaders != null)
         {
             foreach (KeyValuePair<string, string> loader in options.Loaders)
+            {
                 args.Add($"--loader:{loader.Key}={loader.Value}");
+            }
         }
 
         if (options.Define != null)
         {
             foreach (KeyValuePair<string, string> define in options.Define)
+            {
                 args.Add($"--define:{define.Key}={define.Value}");
+            }
+        }
+
+        if (options.Alias != null)
+        {
+            foreach (KeyValuePair<string, string> alias in options.Alias)
+            {
+                args.Add($"--alias:{alias.Key}={Quote(alias.Value)}");
+            }
         }
     }
 
@@ -116,6 +178,7 @@ public class EsbuildRunner(AppWorkspace workspace)
             HandleEsbuildError(process.ExitCode, stdOut, stdErr, logger);
             return false;
         }
+
         return true;
     }
 
@@ -154,6 +217,5 @@ public class EsbuildRunner(AppWorkspace workspace)
         string.IsNullOrEmpty(path) || !path.Contains(' ')
             ? path
             : FormattableString.Invariant($"\"{path}\"");
-
 }
 

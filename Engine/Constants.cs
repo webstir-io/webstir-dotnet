@@ -77,9 +77,9 @@ public static class FileExtensions
     public const string Mov = ".mov";
 }
 
-public static class Templates
+public static class Resources
 {
-    public const string Path = "Engine.Templates";
+    public const string Path = "Engine.Resources";
     public const string SrcPath = $"{Path}.{Folders.Src}";
     public const string FrontendPath = $"{SrcPath}.{Folders.Frontend}";
     public const string BackendPath = $"{SrcPath}.{Folders.Backend}";
