@@ -29,7 +29,7 @@ public class AddPageWorkflow(
         }
 
         string pagePath = Context.FrontendPagesPath.Combine(pageName);
-        if (Directory.Exists(pagePath))
+        if (pagePath.Exists())
         {
             throw new InvalidOperationException($"Page '{pageName}' already exists");
         }

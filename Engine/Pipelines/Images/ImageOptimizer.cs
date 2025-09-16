@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
+using Engine.Extensions;
 
 namespace Engine.Pipelines.Images;
 
@@ -12,12 +13,12 @@ public static class ImageOptimizer
         ArgumentNullException.ThrowIfNull(sourceRoot);
         ArgumentNullException.ThrowIfNull(destRoot);
 
-        if (!Directory.Exists(sourceRoot))
+        if (!sourceRoot.Exists())
         {
             return;
         }
 
-        string[] files = Directory.GetFiles(sourceRoot, "*.*", SearchOption.AllDirectories);
+        string[] files = sourceRoot.Files("*.*", SearchOption.AllDirectories);
         foreach (string srcFile in files)
         {
             string ext = Path.GetExtension(srcFile).ToLowerInvariant();
@@ -27,8 +28,8 @@ public static class ImageOptimizer
             }
 
             string relative = Path.GetRelativePath(sourceRoot, srcFile);
-            string destPath = Path.Combine(destRoot, relative);
-            Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
+            string destPath = destRoot.Combine(relative);
+            destPath.DirectoryName().Create();
 
             if (string.Equals(ext, FileExtensions.Svg, StringComparison.OrdinalIgnoreCase))
             {

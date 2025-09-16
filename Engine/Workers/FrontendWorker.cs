@@ -43,13 +43,13 @@ public partial class FrontendWorker(
 
     public async Task PublishAsync()
     {
-        if (Directory.Exists(workspace.FrontendDistPath))
+        if (workspace.FrontendDistPath.Exists())
         {
             TryClearDirectory(workspace.FrontendDistPath);
         }
         else
         {
-            Directory.CreateDirectory(workspace.FrontendDistPath);
+            workspace.FrontendDistPath.Create();
         }
 
         await RunHandlersInOrderAsync(
@@ -106,7 +106,7 @@ public partial class FrontendWorker(
         try
         {
             Directory.Delete(path, recursive: true);
-            Directory.CreateDirectory(path);
+            path.Create();
         }
         catch (Exception ex)
         {

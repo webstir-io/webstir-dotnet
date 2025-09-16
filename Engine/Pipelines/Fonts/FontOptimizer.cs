@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Engine.Extensions;
 
 namespace Engine.Pipelines.Fonts;
 
@@ -18,18 +19,18 @@ public static class FontOptimizer
         ArgumentNullException.ThrowIfNull(sourceRoot);
         ArgumentNullException.ThrowIfNull(destRoot);
 
-        if (!Directory.Exists(sourceRoot))
+        if (!sourceRoot.Exists())
         {
             return;
         }
 
-        string[] files = [.. Directory.GetFiles(sourceRoot, "*.*", SearchOption.AllDirectories).Where(f => FontExts.Contains(Path.GetExtension(f).ToLowerInvariant()))];
+        string[] files = [.. sourceRoot.Files("*.*", SearchOption.AllDirectories).Where(f => FontExts.Contains(Path.GetExtension(f).ToLowerInvariant()))];
 
         foreach (string srcFile in files)
         {
             string relativePath = Path.GetRelativePath(sourceRoot, srcFile);
-            string destPath = Path.Combine(destRoot, relativePath);
-            Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
+            string destPath = destRoot.Combine(relativePath);
+            destPath.DirectoryName().Create();
 
             File.Copy(srcFile, destPath, true);
 
@@ -100,4 +101,3 @@ public static class FontOptimizer
         }
     }
 }
-

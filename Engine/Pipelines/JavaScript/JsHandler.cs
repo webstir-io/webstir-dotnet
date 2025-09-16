@@ -180,14 +180,14 @@ public class JsHandler(AppWorkspace workspace, ILogger<JsHandler> logger) : IPag
     private List<string> GetEntryPoints()
     {
         string pagesRoot = _workspace.FrontendBuildPagesPath;
-        if (!Directory.Exists(pagesRoot))
+        if (!pagesRoot.Exists())
         {
             return [];
         }
 
-        return [.. Directory
-            .EnumerateDirectories(pagesRoot, "*", SearchOption.TopDirectoryOnly)
-            .Select(d => Path.Combine(d, Files.Index + FileExtensions.Js))
+        return [.. pagesRoot
+            .Folders()
+            .Select(d => d.Combine(Files.Index + FileExtensions.Js))
             .Where(File.Exists)];
     }
 
@@ -197,13 +197,12 @@ public class JsHandler(AppWorkspace workspace, ILogger<JsHandler> logger) : IPag
             ? _workspace.FrontendBuildPath
             : _workspace.BuildPath.CreateSubDirectory(Folders.Temp).CreateSubDirectory(Folders.Frontend);
 
-        Directory.CreateDirectory(outDir);
-        return outDir;
+        return outDir.Create();
     }
 
     private async Task ProcessSplitBundlesAsync(string outDir)
     {
-        string metaPath = Path.Combine(outDir, EsbuildConstants.MetaJson);
+        string metaPath = outDir.Combine(EsbuildConstants.MetaJson);
         string json = await File.ReadAllTextAsync(metaPath);
         JsonSerializerOptions options = EsbuildMetaJsonOptions;
         EsbuildMetafile? metafile = JsonSerializer.Deserialize<EsbuildMetafile>(json, options);
@@ -294,13 +293,13 @@ public class JsHandler(AppWorkspace workspace, ILogger<JsHandler> logger) : IPag
 
     private static async Task PrecompressJsFilesAsync(string root)
     {
-        if (!Directory.Exists(root))
+        if (!root.Exists())
         {
             return;
         }
 
         List<Task> tasks = [];
-        foreach (string file in Directory.EnumerateFiles(root, "*.js", SearchOption.AllDirectories))
+        foreach (string file in root.Files("*.js", SearchOption.AllDirectories))
         {
             tasks.Add(Precompression.CreatePrecompressedVariantsAsync(file));
         }

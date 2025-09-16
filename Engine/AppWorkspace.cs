@@ -47,8 +47,8 @@ public class AppWorkspace
         string clientPath = WorkingPath.Combine(Folders.Src, Folders.Frontend);
         string serverPath = WorkingPath.Combine(Folders.Src, Folders.Backend);
 
-        bool hasClientDir = Directory.Exists(clientPath);
-        bool hasServerDir = Directory.Exists(serverPath);
+        bool hasClientDir = clientPath.Exists();
+        bool hasServerDir = serverPath.Exists();
 
         return (hasClientDir, hasServerDir) switch
         {

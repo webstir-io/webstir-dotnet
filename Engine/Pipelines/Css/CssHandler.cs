@@ -49,7 +49,7 @@ public class CssHandler(AppWorkspace workspace, ILogger<CssHandler> logger) : IP
 
     private async Task<bool> ProcessPagesAsync(string sourceDir, string outputRootDir, bool isProduction)
     {
-        if (!Directory.Exists(sourceDir))
+        if (!sourceDir.Exists())
         {
             return true; // No source directory is not an error
         }
@@ -71,7 +71,7 @@ public class CssHandler(AppWorkspace workspace, ILogger<CssHandler> logger) : IP
 
             string pageOutputDir = outputRootDir.Combine(Folders.Pages, pageName);
             pageOutputDir.Create();
-            string outputFile = Path.Combine(pageOutputDir, $"{Files.Index}{FileExtensions.Css}");
+            string outputFile = pageOutputDir.Combine($"{Files.Index}{FileExtensions.Css}");
 
             try
             {

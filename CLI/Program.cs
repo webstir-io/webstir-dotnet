@@ -33,9 +33,17 @@ try
         .AddEnvironmentVariables()
         .Build();
 
+    Logger configuredLogger = new LoggerConfiguration()
+        .ReadFrom.Configuration(configuration)
+        .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
+        .CreateLogger();
+
+    logger.Dispose();
+    logger = configuredLogger;
+
     ServiceCollection services = new();
     services.AddSingleton<IConfiguration>(configuration);
-    services.AddLogging(builder => builder.AddSerilog(logger));
+    services.AddLogging(builder => builder.AddSerilog(logger, dispose: true));
     services.Configure<AppSettings>(options =>
     {
         IConfigurationSection section = configuration.GetSection(nameof(AppSettings));
@@ -84,9 +92,13 @@ try
     services.AddTransient<HtmlBuilder>();
 
     using ServiceProvider provider = services.BuildServiceProvider();
-    await provider.GetService<Runner>()!.Run(args);
+    await provider.GetRequiredService<Runner>().Run(args);
 }
 catch (Exception ex)
 {
     logger.Error(ex, "Fatal error occurred");
+}
+finally
+{
+    logger.Dispose();
 }

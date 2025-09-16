@@ -12,7 +12,7 @@ public sealed class TestDiscovery
     {
         ArgumentNullException.ThrowIfNull(workspace);
 
-        if (!Directory.Exists(workspace.SrcPath))
+        if (!workspace.SrcPath.Exists())
         {
             return [];
         }
@@ -24,7 +24,7 @@ public sealed class TestDiscovery
 
         foreach (string pattern in new[] { tsPattern, jsPattern })
         {
-            foreach (string file in Directory.EnumerateFiles(workspace.SrcPath, pattern, SearchOption.AllDirectories))
+            foreach (string file in workspace.SrcPath.Files(pattern, SearchOption.AllDirectories))
             {
                 if (!IsUnderTestsFolder(file))
                 {

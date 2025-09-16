@@ -73,7 +73,7 @@ public abstract class BaseWorkflow(
         if (!string.IsNullOrEmpty(projectName))
         {
             string projectPath = Context.WorkingPath.Combine(projectName);
-            if (!Directory.Exists(projectPath))
+            if (!projectPath.Exists())
                 throw new DirectoryNotFoundException($"Project directory '{projectName}' not found in current directory");
 
             Context.Initialize(projectPath);
