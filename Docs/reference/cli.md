@@ -81,6 +81,7 @@ Usage: `webstir add-page <name>`
 What it does:
 - Scaffolds `index.html`, `index.css`, and `index.ts` in `src/frontend/pages/<name>/`.
 - Ready to build and serve without extra configuration.
+- Delegates to the `@webstir/frontend` CLI so the scaffold matches the current framework templates.
 
 ### add-test
 Usage: `webstir add-test <name-or-path>`
@@ -88,6 +89,7 @@ Usage: `webstir add-test <name-or-path>`
 What it does:
 - Creates a `.test.ts` file under the nearest `tests/` folder relative to the path provided.
 - Works for both frontend and backend test locations.
+- Uses the `@webstir/test` CLI to write the template and keep dependencies pinned.
 
 ## Dev Server & Watch
 - Serves `build/` over ASP.NET Core with an SSE endpoint for live reload.

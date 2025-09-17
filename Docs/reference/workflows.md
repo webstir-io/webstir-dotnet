@@ -29,7 +29,7 @@ See also: Engine internals — [engine](../explanations/engine.md)
   - `IWorkflowWorker`: common worker contract (BuildOrder, InitAsync, BuildAsync, PublishAsync).
   - `IFrontendWorker`: extends `IWorkflowWorker` with `AddPageAsync` for page scaffolding.
 - DI pattern: all workers are registered as `IWorkflowWorker` and workflows inject `IEnumerable<IWorkflowWorker>`.
-- Filtering: workflows choose which workers to run based on project mode (client-only, server-only, fullstack). The `add-page` workflow resolves the single `IFrontendWorker` to add files.
+- Filtering: workflows choose which workers to run based on project mode (client-only, server-only, fullstack). The `add-page` workflow resolves the single `IFrontendWorker`, which now shells out to `webstir-frontend add-page` for scaffolding.
 
 ## Initiation
 - CLI commands (primary):

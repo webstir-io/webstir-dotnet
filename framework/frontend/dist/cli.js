@@ -51,6 +51,21 @@ program
         handleError(error);
     }
 });
+program
+    .command('add-page <name>')
+    .description('Scaffold a new frontend page (HTML/CSS/TS)')
+    .requiredOption('-w, --workspace <path>', 'Absolute path to the workspace root')
+    .action(async (name, cmd) => {
+    try {
+        await (0, operations_js_1.runAddPage)({
+            workspaceRoot: cmd.workspace,
+            pageName: name
+        });
+    }
+    catch (error) {
+        handleError(error);
+    }
+});
 program.parseAsync(process.argv).catch(handleError);
 function handleError(error) {
     if (error instanceof Error) {

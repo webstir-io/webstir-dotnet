@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "webstir-test-runner": "dist/cli.js"
+    "webstir-test-runner": "dist/cli.js",
+    "webstir-test-add": "dist/add-cli.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -30,6 +31,10 @@
   "author": "Webstir",
   "devDependencies": {
     "@types/node": "^20.11.25",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "@types/fs-extra": "^11.0.4"
+  },
+  "dependencies": {
+    "fs-extra": "^11.2.0"
   }
 }

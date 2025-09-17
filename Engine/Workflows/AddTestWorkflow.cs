@@ -7,6 +7,8 @@ using Engine.Extensions;
 using System.Collections.Generic;
 using Engine.Helpers;
 using Engine.Interfaces;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Engine.Workflows;
 
@@ -25,49 +27,19 @@ public sealed class AddTestWorkflow(AppWorkspace context,
             return;
         }
 
-        string relativePath = nameOrPath!.Trim().Trim('/', '\\');
-        bool hasSlash = relativePath.Contains('/') || relativePath.Contains('\\');
-        string targetDirectory;
-        string fileName;
-
-        if (hasSlash)
-        {
-            // Treat as relative to src
-            int extensionLength = (Files.Test + FileExtensions.Ts).Length;
-            string withoutExtension = relativePath.EndsWith(Files.Test + FileExtensions.Ts, StringComparison.OrdinalIgnoreCase)
-                ? relativePath[..^extensionLength]
-                : relativePath;
-
-            string parent = Path.GetDirectoryName(withoutExtension) ?? string.Empty;
-            string leaf = Path.GetFileName(withoutExtension);
-            targetDirectory = Context.SrcPath.Combine(parent, Folders.Tests);
-            fileName = leaf + Files.Test + FileExtensions.Ts;
-        }
-        else
-        {
-            targetDirectory = Context.SrcPath.Combine(Folders.Tests);
-            fileName = relativePath + Files.Test + FileExtensions.Ts;
-        }
-
-        Directory.CreateDirectory(targetDirectory);
-        string targetFile = targetDirectory.Combine(fileName);
-
-        if (!File.Exists(targetFile))
-        {
-            await File.WriteAllTextAsync(targetFile, SampleTestContent);
-            Console.WriteLine($"Created {Path.GetRelativePath(Context.WorkingPath, targetFile)}");
-        }
-        else
-        {
-            Console.WriteLine($"File already exists: {Path.GetRelativePath(Context.WorkingPath, targetFile)}");
-        }
-
         await EnsurePackageAsync();
+        await RunTestCliAsync(nameOrPath.Trim());
     }
 
     private async Task EnsurePackageAsync()
     {
         PackageEnsureResult result = await TestPackageInstaller.EnsureAsync(Context);
+
+        if (result.ToolsAdded || result.DependencyUpdated || result.TarballUpdated)
+        {
+            NpmHelper.RunNpmInstall(Context.WorkingPath);
+            result = await TestPackageInstaller.EnsureAsync(Context);
+        }
 
         if (result.ToolsAdded)
         {
@@ -79,6 +51,11 @@ public sealed class AddTestWorkflow(AppWorkspace context,
             Console.WriteLine($"Pinned @webstir/test to {result.Metadata.Dependency} in {Files.PackageJson}");
         }
 
+        if (result.TarballUpdated)
+        {
+            Console.WriteLine("Updated @webstir/test tarball; npm install rerun may be required.");
+        }
+
         if (result.VersionMismatch)
         {
             string installed = string.IsNullOrWhiteSpace(result.InstalledVersion)
@@ -87,13 +64,60 @@ public sealed class AddTestWorkflow(AppWorkspace context,
             Console.WriteLine($"Warning: @webstir/test {installed} differs from packaged {result.Metadata.Version}. Run 'npm install' to refresh node_modules.");
         }
     }
+    private async Task RunTestCliAsync(string name)
+    {
+        string executable = GetExecutablePath();
+        if (!File.Exists(executable))
+        {
+            throw new InvalidOperationException($"webstir-test-add executable not found at {executable}. Run npm install to restore dependencies.");
+        }
 
-    private const string SampleTestContent = """
-const { test, assert } = require('@webstir/test') as typeof import('@webstir/test');
+        ProcessStartInfo psi = new()
+        {
+            FileName = executable,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = Context.WorkingPath
+        };
 
-test('sample passes', () => {
-  assert.isTrue(true);
-});
-""";
+        psi.ArgumentList.Add(name);
+        psi.ArgumentList.Add("--workspace");
+        psi.ArgumentList.Add(Context.WorkingPath);
 
+        using Process process = new() { StartInfo = psi };
+        process.OutputDataReceived += (_, args) =>
+        {
+            if (!string.IsNullOrWhiteSpace(args.Data))
+            {
+                Console.WriteLine(args.Data);
+            }
+        };
+        process.ErrorDataReceived += (_, args) =>
+        {
+            if (!string.IsNullOrWhiteSpace(args.Data))
+            {
+                Console.WriteLine(args.Data);
+            }
+        };
+
+        process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"webstir-test-add failed with exit code {process.ExitCode}.");
+        }
+    }
+
+    private string GetExecutablePath()
+    {
+        string executable = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? "webstir-test-add.cmd"
+            : "webstir-test-add";
+        return Path.Combine(Context.NodeModulesPath, ".bin", executable);
+    }
 }

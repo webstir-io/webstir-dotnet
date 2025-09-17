@@ -34,9 +34,6 @@ public class AddPageWorkflow(
             throw new InvalidOperationException($"Page '{pageName}' already exists");
         }
 
-        pagePath.Create();
-
-        // Only the frontend worker participates in adding pages
         await Frontend.AddPageAsync(pageName);
     }
 }

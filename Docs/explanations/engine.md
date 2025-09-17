@@ -35,7 +35,7 @@ Core implementation that powers the CLI. The engine owns workflows, pipelines, s
 Workflows call workers and services; they should not contain low-level file logic.
 
 ## Workers
-- FrontendWorker: Runs HTML/CSS/TS frontend pipelines, copies app assets, writes to `build/frontend/`.
+- FrontendWorker: Shells out to the `@webstir/frontend` TypeScript CLI for build/publish/add-page while enforcing package pinning.
 - BackendWorker: Compiles backend TS → `build/backend/`, tracks restart state.
 - SharedWorker: Ensures shared types are compiled and available to both sides.
 
@@ -43,7 +43,7 @@ Contracts and DI
 - IWorkflowWorker: Common contract used by all workers (`BuildOrder`, `InitAsync`, `BuildAsync`, `PublishAsync`).
 - IFrontendWorker: Extends `IWorkflowWorker` with `AddPageAsync`.
 - DI registers all workers as `IWorkflowWorker`; workflows inject `IEnumerable<IWorkflowWorker>` and filter by project mode.
-- Generators (e.g., add-page) resolve the single `IFrontendWorker` from the injected set and call `AddPageAsync`.
+- Generators (e.g., add-page) resolve the single `IFrontendWorker` and it relays to the TypeScript CLI, keeping scaffolds in sync with framework templates.
 
 Workers are incremental where possible: only touched pages or modules are reprocessed.
 

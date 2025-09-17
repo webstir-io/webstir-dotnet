@@ -9,6 +9,7 @@ const constants_js_1 = require("../utils/constants.js");
 const fs_js_1 = require("../utils/fs.js");
 const changedFile_js_1 = require("../utils/changedFile.js");
 const imageOptimizer_js_1 = require("../utils/imageOptimizer.js");
+const pathMatch_js_1 = require("../utils/pathMatch.js");
 const IMAGE_EXTENSIONS = [
     constants_js_1.EXTENSIONS.png,
     constants_js_1.EXTENSIONS.jpg,
@@ -55,26 +56,59 @@ async function copyStaticAssets(context, isProduction) {
         return;
     }
     const targets = [
-        { source: config.paths.src.images, build: config.paths.build.frontend, dist: config.paths.dist.frontend, folder: constants_js_1.FOLDERS.images },
-        { source: config.paths.src.fonts, build: config.paths.build.frontend, dist: config.paths.dist.frontend, folder: constants_js_1.FOLDERS.fonts },
-        { source: config.paths.src.media, build: config.paths.build.frontend, dist: config.paths.dist.frontend, folder: constants_js_1.FOLDERS.media }
+        { source: config.paths.src.images, build: config.paths.build.frontend, dist: config.paths.dist.frontend, folder: constants_js_1.FOLDERS.images, extensions: IMAGE_EXTENSIONS },
+        { source: config.paths.src.fonts, build: config.paths.build.frontend, dist: config.paths.dist.frontend, folder: constants_js_1.FOLDERS.fonts, extensions: FONT_EXTENSIONS },
+        { source: config.paths.src.media, build: config.paths.build.frontend, dist: config.paths.dist.frontend, folder: constants_js_1.FOLDERS.media, extensions: MEDIA_EXTENSIONS }
     ];
     for (const target of targets) {
         if (!(await (0, fs_js_1.pathExists)(target.source))) {
             continue;
         }
+        const changedRelative = (0, pathMatch_js_1.relativePathWithin)(context.changedFile, target.source);
         const buildDestination = node_path_1.default.join(target.build, target.folder);
-        await (0, fs_js_1.emptyDir)(buildDestination);
-        await (0, fs_js_1.copy)(target.source, buildDestination);
+        if (!context.changedFile || !changedRelative) {
+            await (0, fs_js_1.emptyDir)(buildDestination);
+            await (0, fs_js_1.copy)(target.source, buildDestination);
+            if (isProduction) {
+                const distDestination = node_path_1.default.join(target.dist, target.folder);
+                if (target.folder === constants_js_1.FOLDERS.images) {
+                    await (0, imageOptimizer_js_1.optimizeImages)(buildDestination, distDestination);
+                }
+                else {
+                    await (0, fs_js_1.emptyDir)(distDestination);
+                    await (0, fs_js_1.copy)(buildDestination, distDestination);
+                }
+            }
+            continue;
+        }
+        await copySingleAsset(target.source, buildDestination, changedRelative);
         if (isProduction) {
             const distDestination = node_path_1.default.join(target.dist, target.folder);
             if (target.folder === constants_js_1.FOLDERS.images) {
-                await (0, imageOptimizer_js_1.optimizeImages)(buildDestination, distDestination);
+                await (0, imageOptimizer_js_1.optimizeImages)(buildDestination, distDestination, [changedRelative]);
             }
             else {
-                await (0, fs_js_1.emptyDir)(distDestination);
-                await (0, fs_js_1.copy)(buildDestination, distDestination);
+                const sourcePath = node_path_1.default.join(target.source, changedRelative);
+                const destPath = node_path_1.default.join(distDestination, changedRelative);
+                if (await (0, fs_js_1.pathExists)(sourcePath)) {
+                    await (0, fs_js_1.ensureDir)(node_path_1.default.dirname(destPath));
+                    await (0, fs_js_1.copy)(sourcePath, destPath);
+                }
+                else {
+                    await (0, fs_js_1.remove)(destPath).catch(() => undefined);
+                }
             }
         }
+    }
+}
+async function copySingleAsset(sourceRoot, buildRoot, relativePath) {
+    const sourcePath = node_path_1.default.join(sourceRoot, relativePath);
+    const destinationPath = node_path_1.default.join(buildRoot, relativePath);
+    if (await (0, fs_js_1.pathExists)(sourcePath)) {
+        await (0, fs_js_1.ensureDir)(node_path_1.default.dirname(destinationPath));
+        await (0, fs_js_1.copy)(sourcePath, destinationPath);
+    }
+    else {
+        await (0, fs_js_1.remove)(destinationPath).catch(() => undefined);
     }
 }

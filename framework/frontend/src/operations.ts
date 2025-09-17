@@ -1,16 +1,22 @@
 import { writeConfigManifest } from './config/manifest.js';
-import type { FrontendCommandOptions } from './types.js';
+import type { AddPageCommandOptions, FrontendCommandOptions } from './types.js';
 import { buildConfig } from './utils/workspace.js';
 import { ensureToolsDirectory, resolveManifestPath } from './utils/manifest.js';
 import { runPipeline } from './pipeline.js';
+import { createPageScaffold } from './utils/pageScaffold.js';
 
-export async function runBuild(options: FrontendCommandOptions): Promise<void> {
-    const config = buildConfig(options.workspaceRoot);
-    await ensureToolsDirectory(options.workspaceRoot);
+async function prepareConfig(workspaceRoot: string) {
+    const config = buildConfig(workspaceRoot);
+    await ensureToolsDirectory(workspaceRoot);
     await writeConfigManifest({
-        outputPath: resolveManifestPath(options.workspaceRoot),
+        outputPath: resolveManifestPath(workspaceRoot),
         data: config
     });
+    return config;
+}
+
+export async function runBuild(options: FrontendCommandOptions): Promise<void> {
+    const config = await prepareConfig(options.workspaceRoot);
 
     console.info('[webstir-frontend] Running build pipeline...');
     await runPipeline(config, 'build', { changedFile: options.changedFile });
@@ -18,12 +24,7 @@ export async function runBuild(options: FrontendCommandOptions): Promise<void> {
 }
 
 export async function runPublish(options: FrontendCommandOptions): Promise<void> {
-    const config = buildConfig(options.workspaceRoot);
-    await ensureToolsDirectory(options.workspaceRoot);
-    await writeConfigManifest({
-        outputPath: resolveManifestPath(options.workspaceRoot),
-        data: config
-    });
+    const config = await prepareConfig(options.workspaceRoot);
 
     console.info('[webstir-frontend] Running publish pipeline...');
     await runPipeline(config, 'publish');
@@ -31,14 +32,23 @@ export async function runPublish(options: FrontendCommandOptions): Promise<void>
 }
 
 export async function runRebuild(options: FrontendCommandOptions): Promise<void> {
-    const config = buildConfig(options.workspaceRoot);
-    await ensureToolsDirectory(options.workspaceRoot);
-    await writeConfigManifest({
-        outputPath: resolveManifestPath(options.workspaceRoot),
-        data: config
-    });
+    const config = await prepareConfig(options.workspaceRoot);
 
     console.info('[webstir-frontend] Running rebuild pipeline...');
     await runPipeline(config, 'build', { changedFile: options.changedFile });
     console.info('[webstir-frontend] Rebuild pipeline completed.');
+}
+
+export async function runAddPage(options: AddPageCommandOptions): Promise<void> {
+    const config = await prepareConfig(options.workspaceRoot);
+    console.info('[webstir-frontend] Creating page scaffold...');
+    await createPageScaffold({
+        workspaceRoot: options.workspaceRoot,
+        pageName: options.pageName,
+        paths: {
+            pages: config.paths.src.pages,
+            app: config.paths.src.app
+        }
+    });
+    console.info('[webstir-frontend] Page scaffold created.');
 }

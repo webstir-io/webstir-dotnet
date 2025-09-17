@@ -51,13 +51,13 @@ Created by `webstir init` unless you choose client-only or server-only:
 
 ### add-page
 - Command: `webstir add-page <name>`
-- Creates `src/frontend/pages/<name>/index.html|css|ts` if not present.
+- Delegates to `webstir-frontend add-page` (TypeScript CLI) to scaffold `index.html|css|ts`.
 - Does not modify existing pages or `app.html`.
 - Name normalization: trims, lowercases, replaces spaces with `-`.
 
 ### add-test
 - Command: `webstir add-test <name-or-path>`
-- Creates `<name>.test.ts` under the nearest `tests/` directory.
+- Delegates to `webstir-test-add` (TypeScript CLI) to create `<name>.test.ts` under the nearest `tests/` directory.
 - Works for both frontend and backend tests.
 
 ## Backend Template

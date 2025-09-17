@@ -14,15 +14,15 @@ Scaffold a new frontend page with `index.html|css|ts` under `src/frontend/pages/
 
 ## Notes
 - Frontend only: this command scaffolds files under `src/frontend/pages/` and does not touch backend or shared code.
-- Internals: the workflow injects `IEnumerable<IWorkflowWorker>` and resolves the single `IFrontendWorker` to create files.
+- Internals: the CLI shells into the `@webstir/frontend` TypeScript package (`webstir-frontend add-page`) so scaffolding stays in sync with the framework templates.
 
 ## Inputs
 - `<name>`: normalized and validated page name. If the page already exists, the workflow fails.
 
 ## Steps
 1. Validate `<name>` and resolve `src/frontend/pages/<name>/`.
-2. Create the folder and write `index.html`, `index.css`, and `index.ts` from templates.
-3. Ensure references are compatible with `app.html` and client pipelines.
+2. Delegate to `webstir-frontend add-page` to create `index.html`, `index.css`, and `index.ts` from the framework templates.
+3. The TypeScript CLI updates intrinsics (imports, references) so the page builds immediately.
 
 ## Outputs
 - New page folder and files under `src/frontend/pages/<name>/`.

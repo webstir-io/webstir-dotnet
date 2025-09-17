@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
@@ -28,9 +29,10 @@ internal static class TestPackageInstaller
         bool hasTarball = File.Exists(tarballPath);
 
         bool dependencyUpdated = await EnsureDependencyAsync(workspace.WorkingPath.Combine(Files.PackageJson), metadata);
+        bool tarballUpdated = await DetectTarballMismatchAsync(tarballPath, metadata.Hash);
         PackageInstallState installState = await DetectInstalledVersionMismatchAsync(workspace, metadata);
 
-        return new PackageEnsureResult(!hadTarball && hasTarball, dependencyUpdated, installState.VersionMismatch, installState.InstalledVersion, metadata);
+        return new PackageEnsureResult(!hadTarball && hasTarball, dependencyUpdated, tarballUpdated, installState.VersionMismatch, installState.InstalledVersion, metadata);
     }
 
     private static TestPackageMetadata LoadManifest()
@@ -51,8 +53,9 @@ internal static class TestPackageInstaller
         string version = root.GetProperty("version").GetString() ?? throw new InvalidOperationException("Manifest missing package version.");
         string fileName = root.GetProperty("fileName").GetString() ?? throw new InvalidOperationException("Manifest missing fileName.");
         string dependency = root.GetProperty("dependency").GetString() ?? throw new InvalidOperationException("Manifest missing dependency string.");
+        string? hash = root.TryGetProperty("hash", out JsonElement hashElement) ? hashElement.GetString() : null;
 
-        return new TestPackageMetadata(name, version, fileName, dependency);
+        return new TestPackageMetadata(name, version, fileName, dependency, hash);
     }
 
     private static async Task<bool> EnsureDependencyAsync(string packageJsonPath, TestPackageMetadata metadata)
@@ -121,11 +124,35 @@ internal static class TestPackageInstaller
             return new PackageInstallState(true, null);
         }
     }
+
+    private static async Task<bool> DetectTarballMismatchAsync(string tarballPath, string? expectedHash)
+    {
+        if (string.IsNullOrEmpty(expectedHash))
+        {
+            return false;
+        }
+
+        if (!File.Exists(tarballPath))
+        {
+            return true;
+        }
+
+        string actualHash = await ComputeFileHashAsync(tarballPath);
+        return !string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static async Task<string> ComputeFileHashAsync(string filePath)
+    {
+        await using FileStream stream = File.OpenRead(filePath);
+        byte[] hash = await SHA256.HashDataAsync(stream);
+        return Convert.ToHexString(hash).ToLowerInvariant();
+    }
 }
 
 internal readonly record struct PackageEnsureResult(
     bool ToolsAdded,
     bool DependencyUpdated,
+    bool TarballUpdated,
     bool VersionMismatch,
     string? InstalledVersion,
     TestPackageMetadata Metadata);
@@ -136,7 +163,8 @@ internal readonly record struct TestPackageMetadata(
     string Name,
     string Version,
     string FileName,
-    string Dependency)
+    string Dependency,
+    string? Hash)
 {
     private const char ScopeSeparator = '/';
 

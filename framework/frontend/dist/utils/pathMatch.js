@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.isInsideDirectory = isInsideDirectory;
 exports.findPageFromChangedFile = findPageFromChangedFile;
+exports.relativePathWithin = relativePathWithin;
 const node_path_1 = __importDefault(require("node:path"));
 function isInsideDirectory(filePath, directory) {
     const resolvedFile = node_path_1.default.resolve(filePath);
@@ -24,4 +25,13 @@ function findPageFromChangedFile(changedFile, pagesRoot) {
     const relative = node_path_1.default.relative(resolvedPagesRoot, resolvedChanged);
     const segments = relative.split(node_path_1.default.sep);
     return segments.length > 0 && segments[0] ? segments[0] : null;
+}
+function relativePathWithin(filePath, directory) {
+    if (!filePath) {
+        return null;
+    }
+    if (!isInsideDirectory(filePath, directory)) {
+        return null;
+    }
+    return node_path_1.default.relative(node_path_1.default.resolve(directory), node_path_1.default.resolve(filePath));
 }

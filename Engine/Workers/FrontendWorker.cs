@@ -1,27 +1,22 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Models;
-using Engine.Pipelines.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Workers;
 
 public sealed class FrontendWorker(
     AppWorkspace workspace,
-    IEnumerable<IFrontendHandler> frontendHandlers,
     ILogger<FrontendWorker> logger) : IFrontendWorker
 {
     private readonly AppWorkspace _workspace = workspace;
     private readonly ILogger<FrontendWorker> _logger = logger;
-    private readonly IEnumerable<IFrontendHandler> _frontendHandlers = frontendHandlers;
 
     public int BuildOrder => 1;
 
@@ -40,28 +35,15 @@ public sealed class FrontendWorker(
         await RunFrontendCliAsync("publish", null);
     }
 
-    public async Task AddPageAsync(string pageName)
-    {
-        List<Task<bool>> tasks = [];
-        foreach (IPageHandler handler in _frontendHandlers.OfType<IPageHandler>())
-        {
-            tasks.Add(handler.AddPageAsync(pageName));
-        }
-
-        bool[] results = await Task.WhenAll(tasks);
-        if (!results.All(r => r))
-        {
-            _logger.LogError("Failed to add page {PageName}", pageName);
-        }
-    }
+    public async Task AddPageAsync(string pageName) => await RunFrontendCliAsync("add-page", null, pageName);
 
     private async Task EnsurePackagesAsync()
     {
         FrontendPackageEnsureResult frontendResult = await FrontendPackageInstaller.EnsureAsync(_workspace);
         PackageEnsureResult testResult = await TestPackageInstaller.EnsureAsync(_workspace);
 
-        bool installRequired = frontendResult.ToolsAdded || frontendResult.DependencyUpdated
-            || testResult.ToolsAdded || testResult.DependencyUpdated;
+        bool installRequired = frontendResult.ToolsAdded || frontendResult.DependencyUpdated || frontendResult.TarballUpdated
+            || testResult.ToolsAdded || testResult.DependencyUpdated || testResult.TarballUpdated;
 
         if (installRequired)
         {
@@ -72,6 +54,16 @@ public sealed class FrontendWorker(
 
         LogVersionMismatch(frontendResult.VersionMismatch, frontendResult.InstalledVersion, frontendResult.Metadata.Name, frontendResult.Metadata.Version);
         LogVersionMismatch(testResult.VersionMismatch, testResult.InstalledVersion, testResult.Metadata.Name, testResult.Metadata.Version);
+
+        if (frontendResult.TarballUpdated)
+        {
+            _logger.LogInformation("{Package} tarball updated; run npm install if changes are not applied automatically.", frontendResult.Metadata.Name);
+        }
+
+        if (testResult.TarballUpdated)
+        {
+            _logger.LogInformation("{Package} tarball updated; run npm install if changes are not applied automatically.", testResult.Metadata.Name);
+        }
     }
 
     private void LogVersionMismatch(bool mismatch, string? installedVersion, string packageName, string expectedVersion)
@@ -89,7 +81,7 @@ public sealed class FrontendWorker(
             expectedVersion);
     }
 
-    private async Task RunFrontendCliAsync(string command, string? changedFile)
+    private async Task RunFrontendCliAsync(string command, string? changedFile, params string[] extraArgs)
     {
         string executable = GetExecutablePath();
         if (!File.Exists(executable))
@@ -108,6 +100,11 @@ public sealed class FrontendWorker(
         };
 
         psi.ArgumentList.Add(command);
+        foreach (string extra in extraArgs)
+        {
+            psi.ArgumentList.Add(extra);
+        }
+
         psi.ArgumentList.Add("--workspace");
         psi.ArgumentList.Add(_workspace.WorkingPath);
 
@@ -116,6 +113,7 @@ public sealed class FrontendWorker(
             psi.ArgumentList.Add("--changed-file");
             psi.ArgumentList.Add(changedFile!);
         }
+
 
         using Process process = new() { StartInfo = psi };
         process.OutputDataReceived += (_, args) =>

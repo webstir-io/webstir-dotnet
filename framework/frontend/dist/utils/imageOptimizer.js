@@ -15,27 +15,19 @@ const TRANSCODABLE_EXTENSIONS = new Set([
     constants_js_1.EXTENSIONS.jpg,
     constants_js_1.EXTENSIONS.jpeg
 ]);
-async function optimizeImages(sourceDir, destinationDir) {
+async function optimizeImages(sourceDir, destinationDir, files) {
     if (!(await (0, fs_js_1.pathExists)(sourceDir))) {
         await (0, fs_js_1.emptyDir)(destinationDir);
         return;
     }
-    await (0, fs_js_1.emptyDir)(destinationDir);
-    const files = await (0, glob_1.glob)('**/*', { cwd: sourceDir, nodir: true });
-    await Promise.all(files.map(async (relative) => {
-        const sourcePath = node_path_1.default.join(sourceDir, relative);
-        const destinationPath = node_path_1.default.join(destinationDir, relative);
-        await (0, fs_js_1.ensureDir)(node_path_1.default.dirname(destinationPath));
-        await (0, fs_js_1.copy)(sourcePath, destinationPath);
-        const extension = node_path_1.default.extname(sourcePath).toLowerCase();
-        if (!TRANSCODABLE_EXTENSIONS.has(extension)) {
-            return;
-        }
-        await Promise.all([
-            createWebpVariant(sourcePath, replaceExtension(destinationPath, constants_js_1.EXTENSIONS.webp)),
-            createAvifVariant(sourcePath, replaceExtension(destinationPath, constants_js_1.EXTENSIONS.avif))
-        ]);
-    }));
+    if (!files || files.length === 0) {
+        await (0, fs_js_1.emptyDir)(destinationDir);
+        const allFiles = await (0, glob_1.glob)('**/*', { cwd: sourceDir, nodir: true });
+        await Promise.all(allFiles.map(async (relative) => processImage(sourceDir, destinationDir, relative)));
+        return;
+    }
+    await (0, fs_js_1.ensureDir)(destinationDir);
+    await Promise.all(files.map(async (relative) => processImage(sourceDir, destinationDir, relative, true)));
 }
 async function getImageDimensions(filePath) {
     try {
@@ -72,4 +64,37 @@ async function createAvifVariant(sourcePath, destinationPath) {
     catch {
         // Ignore failures; fall back to original image only.
     }
+}
+async function processImage(sourceDir, destinationDir, relative, incremental = false) {
+    const sourcePath = node_path_1.default.join(sourceDir, relative);
+    const destinationPath = node_path_1.default.join(destinationDir, relative);
+    if (!(await (0, fs_js_1.pathExists)(sourcePath))) {
+        await removeVariants(destinationPath, true);
+        return;
+    }
+    await (0, fs_js_1.ensureDir)(node_path_1.default.dirname(destinationPath));
+    await (0, fs_js_1.copy)(sourcePath, destinationPath);
+    const extension = node_path_1.default.extname(sourcePath).toLowerCase();
+    if (!TRANSCODABLE_EXTENSIONS.has(extension)) {
+        if (incremental) {
+            await removeVariants(destinationPath, false);
+        }
+        return;
+    }
+    if (incremental) {
+        await removeVariants(destinationPath, false);
+    }
+    await Promise.all([
+        createWebpVariant(sourcePath, replaceExtension(destinationPath, constants_js_1.EXTENSIONS.webp)),
+        createAvifVariant(sourcePath, replaceExtension(destinationPath, constants_js_1.EXTENSIONS.avif))
+    ]);
+}
+async function removeVariants(destinationPath, includeBase) {
+    const targets = [replaceExtension(destinationPath, constants_js_1.EXTENSIONS.webp), replaceExtension(destinationPath, constants_js_1.EXTENSIONS.avif)];
+    if (includeBase) {
+        targets.push(destinationPath);
+    }
+    await Promise.all(targets.map(async (target) => {
+        await (0, fs_js_1.remove)(target).catch(() => undefined);
+    }));
 }

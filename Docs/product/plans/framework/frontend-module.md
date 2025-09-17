@@ -50,6 +50,7 @@ Document the concrete work packages required to stand up the `framework/frontend
 - ✅ Publish hardening adds SRI for external assets, resource hints, lazy loading, and inlines small critical CSS.
 - ✅ Rebuilds now target only the affected page for HTML/CSS/JS when a page asset changes.
 - ✅ .NET frontend worker invokes the TypeScript CLI for build/publish, keeping package artifacts in sync via embedded tarballs.
+- ✅ Add-page/add-test workflows now shell out to TypeScript CLIs for scaffolding, eliminating legacy handler templates.
 - ✅ CLI commands (`build`, `publish`, `rebuild`) now emit the workspace manifest and run the TypeScript pipeline with duration logging.
 
 ### Remaining Parity Gaps

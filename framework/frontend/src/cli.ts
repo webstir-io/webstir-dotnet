@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { runBuild, runPublish, runRebuild } from './operations.js';
+import { runAddPage, runBuild, runPublish, runRebuild } from './operations.js';
 
 const program = new Command();
 
@@ -46,6 +46,21 @@ program
             await runRebuild({
                 workspaceRoot: cmd.workspace,
                 changedFile: cmd.changedFile ?? undefined
+            });
+        } catch (error) {
+            handleError(error);
+        }
+    });
+
+program
+    .command('add-page <name>')
+    .description('Scaffold a new frontend page (HTML/CSS/TS)')
+    .requiredOption('-w, --workspace <path>', 'Absolute path to the workspace root')
+    .action(async (name, cmd) => {
+        try {
+            await runAddPage({
+                workspaceRoot: cmd.workspace,
+                pageName: name
             });
         } catch (error) {
             handleError(error);

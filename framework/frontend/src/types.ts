@@ -46,3 +46,7 @@ export interface FrontendFeatureFlags {
     readonly imageOptimization: boolean;
     readonly precompression: boolean;
 }
+
+export interface AddPageCommandOptions extends FrontendCommandOptions {
+    readonly pageName: string;
+}

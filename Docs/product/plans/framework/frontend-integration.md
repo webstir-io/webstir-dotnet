@@ -8,7 +8,7 @@
 - ## Status Snapshot
 - The TypeScript frontend pipeline now produces dev + publish artifacts with hashed bundles, manifests, and SRI-secured external assets.
 - Incremental rebuilds now isolate per-page work, publish emits WebP/AVIF assets with intrinsic dimensions, HTML gains prefetch/lazy-loading/critical CSS inlining, and SRI/resource-hint failures surface as structured CLI warnings.
-- The .NET `FrontendWorker` shells out to `webstir-frontend` for build/publish, reusing the embedded npm tarball and relaying CLI output through structured logging.
+- The .NET `FrontendWorker` shells out to `webstir-frontend` for build/publish/add-page, reusing embedded npm tarballs and relaying CLI output through structured logging. `add-test` now delegates to the testing CLI for scaffolding.
 - Next milestone: swap the C# worker to invoke the new CLI and remove legacy handler dependencies.
 
 ## Tasks
