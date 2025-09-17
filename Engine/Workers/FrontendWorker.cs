@@ -1,116 +1,43 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Helpers;
+using Engine.Interfaces;
 using Engine.Models;
 using Engine.Pipelines.Core.Interfaces;
 using Microsoft.Extensions.Logging;
-using Engine.Interfaces;
 
 namespace Engine.Workers;
 
-public partial class FrontendWorker(
+public sealed class FrontendWorker(
     AppWorkspace workspace,
     IEnumerable<IFrontendHandler> frontendHandlers,
     ILogger<FrontendWorker> logger) : IFrontendWorker
 {
+    private readonly AppWorkspace _workspace = workspace;
     private readonly ILogger<FrontendWorker> _logger = logger;
     private readonly IEnumerable<IFrontendHandler> _frontendHandlers = frontendHandlers;
+
     public int BuildOrder => 1;
 
     public async Task InitAsync(ProjectMode mode) =>
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.FrontendPath, workspace.FrontendPath);
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.FrontendPath, _workspace.FrontendPath);
 
     public async Task BuildAsync(string? changedFilePath = null)
     {
-        if (!string.IsNullOrEmpty(changedFilePath) && !BuildHelpers.ContainsBuildFolder(changedFilePath, Folders.Frontend))
-            return;
-
-        PackageEnsureResult ensureResult = await TestPackageInstaller.EnsureAsync(workspace);
-
-        string packageJsonPath = workspace.WorkingPath.Combine(Files.PackageJson);
-        if (packageJsonPath.Exists())
-        {
-            NpmHelper.RunNpmInstall(workspace.WorkingPath);
-            ensureResult = await TestPackageInstaller.EnsureAsync(workspace);
-        }
-
-        if (ensureResult.VersionMismatch)
-        {
-            string installed = string.IsNullOrWhiteSpace(ensureResult.InstalledVersion)
-                ? "missing"
-                : ensureResult.InstalledVersion;
-            _logger.LogWarning(
-                "@webstir/test {InstalledVersion} detected but {ExpectedVersion} is bundled. Run npm install to refresh dependencies.",
-                installed,
-                ensureResult.Metadata.Version);
-        }
-
-        await RunHandlersInOrderAsync(
-            h => h.BuildOrder,
-            h => h.BuildAsync(changedFilePath),
-            nameof(BuildAsync));
+        await EnsurePackagesAsync();
+        await RunFrontendCliAsync("build", changedFilePath);
     }
 
     public async Task PublishAsync()
     {
-        if (workspace.FrontendDistPath.Exists())
-        {
-            TryClearDirectory(workspace.FrontendDistPath);
-        }
-        else
-        {
-            workspace.FrontendDistPath.Create();
-        }
-
-        PackageEnsureResult ensureResult = await TestPackageInstaller.EnsureAsync(workspace);
-
-        if (ensureResult.VersionMismatch)
-        {
-            string installed = string.IsNullOrWhiteSpace(ensureResult.InstalledVersion)
-                ? "missing"
-                : ensureResult.InstalledVersion;
-            _logger.LogWarning(
-                "@webstir/test {InstalledVersion} detected but {ExpectedVersion} is bundled. Run npm install to refresh dependencies.",
-                installed,
-                ensureResult.Metadata.Version);
-        }
-
-        await RunHandlersInOrderAsync(
-            h => h.PublishOrder,
-            h => h.PublishAsync(),
-            nameof(PublishAsync));
-    }
-
-    private async Task RunHandlersInOrderAsync(
-        Func<IFrontendHandler, int> orderSelector,
-        Func<IFrontendHandler, Task<bool>> handlerAction,
-        string operationName)
-    {
-        IOrderedEnumerable<IGrouping<int, IFrontendHandler>> handlersByOrder = _frontendHandlers
-            .GroupBy(orderSelector)
-            .OrderBy(g => g.Key);
-
-        foreach (IGrouping<int, IFrontendHandler> group in handlersByOrder)
-        {
-            List<Task<bool>> tasks = [];
-            foreach (IFrontendHandler handler in group)
-            {
-                tasks.Add(handlerAction(handler));
-            }
-
-            bool[] results = await Task.WhenAll(tasks);
-            bool groupSuccess = results.All(r => r);
-
-            if (!groupSuccess)
-            {
-                _logger.LogError("{Operation} failed at order {Order} with errors", operationName, group.Key);
-                break;
-            }
-        }
+        await EnsurePackagesAsync();
+        await RunFrontendCliAsync("publish", null);
     }
 
     public async Task AddPageAsync(string pageName)
@@ -120,24 +47,109 @@ public partial class FrontendWorker(
         {
             tasks.Add(handler.AddPageAsync(pageName));
         }
-        bool[] results = await Task.WhenAll(tasks);
 
+        bool[] results = await Task.WhenAll(tasks);
         if (!results.All(r => r))
         {
             _logger.LogError("Failed to add page {PageName}", pageName);
         }
     }
 
-    private void TryClearDirectory(string path)
+    private async Task EnsurePackagesAsync()
     {
-        try
+        FrontendPackageEnsureResult frontendResult = await FrontendPackageInstaller.EnsureAsync(_workspace);
+        PackageEnsureResult testResult = await TestPackageInstaller.EnsureAsync(_workspace);
+
+        bool installRequired = frontendResult.ToolsAdded || frontendResult.DependencyUpdated
+            || testResult.ToolsAdded || testResult.DependencyUpdated;
+
+        if (installRequired)
         {
-            Directory.Delete(path, recursive: true);
-            path.Create();
+            NpmHelper.RunNpmInstall(_workspace.WorkingPath);
+            frontendResult = await FrontendPackageInstaller.EnsureAsync(_workspace);
+            testResult = await TestPackageInstaller.EnsureAsync(_workspace);
         }
-        catch (Exception ex)
+
+        LogVersionMismatch(frontendResult.VersionMismatch, frontendResult.InstalledVersion, frontendResult.Metadata.Name, frontendResult.Metadata.Version);
+        LogVersionMismatch(testResult.VersionMismatch, testResult.InstalledVersion, testResult.Metadata.Name, testResult.Metadata.Version);
+    }
+
+    private void LogVersionMismatch(bool mismatch, string? installedVersion, string packageName, string expectedVersion)
+    {
+        if (!mismatch)
         {
-            _logger.LogWarning("Failed to clear directory {Path}: {Message}", path, ex.Message);
+            return;
         }
+
+        string installed = string.IsNullOrWhiteSpace(installedVersion) ? "missing" : installedVersion!;
+        _logger.LogWarning(
+            "{Package} {InstalledVersion} detected but {ExpectedVersion} is bundled. Run npm install to refresh dependencies.",
+            packageName,
+            installed,
+            expectedVersion);
+    }
+
+    private async Task RunFrontendCliAsync(string command, string? changedFile)
+    {
+        string executable = GetExecutablePath();
+        if (!File.Exists(executable))
+        {
+            throw new InvalidOperationException($"webstir-frontend executable not found at {executable}. Run npm install to restore dependencies.");
+        }
+
+        ProcessStartInfo psi = new()
+        {
+            FileName = executable,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = _workspace.WorkingPath
+        };
+
+        psi.ArgumentList.Add(command);
+        psi.ArgumentList.Add("--workspace");
+        psi.ArgumentList.Add(_workspace.WorkingPath);
+
+        if (!string.IsNullOrWhiteSpace(changedFile))
+        {
+            psi.ArgumentList.Add("--changed-file");
+            psi.ArgumentList.Add(changedFile!);
+        }
+
+        using Process process = new() { StartInfo = psi };
+        process.OutputDataReceived += (_, args) =>
+        {
+            if (!string.IsNullOrWhiteSpace(args.Data))
+            {
+                _logger.LogInformation("[frontend] {Line}", args.Data);
+            }
+        };
+        process.ErrorDataReceived += (_, args) =>
+        {
+            if (!string.IsNullOrWhiteSpace(args.Data))
+            {
+                _logger.LogWarning("[frontend] {Line}", args.Data);
+            }
+        };
+
+        process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"webstir-frontend {command} failed with exit code {process.ExitCode}.");
+        }
+    }
+
+    private string GetExecutablePath()
+    {
+        string binDirectory = Path.Combine(_workspace.NodeModulesPath, ".bin");
+        string executable = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? "webstir-frontend.cmd"
+            : "webstir-frontend";
+        return Path.Combine(binDirectory, executable);
     }
 }

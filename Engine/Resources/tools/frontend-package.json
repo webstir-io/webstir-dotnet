@@ -1,0 +1,6 @@
+{
+  "name": "@webstir/frontend",
+  "version": "0.1.0",
+  "fileName": "webstir-frontend-0-1-0.tgz",
+  "dependency": "file:./.tools/webstir-frontend-0-1-0.tgz"
+}

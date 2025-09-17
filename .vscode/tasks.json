@@ -9,64 +9,53 @@
             "problemMatcher": [],
             "label": "build"
         },
-		{
-			"label": "check:docker",
-			"type": "shell",
-			"command": "docker",
-			"args": ["info"],
-			"problemMatcher": [],
-			"presentation": {
-				"reveal": "silent"
-			}
-		},
-		{
-			"label": "format:verify (style+analyzers)",
-			"type": "shell",
-			"command": "dotnet",
-			"args": [
-				"format",
-				"--verify-no-changes",
-				"--no-restore"
-			],
-			"problemMatcher": []
-		},
-		{
-			"label": "format:verify:strict (include suggestions)",
-			"type": "shell",
-			"command": "dotnet",
-			"args": [
-				"format",
-				"--verify-no-changes",
-				"--no-restore",
-				"--severity",
-				"info"
-			],
-			"problemMatcher": []
-		},
-		{
-			"label": "format:fix",
-			"type": "shell",
-			"command": "dotnet",
-			"args": [
-				"format",
-				"--no-restore"
-			],
-			"problemMatcher": []
-		},
-		{
-			"label": "setup:framework-testing npm install",
-			"type": "shell",
-			"command": "npm",
-			"args": [
-				"install"
-			],
-			"options": {
-				"cwd": "${workspaceFolder}/framework/testing"
-			},
-			"runOptions": {
-				"runOn": "folderOpen"
-			},
-			"problemMatcher": []
-		}
-	]
+        {
+            "label": "check:docker",
+            "type": "shell",
+            "command": "docker",
+            "args": [
+                "info"
+            ],
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "silent"
+            }
+        },
+        {
+            "label": "setup:framework-testing npm install",
+            "type": "shell",
+            "command": "npm",
+            "args": [
+                "install"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/framework/testing"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "setup:framework-frontend npm install",
+            "type": "shell",
+            "command": "npm",
+            "args": [
+                "install"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/framework/frontend"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "setup:framework npm install",
+            "dependsOn": [
+                "setup:framework-testing npm install",
+                "setup:framework-frontend npm install"
+            ],
+            "dependsOrder": "parallel",
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+            "problemMatcher": []
+        }
+    ]
 }
