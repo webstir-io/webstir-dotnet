@@ -5,15 +5,15 @@ exports.runPublish = runPublish;
 exports.runRebuild = runRebuild;
 exports.runAddPage = runAddPage;
 const manifest_js_1 = require("./config/manifest.js");
-const workspace_js_1 = require("./utils/workspace.js");
-const manifest_js_2 = require("./utils/manifest.js");
+const workspace_js_1 = require("./config/workspace.js");
+const paths_js_1 = require("./config/paths.js");
 const pipeline_js_1 = require("./pipeline.js");
-const pageScaffold_js_1 = require("./utils/pageScaffold.js");
+const pageScaffold_js_1 = require("./html/pageScaffold.js");
 async function prepareConfig(workspaceRoot) {
     const config = (0, workspace_js_1.buildConfig)(workspaceRoot);
-    await (0, manifest_js_2.ensureToolsDirectory)(workspaceRoot);
+    await (0, paths_js_1.ensureToolsDirectory)(workspaceRoot);
     await (0, manifest_js_1.writeConfigManifest)({
-        outputPath: (0, manifest_js_2.resolveManifestPath)(workspaceRoot),
+        outputPath: (0, paths_js_1.resolveManifestPath)(workspaceRoot),
         data: config
     });
     return config;

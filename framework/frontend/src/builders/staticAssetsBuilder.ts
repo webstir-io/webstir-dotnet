@@ -1,9 +1,9 @@
 import path from 'node:path';
-import { FOLDERS, EXTENSIONS } from '../utils/constants.js';
+import { FOLDERS, EXTENSIONS } from '../core/constants.js';
 import { copy, pathExists, emptyDir, ensureDir, remove } from '../utils/fs.js';
 import type { Builder, BuilderContext } from './types.js';
 import { shouldProcess } from '../utils/changedFile.js';
-import { optimizeImages } from '../utils/imageOptimizer.js';
+import { optimizeImages } from '../assets/imageOptimizer.js';
 import { relativePathWithin } from '../utils/pathMatch.js';
 
 const IMAGE_EXTENSIONS = [

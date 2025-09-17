@@ -7,17 +7,17 @@ exports.createHtmlBuilder = createHtmlBuilder;
 const node_path_1 = __importDefault(require("node:path"));
 const cheerio_1 = require("cheerio");
 const glob_1 = require("glob");
-const constants_js_1 = require("../utils/constants.js");
+const constants_js_1 = require("../core/constants.js");
 const fs_js_1 = require("../utils/fs.js");
-const pages_js_1 = require("../utils/pages.js");
-const assetManifest_js_1 = require("../utils/assetManifest.js");
-const precompression_js_1 = require("../utils/precompression.js");
+const pages_js_1 = require("../core/pages.js");
+const assetManifest_js_1 = require("../assets/assetManifest.js");
+const precompression_js_1 = require("../assets/precompression.js");
 const changedFile_js_1 = require("../utils/changedFile.js");
-const imageOptimizer_js_1 = require("../utils/imageOptimizer.js");
-const lazyLoad_js_1 = require("../utils/lazyLoad.js");
-const htmlSecurity_js_1 = require("../utils/htmlSecurity.js");
-const resourceHints_js_1 = require("../utils/resourceHints.js");
-const criticalCss_js_1 = require("../utils/criticalCss.js");
+const imageOptimizer_js_1 = require("../assets/imageOptimizer.js");
+const lazyLoad_js_1 = require("../html/lazyLoad.js");
+const htmlSecurity_js_1 = require("../html/htmlSecurity.js");
+const resourceHints_js_1 = require("../html/resourceHints.js");
+const criticalCss_js_1 = require("../html/criticalCss.js");
 const pathMatch_js_1 = require("../utils/pathMatch.js");
 function createHtmlBuilder(context) {
     return {

@@ -1,7 +1,7 @@
 import path from 'node:path';
 import type { CheerioAPI } from 'cheerio';
-import { FOLDERS, FILES, EXTENSIONS } from './constants.js';
-import { pathExists, readFile, stat } from './fs.js';
+import { FOLDERS, FILES, EXTENSIONS } from '../core/constants.js';
+import { pathExists, readFile, stat } from '../utils/fs.js';
 
 const INLINE_THRESHOLD_BYTES = 6 * 1024;
 

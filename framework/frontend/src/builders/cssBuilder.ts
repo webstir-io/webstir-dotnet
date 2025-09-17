@@ -2,13 +2,13 @@ import path from 'node:path';
 import postcss from 'postcss';
 import autoprefixer from 'autoprefixer';
 import csso from 'csso';
-import { FOLDERS, FILES, EXTENSIONS } from '../utils/constants.js';
+import { FOLDERS, FILES, EXTENSIONS } from '../core/constants.js';
 import { ensureDir, pathExists, readFile, writeFile } from '../utils/fs.js';
 import type { Builder, BuilderContext } from './types.js';
-import { getPages } from '../utils/pages.js';
+import { getPages } from '../core/pages.js';
 import { hashContent } from '../utils/hash.js';
-import { updatePageManifest } from '../utils/assetManifest.js';
-import { createCompressedVariants } from '../utils/precompression.js';
+import { updatePageManifest } from '../assets/assetManifest.js';
+import { createCompressedVariants } from '../assets/precompression.js';
 import { shouldProcess } from '../utils/changedFile.js';
 import { findPageFromChangedFile } from '../utils/pathMatch.js';
 

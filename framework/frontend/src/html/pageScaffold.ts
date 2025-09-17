@@ -1,6 +1,6 @@
 import path from 'node:path';
-import { FOLDERS, FILES, EXTENSIONS } from './constants.js';
-import { ensureDir, pathExists, writeFile } from './fs.js';
+import { FOLDERS, FILES, EXTENSIONS } from '../core/constants.js';
+import { ensureDir, pathExists, writeFile } from '../utils/fs.js';
 
 export interface PageScaffoldOptions {
     readonly workspaceRoot: string;

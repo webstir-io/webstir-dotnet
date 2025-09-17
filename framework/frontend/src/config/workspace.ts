@@ -1,6 +1,6 @@
 import path from 'path';
 import type { FrontendConfig } from '../types.js';
-import { FOLDERS } from './constants.js';
+import { FOLDERS } from '../core/constants.js';
 
 export function buildConfig(workspaceRoot: string): FrontendConfig {
     const srcRoot = path.join(workspaceRoot, FOLDERS.src);

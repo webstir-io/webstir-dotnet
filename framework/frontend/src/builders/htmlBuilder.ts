@@ -2,18 +2,18 @@ import path from 'node:path';
 import { load } from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 import { glob } from 'glob';
-import { FOLDERS, FILES, FILE_NAMES, EXTENSIONS } from '../utils/constants.js';
+import { FOLDERS, FILES, FILE_NAMES, EXTENSIONS } from '../core/constants.js';
 import { ensureDir, readFile, writeFile, pathExists } from '../utils/fs.js';
 import type { Builder, BuilderContext } from './types.js';
-import { getPageDirectories } from '../utils/pages.js';
-import { readPageManifest } from '../utils/assetManifest.js';
-import { createCompressedVariants } from '../utils/precompression.js';
+import { getPageDirectories } from '../core/pages.js';
+import { readPageManifest } from '../assets/assetManifest.js';
+import { createCompressedVariants } from '../assets/precompression.js';
 import { shouldProcess } from '../utils/changedFile.js';
-import { getImageDimensions } from '../utils/imageOptimizer.js';
-import { applyLazyLoading } from '../utils/lazyLoad.js';
-import { addSubresourceIntegrity } from '../utils/htmlSecurity.js';
-import { injectResourceHints } from '../utils/resourceHints.js';
-import { inlineCriticalCss } from '../utils/criticalCss.js';
+import { getImageDimensions } from '../assets/imageOptimizer.js';
+import { applyLazyLoading } from '../html/lazyLoad.js';
+import { addSubresourceIntegrity } from '../html/htmlSecurity.js';
+import { injectResourceHints } from '../html/resourceHints.js';
+import { inlineCriticalCss } from '../html/criticalCss.js';
 import { findPageFromChangedFile } from '../utils/pathMatch.js';
 
 export function createHtmlBuilder(context: BuilderContext): Builder {

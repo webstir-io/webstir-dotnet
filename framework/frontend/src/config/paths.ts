@@ -1,6 +1,6 @@
 import path from 'path';
 import { promises as fs } from 'fs';
-import { FOLDERS } from './constants.js';
+import { FOLDERS } from '../core/constants.js';
 
 export const FRONTEND_MANIFEST_FILENAME = 'frontend-manifest.json';
 

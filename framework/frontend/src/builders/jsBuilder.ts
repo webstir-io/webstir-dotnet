@@ -1,11 +1,11 @@
 import path from 'node:path';
 import { build as esbuild } from 'esbuild';
-import { FOLDERS, FILES, EXTENSIONS } from '../utils/constants.js';
+import { FOLDERS, FILES, EXTENSIONS } from '../core/constants.js';
 import type { Builder, BuilderContext } from './types.js';
-import { getPages } from '../utils/pages.js';
+import { getPages } from '../core/pages.js';
 import { ensureDir, pathExists, copy } from '../utils/fs.js';
-import { updatePageManifest } from '../utils/assetManifest.js';
-import { createCompressedVariants } from '../utils/precompression.js';
+import { updatePageManifest } from '../assets/assetManifest.js';
+import { createCompressedVariants } from '../assets/precompression.js';
 import { shouldProcess } from '../utils/changedFile.js';
 import { findPageFromChangedFile } from '../utils/pathMatch.js';
 

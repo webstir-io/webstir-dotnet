@@ -5,10 +5,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createStaticAssetsBuilder = createStaticAssetsBuilder;
 const node_path_1 = __importDefault(require("node:path"));
-const constants_js_1 = require("../utils/constants.js");
+const constants_js_1 = require("../core/constants.js");
 const fs_js_1 = require("../utils/fs.js");
 const changedFile_js_1 = require("../utils/changedFile.js");
-const imageOptimizer_js_1 = require("../utils/imageOptimizer.js");
+const imageOptimizer_js_1 = require("../assets/imageOptimizer.js");
 const pathMatch_js_1 = require("../utils/pathMatch.js");
 const IMAGE_EXTENSIONS = [
     constants_js_1.EXTENSIONS.png,

@@ -1,9 +1,9 @@
 import { writeConfigManifest } from './config/manifest.js';
 import type { AddPageCommandOptions, FrontendCommandOptions } from './types.js';
-import { buildConfig } from './utils/workspace.js';
-import { ensureToolsDirectory, resolveManifestPath } from './utils/manifest.js';
+import { buildConfig } from './config/workspace.js';
+import { ensureToolsDirectory, resolveManifestPath } from './config/paths.js';
 import { runPipeline } from './pipeline.js';
-import { createPageScaffold } from './utils/pageScaffold.js';
+import { createPageScaffold } from './html/pageScaffold.js';
 
 async function prepareConfig(workspaceRoot: string) {
     const config = buildConfig(workspaceRoot);

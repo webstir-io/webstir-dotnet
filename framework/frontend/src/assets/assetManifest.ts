@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { readJson, writeJson, ensureDir } from './fs.js';
+import { readJson, writeJson, ensureDir } from '../utils/fs.js';
 
 export interface PageAssetManifest {
     js?: string;

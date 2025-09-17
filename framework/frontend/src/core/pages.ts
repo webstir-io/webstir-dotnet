@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { glob } from 'glob';
-import { pathExists } from './fs.js';
+import { pathExists } from '../utils/fs.js';
 
 export interface PageInfo {
     readonly name: string;

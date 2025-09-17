@@ -1,5 +1,5 @@
 import type { CheerioAPI } from 'cheerio';
-import { FILES, FOLDERS, EXTENSIONS } from './constants.js';
+import { FILES, FOLDERS, EXTENSIONS } from '../core/constants.js';
 
 export interface ResourceHintResult {
     readonly added: number;

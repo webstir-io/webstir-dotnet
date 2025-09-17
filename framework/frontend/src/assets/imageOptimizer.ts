@@ -1,8 +1,8 @@
 import path from 'node:path';
 import sharp from 'sharp';
 import { glob } from 'glob';
-import { copy, ensureDir, emptyDir, pathExists, remove } from './fs.js';
-import { EXTENSIONS } from './constants.js';
+import { copy, ensureDir, emptyDir, pathExists, remove } from '../utils/fs.js';
+import { EXTENSIONS } from '../core/constants.js';
 
 const TRANSCODABLE_EXTENSIONS = new Set<string>([
     EXTENSIONS.png,
