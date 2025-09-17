@@ -38,7 +38,7 @@ public class WatchWorkflow(
         }
 
         IEnumerable<string> compiled = TestDiscovery.MapToCompiled(source, Context);
-        RunResult result = await TestRunner.RunAsync(compiled, CancellationToken.None);
+        RunResult result = await TestRunner.RunAsync(Context, compiled, CancellationToken.None);
 
         // Minimal inline summary for watch mode
         int passed = result.Passed;

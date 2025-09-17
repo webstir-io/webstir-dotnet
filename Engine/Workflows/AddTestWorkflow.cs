@@ -62,38 +62,31 @@ public sealed class AddTestWorkflow(AppWorkspace context,
             Console.WriteLine($"File already exists: {Path.GetRelativePath(Context.WorkingPath, targetFile)}");
         }
 
-        await EnsureTypesAsync();
+        await EnsurePackageAsync();
     }
 
-    private async Task EnsureTypesAsync()
+    private async Task EnsurePackageAsync()
     {
-        TypeEnsureResult result = await TestTypeRegistry.EnsureAsync(Context);
+        PackageEnsureResult result = await TestPackageInstaller.EnsureAsync(Context);
 
-        string typesFile = Context.WorkingPath
-            .Combine(Folders.Types, WebstirScopeFolder, TestModuleFolder, Files.Index + FileExtensions.Dts);
-
-        if (result.Migrated)
+        if (result.ToolsAdded)
         {
-            Console.WriteLine($"Migrated types: {Path.GetRelativePath(Context.WorkingPath, typesFile)}");
-        }
-        else if (result.Added)
-        {
-            Console.WriteLine($"Added types: {Path.GetRelativePath(Context.WorkingPath, typesFile)}");
-        }
-        else if (result.Updated)
-        {
-            Console.WriteLine($"Updated types: {Path.GetRelativePath(Context.WorkingPath, typesFile)}");
+            Console.WriteLine($"Added testing package archive: {Path.Combine(Folders.Tools, result.Metadata.FileName)}");
         }
 
-        string tsconfig = Context.WorkingPath.Combine(Files.BaseTsConfigJson);
-        if (await TestTypeRegistry.EnsureTsConfigAsync(Context))
+        if (result.DependencyUpdated)
         {
-            Console.WriteLine($"Updated {Files.BaseTsConfigJson} for @webstir/test");
+            Console.WriteLine($"Pinned @webstir/test to {result.Metadata.Dependency} in {Files.PackageJson}");
+        }
+
+        if (result.VersionMismatch)
+        {
+            string installed = string.IsNullOrWhiteSpace(result.InstalledVersion)
+                ? "not installed"
+                : $"{result.InstalledVersion}";
+            Console.WriteLine($"Warning: @webstir/test {installed} differs from packaged {result.Metadata.Version}. Run 'npm install' to refresh node_modules.");
         }
     }
-
-    private const string WebstirScopeFolder = "@webstir";
-    private const string TestModuleFolder = "test";
 
     private const string SampleTestContent = """
 const { test, assert } = require('@webstir/test') as typeof import('@webstir/test');

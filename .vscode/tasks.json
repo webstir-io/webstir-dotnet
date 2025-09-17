@@ -52,6 +52,21 @@
 				"--no-restore"
 			],
 			"problemMatcher": []
+		},
+		{
+			"label": "setup:framework-testing npm install",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"install"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/framework/testing"
+			},
+			"runOptions": {
+				"runOn": "folderOpen"
+			},
+			"problemMatcher": []
 		}
 	]
 }

@@ -2,38 +2,58 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Reflection;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Engine.Extensions;
 
 namespace Engine.Pipelines.Test;
 
 public sealed class TestRunner
 {
-    public static async Task<RunResult> RunAsync(IEnumerable<string> compiledFiles, CancellationToken cancellationToken)
+    public static async Task<RunResult> RunAsync(AppWorkspace workspace, IEnumerable<string> compiledFiles, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(workspace);
         ArgumentNullException.ThrowIfNull(compiledFiles);
 
         List<string> files = [.. compiledFiles];
         DateTimeOffset start = DateTimeOffset.UtcNow;
 
-        // Load embedded tester.js and write to a temp file
-        string tempFile = Path.ChangeExtension(Path.GetTempFileName(), FileExtensions.Js);
-        await File.WriteAllTextAsync(tempFile, GetEmbeddedTesterJs(), cancellationToken);
+        string runnerPath = workspace.WorkingPath.Combine(
+            Folders.NodeModules,
+            "@webstir",
+            "test",
+            "dist",
+            "cli.js");
+
+        if (!File.Exists(runnerPath))
+        {
+            TestResult single = new(
+                TestConstants.Messages.RunnerMissingTag,
+                runnerPath,
+                false,
+                TestConstants.Messages.RunnerMissingInstructions,
+                0);
+
+            return new RunResult(0, 1, 1, 0, [single]);
+        }
+
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = TestConstants.NodeExe,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = workspace.WorkingPath
+        };
+
+        startInfo.ArgumentList.Add(runnerPath);
 
         using Process proc = new()
         {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = TestConstants.NodeExe,
-                Arguments = tempFile,
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
+            StartInfo = startInfo
         };
 
         proc.Start();
@@ -50,7 +70,12 @@ public sealed class TestRunner
         if (string.IsNullOrWhiteSpace(output))
         {
             // If nothing returned, treat as a single failure with stderr message
-            TestResult single = new(TestConstants.Messages.RunnerErrorTag, string.Empty, false, string.IsNullOrWhiteSpace(error) ? TestConstants.Messages.RunnerNoOutput : error, 0);
+            TestResult single = new(
+                TestConstants.Messages.RunnerErrorTag,
+                string.Empty,
+                false,
+                string.IsNullOrWhiteSpace(error) ? TestConstants.Messages.RunnerNoOutput : error,
+                0);
             return new RunResult(0, 1, 1, (long)(DateTimeOffset.UtcNow - start).TotalMilliseconds, [single]);
         }
 
@@ -88,16 +113,6 @@ public sealed class TestRunner
     {
         IEnumerable<string> source = TestDiscovery.FindSourceTests(workspace);
         IEnumerable<string> compiled = TestDiscovery.MapToCompiled(source, workspace);
-        return await RunAsync(compiled, cancellationToken);
-    }
-
-    private static string GetEmbeddedTesterJs()
-    {
-        Assembly asm = Assembly.GetExecutingAssembly();
-        const string resourceName = TestConstants.TesterResource;
-        using Stream stream = asm.GetManifestResourceStream(resourceName)
-            ?? throw new InvalidOperationException($"Embedded tester not found: {resourceName}");
-        using StreamReader reader = new(stream);
-        return reader.ReadToEnd();
+        return await RunAsync(workspace, compiled, cancellationToken);
     }
 }

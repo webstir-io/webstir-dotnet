@@ -1,0 +1,6 @@
+{
+  "name": "@webstir/test",
+  "version": "0.1.0",
+  "fileName": "webstir-test-0-1-0.tgz",
+  "dependency": "file:./.tools/webstir-test-0-1-0.tgz"
+}

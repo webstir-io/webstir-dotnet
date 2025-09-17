@@ -27,7 +27,7 @@ public sealed class TestWorkflow(
         }
 
         IEnumerable<string> compiled = TestDiscovery.MapToCompiled(source, Context);
-        RunResult result = await TestRunner.RunAsync(compiled, CancellationToken.None);
+        RunResult result = await TestRunner.RunAsync(Context, compiled, CancellationToken.None);
         PrintResults(result);
 
         // Set a non-zero exit code when failures occur

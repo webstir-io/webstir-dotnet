@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "TypeScript type definitions for webstir project",
+  "description": "Webstir frontend defaults and tooling",
+  "dependencies": {
+    "@webstir/test": "file:./.tools/webstir-test-0-1-0.tgz"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "autoprefixer": "^10.4.20",

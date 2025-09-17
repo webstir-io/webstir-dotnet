@@ -85,4 +85,5 @@ public static class Resources
     public const string BackendPath = $"{SrcPath}.{Folders.Backend}";
     public const string SharedPath = $"{SrcPath}.{Folders.Shared}";
     public const string TypesPath = $"{Path}.types";
+    public const string ToolsPath = $"{Path}.tools";
 }

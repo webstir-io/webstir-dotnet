@@ -21,7 +21,6 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\**\*" />
-    <EmbeddedResource Include="Pipelines\Test\tester.js" />
   </ItemGroup>
 
   <ItemGroup>

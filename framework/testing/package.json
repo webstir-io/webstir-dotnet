@@ -1,0 +1,35 @@
+{
+  "name": "@webstir/test",
+  "version": "0.1.0",
+  "description": "Testing runtime and CLI for Webstir TypeScript projects.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "webstir-test-runner": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/electric/webstir"
+  },
+  "keywords": [
+    "webstir",
+    "test",
+    "cli"
+  ],
+  "author": "Webstir",
+  "devDependencies": {
+    "@types/node": "^20.11.25",
+    "typescript": "^5.4.0"
+  }
+}

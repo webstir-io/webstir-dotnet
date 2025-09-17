@@ -18,7 +18,7 @@ Scaffold a new `.test.ts` in the nearest `tests/` folder so it runs with the `te
 ## Steps
 1. Resolve target `tests/` folder.
 2. Create the file if it does not exist and write a minimal template that imports the `@webstir/test` helpers.
-3. Ensure it is picked up by the Node test runner.
+3. Ensure the local `@webstir/test` package archive and dependency entry exist so the Node test runner can execute.
 
 ## Outputs
 - New test file: `<resolved-tests-folder>/<name>.test.ts`.

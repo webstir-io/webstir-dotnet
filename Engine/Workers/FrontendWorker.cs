@@ -29,14 +29,25 @@ public partial class FrontendWorker(
         if (!string.IsNullOrEmpty(changedFilePath) && !BuildHelpers.ContainsBuildFolder(changedFilePath, Folders.Frontend))
             return;
 
+        PackageEnsureResult ensureResult = await TestPackageInstaller.EnsureAsync(workspace);
+
         string packageJsonPath = workspace.WorkingPath.Combine(Files.PackageJson);
         if (packageJsonPath.Exists())
         {
             NpmHelper.RunNpmInstall(workspace.WorkingPath);
+            ensureResult = await TestPackageInstaller.EnsureAsync(workspace);
         }
 
-        await TestTypeRegistry.EnsureAsync(workspace);
-        await TestTypeRegistry.EnsureTsConfigAsync(workspace);
+        if (ensureResult.VersionMismatch)
+        {
+            string installed = string.IsNullOrWhiteSpace(ensureResult.InstalledVersion)
+                ? "missing"
+                : ensureResult.InstalledVersion;
+            _logger.LogWarning(
+                "@webstir/test {InstalledVersion} detected but {ExpectedVersion} is bundled. Run npm install to refresh dependencies.",
+                installed,
+                ensureResult.Metadata.Version);
+        }
 
         await RunHandlersInOrderAsync(
             h => h.BuildOrder,
@@ -55,8 +66,18 @@ public partial class FrontendWorker(
             workspace.FrontendDistPath.Create();
         }
 
-        await TestTypeRegistry.EnsureAsync(workspace);
-        await TestTypeRegistry.EnsureTsConfigAsync(workspace);
+        PackageEnsureResult ensureResult = await TestPackageInstaller.EnsureAsync(workspace);
+
+        if (ensureResult.VersionMismatch)
+        {
+            string installed = string.IsNullOrWhiteSpace(ensureResult.InstalledVersion)
+                ? "missing"
+                : ensureResult.InstalledVersion;
+            _logger.LogWarning(
+                "@webstir/test {InstalledVersion} detected but {ExpectedVersion} is bundled. Run npm install to refresh dependencies.",
+                installed,
+                ensureResult.Metadata.Version);
+        }
 
         await RunHandlersInOrderAsync(
             h => h.PublishOrder,

@@ -44,6 +44,7 @@ public class InitWorkflow(
         ProjectMode mode = ParseProjectMode(args);
         await ResourceHelpers.CopyEmbeddedRootFilesAsync(Resources.Path, Context.WorkingPath);
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.TypesPath, Context.WorkingPath.Combine(Folders.Types));
+        await TestPackageInstaller.EnsureAsync(Context);
         await ExecuteWorkersAsync(async worker => await worker.InitAsync(mode), mode);
     }
 

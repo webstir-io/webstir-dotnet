@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text.Json;
 using Engine;
 
 using Tests.Framework;
@@ -37,8 +38,24 @@ public sealed class AddTestScaffoldsFile : ITestCase
         string expectedTest = Path.Combine(seedDir, Folders.Src, Folders.Frontend, Folders.Pages, Folders.Home, Folders.Tests, "home.test.ts");
         Assert.IsTrue(File.Exists(expectedTest), $"Test file not created at {expectedTest}");
 
-        // Verify ambient types package exists
-        string typesIndex = Path.Combine(seedDir, "types", "@webstir", "test", "index.d.ts");
-        Assert.IsTrue(File.Exists(typesIndex), "Ambient types not present at types/@webstir/test/index.d.ts");
+        // Verify testing package manifest + archive exist for offline installs
+        string manifestPath = Path.Combine(seedDir, Folders.Tools, "testing-package.json");
+        Assert.IsTrue(File.Exists(manifestPath), $"Test package manifest missing at {manifestPath}");
+
+        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
+        string archiveName = manifest.RootElement.GetProperty("fileName").GetString()
+            ?? throw new InvalidOperationException("Manifest missing fileName.");
+        string dependencyValue = manifest.RootElement.GetProperty("dependency").GetString()
+            ?? throw new InvalidOperationException("Manifest missing dependency string.");
+
+        string toolsArchive = Path.Combine(seedDir, Folders.Tools, archiveName);
+        Assert.IsTrue(File.Exists(toolsArchive), $"Testing package archive not found at {toolsArchive}");
+
+        // Verify package.json references the local archive dependency
+        string packageJsonPath = Path.Combine(seedDir, Files.PackageJson);
+        Assert.IsTrue(File.Exists(packageJsonPath), $"{Files.PackageJson} not found");
+
+        string packageJson = File.ReadAllText(packageJsonPath);
+        Assert.Contains($"\"@webstir/test\": \"{dependencyValue}\"", packageJson);
     }
 }

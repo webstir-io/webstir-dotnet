@@ -3,7 +3,6 @@ namespace Engine.Pipelines.Test;
 public static class TestConstants
 {
     public const string NodeExe = "node";
-    public const string TesterResource = "Engine.Pipelines.Test.tester.js";
 
     public static class JsonKeys
     {
@@ -22,5 +21,7 @@ public static class TestConstants
         public const string RunnerErrorTag = "[runner error]";
         public const string RunnerParseErrorTag = "[runner parse error]";
         public const string RunnerNoOutput = "No output from runner";
+        public const string RunnerMissingTag = "[runner missing]";
+        public const string RunnerMissingInstructions = "@webstir/test CLI not found. Run 'npm install' to restore dependencies.";
     }
 }
