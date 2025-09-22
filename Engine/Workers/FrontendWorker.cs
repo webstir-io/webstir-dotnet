@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using System.Text.Json;
 using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Interfaces;
@@ -18,6 +20,12 @@ public sealed class FrontendWorker(
     private readonly AppWorkspace _workspace = workspace;
     private readonly ILogger<FrontendWorker> _logger = logger;
 
+    private const string DiagnosticPrefix = "WEBSTIR_DIAGNOSTIC ";
+    private static readonly JsonSerializerOptions DiagnosticSerializerOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     public int BuildOrder => 1;
 
     public async Task InitAsync(ProjectMode mode) =>
@@ -26,7 +34,8 @@ public sealed class FrontendWorker(
     public async Task BuildAsync(string? changedFilePath = null)
     {
         await EnsurePackagesAsync();
-        await RunFrontendCliAsync("build", changedFilePath);
+        string command = string.IsNullOrWhiteSpace(changedFilePath) ? "build" : "rebuild";
+        await RunFrontendCliAsync(command, changedFilePath);
     }
 
     public async Task PublishAsync()
@@ -115,21 +124,12 @@ public sealed class FrontendWorker(
         }
 
 
-        using Process process = new() { StartInfo = psi };
-        process.OutputDataReceived += (_, args) =>
+        using Process process = new()
         {
-            if (!string.IsNullOrWhiteSpace(args.Data))
-            {
-                _logger.LogInformation("[frontend] {Line}", args.Data);
-            }
+            StartInfo = psi
         };
-        process.ErrorDataReceived += (_, args) =>
-        {
-            if (!string.IsNullOrWhiteSpace(args.Data))
-            {
-                _logger.LogWarning("[frontend] {Line}", args.Data);
-            }
-        };
+        process.OutputDataReceived += (_, args) => HandleCliOutput(args.Data, isError: false);
+        process.ErrorDataReceived += (_, args) => HandleCliOutput(args.Data, isError: true);
 
         process.Start();
         process.BeginOutputReadLine();
@@ -149,5 +149,114 @@ public sealed class FrontendWorker(
             ? "webstir-frontend.cmd"
             : "webstir-frontend";
         return Path.Combine(binDirectory, executable);
+    }
+
+    private void HandleCliOutput(string? line, bool isError)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+        {
+            return;
+        }
+
+        if (TryParseDiagnostic(line, out FrontendCliDiagnostic? diagnostic))
+        {
+            LogDiagnostic(diagnostic!);
+            return;
+        }
+
+        if (isError)
+        {
+            _logger.LogWarning("[frontend] {Line}", line);
+        }
+        else
+        {
+            _logger.LogInformation("[frontend] {Line}", line);
+        }
+    }
+
+    private void LogDiagnostic(FrontendCliDiagnostic diagnostic)
+    {
+        LogLevel level = diagnostic.Severity?.ToLowerInvariant() switch
+        {
+            "error" => LogLevel.Error,
+            "warning" => LogLevel.Warning,
+            _ => LogLevel.Information
+        };
+
+        string code = string.IsNullOrWhiteSpace(diagnostic.Code) ? diagnostic.Kind : diagnostic.Code;
+
+        if (diagnostic.Data is { Count: > 0 })
+        {
+            string serializedData = JsonSerializer.Serialize(diagnostic.Data, DiagnosticSerializerOptions);
+            if (string.IsNullOrWhiteSpace(diagnostic.Stage))
+            {
+                _logger.Log(level, "[frontend][{Code}] {Message} | data: {Data}", code, diagnostic.Message, serializedData);
+            }
+            else
+            {
+                _logger.Log(level, "[frontend][{Code}] {Message} (stage: {Stage}) | data: {Data}", code, diagnostic.Message, diagnostic.Stage, serializedData);
+            }
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(diagnostic.Stage))
+            {
+                _logger.Log(level, "[frontend][{Code}] {Message}", code, diagnostic.Message);
+            }
+            else
+            {
+                _logger.Log(level, "[frontend][{Code}] {Message} (stage: {Stage})", code, diagnostic.Message, diagnostic.Stage);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(diagnostic.Suggestion))
+        {
+            _logger.Log(level, "[frontend][{Code}] Suggestion: {Suggestion}", code, diagnostic.Suggestion);
+        }
+    }
+
+    private static bool TryParseDiagnostic(string line, out FrontendCliDiagnostic? diagnostic)
+    {
+        if (!line.StartsWith(DiagnosticPrefix, StringComparison.Ordinal))
+        {
+            diagnostic = null;
+            return false;
+        }
+
+        string json = line[DiagnosticPrefix.Length..];
+
+        try
+        {
+            diagnostic = JsonSerializer.Deserialize<FrontendCliDiagnostic>(json, DiagnosticSerializerOptions);
+            if (diagnostic is null)
+            {
+                return false;
+            }
+
+            return string.Equals(diagnostic.Type, "diagnostic", StringComparison.OrdinalIgnoreCase);
+        }
+        catch (JsonException)
+        {
+            diagnostic = null;
+            return false;
+        }
+    }
+
+    private sealed class FrontendCliDiagnostic
+    {
+        public string Type { get; init; } = string.Empty;
+        public string Code { get; init; } = string.Empty;
+        public string Kind { get; init; } = string.Empty;
+        public string Stage { get; init; } = string.Empty;
+        public string Severity { get; init; } = string.Empty;
+        public string Message { get; init; } = string.Empty;
+        public Dictionary<string, JsonElement>? Data
+        {
+            get; init;
+        }
+        public string? Suggestion
+        {
+            get; init;
+        }
     }
 }

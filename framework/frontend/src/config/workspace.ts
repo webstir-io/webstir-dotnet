@@ -1,6 +1,14 @@
+import fs from 'node:fs';
 import path from 'path';
-import type { FrontendConfig } from '../types.js';
+import type { FrontendConfig, FrontendFeatureFlags } from '../types.js';
 import { FOLDERS } from '../core/constants.js';
+import { frontendFeatureFlagsSchema } from './schema.js';
+
+const DEFAULT_FEATURE_FLAGS: FrontendFeatureFlags = {
+    htmlSecurity: true,
+    imageOptimization: true,
+    precompression: true
+};
 
 export function buildConfig(workspaceRoot: string): FrontendConfig {
     const srcRoot = path.join(workspaceRoot, FOLDERS.src);
@@ -43,10 +51,39 @@ export function buildConfig(workspaceRoot: string): FrontendConfig {
                 media: path.join(distFrontend, FOLDERS.media)
             }
         },
-        features: {
-            htmlSecurity: true,
-            imageOptimization: true,
-            precompression: true
-        }
+        features: loadFeatureFlags(frontendRoot)
     };
+}
+
+function loadFeatureFlags(frontendRoot: string): FrontendFeatureFlags {
+    const configPath = path.join(frontendRoot, 'frontend.config.json');
+    if (!fs.existsSync(configPath)) {
+        return DEFAULT_FEATURE_FLAGS;
+    }
+
+    try {
+        const raw = fs.readFileSync(configPath, 'utf8');
+        const parsed = JSON.parse(raw) as unknown;
+        const overridesSource = extractOverrideSource(parsed);
+        const overrides = frontendFeatureFlagsSchema.parse(overridesSource);
+        return {
+            htmlSecurity: overrides.htmlSecurity,
+            imageOptimization: overrides.imageOptimization,
+            precompression: overrides.precompression
+        };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to read frontend feature flags from ${configPath}: ${message}`);
+    }
+}
+
+function extractOverrideSource(value: unknown): Record<string, unknown> {
+    if (value && typeof value === 'object' && 'features' in (value as Record<string, unknown>)) {
+        const container = (value as Record<string, unknown>).features;
+        if (container && typeof container === 'object') {
+            return container as Record<string, unknown>;
+        }
+    }
+
+    return (value && typeof value === 'object') ? value as Record<string, unknown> : {};
 }

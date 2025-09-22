@@ -3,7 +3,7 @@ import { build as esbuild } from 'esbuild';
 import { FOLDERS, FILES, EXTENSIONS } from '../core/constants.js';
 import type { Builder, BuilderContext } from './types.js';
 import { getPages } from '../core/pages.js';
-import { ensureDir, pathExists, copy } from '../utils/fs.js';
+import { ensureDir, pathExists, copy, remove } from '../utils/fs.js';
 import { updatePageManifest } from '../assets/assetManifest.js';
 import { createCompressedVariants } from '../assets/precompression.js';
 import { shouldProcess } from '../utils/changedFile.js';
@@ -99,7 +99,14 @@ async function buildForProduction(config: BuilderContext['config'], pageName: st
 
     const fileName = path.basename(scriptPath);
     const absolutePath = path.join(outputDir, fileName);
-    await createCompressedVariants(absolutePath);
+    if (config.features.precompression) {
+        await createCompressedVariants(absolutePath);
+    } else {
+        await Promise.all([
+            remove(`${absolutePath}${EXTENSIONS.br}`).catch(() => undefined),
+            remove(`${absolutePath}${EXTENSIONS.gz}`).catch(() => undefined)
+        ]);
+    }
     await updatePageManifest(outputDir, pageName, (manifest) => {
         manifest.js = fileName;
     });

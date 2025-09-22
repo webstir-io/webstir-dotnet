@@ -93,7 +93,15 @@ async function buildForProduction(config, pageName, entryPoint) {
     }
     const fileName = node_path_1.default.basename(scriptPath);
     const absolutePath = node_path_1.default.join(outputDir, fileName);
-    await (0, precompression_js_1.createCompressedVariants)(absolutePath);
+    if (config.features.precompression) {
+        await (0, precompression_js_1.createCompressedVariants)(absolutePath);
+    }
+    else {
+        await Promise.all([
+            (0, fs_js_1.remove)(`${absolutePath}${constants_js_1.EXTENSIONS.br}`).catch(() => undefined),
+            (0, fs_js_1.remove)(`${absolutePath}${constants_js_1.EXTENSIONS.gz}`).catch(() => undefined)
+        ]);
+    }
     await (0, assetManifest_js_1.updatePageManifest)(outputDir, pageName, (manifest) => {
         manifest.js = fileName;
     });

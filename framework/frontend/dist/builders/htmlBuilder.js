@@ -19,6 +19,7 @@ const htmlSecurity_js_1 = require("../html/htmlSecurity.js");
 const resourceHints_js_1 = require("../html/resourceHints.js");
 const criticalCss_js_1 = require("../html/criticalCss.js");
 const pathMatch_js_1 = require("../utils/pathMatch.js");
+const diagnostics_js_1 = require("../core/diagnostics.js");
 function createHtmlBuilder(context) {
     return {
         name: 'html',
@@ -101,7 +102,7 @@ async function publishHtml(context) {
             const rewritten = await rewriteForPublish(context, html, page.name, manifest, page.directory);
             const outputPath = node_path_1.default.join(distDir, node_path_1.default.basename(relativeHtml));
             await (0, fs_js_1.writeFile)(outputPath, rewritten);
-            await (0, precompression_js_1.createCompressedVariants)(outputPath);
+            await handlePrecompression(context, outputPath);
         }
     }
 }
@@ -138,19 +139,50 @@ async function rewriteForPublish(context, html, pageName, manifest, pageDirector
         document(selector).attr('href', `/${constants_js_1.FOLDERS.pages}/${pageName}/${manifest.css}`);
     }
     (0, lazyLoad_js_1.applyLazyLoading)(document);
-    await addImageDimensions(document, context, pageDirectory);
-    await (0, criticalCss_js_1.inlineCriticalCss)(document, pageName, context.config.paths.dist.frontend, manifest.css);
-    const sriResult = await (0, htmlSecurity_js_1.addSubresourceIntegrity)(document);
-    if (sriResult.failures.length > 0) {
-        for (const failure of sriResult.failures) {
-            warn(`Failed to compute subresource integrity for ${failure}`);
+    if (context.config.features.imageOptimization) {
+        await addImageDimensions(document, context, pageDirectory);
+    }
+    if (context.config.features.htmlSecurity) {
+        await (0, criticalCss_js_1.inlineCriticalCss)(document, pageName, context.config.paths.dist.frontend, manifest.css);
+        const sriResult = await (0, htmlSecurity_js_1.addSubresourceIntegrity)(document);
+        if (sriResult.failures.length > 0) {
+            const resources = sriResult.failures;
+            const message = resources.length === 1
+                ? `Failed to compute subresource integrity for ${resources[0]}.`
+                : `Failed to compute subresource integrity for ${resources.length} resources.`;
+            (0, diagnostics_js_1.emitDiagnostic)({
+                code: 'frontend.sri.unresolved',
+                kind: 'sri',
+                stage: 'html.publish',
+                severity: 'warning',
+                message,
+                data: { resources },
+                suggestion: 'Verify the resource is reachable and not blocked by auth or network constraints.'
+            });
+        }
+        const hints = (0, resourceHints_js_1.injectResourceHints)(document, pageName);
+        if (hints.missingHead) {
+            (0, diagnostics_js_1.emitDiagnostic)({
+                code: 'frontend.resourceHints.missingHead',
+                kind: 'resource-hints',
+                stage: 'html.publish',
+                severity: 'warning',
+                message: 'Unable to inject resource hints because <head> is missing.',
+                data: { candidates: hints.candidates }
+            });
         }
     }
-    const hints = (0, resourceHints_js_1.injectResourceHints)(document, pageName);
-    if (hints.missingHead) {
-        warn('Unable to inject resource hints because <head> is missing.');
-    }
     return document.root().html() ?? '';
+}
+async function handlePrecompression(context, outputPath) {
+    if (context.config.features.precompression) {
+        await (0, precompression_js_1.createCompressedVariants)(outputPath);
+        return;
+    }
+    await Promise.all([
+        (0, fs_js_1.remove)(`${outputPath}${constants_js_1.EXTENSIONS.br}`).catch(() => undefined),
+        (0, fs_js_1.remove)(`${outputPath}${constants_js_1.EXTENSIONS.gz}`).catch(() => undefined)
+    ]);
 }
 function validateAppTemplate(html, filePath) {
     const doc = (0, cheerio_1.load)(html);

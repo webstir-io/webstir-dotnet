@@ -72,7 +72,13 @@ async function copyStaticAssets(context, isProduction) {
             if (isProduction) {
                 const distDestination = node_path_1.default.join(target.dist, target.folder);
                 if (target.folder === constants_js_1.FOLDERS.images) {
-                    await (0, imageOptimizer_js_1.optimizeImages)(buildDestination, distDestination);
+                    if (config.features.imageOptimization) {
+                        await (0, imageOptimizer_js_1.optimizeImages)(buildDestination, distDestination);
+                    }
+                    else {
+                        await (0, fs_js_1.emptyDir)(distDestination);
+                        await (0, fs_js_1.copy)(buildDestination, distDestination);
+                    }
                 }
                 else {
                     await (0, fs_js_1.emptyDir)(distDestination);
@@ -85,7 +91,12 @@ async function copyStaticAssets(context, isProduction) {
         if (isProduction) {
             const distDestination = node_path_1.default.join(target.dist, target.folder);
             if (target.folder === constants_js_1.FOLDERS.images) {
-                await (0, imageOptimizer_js_1.optimizeImages)(buildDestination, distDestination, [changedRelative]);
+                if (config.features.imageOptimization) {
+                    await (0, imageOptimizer_js_1.optimizeImages)(buildDestination, distDestination, [changedRelative]);
+                }
+                else {
+                    await syncImageWithoutOptimization(buildDestination, distDestination, changedRelative);
+                }
             }
             else {
                 const sourcePath = node_path_1.default.join(target.source, changedRelative);
@@ -111,4 +122,19 @@ async function copySingleAsset(sourceRoot, buildRoot, relativePath) {
     else {
         await (0, fs_js_1.remove)(destinationPath).catch(() => undefined);
     }
+}
+async function syncImageWithoutOptimization(buildRoot, distRoot, relativePath) {
+    const sourcePath = node_path_1.default.join(buildRoot, relativePath);
+    const destinationPath = node_path_1.default.join(distRoot, relativePath);
+    if (await (0, fs_js_1.pathExists)(sourcePath)) {
+        await (0, fs_js_1.ensureDir)(node_path_1.default.dirname(destinationPath));
+        await (0, fs_js_1.copy)(sourcePath, destinationPath);
+    }
+    else {
+        await (0, fs_js_1.remove)(destinationPath).catch(() => undefined);
+    }
+    await Promise.all([
+        (0, fs_js_1.remove)(`${destinationPath}${constants_js_1.EXTENSIONS.webp}`).catch(() => undefined),
+        (0, fs_js_1.remove)(`${destinationPath}${constants_js_1.EXTENSIONS.avif}`).catch(() => undefined)
+    ]);
 }

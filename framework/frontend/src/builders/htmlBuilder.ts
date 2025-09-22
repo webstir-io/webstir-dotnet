@@ -3,7 +3,7 @@ import { load } from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 import { glob } from 'glob';
 import { FOLDERS, FILES, FILE_NAMES, EXTENSIONS } from '../core/constants.js';
-import { ensureDir, readFile, writeFile, pathExists } from '../utils/fs.js';
+import { ensureDir, readFile, writeFile, pathExists, remove } from '../utils/fs.js';
 import type { Builder, BuilderContext } from './types.js';
 import { getPageDirectories } from '../core/pages.js';
 import { readPageManifest } from '../assets/assetManifest.js';
@@ -15,6 +15,7 @@ import { addSubresourceIntegrity } from '../html/htmlSecurity.js';
 import { injectResourceHints } from '../html/resourceHints.js';
 import { inlineCriticalCss } from '../html/criticalCss.js';
 import { findPageFromChangedFile } from '../utils/pathMatch.js';
+import { emitDiagnostic } from '../core/diagnostics.js';
 
 export function createHtmlBuilder(context: BuilderContext): Builder {
     return {
@@ -114,7 +115,7 @@ async function publishHtml(context: BuilderContext): Promise<void> {
             const rewritten = await rewriteForPublish(context, html, page.name, manifest, page.directory);
             const outputPath = path.join(distDir, path.basename(relativeHtml));
             await writeFile(outputPath, rewritten);
-            await createCompressedVariants(outputPath);
+            await handlePrecompression(context, outputPath);
         }
     }
 }
@@ -167,20 +168,56 @@ async function rewriteForPublish(
     }
 
     applyLazyLoading(document);
-    await addImageDimensions(document, context, pageDirectory);
-    await inlineCriticalCss(document, pageName, context.config.paths.dist.frontend, manifest.css);
-    const sriResult = await addSubresourceIntegrity(document);
-    if (sriResult.failures.length > 0) {
-        for (const failure of sriResult.failures) {
-            warn(`Failed to compute subresource integrity for ${failure}`);
-        }
+
+    if (context.config.features.imageOptimization) {
+        await addImageDimensions(document, context, pageDirectory);
     }
-    const hints = injectResourceHints(document, pageName);
-    if (hints.missingHead) {
-        warn('Unable to inject resource hints because <head> is missing.');
+
+    if (context.config.features.htmlSecurity) {
+        await inlineCriticalCss(document, pageName, context.config.paths.dist.frontend, manifest.css);
+        const sriResult = await addSubresourceIntegrity(document);
+        if (sriResult.failures.length > 0) {
+            const resources = sriResult.failures;
+            const message = resources.length === 1
+                ? `Failed to compute subresource integrity for ${resources[0]}.`
+                : `Failed to compute subresource integrity for ${resources.length} resources.`;
+            emitDiagnostic({
+                code: 'frontend.sri.unresolved',
+                kind: 'sri',
+                stage: 'html.publish',
+                severity: 'warning',
+                message,
+                data: { resources },
+                suggestion: 'Verify the resource is reachable and not blocked by auth or network constraints.'
+            });
+        }
+
+        const hints = injectResourceHints(document, pageName);
+        if (hints.missingHead) {
+            emitDiagnostic({
+                code: 'frontend.resourceHints.missingHead',
+                kind: 'resource-hints',
+                stage: 'html.publish',
+                severity: 'warning',
+                message: 'Unable to inject resource hints because <head> is missing.',
+                data: { candidates: hints.candidates }
+            });
+        }
     }
 
     return document.root().html() ?? '';
+}
+
+async function handlePrecompression(context: BuilderContext, outputPath: string): Promise<void> {
+    if (context.config.features.precompression) {
+        await createCompressedVariants(outputPath);
+        return;
+    }
+
+    await Promise.all([
+        remove(`${outputPath}${EXTENSIONS.br}`).catch(() => undefined),
+        remove(`${outputPath}${EXTENSIONS.gz}`).catch(() => undefined)
+    ]);
 }
 
 function validateAppTemplate(html: string, filePath: string): void {

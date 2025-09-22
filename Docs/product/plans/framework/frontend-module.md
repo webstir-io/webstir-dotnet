@@ -54,10 +54,9 @@ Document the concrete work packages required to stand up the `framework/frontend
 - ✅ CLI commands (`build`, `publish`, `rebuild`) now emit the workspace manifest and run the TypeScript pipeline with duration logging.
 
 ### Remaining Parity Gaps
-- ❌ Remaining HTML hardening: hook SRI/resource-hint failures into structured diagnostics and allow configuration overrides.
-- ❌ Static asset copies remain coarse-grained; per-file incremental support is still TODO.
-- ❌ Dev server integration and .NET bridge replacement remain open (Phase 2 task 2).
-- ❌ Node-side tests and CI hooks still need to be authored.
+- ✅ Structured diagnostics & configuration now emit JSON diagnostics from the TypeScript CLI and load feature toggles from `frontend.config.json`.
+- ✅ Dev server integration uses the TypeScript CLI `rebuild` command from the .NET watch loop, preserving structured logging.
+- ✅ Node-side test coverage and CI hooks ship with `npm test` (node --test) and run via `utilities/format-build.sh`.
 
 ## Open Questions
 - Do we keep optional third-party CLI tools (cwebp/avifenc) or vendor Node-only fallbacks?

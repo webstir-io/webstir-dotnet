@@ -77,7 +77,12 @@ async function copyStaticAssets(context: BuilderContext, isProduction: boolean):
             if (isProduction) {
                 const distDestination = path.join(target.dist, target.folder);
                 if (target.folder === FOLDERS.images) {
-                    await optimizeImages(buildDestination, distDestination);
+                    if (config.features.imageOptimization) {
+                        await optimizeImages(buildDestination, distDestination);
+                    } else {
+                        await emptyDir(distDestination);
+                        await copy(buildDestination, distDestination);
+                    }
                 } else {
                     await emptyDir(distDestination);
                     await copy(buildDestination, distDestination);
@@ -91,7 +96,11 @@ async function copyStaticAssets(context: BuilderContext, isProduction: boolean):
         if (isProduction) {
             const distDestination = path.join(target.dist, target.folder);
             if (target.folder === FOLDERS.images) {
-                await optimizeImages(buildDestination, distDestination, [changedRelative]);
+                if (config.features.imageOptimization) {
+                    await optimizeImages(buildDestination, distDestination, [changedRelative]);
+                } else {
+                    await syncImageWithoutOptimization(buildDestination, distDestination, changedRelative);
+                }
             } else {
                 const sourcePath = path.join(target.source, changedRelative);
                 const destPath = path.join(distDestination, changedRelative);
@@ -116,4 +125,21 @@ async function copySingleAsset(sourceRoot: string, buildRoot: string, relativePa
     } else {
         await remove(destinationPath).catch(() => undefined);
     }
+}
+
+async function syncImageWithoutOptimization(buildRoot: string, distRoot: string, relativePath: string): Promise<void> {
+    const sourcePath = path.join(buildRoot, relativePath);
+    const destinationPath = path.join(distRoot, relativePath);
+
+    if (await pathExists(sourcePath)) {
+        await ensureDir(path.dirname(destinationPath));
+        await copy(sourcePath, destinationPath);
+    } else {
+        await remove(destinationPath).catch(() => undefined);
+    }
+
+    await Promise.all([
+        remove(`${destinationPath}${EXTENSIONS.webp}`).catch(() => undefined),
+        remove(`${destinationPath}${EXTENSIONS.avif}`).catch(() => undefined)
+    ]);
 }

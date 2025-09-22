@@ -3,7 +3,7 @@ import postcss from 'postcss';
 import autoprefixer from 'autoprefixer';
 import csso from 'csso';
 import { FOLDERS, FILES, EXTENSIONS } from '../core/constants.js';
-import { ensureDir, pathExists, readFile, writeFile } from '../utils/fs.js';
+import { ensureDir, pathExists, readFile, writeFile, remove } from '../utils/fs.js';
 import type { Builder, BuilderContext } from './types.js';
 import { getPages } from '../core/pages.js';
 import { hashContent } from '../utils/hash.js';
@@ -74,7 +74,14 @@ async function emitProductionCss(config: BuilderContext['config'], pageName: str
     await ensureDir(outputDir);
     const outputPath = path.join(outputDir, fileName);
     await writeFile(outputPath, minified);
-    await createCompressedVariants(outputPath);
+    if (config.features.precompression) {
+        await createCompressedVariants(outputPath);
+    } else {
+        await Promise.all([
+            remove(`${outputPath}${EXTENSIONS.br}`).catch(() => undefined),
+            remove(`${outputPath}${EXTENSIONS.gz}`).catch(() => undefined)
+        ]);
+    }
     await updatePageManifest(outputDir, pageName, (manifest) => {
         manifest.css = fileName;
     });

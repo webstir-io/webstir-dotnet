@@ -86,7 +86,10 @@ public sealed class AddTestWorkflow(AppWorkspace context,
         psi.ArgumentList.Add("--workspace");
         psi.ArgumentList.Add(Context.WorkingPath);
 
-        using Process process = new() { StartInfo = psi };
+        using Process process = new()
+        {
+            StartInfo = psi
+        };
         process.OutputDataReceived += (_, args) =>
         {
             if (!string.IsNullOrWhiteSpace(args.Data))

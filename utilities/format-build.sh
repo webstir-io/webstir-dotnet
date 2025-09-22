@@ -18,4 +18,9 @@ dotnet format whitespace --no-restore --verify-no-changes || true
 echo "Building solution..."
 dotnet build Webstir.sln -v minimal
 
+echo "Running frontend package tests..."
+pushd "$ROOT_DIR/framework/frontend" > /dev/null
+npm test
+popd > /dev/null
+
 echo "Done."
