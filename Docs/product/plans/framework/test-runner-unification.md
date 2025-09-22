@@ -5,8 +5,8 @@ Fold the existing C#-based test discovery/runner (`Engine.Pipelines.Test`) into 
 
 ## Current State
 - The frontend build/publish flows already shell into `@webstir/frontend` and rely on the manifest for asset metadata.
-- Test workflows (`watch`, `test`) now ensure the bundled `@webstir/test` package and shell into the unified `webstir-test` CLI (backend execution remains a placeholder warning for future work).
-- The TypeScript CLI owns discovery, manifest generation, and frontend execution; backend integration is staged behind the JSON event stream.
+- Test workflows (`watch`, `test`) now ensure the bundled `@webstir/test` package and shell into the unified `webstir-test` CLI for both frontend and backend suites.
+- The TypeScript CLI owns discovery, manifest generation, and node-based execution for both runtimes while preserving the JSON event stream contract for future host specialization.
 
 ## Workstreams
 
@@ -21,7 +21,7 @@ Fold the existing C#-based test discovery/runner (`Engine.Pipelines.Test`) into 
 ### 3. Execution Engine
 - Implement runners for:
   - Frontend: execute compiled JS bundles via Node with structured diagnostics (reuse the existing harness assertions).
-  - Backend: spawn the existing .NET test host (`dotnet run --project Tests -- test <suite>`) or build a dedicated lightweight host; capture stdout/stderr and exit codes. (Tracked for a future iteration; the CLI currently surfaces a skip warning for backend manifests.)
+  - Backend: execute compiled backend JS with the same Node harness while keeping the hook points ready for a future dedicated host.
 - Emit a unified JSON event stream (start, pass, fail, diagnostics) for the .NET bridge to relay without parsing text.
 
 ### 4. .NET Bridge Simplification
@@ -38,7 +38,7 @@ Fold the existing C#-based test discovery/runner (`Engine.Pipelines.Test`) into 
 - **Developer adoption** – Provide transitional aliases (`webstir test` in .NET still works) that simply call the new CLI so scripts don’t break.
 
 ## Validation Checklist
-- [x] `webstir-test` CLI discovers both frontend and backend tests from a clean workspace (backend modules currently emit a skip warning until the host is ported).
+- [x] `webstir-test` CLI discovers both frontend and backend tests from a clean workspace and executes them through the unified node runner.
 - [x] `webstir-test watch` reuses change detection and emits pass/fail summaries matching current behavior.
 - [x] `TestWorkflow` and `WatchWorkflow` compile without referencing `Engine.Pipelines.Test` and shell only into the new CLI.
 - [x] Embedded tarball hashes updated (`frontend-package.json`, `testing-package.json`) and `dotnet run --project Tests` passes using the new runner.

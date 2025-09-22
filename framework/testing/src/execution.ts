@@ -18,8 +18,8 @@ export async function executeRun(runId: string, manifest: TestManifest): Promise
   const byRuntime = groupModulesByRuntime(manifest.modules);
 
   for (const [runtime, modules] of byRuntime) {
-    if (runtime === 'frontend') {
-      const summary = await runFrontendModules(runId, runtime, modules);
+    if (runtime === 'frontend' || runtime === 'backend') {
+      const summary = await runNodeModules(runId, runtime, modules);
       accumulator = mergeSummaries(accumulator, summary);
       continue;
     }
@@ -28,7 +28,7 @@ export async function executeRun(runId: string, manifest: TestManifest): Promise
       type: 'log',
       runId,
       level: 'warn',
-      message: `Skipping ${modules.length} backend test${modules.length === 1 ? '' : 's'} (runner not yet implemented).`,
+      message: `Skipping ${modules.length} test${modules.length === 1 ? '' : 's'} for unsupported runtime '${runtime}'.`,
     };
     emitEvent(skipped);
   }
@@ -50,7 +50,7 @@ function groupModulesByRuntime(modules: readonly TestModule[]): Map<TestRuntime,
   return result;
 }
 
-async function runFrontendModules(runId: string, runtime: TestRuntime, modules: readonly TestModule[]): Promise<RunnerSummary> {
+async function runNodeModules(runId: string, runtime: TestRuntime, modules: readonly TestModule[]): Promise<RunnerSummary> {
   const files: string[] = [];
   const moduleByPath = new Map<string, TestModule>();
 

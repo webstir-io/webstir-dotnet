@@ -102,10 +102,6 @@ function inferRuntime(relativePath: string): TestRuntime {
 }
 
 function computeCompiledPath(workspaceRoot: string, relativeToSrc: string, runtime: TestRuntime): string | null {
-  if (runtime === 'backend') {
-    return null;
-  }
-
   const buildRoot = path.join(workspaceRoot, BUILD_FOLDER);
   const compiledRelative = replaceExtension(relativeToSrc, '.js');
   return path.join(buildRoot, compiledRelative);

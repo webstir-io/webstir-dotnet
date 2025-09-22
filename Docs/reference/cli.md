@@ -65,7 +65,7 @@ Usage: `webstir test`
 
 What it does:
 - Builds the project, ensures the bundled `@webstir/test` tools are installed, then shells into the `webstir-test` TypeScript CLI.
-- Executes compiled frontend tests today and lays groundwork for backend suites.
+- Executes compiled frontend and backend tests, emitting structured events the .NET bridge relays.
 - Prints a pass/fail summary; integrates with CI using standard exit codes.
 
 ### publish

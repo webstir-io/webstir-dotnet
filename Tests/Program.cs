@@ -13,6 +13,7 @@ using InitWorkflowTests = Tests.Workflows.Init.InitTests;
 using PublishWorkflowTests = Tests.Workflows.Publish.PublishTests;
 using WatchWorkflowTests = Tests.Workflows.Watch.WatchTests;
 using AddWorkflowTests = Tests.Workflows.Add.AddTests;
+using TestWorkflowTests = Tests.Workflows.Test.TestTests;
 
 namespace Tests;
 
@@ -150,6 +151,7 @@ public class Program
         services.AddTransient<ITestSuite, HelpWorkflowTests>();
         services.AddTransient<ITestSuite, AddWorkflowTests>();
         services.AddTransient<ITestSuite, FrontendManifestTests>();
+        services.AddTransient<ITestSuite, TestWorkflowTests>();
 
         // Register test runner and output manager
         services.AddTransient<ITestRunner, TestRunner>();

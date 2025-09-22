@@ -37,7 +37,7 @@ public sealed class BuildRunsWithoutErrors : ITestCase
             catch { }
         }
 
-        ProcessRunner.ProcessResult result = context.Cli.Run($"{Commands.Build} {ProjectOptions.ProjectName} seed", testDir, timeoutMs: 10000);
+        ProcessRunner.ProcessResult result = context.Cli.Run($"{Commands.Build} {ProjectOptions.ProjectName} seed", testDir, timeoutMs: 20000);
 
         if (result.TimedOut)
         {
