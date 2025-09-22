@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Engine.Pipelines.Core.Utilities;
+namespace Engine.Frontend;
 
 public static class ContentSecurityPolicy
 {
@@ -28,4 +28,3 @@ public static class ContentSecurityPolicy
         return csp.ToString();
     }
 }
-

@@ -3,7 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Threading.Tasks;
 
-namespace Engine.Pipelines.Core.Utilities;
+namespace Engine.Frontend;
 
 public static class Precompression
 {

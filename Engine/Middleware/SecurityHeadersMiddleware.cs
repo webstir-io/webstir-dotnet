@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using Engine.Pipelines.Core.Utilities;
+using Engine.Frontend;
 using Microsoft.AspNetCore.Http;
 
 namespace Engine.Middleware;
@@ -28,4 +28,3 @@ public sealed class SecurityHeadersMiddleware(RequestDelegate next)
         await _next(context);
     }
 }
-

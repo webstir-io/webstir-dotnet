@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Engine.Pipelines.Core.Utilities;
+namespace Engine.Frontend;
 
 public static class SubresourceIntegrity
 {
@@ -42,4 +42,3 @@ public static class SubresourceIntegrity
         }
     }
 }
-

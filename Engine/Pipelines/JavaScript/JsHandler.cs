@@ -11,7 +11,7 @@ using Engine.Extensions;
 using Engine.Pipelines.Core;
 using Engine.Pipelines.Core.Esbuild;
 using Engine.Pipelines.Core.Interfaces;
-using Engine.Pipelines.Core.Utilities;
+using Engine.Frontend;
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Pipelines.JavaScript;

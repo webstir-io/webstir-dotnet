@@ -4,7 +4,7 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-using Engine.Pipelines.Core.Utilities;
+using Engine.Frontend;
 
 namespace Engine.Pipelines.Html;
 
