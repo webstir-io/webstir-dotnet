@@ -1,9 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.addSubresourceIntegrity = addSubresourceIntegrity;
-const node_crypto_1 = require("node:crypto");
+import { createHash } from 'node:crypto';
 const HTTP_TIMEOUT_MS = 5000;
-async function addSubresourceIntegrity(document) {
+export async function addSubresourceIntegrity(document) {
     const failures = [];
     await Promise.all([
         processScripts(document, failures),
@@ -63,7 +60,7 @@ async function fetchIntegrity(url) {
                 return null;
             }
             const arrayBuffer = await response.arrayBuffer();
-            const hash = (0, node_crypto_1.createHash)('sha384').update(Buffer.from(arrayBuffer)).digest('base64');
+            const hash = createHash('sha384').update(Buffer.from(arrayBuffer)).digest('base64');
             return `sha384-${hash}`;
         }
         finally {

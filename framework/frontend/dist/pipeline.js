@@ -1,16 +1,13 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.runPipeline = runPipeline;
-const node_perf_hooks_1 = require("node:perf_hooks");
-const index_js_1 = require("./builders/index.js");
-async function runPipeline(config, mode, options = {}) {
+import { performance } from 'node:perf_hooks';
+import { createBuilders } from './builders/index.js';
+export async function runPipeline(config, mode, options = {}) {
     const context = { config, changedFile: options.changedFile };
-    const builders = (0, index_js_1.createBuilders)(context);
+    const builders = createBuilders(context);
     if (builders.length === 0) {
         return;
     }
     for (const builder of builders) {
-        const start = node_perf_hooks_1.performance.now();
+        const start = performance.now();
         try {
             if (mode === 'build') {
                 await builder.build(context);
@@ -23,7 +20,7 @@ async function runPipeline(config, mode, options = {}) {
             throw wrapPipelineError(builder.name, mode, error);
         }
         finally {
-            const end = node_perf_hooks_1.performance.now();
+            const end = performance.now();
             const duration = end - start;
             console.info(`[webstir-frontend] ${mode}:${builder.name} completed in ${duration.toFixed(1)}ms`);
         }

@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.FILE_NAMES = exports.EXTENSIONS = exports.FILES = exports.FOLDERS = void 0;
-exports.FOLDERS = {
+export const FOLDERS = {
     src: 'src',
     build: 'build',
     dist: 'dist',
@@ -25,7 +22,7 @@ exports.FOLDERS = {
     demo: 'demo',
     temp: 'temp'
 };
-exports.FILES = {
+export const FILES = {
     packageJson: 'package.json',
     packageLockJson: 'package-lock.json',
     tsBuildInfo: '.tsbuildinfo',
@@ -37,7 +34,7 @@ exports.FILES = {
     refreshJs: 'refresh.js',
     robotsTxt: 'robots.txt'
 };
-exports.EXTENSIONS = {
+export const EXTENSIONS = {
     html: '.html',
     css: '.css',
     br: '.br',
@@ -67,6 +64,6 @@ exports.EXTENSIONS = {
     webm: '.webm',
     mov: '.mov'
 };
-exports.FILE_NAMES = {
+export const FILE_NAMES = {
     htmlAppTemplate: 'app.html'
 };

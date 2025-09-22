@@ -1,7 +1,7 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
+import test from 'node:test';
+import assert from 'node:assert/strict';
 
-const { emitDiagnostic, STRUCTURED_DIAGNOSTIC_PREFIX } = require('../dist/core/diagnostics.js');
+import { emitDiagnostic, STRUCTURED_DIAGNOSTIC_PREFIX } from '../dist/core/index.js';
 
 test('emitDiagnostic emits human-readable and structured output', () => {
     const originalLog = console.log;

@@ -1,37 +1,29 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.isInsideDirectory = isInsideDirectory;
-exports.findPageFromChangedFile = findPageFromChangedFile;
-exports.relativePathWithin = relativePathWithin;
-const node_path_1 = __importDefault(require("node:path"));
-function isInsideDirectory(filePath, directory) {
-    const resolvedFile = node_path_1.default.resolve(filePath);
-    const resolvedDirectory = node_path_1.default.resolve(directory);
-    const relative = node_path_1.default.relative(resolvedDirectory, resolvedFile);
-    return relative === '' || (!relative.startsWith('..') && !node_path_1.default.isAbsolute(relative));
+import path from 'node:path';
+export function isInsideDirectory(filePath, directory) {
+    const resolvedFile = path.resolve(filePath);
+    const resolvedDirectory = path.resolve(directory);
+    const relative = path.relative(resolvedDirectory, resolvedFile);
+    return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
 }
-function findPageFromChangedFile(changedFile, pagesRoot) {
+export function findPageFromChangedFile(changedFile, pagesRoot) {
     if (!changedFile) {
         return null;
     }
-    const resolvedChanged = node_path_1.default.resolve(changedFile);
-    const resolvedPagesRoot = node_path_1.default.resolve(pagesRoot);
+    const resolvedChanged = path.resolve(changedFile);
+    const resolvedPagesRoot = path.resolve(pagesRoot);
     if (!isInsideDirectory(resolvedChanged, resolvedPagesRoot)) {
         return null;
     }
-    const relative = node_path_1.default.relative(resolvedPagesRoot, resolvedChanged);
-    const segments = relative.split(node_path_1.default.sep);
+    const relative = path.relative(resolvedPagesRoot, resolvedChanged);
+    const segments = relative.split(path.sep);
     return segments.length > 0 && segments[0] ? segments[0] : null;
 }
-function relativePathWithin(filePath, directory) {
+export function relativePathWithin(filePath, directory) {
     if (!filePath) {
         return null;
     }
     if (!isInsideDirectory(filePath, directory)) {
         return null;
     }
-    return node_path_1.default.relative(node_path_1.default.resolve(directory), node_path_1.default.resolve(filePath));
+    return path.relative(path.resolve(directory), path.resolve(filePath));
 }

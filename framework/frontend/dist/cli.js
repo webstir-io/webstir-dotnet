@@ -1,9 +1,7 @@
 #!/usr/bin/env node
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const commander_1 = require("commander");
-const operations_js_1 = require("./operations.js");
-const program = new commander_1.Command();
+import { Command } from 'commander';
+import { runAddPage, runBuild, runPublish, runRebuild } from './operations.js';
+const program = new Command();
 program
     .name('webstir-frontend')
     .description('Webstir frontend build orchestrator');
@@ -14,7 +12,7 @@ program
     .option('-c, --changed-file <path>', 'Optional path filter for incremental builds')
     .action(async (cmd) => {
     try {
-        await (0, operations_js_1.runBuild)({
+        await runBuild({
             workspaceRoot: cmd.workspace,
             changedFile: cmd.changedFile ?? undefined
         });
@@ -29,7 +27,7 @@ program
     .requiredOption('-w, --workspace <path>', 'Absolute path to the workspace root')
     .action(async (cmd) => {
     try {
-        await (0, operations_js_1.runPublish)({ workspaceRoot: cmd.workspace });
+        await runPublish({ workspaceRoot: cmd.workspace });
     }
     catch (error) {
         handleError(error);
@@ -42,7 +40,7 @@ program
     .requiredOption('-c, --changed-file <path>', 'Path to the changed file triggering the rebuild')
     .action(async (cmd) => {
     try {
-        await (0, operations_js_1.runRebuild)({
+        await runRebuild({
             workspaceRoot: cmd.workspace,
             changedFile: cmd.changedFile ?? undefined
         });
@@ -57,7 +55,7 @@ program
     .requiredOption('-w, --workspace <path>', 'Absolute path to the workspace root')
     .action(async (name, cmd) => {
     try {
-        await (0, operations_js_1.runAddPage)({
+        await runAddPage({
             workspaceRoot: cmd.workspace,
             pageName: name
         });

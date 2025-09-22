@@ -2,8 +2,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-
-using Engine.Extensions;
 using System.Collections.Generic;
 using Engine.Helpers;
 using Engine.Interfaces;
@@ -33,6 +31,7 @@ public sealed class AddTestWorkflow(AppWorkspace context,
 
     private async Task EnsurePackageAsync()
     {
+        NodeRuntime.EnsureMinimumVersion();
         PackageEnsureResult result = await TestPackageInstaller.EnsureAsync(Context);
 
         if (result.ToolsAdded || result.DependencyUpdated || result.TarballUpdated)
@@ -66,6 +65,7 @@ public sealed class AddTestWorkflow(AppWorkspace context,
     }
     private async Task RunTestCliAsync(string name)
     {
+        NodeRuntime.EnsureMinimumVersion();
         string executable = GetExecutablePath();
         if (!File.Exists(executable))
         {

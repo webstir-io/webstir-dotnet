@@ -5,7 +5,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Text.Json;
-using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Models;
@@ -48,6 +47,7 @@ public sealed class FrontendWorker(
 
     private async Task EnsurePackagesAsync()
     {
+        NodeRuntime.EnsureMinimumVersion();
         FrontendPackageEnsureResult frontendResult = await FrontendPackageInstaller.EnsureAsync(_workspace);
         PackageEnsureResult testResult = await TestPackageInstaller.EnsureAsync(_workspace);
 
@@ -92,6 +92,7 @@ public sealed class FrontendWorker(
 
     private async Task RunFrontendCliAsync(string command, string? changedFile, params string[] extraArgs)
     {
+        NodeRuntime.EnsureMinimumVersion();
         string executable = GetExecutablePath();
         if (!File.Exists(executable))
         {

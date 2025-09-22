@@ -1,10 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.applyLazyLoading = applyLazyLoading;
 const DEFAULT_OPTIONS = {
     skip: 1
 };
-function applyLazyLoading(document, options = DEFAULT_OPTIONS) {
+export function applyLazyLoading(document, options = DEFAULT_OPTIONS) {
     const { skip } = options;
     let index = 0;
     document('img').each((_i, element) => {

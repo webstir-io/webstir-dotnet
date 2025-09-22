@@ -1,9 +1,32 @@
 {
   "name": "@webstir/frontend",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Frontend build and publish tooling for Webstir workspaces.",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js",
+      "default": "./dist/core/index.js"
+    },
+    "./builders": {
+      "types": "./dist/builders/index.d.ts",
+      "import": "./dist/builders/index.js",
+      "default": "./dist/builders/index.js"
+    },
+    "./cli": {
+      "import": "./dist/cli.js",
+      "default": "./dist/cli.js"
+    },
+    "./package.json": "./package.json"
+  },
   "bin": {
     "webstir-frontend": "dist/cli.js"
   },
@@ -16,7 +39,7 @@
     "dist"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "license": "MIT",
   "repository": {

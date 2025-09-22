@@ -1,6 +1,5 @@
 import { createReadStream, createWriteStream } from 'node:fs';
 import { constants as zlibConstants, createBrotliCompress, createGzip } from 'node:zlib';
-import path from 'node:path';
 
 export async function createCompressedVariants(filePath: string): Promise<void> {
     await Promise.all([

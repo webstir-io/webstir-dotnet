@@ -1,23 +1,17 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.createCssBuilder = createCssBuilder;
-const node_path_1 = __importDefault(require("node:path"));
-const postcss_1 = __importDefault(require("postcss"));
-const autoprefixer_1 = __importDefault(require("autoprefixer"));
-const csso_1 = __importDefault(require("csso"));
-const constants_js_1 = require("../core/constants.js");
-const fs_js_1 = require("../utils/fs.js");
-const pages_js_1 = require("../core/pages.js");
-const hash_js_1 = require("../utils/hash.js");
-const assetManifest_js_1 = require("../assets/assetManifest.js");
-const precompression_js_1 = require("../assets/precompression.js");
-const changedFile_js_1 = require("../utils/changedFile.js");
-const pathMatch_js_1 = require("../utils/pathMatch.js");
+import path from 'node:path';
+import postcss from 'postcss';
+import autoprefixer from 'autoprefixer';
+import csso from 'csso';
+import { FOLDERS, FILES, EXTENSIONS } from '../core/constants.js';
+import { ensureDir, pathExists, readFile, writeFile, remove } from '../utils/fs.js';
+import { getPages } from '../core/pages.js';
+import { hashContent } from '../utils/hash.js';
+import { updatePageManifest } from '../assets/assetManifest.js';
+import { createCompressedVariants } from '../assets/precompression.js';
+import { shouldProcess } from '../utils/changedFile.js';
+import { findPageFromChangedFile } from '../utils/pathMatch.js';
 const MODULE_SUFFIX = '.module';
-function createCssBuilder(context) {
+export function createCssBuilder(context) {
     return {
         name: 'css',
         async build() {
@@ -30,14 +24,14 @@ function createCssBuilder(context) {
 }
 async function processCss(context, isProduction) {
     const { config } = context;
-    if (!(0, changedFile_js_1.shouldProcess)(context, [
-        { directory: config.paths.src.pages, extensions: [constants_js_1.EXTENSIONS.css] },
-        { directory: config.paths.src.frontend, extensions: [constants_js_1.EXTENSIONS.css] }
+    if (!shouldProcess(context, [
+        { directory: config.paths.src.pages, extensions: [EXTENSIONS.css] },
+        { directory: config.paths.src.frontend, extensions: [EXTENSIONS.css] }
     ])) {
         return;
     }
-    const targetPage = (0, pathMatch_js_1.findPageFromChangedFile)(context.changedFile, config.paths.src.pages);
-    const pages = await (0, pages_js_1.getPages)(config.paths.src.pages);
+    const targetPage = findPageFromChangedFile(context.changedFile, config.paths.src.pages);
+    const pages = await getPages(config.paths.src.pages);
     for (const page of pages) {
         if (targetPage && page.name !== targetPage) {
             continue;
@@ -46,8 +40,8 @@ async function processCss(context, isProduction) {
         if (!entryPath) {
             continue;
         }
-        const css = await (0, fs_js_1.readFile)(entryPath);
-        const processor = (0, postcss_1.default)([autoprefixer_1.default]);
+        const css = await readFile(entryPath);
+        const processor = postcss([autoprefixer]);
         const processed = await processor.process(css, { from: entryPath, map: !isProduction ? { inline: true } : false });
         if (isProduction) {
             await emitProductionCss(config, page.name, processed.css);
@@ -58,39 +52,39 @@ async function processCss(context, isProduction) {
     }
 }
 async function emitDevelopmentCss(config, pageName, css) {
-    const outputDir = node_path_1.default.join(config.paths.build.frontend, constants_js_1.FOLDERS.pages, pageName);
-    await (0, fs_js_1.ensureDir)(outputDir);
-    const outputPath = node_path_1.default.join(outputDir, `${constants_js_1.FILES.index}${constants_js_1.EXTENSIONS.css}`);
-    await (0, fs_js_1.writeFile)(outputPath, css);
+    const outputDir = path.join(config.paths.build.frontend, FOLDERS.pages, pageName);
+    await ensureDir(outputDir);
+    const outputPath = path.join(outputDir, `${FILES.index}${EXTENSIONS.css}`);
+    await writeFile(outputPath, css);
 }
 async function emitProductionCss(config, pageName, css) {
-    const minified = csso_1.default.minify(css).css;
-    const hash = (0, hash_js_1.hashContent)(minified);
-    const fileName = `${constants_js_1.FILES.index}-${hash}${constants_js_1.EXTENSIONS.css}`;
-    const outputDir = node_path_1.default.join(config.paths.dist.frontend, constants_js_1.FOLDERS.pages, pageName);
-    await (0, fs_js_1.ensureDir)(outputDir);
-    const outputPath = node_path_1.default.join(outputDir, fileName);
-    await (0, fs_js_1.writeFile)(outputPath, minified);
+    const minified = csso.minify(css).css;
+    const hash = hashContent(minified);
+    const fileName = `${FILES.index}-${hash}${EXTENSIONS.css}`;
+    const outputDir = path.join(config.paths.dist.frontend, FOLDERS.pages, pageName);
+    await ensureDir(outputDir);
+    const outputPath = path.join(outputDir, fileName);
+    await writeFile(outputPath, minified);
     if (config.features.precompression) {
-        await (0, precompression_js_1.createCompressedVariants)(outputPath);
+        await createCompressedVariants(outputPath);
     }
     else {
         await Promise.all([
-            (0, fs_js_1.remove)(`${outputPath}${constants_js_1.EXTENSIONS.br}`).catch(() => undefined),
-            (0, fs_js_1.remove)(`${outputPath}${constants_js_1.EXTENSIONS.gz}`).catch(() => undefined)
+            remove(`${outputPath}${EXTENSIONS.br}`).catch(() => undefined),
+            remove(`${outputPath}${EXTENSIONS.gz}`).catch(() => undefined)
         ]);
     }
-    await (0, assetManifest_js_1.updatePageManifest)(outputDir, pageName, (manifest) => {
+    await updatePageManifest(outputDir, pageName, (manifest) => {
         manifest.css = fileName;
     });
 }
 async function resolveCssEntry(pageDirectory) {
-    const modulePath = node_path_1.default.join(pageDirectory, `${constants_js_1.FILES.index}${MODULE_SUFFIX}${constants_js_1.EXTENSIONS.css}`);
-    if (await (0, fs_js_1.pathExists)(modulePath)) {
+    const modulePath = path.join(pageDirectory, `${FILES.index}${MODULE_SUFFIX}${EXTENSIONS.css}`);
+    if (await pathExists(modulePath)) {
         return modulePath;
     }
-    const plainPath = node_path_1.default.join(pageDirectory, `${constants_js_1.FILES.index}${constants_js_1.EXTENSIONS.css}`);
-    if (await (0, fs_js_1.pathExists)(plainPath)) {
+    const plainPath = path.join(pageDirectory, `${FILES.index}${EXTENSIONS.css}`);
+    if (await pathExists(plainPath)) {
         return plainPath;
     }
     return null;

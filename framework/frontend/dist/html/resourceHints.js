@@ -1,8 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.injectResourceHints = injectResourceHints;
-const constants_js_1 = require("../core/constants.js");
-function injectResourceHints(document, currentPage) {
+import { FILES, FOLDERS, EXTENSIONS } from '../core/constants.js';
+export function injectResourceHints(document, currentPage) {
     const head = document('head').first();
     const pages = [...collectInternalPages(document, currentPage)];
     if (head.length === 0) {
@@ -16,7 +13,7 @@ function injectResourceHints(document, currentPage) {
         return { added: 0, candidates: [], missingHead: false };
     }
     for (const page of pages) {
-        const href = `/${constants_js_1.FOLDERS.pages}/${page}/${constants_js_1.FILES.index}${constants_js_1.EXTENSIONS.html}`;
+        const href = `/${FOLDERS.pages}/${page}/${FILES.index}${EXTENSIONS.html}`;
         head.append(`\n<link rel="prefetch" href="${href}" as="document">`);
     }
     return { added: pages.length, candidates: pages, missingHead: false };
@@ -48,8 +45,8 @@ function normalizePageName(href) {
     if (path.startsWith('/')) {
         path = path.slice(1);
     }
-    if (path.startsWith(`${constants_js_1.FOLDERS.pages}/`)) {
-        path = path.slice(constants_js_1.FOLDERS.pages.length + 1);
+    if (path.startsWith(`${FOLDERS.pages}/`)) {
+        path = path.slice(FOLDERS.pages.length + 1);
     }
     if (path.endsWith('/')) {
         path = path.slice(0, -1);

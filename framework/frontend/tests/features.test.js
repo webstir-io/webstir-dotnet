@@ -1,10 +1,10 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs/promises');
-const path = require('node:path');
-const os = require('node:os');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
 
-const { buildConfig } = require('../dist/config/workspace.js');
+import { buildConfig } from '../dist/config/workspace.js';
 
 async function createWorkspace(frontendConfig) {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'webstir-frontend-'));
@@ -61,4 +61,3 @@ test('buildConfig accepts top-level feature flags', async (t) => {
     assert.equal(config.features.imageOptimization, false);
     assert.equal(config.features.precompression, true);
 });
-

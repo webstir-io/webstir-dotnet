@@ -1,9 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.STRUCTURED_DIAGNOSTIC_PREFIX = void 0;
-exports.emitDiagnostic = emitDiagnostic;
-exports.STRUCTURED_DIAGNOSTIC_PREFIX = 'WEBSTIR_DIAGNOSTIC ';
-function emitDiagnostic(event) {
+export const STRUCTURED_DIAGNOSTIC_PREFIX = 'WEBSTIR_DIAGNOSTIC ';
+export function emitDiagnostic(event) {
     const payload = {
         type: 'diagnostic',
         ...event
@@ -21,5 +17,5 @@ function emitDiagnostic(event) {
             break;
     }
     const serialized = JSON.stringify(payload);
-    console.log(`${exports.STRUCTURED_DIAGNOSTIC_PREFIX}${serialized}`);
+    console.log(`${STRUCTURED_DIAGNOSTIC_PREFIX}${serialized}`);
 }

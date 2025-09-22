@@ -4,7 +4,7 @@ Install prerequisites and run the CLI locally.
 
 ## Prerequisites
 - .NET SDK 9.0+
-- Node.js 18+ (20+ recommended) and npm
+- Node.js 20+ and npm
 - TypeScript compiler on PATH (`npm i -g typescript` or project-local)
 
 ## Steps

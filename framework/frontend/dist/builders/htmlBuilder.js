@@ -1,26 +1,20 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.createHtmlBuilder = createHtmlBuilder;
-const node_path_1 = __importDefault(require("node:path"));
-const cheerio_1 = require("cheerio");
-const glob_1 = require("glob");
-const constants_js_1 = require("../core/constants.js");
-const fs_js_1 = require("../utils/fs.js");
-const pages_js_1 = require("../core/pages.js");
-const assetManifest_js_1 = require("../assets/assetManifest.js");
-const precompression_js_1 = require("../assets/precompression.js");
-const changedFile_js_1 = require("../utils/changedFile.js");
-const imageOptimizer_js_1 = require("../assets/imageOptimizer.js");
-const lazyLoad_js_1 = require("../html/lazyLoad.js");
-const htmlSecurity_js_1 = require("../html/htmlSecurity.js");
-const resourceHints_js_1 = require("../html/resourceHints.js");
-const criticalCss_js_1 = require("../html/criticalCss.js");
-const pathMatch_js_1 = require("../utils/pathMatch.js");
-const diagnostics_js_1 = require("../core/diagnostics.js");
-function createHtmlBuilder(context) {
+import path from 'node:path';
+import { load } from 'cheerio';
+import { glob } from 'glob';
+import { FOLDERS, FILES, FILE_NAMES, EXTENSIONS } from '../core/constants.js';
+import { ensureDir, readFile, writeFile, pathExists, remove } from '../utils/fs.js';
+import { getPageDirectories } from '../core/pages.js';
+import { readPageManifest } from '../assets/assetManifest.js';
+import { createCompressedVariants } from '../assets/precompression.js';
+import { shouldProcess } from '../utils/changedFile.js';
+import { getImageDimensions } from '../assets/imageOptimizer.js';
+import { applyLazyLoading } from '../html/lazyLoad.js';
+import { addSubresourceIntegrity } from '../html/htmlSecurity.js';
+import { injectResourceHints } from '../html/resourceHints.js';
+import { inlineCriticalCss } from '../html/criticalCss.js';
+import { findPageFromChangedFile } from '../utils/pathMatch.js';
+import { emitDiagnostic } from '../core/diagnostics.js';
+export function createHtmlBuilder(context) {
     return {
         name: 'html',
         async build() {
@@ -33,26 +27,26 @@ function createHtmlBuilder(context) {
 }
 async function buildHtml(context) {
     const { config } = context;
-    if (!(0, changedFile_js_1.shouldProcess)(context, [
-        { directory: config.paths.src.pages, extensions: [constants_js_1.EXTENSIONS.html] },
-        { directory: config.paths.src.app, extensions: [constants_js_1.EXTENSIONS.html] }
+    if (!shouldProcess(context, [
+        { directory: config.paths.src.pages, extensions: [EXTENSIONS.html] },
+        { directory: config.paths.src.app, extensions: [EXTENSIONS.html] }
     ])) {
         return;
     }
-    const appTemplatePath = node_path_1.default.join(config.paths.src.app, constants_js_1.FILE_NAMES.htmlAppTemplate);
-    if (!(await (0, fs_js_1.pathExists)(appTemplatePath))) {
+    const appTemplatePath = path.join(config.paths.src.app, FILE_NAMES.htmlAppTemplate);
+    if (!(await pathExists(appTemplatePath))) {
         throw new Error(`Missing base application template: ${appTemplatePath}`);
     }
-    const templateHtml = await (0, fs_js_1.readFile)(appTemplatePath);
+    const templateHtml = await readFile(appTemplatePath);
     validateAppTemplate(templateHtml, appTemplatePath);
-    const targetPage = (0, pathMatch_js_1.findPageFromChangedFile)(context.changedFile, config.paths.src.pages);
-    const pages = await (0, pages_js_1.getPageDirectories)(config.paths.src.pages);
-    await (0, fs_js_1.ensureDir)(config.paths.build.frontend);
+    const targetPage = findPageFromChangedFile(context.changedFile, config.paths.src.pages);
+    const pages = await getPageDirectories(config.paths.src.pages);
+    await ensureDir(config.paths.build.frontend);
     for (const page of pages) {
         if (targetPage && page.name !== targetPage) {
             continue;
         }
-        const pageHtmlFiles = await (0, glob_1.glob)('**/*.html', {
+        const pageHtmlFiles = await glob('**/*.html', {
             cwd: page.directory,
             nodir: true
         });
@@ -60,55 +54,55 @@ async function buildHtml(context) {
             warn(`No HTML fragments found for page '${page.name}'.`);
             continue;
         }
-        const targetDir = node_path_1.default.join(config.paths.build.frontend, constants_js_1.FOLDERS.pages, page.name);
-        await (0, fs_js_1.ensureDir)(targetDir);
+        const targetDir = path.join(config.paths.build.frontend, FOLDERS.pages, page.name);
+        await ensureDir(targetDir);
         for (const relativeHtml of pageHtmlFiles) {
-            const sourceHtmlPath = node_path_1.default.join(page.directory, relativeHtml);
-            const fragment = await (0, fs_js_1.readFile)(sourceHtmlPath);
+            const sourceHtmlPath = path.join(page.directory, relativeHtml);
+            const fragment = await readFile(sourceHtmlPath);
             validatePageFragment(fragment, sourceHtmlPath);
             const mergedHtml = mergeTemplates(templateHtml, fragment);
-            const targetPath = node_path_1.default.join(targetDir, node_path_1.default.basename(relativeHtml));
-            await (0, fs_js_1.writeFile)(targetPath, mergedHtml);
+            const targetPath = path.join(targetDir, path.basename(relativeHtml));
+            await writeFile(targetPath, mergedHtml);
         }
     }
     // Copy the app template for reference in the build output.
-    const buildAppDir = node_path_1.default.join(config.paths.build.frontend, constants_js_1.FOLDERS.app);
-    await (0, fs_js_1.ensureDir)(buildAppDir);
-    await (0, fs_js_1.writeFile)(node_path_1.default.join(buildAppDir, constants_js_1.FILE_NAMES.htmlAppTemplate), templateHtml);
+    const buildAppDir = path.join(config.paths.build.frontend, FOLDERS.app);
+    await ensureDir(buildAppDir);
+    await writeFile(path.join(buildAppDir, FILE_NAMES.htmlAppTemplate), templateHtml);
 }
 async function publishHtml(context) {
     const { config } = context;
-    const buildPagesRoot = node_path_1.default.join(config.paths.build.frontend, constants_js_1.FOLDERS.pages);
-    if (!(await (0, fs_js_1.pathExists)(buildPagesRoot))) {
+    const buildPagesRoot = path.join(config.paths.build.frontend, FOLDERS.pages);
+    if (!(await pathExists(buildPagesRoot))) {
         warn('Skipping HTML publish because no build artifacts were found. Run build first.');
         return;
     }
-    const targetPage = (0, pathMatch_js_1.findPageFromChangedFile)(context.changedFile, config.paths.src.pages);
-    const pages = await (0, pages_js_1.getPageDirectories)(buildPagesRoot);
+    const targetPage = findPageFromChangedFile(context.changedFile, config.paths.src.pages);
+    const pages = await getPageDirectories(buildPagesRoot);
     for (const page of pages) {
         if (targetPage && page.name !== targetPage) {
             continue;
         }
-        const distDir = node_path_1.default.join(config.paths.dist.frontend, constants_js_1.FOLDERS.pages, page.name);
-        await (0, fs_js_1.ensureDir)(distDir);
-        const htmlFiles = await (0, glob_1.glob)('**/*.html', {
+        const distDir = path.join(config.paths.dist.frontend, FOLDERS.pages, page.name);
+        await ensureDir(distDir);
+        const htmlFiles = await glob('**/*.html', {
             cwd: page.directory,
             nodir: true
         });
-        const manifest = await (0, assetManifest_js_1.readPageManifest)(distDir, page.name);
+        const manifest = await readPageManifest(distDir, page.name);
         for (const relativeHtml of htmlFiles) {
-            const sourcePath = node_path_1.default.join(page.directory, relativeHtml);
-            const html = await (0, fs_js_1.readFile)(sourcePath);
+            const sourcePath = path.join(page.directory, relativeHtml);
+            const html = await readFile(sourcePath);
             const rewritten = await rewriteForPublish(context, html, page.name, manifest, page.directory);
-            const outputPath = node_path_1.default.join(distDir, node_path_1.default.basename(relativeHtml));
-            await (0, fs_js_1.writeFile)(outputPath, rewritten);
+            const outputPath = path.join(distDir, path.basename(relativeHtml));
+            await writeFile(outputPath, rewritten);
             await handlePrecompression(context, outputPath);
         }
     }
 }
 function mergeTemplates(appHtml, pageHtml) {
-    const app = (0, cheerio_1.load)(appHtml);
-    const page = (0, cheerio_1.load)(pageHtml);
+    const app = load(appHtml);
+    const page = load(pageHtml);
     const appMain = app('main').first();
     const pageMain = page('main').first();
     if (appMain.length === 0) {
@@ -127,30 +121,30 @@ function mergeTemplates(appHtml, pageHtml) {
     return app.root().html() ?? '';
 }
 async function rewriteForPublish(context, html, pageName, manifest, pageDirectory) {
-    const document = (0, cheerio_1.load)(html);
-    document(`script[src="/${constants_js_1.FILES.refreshJs}"]`).remove();
+    const document = load(html);
+    document(`script[src="/${FILES.refreshJs}"]`).remove();
     if (manifest.js) {
-        const selector = `script[src="${constants_js_1.FILES.index}${constants_js_1.EXTENSIONS.js}"]`;
-        document(selector).attr('src', `/${constants_js_1.FOLDERS.pages}/${pageName}/${manifest.js}`);
+        const selector = `script[src="${FILES.index}${EXTENSIONS.js}"]`;
+        document(selector).attr('src', `/${FOLDERS.pages}/${pageName}/${manifest.js}`);
         document(selector).attr('type', 'module');
     }
     if (manifest.css) {
-        const selector = `link[href="${constants_js_1.FILES.index}${constants_js_1.EXTENSIONS.css}"]`;
-        document(selector).attr('href', `/${constants_js_1.FOLDERS.pages}/${pageName}/${manifest.css}`);
+        const selector = `link[href="${FILES.index}${EXTENSIONS.css}"]`;
+        document(selector).attr('href', `/${FOLDERS.pages}/${pageName}/${manifest.css}`);
     }
-    (0, lazyLoad_js_1.applyLazyLoading)(document);
+    applyLazyLoading(document);
     if (context.config.features.imageOptimization) {
         await addImageDimensions(document, context, pageDirectory);
     }
     if (context.config.features.htmlSecurity) {
-        await (0, criticalCss_js_1.inlineCriticalCss)(document, pageName, context.config.paths.dist.frontend, manifest.css);
-        const sriResult = await (0, htmlSecurity_js_1.addSubresourceIntegrity)(document);
+        await inlineCriticalCss(document, pageName, context.config.paths.dist.frontend, manifest.css);
+        const sriResult = await addSubresourceIntegrity(document);
         if (sriResult.failures.length > 0) {
             const resources = sriResult.failures;
             const message = resources.length === 1
                 ? `Failed to compute subresource integrity for ${resources[0]}.`
                 : `Failed to compute subresource integrity for ${resources.length} resources.`;
-            (0, diagnostics_js_1.emitDiagnostic)({
+            emitDiagnostic({
                 code: 'frontend.sri.unresolved',
                 kind: 'sri',
                 stage: 'html.publish',
@@ -160,9 +154,9 @@ async function rewriteForPublish(context, html, pageName, manifest, pageDirector
                 suggestion: 'Verify the resource is reachable and not blocked by auth or network constraints.'
             });
         }
-        const hints = (0, resourceHints_js_1.injectResourceHints)(document, pageName);
+        const hints = injectResourceHints(document, pageName);
         if (hints.missingHead) {
-            (0, diagnostics_js_1.emitDiagnostic)({
+            emitDiagnostic({
                 code: 'frontend.resourceHints.missingHead',
                 kind: 'resource-hints',
                 stage: 'html.publish',
@@ -176,16 +170,16 @@ async function rewriteForPublish(context, html, pageName, manifest, pageDirector
 }
 async function handlePrecompression(context, outputPath) {
     if (context.config.features.precompression) {
-        await (0, precompression_js_1.createCompressedVariants)(outputPath);
+        await createCompressedVariants(outputPath);
         return;
     }
     await Promise.all([
-        (0, fs_js_1.remove)(`${outputPath}${constants_js_1.EXTENSIONS.br}`).catch(() => undefined),
-        (0, fs_js_1.remove)(`${outputPath}${constants_js_1.EXTENSIONS.gz}`).catch(() => undefined)
+        remove(`${outputPath}${EXTENSIONS.br}`).catch(() => undefined),
+        remove(`${outputPath}${EXTENSIONS.gz}`).catch(() => undefined)
     ]);
 }
 function validateAppTemplate(html, filePath) {
-    const doc = (0, cheerio_1.load)(html);
+    const doc = load(html);
     if (doc('main').length === 0) {
         throw new Error(`Base template missing <main> container (${filePath}).`);
     }
@@ -194,7 +188,7 @@ function validateAppTemplate(html, filePath) {
     }
 }
 function validatePageFragment(html, filePath) {
-    const doc = (0, cheerio_1.load)(html);
+    const doc = load(html);
     if (doc('main').length === 0) {
         throw new Error(`Page fragment missing <main> section (${filePath}).`);
     }
@@ -218,10 +212,10 @@ async function addImageDimensions(document, context, pageDirectory) {
             return;
         }
         const assetPath = resolveAssetPath(src, pageDirectory, config.paths.build.frontend);
-        if (!assetPath || !(await (0, fs_js_1.pathExists)(assetPath))) {
+        if (!assetPath || !(await pathExists(assetPath))) {
             return;
         }
-        const dimensions = await (0, imageOptimizer_js_1.getImageDimensions)(assetPath);
+        const dimensions = await getImageDimensions(assetPath);
         if (!dimensions) {
             return;
         }
@@ -239,7 +233,7 @@ function resolveAssetPath(src, pageDirectory, buildRoot) {
     const normalized = src.replace(/\\/g, '/');
     if (normalized.startsWith('/')) {
         const relative = normalized.replace(/^\//, '');
-        return node_path_1.default.join(buildRoot, relative);
+        return path.join(buildRoot, relative);
     }
-    return node_path_1.default.join(pageDirectory, normalized);
+    return path.join(pageDirectory, normalized);
 }
