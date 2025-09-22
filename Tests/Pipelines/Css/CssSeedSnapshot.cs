@@ -3,6 +3,7 @@ using System.IO;
 using Engine;
 
 using Tests.Framework;
+using Tests.Frontend;
 
 namespace Tests.Pipelines.Css;
 
@@ -41,7 +42,7 @@ public sealed class CssSeedSnapshot : ITestCase
 
         // Read dist CSS via manifest
         string pageDir = Path.Combine(projectDir, Folders.Dist, Folders.Frontend, Folders.Pages, Folders.Home);
-        Engine.Pipelines.Core.AssetManifest manifest = Engine.Pipelines.Core.AssetManifest.Load(pageDir);
+        PageAssetManifest manifest = PageAssetManifest.Load(pageDir);
         string cssPath = !string.IsNullOrWhiteSpace(manifest.Css)
             ? Path.Combine(pageDir, manifest.Css!)
             : Path.Combine(pageDir, $"{Files.Index}{FileExtensions.Css}");

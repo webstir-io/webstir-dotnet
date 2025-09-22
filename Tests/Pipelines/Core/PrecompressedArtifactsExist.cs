@@ -3,6 +3,7 @@ using System.IO;
 using Engine;
 
 using Tests.Framework;
+using Tests.Frontend;
 
 namespace Tests.Pipelines.Core;
 
@@ -24,7 +25,7 @@ public sealed class PrecompressedArtifactsExist : ITestCase
         Assert.IsTrue(File.Exists(htmlPath + FileExtensions.Br), ".html.br variant missing next to HTML");
 
         // CSS (via manifest)
-        Engine.Pipelines.Core.AssetManifest manifest = Engine.Pipelines.Core.AssetManifest.Load(clientPageDirectory);
+        PageAssetManifest manifest = PageAssetManifest.Load(clientPageDirectory);
         string cssPath = !string.IsNullOrWhiteSpace(manifest.Css)
             ? Path.Combine(clientPageDirectory, manifest.Css!)
             : Path.Combine(clientPageDirectory, $"{Files.Index}{FileExtensions.Css}");
@@ -39,4 +40,3 @@ public sealed class PrecompressedArtifactsExist : ITestCase
         Assert.IsTrue(File.Exists(jsPath + FileExtensions.Br), ".js.br variant missing next to JS");
     }
 }
-

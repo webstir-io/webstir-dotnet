@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Engine;
 using Tests.Framework;
+using Tests.Frontend;
 
 namespace Tests.Pipelines.Css;
 
@@ -38,7 +39,7 @@ public sealed class CssFontDisplaySwapEnforced : ITestCase
 
         // Read bundled CSS for the page from manifest
         string distPage = Path.Combine(seedDir, Folders.Dist, Folders.Frontend, Folders.Pages, "fonttest");
-        Engine.Pipelines.Core.AssetManifest manifest = Engine.Pipelines.Core.AssetManifest.Load(distPage);
+        PageAssetManifest manifest = PageAssetManifest.Load(distPage);
         string cssDist = !string.IsNullOrWhiteSpace(manifest.Css)
             ? Path.Combine(distPage, manifest.Css!)
             : Path.Combine(distPage, $"{Files.Index}{FileExtensions.Css}");

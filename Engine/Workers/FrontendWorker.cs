@@ -5,6 +5,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Text.Json;
+using Engine.Frontend;
 using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Models;
@@ -41,6 +42,7 @@ public sealed class FrontendWorker(
     {
         await EnsurePackagesAsync();
         await RunFrontendCliAsync("publish", null);
+        await LogPublishManifestAsync();
     }
 
     public async Task AddPageAsync(string pageName) => await RunFrontendCliAsync("add-page", null, pageName);
@@ -150,6 +152,33 @@ public sealed class FrontendWorker(
             ? "webstir-frontend.cmd"
             : "webstir-frontend";
         return Path.Combine(binDirectory, executable);
+    }
+
+    private async Task LogPublishManifestAsync()
+    {
+        try
+        {
+            FrontendManifest manifest = await FrontendManifestLoader.LoadAsync(_workspace);
+            _logger.LogInformation(
+                "Frontend publish outputs located at {DistPath}",
+                manifest.Paths.Dist.Frontend);
+            _logger.LogInformation(
+                "Frontend features: htmlSecurity={HtmlSecurity}, imageOptimization={ImageOptimization}, precompression={Precompression}",
+                manifest.Features.HtmlSecurity,
+                manifest.Features.ImageOptimization,
+                manifest.Features.Precompression);
+        }
+        catch (FileNotFoundException)
+        {
+            _logger.LogWarning(
+                "Frontend manifest not found after publish. Run the frontend CLI to regenerate outputs.");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or JsonException or IOException)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed to read frontend manifest after publish.");
+        }
     }
 
     private void HandleCliOutput(string? line, bool isError)

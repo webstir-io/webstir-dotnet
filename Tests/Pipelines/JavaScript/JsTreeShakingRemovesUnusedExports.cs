@@ -3,6 +3,7 @@ using System.IO;
 using Engine;
 
 using Tests.Framework;
+using Tests.Frontend;
 
 namespace Tests.Pipelines.JavaScript;
 
@@ -73,7 +74,7 @@ public sealed class JsTreeShakingRemovesUnusedExports : ITestCase
 
         // Read bundled JS via manifest
         string pageDir = Path.Combine(projectDir, Folders.Dist, Folders.Frontend, Folders.Pages, Folders.Home);
-        Engine.Pipelines.Core.AssetManifest manifest = Engine.Pipelines.Core.AssetManifest.Load(pageDir);
+        PageAssetManifest manifest = PageAssetManifest.Load(pageDir);
         string jsPath = !string.IsNullOrWhiteSpace(manifest.Js)
             ? Path.Combine(pageDir, manifest.Js!)
             : Path.Combine(pageDir, $"{Files.Index}{FileExtensions.Js}");

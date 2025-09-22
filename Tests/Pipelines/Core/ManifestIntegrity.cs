@@ -3,6 +3,7 @@ using System.IO;
 using Engine;
 
 using Tests.Framework;
+using Tests.Frontend;
 
 namespace Tests.Pipelines.Core;
 
@@ -18,7 +19,7 @@ public sealed class ManifestIntegrity : ITestCase
         string testDirectory = Paths.OutPath;
         string clientPageDirectory = Path.Combine(testDirectory, Folders.Seed, Folders.Dist, Folders.Frontend, Folders.Pages, Folders.Home);
 
-        Engine.Pipelines.Core.AssetManifest manifest = Engine.Pipelines.Core.AssetManifest.Load(clientPageDirectory);
+        PageAssetManifest manifest = PageAssetManifest.Load(clientPageDirectory);
 
         // JS
         string expectedJsPath = !string.IsNullOrWhiteSpace(manifest.Js)

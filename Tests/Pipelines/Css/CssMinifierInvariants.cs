@@ -3,6 +3,7 @@ using System.IO;
 using Engine;
 
 using Tests.Framework;
+using Tests.Frontend;
 
 namespace Tests.Pipelines.Css;
 
@@ -56,7 +57,7 @@ public sealed class CssMinifierInvariants : ITestCase
 
         // Read dist CSS
         string clientPageDirectory = Path.Combine(seedDirectory, Folders.Dist, Folders.Frontend, Folders.Pages, Folders.Home);
-        Engine.Pipelines.Core.AssetManifest manifest = Engine.Pipelines.Core.AssetManifest.Load(clientPageDirectory);
+        PageAssetManifest manifest = PageAssetManifest.Load(clientPageDirectory);
         string expectedCssPath = !string.IsNullOrWhiteSpace(manifest.Css)
             ? Path.Combine(clientPageDirectory, manifest.Css!)
             : Path.Combine(clientPageDirectory, $"{Files.Index}{FileExtensions.Css}");

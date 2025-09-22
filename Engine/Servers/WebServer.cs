@@ -55,17 +55,28 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
     public async Task StartAsync(AppWorkspace workspace, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(workspace);
-        string frontendBuildPath = await ResolveFrontendBuildPathAsync(workspace, cancellationToken);
+        FrontendResolution resolution = await ResolveFrontendAsync(workspace, cancellationToken);
 
-        if (!frontendBuildPath.Exists())
+        string frontendRoot = resolution.BuildPath;
+        if (!frontendRoot.Exists() && resolution.Manifest is { } manifest)
         {
-            logger.LogWarning("Frontend build path does not exist at {FrontendBuildPath}. Skipping web server.", frontendBuildPath);
+            string distPath = manifest.Paths.Dist.Frontend;
+            if (distPath.Exists())
+            {
+                frontendRoot = distPath;
+                logger.LogDebug("Using dist frontend root at {DistPath} for web server.", distPath);
+            }
+        }
+
+        if (!frontendRoot.Exists())
+        {
+            logger.LogWarning("Frontend build path does not exist at {FrontendBuildPath}. Skipping web server.", frontendRoot);
             return;
         }
 
         WebApplicationBuilder builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
-            WebRootPath = frontendBuildPath
+            WebRootPath = frontendRoot
         });
 
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
@@ -73,18 +84,18 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
         ConfigureServices(builder.Services);
 
         _app = builder.Build();
-        ConfigureMiddleware(_app, frontendBuildPath);
+        ConfigureMiddleware(_app, frontendRoot, resolution.Manifest);
 
         await _app.StartAsync(cancellationToken);
         logger.LogInformation("Web server running at {WebServerUrl}", options.Value.WebServerUrl);
     }
 
-    private async Task<string> ResolveFrontendBuildPathAsync(AppWorkspace workspace, CancellationToken cancellationToken)
+    private async Task<FrontendResolution> ResolveFrontendAsync(AppWorkspace workspace, CancellationToken cancellationToken)
     {
         try
         {
             FrontendManifest manifest = await FrontendManifestLoader.LoadAsync(workspace, cancellationToken);
-            return manifest.Paths.Build.Frontend;
+            return new FrontendResolution(manifest.Paths.Build.Frontend, manifest);
         }
         catch (FileNotFoundException)
         {
@@ -114,7 +125,7 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
                 workspace.FrontendManifestPath);
         }
 
-        return workspace.FrontendBuildPath;
+        return new FrontendResolution(workspace.FrontendBuildPath, null);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
@@ -179,7 +190,7 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
         });
     }
 
-    private void ConfigureMiddleware(WebApplication app, string webRootPath)
+    private void ConfigureMiddleware(WebApplication app, string webRootPath, FrontendManifest? manifest)
     {
         app.UseMiddleware<CorrelationIdMiddleware>();
         app.UseMiddleware<ErrorHandlingMiddleware>();
@@ -187,7 +198,16 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
         app.Use(HandleServerSentEvents);
         app.UseMiddleware<ApiProxyMiddleware>();
         app.UseMiddleware<SecurityHeadersMiddleware>();
-        app.UseMiddleware<PrecompressionMiddleware>();
+
+        bool enablePrecompression = manifest?.Features.Precompression ?? true;
+        if (enablePrecompression)
+        {
+            app.UseMiddleware<PrecompressionMiddleware>();
+        }
+        else
+        {
+            logger.LogDebug("Precompression disabled via frontend manifest; skipping middleware.");
+        }
         app.Use(SetCacheHeaders);
         app.Use(RewriteCleanUrls);
 
@@ -301,3 +321,5 @@ internal static partial class WebServerRegexPatterns
     [GeneratedRegex(@"\.[a-f0-9]{8,64}\.(css|js|png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|otf|eot|mp3|m4a|wav|ogg|mp4|webm|mov)$", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     public static partial Regex ContentHashedAssetPattern();
 }
+
+internal readonly record struct FrontendResolution(string BuildPath, FrontendManifest? Manifest);
