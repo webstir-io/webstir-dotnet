@@ -39,6 +39,7 @@ public static class Files
     public const string TsBuildInfo = ".tsbuildinfo";
     public const string BaseTsConfigJson = "base.tsconfig.json";
     public const string ManifestJson = "manifest.json";
+    public const string FrontendManifestJson = "frontend-manifest.json";
     public const string Test = ".test";
     public const string Index = "index";
     public const string IndexHtml = "index.html";

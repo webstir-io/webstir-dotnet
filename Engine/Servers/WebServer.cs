@@ -5,9 +5,11 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 using Engine.Extensions;
+using Engine.Frontend;
 using Engine.Middleware;
 using Engine.Services;
 
@@ -53,15 +55,17 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
     public async Task StartAsync(AppWorkspace workspace, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(workspace);
-        if (!workspace.FrontendBuildPath.Exists())
+        string frontendBuildPath = await ResolveFrontendBuildPathAsync(workspace, cancellationToken);
+
+        if (!frontendBuildPath.Exists())
         {
-            logger.LogWarning("Frontend build path does not exist. Skipping web server.");
+            logger.LogWarning("Frontend build path does not exist at {FrontendBuildPath}. Skipping web server.", frontendBuildPath);
             return;
         }
 
         WebApplicationBuilder builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
-            WebRootPath = workspace.FrontendBuildPath
+            WebRootPath = frontendBuildPath
         });
 
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
@@ -69,10 +73,48 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
         ConfigureServices(builder.Services);
 
         _app = builder.Build();
-        ConfigureMiddleware(_app, workspace.FrontendBuildPath);
+        ConfigureMiddleware(_app, frontendBuildPath);
 
         await _app.StartAsync(cancellationToken);
         logger.LogInformation("Web server running at {WebServerUrl}", options.Value.WebServerUrl);
+    }
+
+    private async Task<string> ResolveFrontendBuildPathAsync(AppWorkspace workspace, CancellationToken cancellationToken)
+    {
+        try
+        {
+            FrontendManifest manifest = await FrontendManifestLoader.LoadAsync(workspace, cancellationToken);
+            return manifest.Paths.Build.Frontend;
+        }
+        catch (FileNotFoundException)
+        {
+            logger.LogDebug(
+                "Frontend manifest not found at {ManifestPath}; using AppWorkspace build path.",
+                workspace.FrontendManifestPath);
+        }
+        catch (InvalidOperationException ex)
+        {
+            logger.LogWarning(
+                ex,
+                "Frontend manifest invalid at {ManifestPath}; using AppWorkspace build path.",
+                workspace.FrontendManifestPath);
+        }
+        catch (JsonException ex)
+        {
+            logger.LogWarning(
+                ex,
+                "Frontend manifest parse error at {ManifestPath}; using AppWorkspace build path.",
+                workspace.FrontendManifestPath);
+        }
+        catch (IOException ex)
+        {
+            logger.LogWarning(
+                ex,
+                "Unable to read frontend manifest at {ManifestPath}; using AppWorkspace build path.",
+                workspace.FrontendManifestPath);
+        }
+
+        return workspace.FrontendBuildPath;
     }
 
     public async Task StopAsync(CancellationToken cancellationToken = default)

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Tests.Framework;
+using Tests.Frontend;
 
 using BuildWorkflowTests = Tests.Workflows.Build.BuildTests;
 using HelpWorkflowTests = Tests.Workflows.Help.HelpTests;
@@ -148,6 +149,7 @@ public class Program
         services.AddTransient<ITestSuite, PublishWorkflowTests>();
         services.AddTransient<ITestSuite, HelpWorkflowTests>();
         services.AddTransient<ITestSuite, AddWorkflowTests>();
+        services.AddTransient<ITestSuite, FrontendManifestTests>();
 
         // Register test runner and output manager
         services.AddTransient<ITestRunner, TestRunner>();
