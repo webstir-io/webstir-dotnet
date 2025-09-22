@@ -40,7 +40,7 @@ How we test the Webstir solution and what we lock down. This expands the high-le
 
 ## Running Tests
 - Repo tests (engine/CLI): run `dotnet test` at the repo root.
-- Generated project tests: inside a project created by `webstir init`, run `webstir test`.
+- Generated project tests: inside a project created by `webstir init`, run `webstir test` (delegates to the `webstir-test` CLI).
 - CI: relies on standard exit codes; non-zero fails the job.
 
 ## Writing Tests

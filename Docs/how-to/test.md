@@ -1,6 +1,6 @@
 # Test
 
-Build the project and execute tests with a lightweight Node runner. Returns CI-friendly exit codes.
+Build the project and execute tests through the bundled `webstir-test` TypeScript CLI. Returns CI-friendly exit codes.
 
 ## Purpose
 - Validate behavior via end-to-end and smoke tests.
@@ -15,8 +15,9 @@ Build the project and execute tests with a lightweight Node runner. Returns CI-f
 
 ## Steps
 1. Ensure build outputs are up to date (runs `build` if needed).
-2. Execute compiled tests under Node.
-3. Print pass/fail summary with file names for failures.
+2. Ensure the embedded `@webstir/test` package is installed into the workspace.
+3. Execute compiled tests via the `webstir-test` CLI and stream structured results back to the .NET host.
+4. Print pass/fail summary with file names for failures.
 
 ## Outputs
 - Exit code 0 on success; non-zero on failures.

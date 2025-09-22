@@ -1,7 +1,6 @@
 {
   "name": "@webstir/test",
-  "version": "0.2.0",
-  "fileName": "webstir-test-0-2-0.tgz",
-  "dependency": "file:./.tools/webstir-test-0-2-0.tgz",
-  "hash": "73a9d451f56d5fbb6618fc56e04b4167e17b11a4548e566d93860b283980e2f8"
+  "version": "0.3.0",
+  "fileName": "webstir-test-0-3-0.tgz",
+  "dependency": "file:./.tools/webstir-test-0-3-0.tgz"
 }

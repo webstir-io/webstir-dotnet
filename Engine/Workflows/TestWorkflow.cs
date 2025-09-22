@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Engine.Pipelines.Test;
+
+using Engine.Helpers;
 using Engine.Interfaces;
+using Engine.Testing;
 
 namespace Engine.Workflows;
 
@@ -12,35 +13,36 @@ public sealed class TestWorkflow(
     AppWorkspace context,
     IEnumerable<IWorkflowWorker> workers) : BaseWorkflow(context, workers)
 {
-
     public override string WorkflowName => Commands.Test;
 
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         await ExecuteBuildAsync();
 
-        IEnumerable<string> source = TestDiscovery.FindSourceTests(Context);
-        if (!source.Any())
+        PackageEnsureResult ensureResult = await TestPackageUtilities.EnsurePackageAsync(Context);
+        TestPackageUtilities.LogEnsureMessages(ensureResult);
+
+        TestCliRunner runner = new(Context);
+        TestCliRunResult runResult = await runner.RunTestsAsync(CancellationToken.None);
+
+        if (!runResult.TestsDiscovered)
         {
             Console.WriteLine("No tests found under src/**/tests/");
             return;
         }
 
-        IEnumerable<string> compiled = TestDiscovery.MapToCompiled(source, Context);
-        RunResult result = await TestRunner.RunAsync(Context, compiled, CancellationToken.None);
-        PrintResults(result);
+        PrintResults(runResult);
 
-        // Set a non-zero exit code when failures occur
-        if (result.Failed > 0)
+        if (runResult.Failed > 0 || runResult.HadErrors || runResult.ExitCode != 0)
         {
             Environment.ExitCode = 1;
         }
     }
 
-    private static void PrintResults(RunResult result)
+    private static void PrintResults(TestCliRunResult result)
     {
         bool anyFailures = false;
-        foreach (TestResult testResult in result.Results)
+        foreach (TestCliTestResult testResult in result.Results)
         {
             if (testResult.Passed)
             {
@@ -51,7 +53,7 @@ public sealed class TestWorkflow(
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Write("FAIL ");
             Console.ResetColor();
-            Console.WriteLine($"{testResult.Name}");
+            Console.WriteLine(testResult.Name);
             if (!string.IsNullOrWhiteSpace(testResult.Message))
             {
                 Console.ForegroundColor = ConsoleColor.DarkGray;
@@ -65,8 +67,10 @@ public sealed class TestWorkflow(
         {
             Console.WriteLine();
             Console.WriteLine($"Passed: {result.Passed}, Failed: {result.Failed}, Total: {result.Total} in {result.DurationMs}ms");
+            return;
         }
-        else
+
+        if (result.Total > 0)
         {
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Write("✔ ");

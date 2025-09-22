@@ -55,7 +55,7 @@ Notes:
 Usage: `webstir watch`
 
 What it does:
-- Runs an initial `build` and `test`.
+- Runs an initial `build` and `test` (delegating test execution to `webstir-test`).
 - Starts the dev web server (serves `build/frontend/**`) and the Node API server (runs `build/backend/index.js`).
 - Watches `src/**` for changes and performs targeted, incremental rebuilds.
 - Restarts the Node server on backend changes; notifies browsers via SSE to reload on frontend changes.
@@ -64,7 +64,8 @@ What it does:
 Usage: `webstir test`
 
 What it does:
-- Builds the project, then runs compiled tests with a lightweight Node runner.
+- Builds the project, ensures the bundled `@webstir/test` tools are installed, then shells into the `webstir-test` TypeScript CLI.
+- Executes compiled frontend tests today and lays groundwork for backend suites.
 - Prints a pass/fail summary; integrates with CI using standard exit codes.
 
 ### publish

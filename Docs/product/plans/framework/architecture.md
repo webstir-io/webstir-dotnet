@@ -45,7 +45,7 @@ webstir/
    - Init workflow extracts the package into generated project (`node_modules` via `npm install <path-to-tgz>` or adds file dependency to package.json).
 3. **CLI Integration**
    - `add-test` writes `import` statements pointing to the published package.
-   - Tests command shells out: `node ./node_modules/.bin/webstir-test-runner`.
+   - Tests command shells out: `node ./node_modules/.bin/webstir-test`.
 4. **Cleanup**
    - Remove `TestTypeRegistry` and `types/@webstir/**` from engine resources.
    - Update docs to explain npm dependency.

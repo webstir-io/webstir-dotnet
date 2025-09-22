@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Engine.Pipelines.Test;
-using Engine.Services;
+
+using Engine.Helpers;
 using Engine.Interfaces;
+using Engine.Services;
+using Engine.Testing;
 
 namespace Engine.Workflows;
 
@@ -20,6 +21,10 @@ public class WatchWorkflow(
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         await ExecuteBuildAsync();
+
+        PackageEnsureResult ensureResult = await TestPackageUtilities.EnsurePackageAsync(Context);
+        TestPackageUtilities.LogEnsureMessages(ensureResult);
+
         await RunTestsAsync();
         await devService.StartAsync(Context, async (filePath, _) =>
         {
@@ -30,19 +35,20 @@ public class WatchWorkflow(
 
     private async Task RunTestsAsync()
     {
-        IEnumerable<string> source = TestDiscovery.FindSourceTests(Context);
-        if (!source.Any())
+        TestCliRunner runner = new(Context);
+        TestCliRunResult result = await runner.RunTestsAsync(CancellationToken.None);
+
+        if (!result.TestsDiscovered)
         {
             Console.WriteLine("No tests found under src/**/tests/");
             return;
         }
 
-        IEnumerable<string> compiled = TestDiscovery.MapToCompiled(source, Context);
-        RunResult result = await TestRunner.RunAsync(Context, compiled, CancellationToken.None);
+        Console.WriteLine($"Tests: {result.Passed} passed, {result.Failed} failed ({result.Total})");
 
-        // Minimal inline summary for watch mode
-        int passed = result.Passed;
-        int failed = result.Failed;
-        Console.WriteLine($"Tests: {passed} passed, {failed} failed ({result.Total})");
+        if (result.HadErrors || result.ExitCode != 0)
+        {
+            Console.WriteLine("Test runner reported errors. See logs above.");
+        }
     }
 }

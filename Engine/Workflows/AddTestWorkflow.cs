@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Engine.Helpers;
 using Engine.Interfaces;
+using Engine.Testing;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -31,37 +32,8 @@ public sealed class AddTestWorkflow(AppWorkspace context,
 
     private async Task EnsurePackageAsync()
     {
-        NodeRuntime.EnsureMinimumVersion();
-        PackageEnsureResult result = await TestPackageInstaller.EnsureAsync(Context);
-
-        if (result.ToolsAdded || result.DependencyUpdated || result.TarballUpdated)
-        {
-            NpmHelper.RunNpmInstall(Context.WorkingPath);
-            result = await TestPackageInstaller.EnsureAsync(Context);
-        }
-
-        if (result.ToolsAdded)
-        {
-            Console.WriteLine($"Added testing package archive: {Path.Combine(Folders.Tools, result.Metadata.FileName)}");
-        }
-
-        if (result.DependencyUpdated)
-        {
-            Console.WriteLine($"Pinned @webstir/test to {result.Metadata.Dependency} in {Files.PackageJson}");
-        }
-
-        if (result.TarballUpdated)
-        {
-            Console.WriteLine("Updated @webstir/test tarball; npm install rerun may be required.");
-        }
-
-        if (result.VersionMismatch)
-        {
-            string installed = string.IsNullOrWhiteSpace(result.InstalledVersion)
-                ? "not installed"
-                : $"{result.InstalledVersion}";
-            Console.WriteLine($"Warning: @webstir/test {installed} differs from packaged {result.Metadata.Version}. Run 'npm install' to refresh node_modules.");
-        }
+        PackageEnsureResult result = await TestPackageUtilities.EnsurePackageAsync(Context);
+        TestPackageUtilities.LogEnsureMessages(result);
     }
     private async Task RunTestCliAsync(string name)
     {

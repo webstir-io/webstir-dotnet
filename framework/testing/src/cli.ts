@@ -1,114 +1,51 @@
 #!/usr/bin/env node
-import { run } from './runtime.js';
-import type { RunnerSummary } from './types.js';
+import { Command, Option } from 'commander';
 
-async function readInput(): Promise<string> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) {
-    if (typeof chunk === 'string') {
-      chunks.push(Buffer.from(chunk));
-    } else {
-      chunks.push(chunk);
-    }
-  }
+import { runTestCommand } from './commands/test.js';
+import { runWatchCommand } from './commands/watch.js';
 
-  if (chunks.length === 0) {
-    return '';
-  }
+const program = new Command();
 
-  return Buffer.concat(chunks).toString('utf8');
-}
+program
+  .name('webstir-test')
+  .description('Unified test runner for Webstir workspaces');
 
-function coerceFiles(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.map((entry) => String(entry));
-}
-
-async function main(): Promise<void> {
-  let raw = await readInput();
-  if (!raw) {
-    raw = '[]';
-  }
-
-  let files: string[] = [];
-  try {
-    files = coerceFiles(JSON.parse(raw));
-  } catch {
-    files = [];
-  }
-
-  try {
-    const summary = await run(files);
-    writeSummary(summary);
-  } catch (error) {
-    const message = error instanceof Error ? error.stack ?? error.message : String(error);
-    writeSummary({
-      passed: 0,
-      failed: files.length > 0 ? files.length : 1,
-      total: files.length > 0 ? files.length : 1,
-      durationMs: 0,
-      results: [
-        {
-          name: '[runner error]',
-          file: '',
-          passed: false,
-          message,
-          durationMs: 0,
-        },
-      ],
+program
+  .command('test', { isDefault: true })
+  .description('Run all tests for the workspace')
+  .addOption(workspaceOption())
+  .action(async (options) => {
+    await runTestCommand({
+      workspace: options.workspace,
     });
-    process.exitCode = 1;
-  }
-}
-
-function writeSummary(summary: RunnerSummary): void {
-  try {
-    process.stdout.write(JSON.stringify(summary));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const fallback: RunnerSummary = {
-      passed: 0,
-      failed: summary.total,
-      total: summary.total,
-      durationMs: summary.durationMs,
-      results: summary.results,
-    };
-
-    process.stdout.write(JSON.stringify({
-      ...fallback,
-      results: [
-        ...fallback.results,
-        {
-          name: '[runner serialization error]',
-          file: '',
-          passed: false,
-          message,
-          durationMs: 0,
-        },
-      ],
-    } satisfies RunnerSummary));
-  }
-}
-
-void main().catch((error) => {
-  const message = error instanceof Error ? error.stack ?? error.message : String(error);
-  writeSummary({
-    passed: 0,
-    failed: 1,
-    total: 1,
-    durationMs: 0,
-    results: [
-      {
-        name: '[runner fatal error]',
-        file: '',
-        passed: false,
-        message,
-        durationMs: 0,
-      },
-    ],
   });
+
+program
+  .command('watch')
+  .description('Run tests in watch mode, re-running after file changes')
+  .addOption(workspaceOption())
+  .addOption(new Option('-d, --debounce <ms>', 'Debounce duration between runs (ms)').argParser(parseInteger).default(150))
+  .action(async (options) => {
+    await runWatchCommand({
+      workspace: options.workspace,
+      debounceMs: options.debounce,
+    });
+  });
+
+program.parseAsync(process.argv).catch((error) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(message);
   process.exitCode = 1;
 });
+
+function workspaceOption(): Option {
+  return new Option('-w, --workspace <path>', 'Absolute path to the workspace root').default(process.cwd());
+}
+
+function parseInteger(value: string): number {
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed < 0) {
+    throw new Error(`Invalid debounce value: ${value}`);
+  }
+  return parsed;
+}
