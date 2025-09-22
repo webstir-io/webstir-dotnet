@@ -1,28 +1,20 @@
 using System.IO;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Engine;
 
 namespace Tests.Frontend;
 
 public sealed class PageAssetManifest
 {
-    [JsonPropertyName("js")]
     public string? Js
     {
         get; init;
     }
 
-    [JsonPropertyName("css")]
     public string? Css
     {
         get; init;
     }
-
-    private static readonly JsonSerializerOptions SerializerOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
 
     public static PageAssetManifest Load(string pageDistDirectory)
     {
@@ -32,8 +24,41 @@ public sealed class PageAssetManifest
             return new PageAssetManifest();
         }
 
-        string json = File.ReadAllText(manifestPath);
-        PageAssetManifest? manifest = JsonSerializer.Deserialize<PageAssetManifest>(json, SerializerOptions);
-        return manifest ?? new PageAssetManifest();
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(File.ReadAllText(manifestPath));
+            JsonElement root = document.RootElement;
+
+            if (root.TryGetProperty("pages", out JsonElement pagesElement))
+            {
+                foreach (JsonProperty page in pagesElement.EnumerateObject())
+                {
+                    JsonElement pageManifest = page.Value;
+                    string? js = pageManifest.TryGetProperty("js", out JsonElement jsElement) ? jsElement.GetString() : null;
+                    string? css = pageManifest.TryGetProperty("css", out JsonElement cssElement) ? cssElement.GetString() : null;
+                    return new PageAssetManifest
+                    {
+                        Js = js,
+                        Css = css
+                    };
+                }
+            }
+            else
+            {
+                string? js = root.TryGetProperty("js", out JsonElement jsElement) ? jsElement.GetString() : null;
+                string? css = root.TryGetProperty("css", out JsonElement cssElement) ? cssElement.GetString() : null;
+                return new PageAssetManifest
+                {
+                    Js = js,
+                    Css = css
+                };
+            }
+        }
+        catch (JsonException)
+        {
+            // ignore and fall through to empty manifest
+        }
+
+        return new PageAssetManifest();
     }
 }

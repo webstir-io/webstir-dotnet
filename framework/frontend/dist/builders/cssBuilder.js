@@ -1,7 +1,7 @@
 import path from 'node:path';
 import postcss from 'postcss';
 import autoprefixer from 'autoprefixer';
-import csso from 'csso';
+import * as cssoModule from 'csso';
 import { FOLDERS, FILES, EXTENSIONS } from '../core/constants.js';
 import { ensureDir, pathExists, readFile, writeFile, remove } from '../utils/fs.js';
 import { getPages } from '../core/pages.js';
@@ -11,6 +11,7 @@ import { createCompressedVariants } from '../assets/precompression.js';
 import { shouldProcess } from '../utils/changedFile.js';
 import { findPageFromChangedFile } from '../utils/pathMatch.js';
 const MODULE_SUFFIX = '.module';
+const csso = (cssoModule.default ?? cssoModule);
 export function createCssBuilder(context) {
     return {
         name: 'css',

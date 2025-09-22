@@ -39,9 +39,12 @@ The manifest is emitted to:
 relative to the workspace root. The TypeScript CLI ensures the `.tools` directory exists and writes the manifest atomically on every `build`, `publish`, or `rebuild` command.
 
 ## Purpose
+- Serves as the only contract between the TypeScript frontend CLI and the .NET host now that the legacy C# asset handlers are removed.
 - Allows the .NET CLI to understand the folder structure without hardcoding string literals.
-- Enabled future toggles for optional features (image optimization, precompression, hardening).
+- Enables feature toggles (image optimization, precompression, hardening) to flow from TypeScript into runtime services.
 - Synchronizes the schema between TypeScript and C# via generated typings that can be re-used by the bridge.
+
+All runtime consumers (`FrontendWorker`, `WebServer`, manifest-aware tests) must resolve paths and feature flags through this file instead of the removed `Engine.Pipelines` utilities.
 
 ## Validation
 The manifest is validated through the shared `zod` schema located at `framework/frontend/src/config/schema.ts`. Any CLI integration should mirror these constraints to fail fast when the contract drifts.

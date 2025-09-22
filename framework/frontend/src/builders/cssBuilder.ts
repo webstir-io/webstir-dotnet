@@ -1,7 +1,7 @@
 import path from 'node:path';
 import postcss from 'postcss';
 import autoprefixer from 'autoprefixer';
-import csso from 'csso';
+import * as cssoModule from 'csso';
 import { FOLDERS, FILES, EXTENSIONS } from '../core/constants.js';
 import { ensureDir, pathExists, readFile, writeFile, remove } from '../utils/fs.js';
 import type { Builder, BuilderContext } from './types.js';
@@ -13,6 +13,7 @@ import { shouldProcess } from '../utils/changedFile.js';
 import { findPageFromChangedFile } from '../utils/pathMatch.js';
 
 const MODULE_SUFFIX = '.module';
+const csso = ((cssoModule as unknown as { default?: typeof cssoModule }).default ?? cssoModule) as typeof cssoModule;
 
 export function createCssBuilder(context: BuilderContext): Builder {
     return {

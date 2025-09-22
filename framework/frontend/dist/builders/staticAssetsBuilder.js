@@ -1,6 +1,6 @@
 import path from 'node:path';
-import { FOLDERS, EXTENSIONS } from '../core/constants.js';
-import { copy, pathExists, emptyDir, ensureDir, remove } from '../utils/fs.js';
+import { FOLDERS, EXTENSIONS, FILES } from '../core/constants.js';
+import { copy, pathExists, emptyDir, ensureDir, remove, writeFile } from '../utils/fs.js';
 import { shouldProcess } from '../utils/changedFile.js';
 import { optimizeImages } from '../assets/imageOptimizer.js';
 import { relativePathWithin } from '../utils/pathMatch.js';
@@ -29,6 +29,7 @@ const MEDIA_EXTENSIONS = [
     EXTENSIONS.webm,
     EXTENSIONS.mov
 ];
+const ALLOW_ALL_ROBOTS = 'User-agent: *\nAllow: /\n';
 export function createStaticAssetsBuilder(context) {
     return {
         name: 'static-assets',
@@ -105,6 +106,7 @@ async function copyStaticAssets(context, isProduction) {
             }
         }
     }
+    await syncRobotsTxt(config, isProduction);
 }
 async function copySingleAsset(sourceRoot, buildRoot, relativePath) {
     const sourcePath = path.join(sourceRoot, relativePath);
@@ -131,4 +133,26 @@ async function syncImageWithoutOptimization(buildRoot, distRoot, relativePath) {
         remove(`${destinationPath}${EXTENSIONS.webp}`).catch(() => undefined),
         remove(`${destinationPath}${EXTENSIONS.avif}`).catch(() => undefined)
     ]);
+}
+async function syncRobotsTxt(config, isProduction) {
+    const sourcePath = path.join(config.paths.src.frontend, FILES.robotsTxt);
+    const buildPath = path.join(config.paths.build.frontend, FILES.robotsTxt);
+    if (await pathExists(sourcePath)) {
+        await ensureDir(path.dirname(buildPath));
+        await copy(sourcePath, buildPath);
+        if (isProduction) {
+            const distPath = path.join(config.paths.dist.frontend, FILES.robotsTxt);
+            await ensureDir(path.dirname(distPath));
+            await copy(sourcePath, distPath);
+        }
+    }
+    else {
+        await ensureDir(path.dirname(buildPath));
+        await writeFile(buildPath, ALLOW_ALL_ROBOTS);
+        if (isProduction) {
+            const distPath = path.join(config.paths.dist.frontend, FILES.robotsTxt);
+            await ensureDir(path.dirname(distPath));
+            await writeFile(distPath, ALLOW_ALL_ROBOTS);
+        }
+    }
 }
