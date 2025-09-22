@@ -39,7 +39,7 @@
     "dist"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=20.18.1"
   },
   "license": "MIT",
   "repository": {
@@ -57,7 +57,7 @@
     "cheerio": "^1.0.0-rc.12",
     "commander": "^12.1.0",
     "csso": "^5.0.5",
-    "esbuild": "^0.21.5",
+    "esbuild": "^0.25.10",
     "fs-extra": "^11.2.0",
     "glob": "^10.4.1",
     "postcss": "^8.4.47",

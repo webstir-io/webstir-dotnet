@@ -5,7 +5,7 @@ namespace Engine.Helpers;
 
 internal static class NodeRuntime
 {
-    private static readonly Version MinimumSupportedVersion = new(20, 0);
+    private static readonly Version MinimumSupportedVersion = new(20, 18, 1);
     private static readonly Lazy<Version> CachedVersion = new(GetNodeVersion, isThreadSafe: true);
 
     internal static Version EnsureMinimumVersion()

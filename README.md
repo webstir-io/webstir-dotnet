@@ -15,7 +15,7 @@ Modern, minimal full-stack TypeScript web framework and build tool. Webstir scaf
 
 ## Prerequisites
 - .NET SDK 9.0+
-- Node.js 20+ and npm
+- Node.js 20.18+ and npm
 - TypeScript compiler available on PATH (`tsc`), e.g. `npm i -g typescript`
 
 ## Quick Start
