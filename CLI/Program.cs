@@ -3,14 +3,6 @@ using System.Globalization;
 using System.Text.Json;
 using CLI;
 using Engine;
-using Engine.Pipelines.Core.Interfaces;
-using Engine.Pipelines.Css;
-using Engine.Pipelines.Fonts;
-using Engine.Pipelines.Html;
-using Engine.Pipelines.Images;
-using Engine.Pipelines.JavaScript;
-using Engine.Pipelines.Media;
-using Engine.Pipelines.Seo;
 using Engine.Servers;
 using Engine.Services;
 using Engine.Workers;
@@ -80,16 +72,6 @@ try
     services.AddTransient<IWorkflow, AddTestWorkflow>();
     services.AddTransient<IWorkflow, TestWorkflow>();
     services.AddTransient<IWorkflow, WatchWorkflow>();
-
-    services.AddTransient<IFrontendHandler, HtmlHandler>();
-    services.AddTransient<IFrontendHandler, CssHandler>();
-    services.AddTransient<IFrontendHandler, JsHandler>();
-    services.AddTransient<IFrontendHandler, ImagesHandler>();
-    services.AddTransient<IFrontendHandler, FontsHandler>();
-    services.AddTransient<IFrontendHandler, MediaHandler>();
-    services.AddTransient<IFrontendHandler, RobotsTxtHandler>();
-
-    services.AddTransient<HtmlBuilder>();
 
     using ServiceProvider provider = services.BuildServiceProvider();
     await provider.GetRequiredService<Runner>().Run(args);
