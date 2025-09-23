@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics;
 using Engine.Extensions;
 
-namespace Engine.Helpers;
+namespace Engine.Bridge;
 
 public static class NpmHelper
 {

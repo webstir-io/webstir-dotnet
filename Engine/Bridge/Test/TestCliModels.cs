@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Engine.Testing;
+namespace Engine.Bridge.Test;
 
 internal readonly record struct TestCliTestResult(
     string Name,

@@ -17,12 +17,12 @@ Gradually remove the C# asset pipeline stack under `Engine.Pipelines` once the T
 ## Workstreams
 
 ### 1. Manifest Adoption & Consumers
-- Introduce a typed manifest loader for `.tools/frontend-manifest.json` under `Engine.Frontend` (or similar) and replace direct `AssetManifest.Load` calls.
+- Introduce a typed manifest loader for `.tools/frontend-manifest.json` under `Engine.Bridge.Frontend` (or similar) and replace direct `AssetManifest.Load` calls.
 - Update `WebServer`, `WatchWorkflow`, and publish routines to take dependency-injected manifest services rather than touching `Engine.Pipelines.Core`.
 - Adjust tests to read the new manifest representation; regenerate fixtures if hashing conventions differ.
 
 ### 2. Utility Relocation
-- Move `ContentSecurityPolicy`, `SubresourceIntegrity`, precompression helpers, and related constants into a shared `Engine.Frontend` namespace.
+- Move `ContentSecurityPolicy`, `SubresourceIntegrity`, precompression helpers, and related constants into a shared `Engine.Bridge.Frontend` namespace.
 - Provide TypeScript-side equivalents when runtime behavior has migrated; ensure the .NET side uses the relocated versions.
 - Delete any duplication that the TypeScript CLI already performs (e.g., HTML hardening) and keep only what the dev server still needs.
 

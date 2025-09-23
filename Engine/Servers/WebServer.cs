@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
+using Engine.Bridge.Frontend;
 using Engine.Extensions;
-using Engine.Frontend;
 using Engine.Middleware;
 using Engine.Services;
 

@@ -7,20 +7,21 @@ using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 using Engine.Extensions;
+using Engine.Helpers;
 
-namespace Engine.Helpers;
+namespace Engine.Bridge.Frontend;
 
-internal static class TestPackageInstaller
+internal static class FrontendPackageInstaller
 {
-    private const string ManifestFileName = "testing-package.json";
+    private const string ManifestFileName = "frontend-package.json";
 
-    private static readonly Lazy<TestPackageMetadata> Manifest = new(LoadManifest, isThreadSafe: true);
+    private static readonly Lazy<FrontendPackageMetadata> Manifest = new(LoadManifest, isThreadSafe: true);
 
-    internal static async Task<PackageEnsureResult> EnsureAsync(AppWorkspace workspace)
+    internal static async Task<FrontendPackageEnsureResult> EnsureAsync(AppWorkspace workspace)
     {
         ArgumentNullException.ThrowIfNull(workspace);
 
-        TestPackageMetadata metadata = Manifest.Value;
+        FrontendPackageMetadata metadata = Manifest.Value;
         string toolsDirectory = workspace.WorkingPath.Combine(Folders.Tools);
         string tarballPath = toolsDirectory.Combine(metadata.FileName);
         bool hadTarball = File.Exists(tarballPath);
@@ -30,12 +31,12 @@ internal static class TestPackageInstaller
 
         bool dependencyUpdated = await EnsureDependencyAsync(workspace.WorkingPath.Combine(Files.PackageJson), metadata);
         bool tarballUpdated = await DetectTarballMismatchAsync(tarballPath, metadata.Hash);
-        PackageInstallState installState = await DetectInstalledVersionMismatchAsync(workspace, metadata);
+        FrontendPackageInstallState installState = await DetectInstalledVersionMismatchAsync(workspace, metadata);
 
-        return new PackageEnsureResult(!hadTarball && hasTarball, dependencyUpdated, tarballUpdated, installState.VersionMismatch, installState.InstalledVersion, metadata);
+        return new FrontendPackageEnsureResult(!hadTarball && hasTarball, dependencyUpdated, tarballUpdated, installState.VersionMismatch, installState.InstalledVersion, metadata);
     }
 
-    private static TestPackageMetadata LoadManifest()
+    private static FrontendPackageMetadata LoadManifest()
     {
         Assembly assembly = Assembly.GetExecutingAssembly();
         string resourceName = $"{Resources.ToolsPath}.{ManifestFileName}";
@@ -43,7 +44,7 @@ internal static class TestPackageInstaller
         using Stream? stream = assembly.GetManifestResourceStream(resourceName);
         if (stream == null)
         {
-            throw new InvalidOperationException($"Unable to load test package manifest: {resourceName}");
+            throw new InvalidOperationException($"Unable to load frontend package manifest: {resourceName}");
         }
 
         using JsonDocument doc = JsonDocument.Parse(stream);
@@ -55,10 +56,10 @@ internal static class TestPackageInstaller
         string dependency = root.GetProperty("dependency").GetString() ?? throw new InvalidOperationException("Manifest missing dependency string.");
         string? hash = root.TryGetProperty("hash", out JsonElement hashElement) ? hashElement.GetString() : null;
 
-        return new TestPackageMetadata(name, version, fileName, dependency, hash);
+        return new FrontendPackageMetadata(name, version, fileName, dependency, hash);
     }
 
-    private static async Task<bool> EnsureDependencyAsync(string packageJsonPath, TestPackageMetadata metadata)
+    private static async Task<bool> EnsureDependencyAsync(string packageJsonPath, FrontendPackageMetadata metadata)
     {
         if (!File.Exists(packageJsonPath))
         {
@@ -72,6 +73,11 @@ internal static class TestPackageInstaller
             if (root is not JsonObject obj)
             {
                 return false;
+            }
+
+            if (obj["devDependencies"] is JsonObject devDependencies && devDependencies.ContainsKey(metadata.Name))
+            {
+                devDependencies.Remove(metadata.Name);
             }
 
             if (obj["dependencies"] is not JsonObject dependencies)
@@ -103,12 +109,12 @@ internal static class TestPackageInstaller
         }
     }
 
-    private static async Task<PackageInstallState> DetectInstalledVersionMismatchAsync(AppWorkspace workspace, TestPackageMetadata metadata)
+    private static async Task<FrontendPackageInstallState> DetectInstalledVersionMismatchAsync(AppWorkspace workspace, FrontendPackageMetadata metadata)
     {
         string packageJsonPath = metadata.GetInstalledPackageJsonPath(workspace);
         if (!File.Exists(packageJsonPath))
         {
-            return new PackageInstallState(true, null);
+            return new FrontendPackageInstallState(true, null);
         }
 
         try
@@ -116,12 +122,12 @@ internal static class TestPackageInstaller
             using JsonDocument doc = JsonDocument.Parse(await File.ReadAllTextAsync(packageJsonPath));
             string installedVersion = doc.RootElement.GetProperty("version").GetString() ?? string.Empty;
             bool mismatch = !string.Equals(installedVersion, metadata.Version, StringComparison.Ordinal);
-            return new PackageInstallState(mismatch, installedVersion);
+            return new FrontendPackageInstallState(mismatch, installedVersion);
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Warning: Unable to read installed @webstir/test version: {ex.Message}");
-            return new PackageInstallState(true, null);
+            Console.Error.WriteLine($"Warning: Unable to read installed @webstir/frontend version: {ex.Message}");
+            return new FrontendPackageInstallState(true, null);
         }
     }
 
@@ -137,8 +143,8 @@ internal static class TestPackageInstaller
             return true;
         }
 
-        string actualHash = await ComputeFileHashAsync(tarballPath);
-        return !string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase);
+        string actual = await ComputeFileHashAsync(tarballPath);
+        return !string.Equals(actual, expectedHash, StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task<string> ComputeFileHashAsync(string filePath)
@@ -149,17 +155,17 @@ internal static class TestPackageInstaller
     }
 }
 
-internal readonly record struct PackageEnsureResult(
+internal readonly record struct FrontendPackageEnsureResult(
     bool ToolsAdded,
     bool DependencyUpdated,
     bool TarballUpdated,
     bool VersionMismatch,
     string? InstalledVersion,
-    TestPackageMetadata Metadata);
+    FrontendPackageMetadata Metadata);
 
-internal readonly record struct PackageInstallState(bool VersionMismatch, string? InstalledVersion);
+internal readonly record struct FrontendPackageInstallState(bool VersionMismatch, string? InstalledVersion);
 
-internal readonly record struct TestPackageMetadata(
+internal readonly record struct FrontendPackageMetadata(
     string Name,
     string Version,
     string FileName,

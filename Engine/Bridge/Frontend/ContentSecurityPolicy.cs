@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Engine.Frontend;
+namespace Engine.Bridge.Frontend;
 
 public static class ContentSecurityPolicy
 {

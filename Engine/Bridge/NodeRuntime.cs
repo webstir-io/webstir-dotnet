@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics;
 
-namespace Engine.Helpers;
+namespace Engine.Bridge;
 
 internal static class NodeRuntime
 {

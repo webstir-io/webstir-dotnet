@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using Engine;
-using Engine.Frontend;
+using Engine.Bridge.Frontend;
 using Tests.Framework;
 
 namespace Tests.Frontend;

@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using Engine.Frontend;
+using Engine.Bridge.Frontend;
 using Microsoft.AspNetCore.Http;
 
 namespace Engine.Middleware;

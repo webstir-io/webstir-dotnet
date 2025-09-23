@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using Engine;
-using Engine.Frontend;
+using Engine.Bridge.Frontend;
 
 using Tests.Framework;
 using Tests.Frontend;

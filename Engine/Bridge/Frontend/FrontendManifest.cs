@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Engine.Frontend;
+namespace Engine.Bridge.Frontend;
 
 public sealed class FrontendManifest
 {

@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Engine.Frontend;
+namespace Engine.Bridge.Frontend;
 
 public static class SubresourceIntegrity
 {

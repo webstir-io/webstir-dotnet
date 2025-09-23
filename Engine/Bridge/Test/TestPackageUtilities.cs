@@ -3,9 +3,9 @@ using System.IO;
 using System.Threading.Tasks;
 
 using Engine;
-using Engine.Helpers;
+using Engine.Bridge;
 
-namespace Engine.Testing;
+namespace Engine.Bridge.Test;
 
 internal static class TestPackageUtilities
 {

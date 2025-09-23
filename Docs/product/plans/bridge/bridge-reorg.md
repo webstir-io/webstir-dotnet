@@ -19,17 +19,22 @@
 ```
 Engine/
   Bridge/
+    NodeRuntime.cs
+    NpmHelper.cs
     Frontend/
       FrontendWorker.cs
       FrontendPackageInstaller.cs
-      TestPackageInstaller.cs
-      NodeRuntime.cs
       FrontendManifestLoader.cs
       FrontendManifest.cs
       SubresourceIntegrity.cs
       ContentSecurityPolicy.cs
+    Test/
+      TestCliRunner.cs
+      TestCliModels.cs
+      TestPackageInstaller.cs
+      TestPackageUtilities.cs
 ```
-- Follow-up slices (e.g., `Bridge/Backend`, `Bridge/Test`) can adopt the same convention once their pipelines are modernized.
+- Follow-up slices (e.g., `Bridge/Backend`) can adopt the same convention once their pipelines are modernized.
 
 ## Workstreams
 1. **Namespace Introduction**
@@ -41,10 +46,15 @@ Engine/
    - Update downstream consumers (`WebServer`, `FrontendWorker`, tests) to point at the relocated files.
 
 3. **Installer & Runtime Consolidation**
-   - Relocate `FrontendPackageInstaller`, `TestPackageInstaller`, `NodeRuntime`, and `NpmHelper` if they are primarily bridge responsibilities.
+   - Relocate `FrontendPackageInstaller` under `Engine.Bridge.Frontend`, move `TestPackageInstaller` alongside the other testing helpers, and surface `NodeRuntime`/`NpmHelper` at the bridge root for shared use.
    - Verify embedded resource paths remain valid after the move (resource namespaces follow file location).
 
-4. **Cleanup & Deprecations**
+4. **Testing Bridge Alignment**
+   - Establish `Engine.Bridge.Test` for the CLI testing bridge (`TestCliRunner`, models, and installer utilities).
+   - Update workflows and docs that reference `Engine.Testing` to the new namespace.
+   - Confirm JSON event parsing and package bootstrap continue to work after the relocation.
+
+5. **Cleanup & Deprecations**
    - Follow through on documentation updates now that `Precompression.cs` has already been deleted; scrub lingering references or note the CLI ownership explicitly.
    - Update docs (`frontend-*` plans, explanations) to reference the new path / namespace.
    - Run `./utilities/format-build.sh` to ensure formatting and build checks succeed post-move.
@@ -61,6 +71,7 @@ Engine/
 
 ## Exit Criteria
 - All bridge-related C# files reside under `Engine/Bridge/Frontend` (or documented exceptions).
+- Testing CLI orchestration types live under `Engine/Bridge/Test` with updated references.
 - Consumers compile against the new namespaces without warnings.
 - Docs and diagrams reference the new structure.
 - Dead helpers are removed or clearly flagged with follow-up tasks.

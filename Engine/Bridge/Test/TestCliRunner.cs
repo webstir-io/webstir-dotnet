@@ -7,10 +7,10 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Engine.Helpers;
+using Engine.Bridge;
 using Engine.Models;
 
-namespace Engine.Testing;
+namespace Engine.Bridge.Test;
 
 internal sealed class TestCliRunner
 {
