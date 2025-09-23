@@ -27,11 +27,15 @@ public sealed class FrontendWorker : IFrontendWorker
 
     private readonly FrontendWatcher _watcher;
     private bool _watchModeEnabled;
+    private readonly SemaphoreSlim _toolchainLock = new(1, 1);
+    private bool _toolchainVerified;
 
     public FrontendWorker(AppWorkspace workspace, ILogger<FrontendWorker> logger)
     {
         _workspace = workspace;
         _logger = logger;
+        bool verboseLogging = IsVerboseWatchLoggingEnabled();
+
         _watcher = new FrontendWatcher(
             _workspace,
             _logger,
@@ -39,7 +43,13 @@ public sealed class FrontendWorker : IFrontendWorker
             DiagnosticSerializerOptions,
             diagnostic => HandleWatchDiagnostic(diagnostic),
             (line, isError) => HandleWatchOutput(line, isError),
-            GetExecutablePath);
+            GetExecutablePath,
+            verboseLogging);
+
+        if (verboseLogging)
+        {
+            _logger.LogInformation("[frontend] Verbose frontend watch logging enabled (WEBSTIR_FRONTEND_WATCH_VERBOSE).");
+        }
     }
 
     public int BuildOrder => 1;
@@ -134,46 +144,61 @@ public sealed class FrontendWorker : IFrontendWorker
 
     private async Task EnsurePackagesAsync()
     {
-        NodeRuntime.EnsureMinimumVersion();
-        _logger.LogInformation("[frontend] Verifying toolchain packages...");
-        FrontendPackageEnsureResult frontendResult = await FrontendPackageInstaller.EnsureAsync(_workspace);
-        PackageEnsureResult testResult = await TestPackageInstaller.EnsureAsync(_workspace);
-
-        bool installRequired = frontendResult.ToolsAdded || frontendResult.DependencyUpdated || frontendResult.TarballUpdated
-            || testResult.ToolsAdded || testResult.DependencyUpdated || testResult.TarballUpdated;
-
-        if (installRequired)
+        await _toolchainLock.WaitAsync();
+        try
         {
-            if (frontendResult.TarballUpdated || testResult.TarballUpdated)
+            if (_toolchainVerified)
             {
-                RemovePackageLockIfPresent();
-                RemoveCachedPackage("@webstir/frontend");
-                RemoveCachedPackage("@webstir/test");
+                return;
             }
 
-            _logger.LogInformation("[frontend] Toolchain changed; running npm install...");
-            NpmHelper.RunNpmInstall(_workspace.WorkingPath);
-            frontendResult = await FrontendPackageInstaller.EnsureAsync(_workspace);
-            testResult = await TestPackageInstaller.EnsureAsync(_workspace);
+            NodeRuntime.EnsureMinimumVersion();
+            _logger.LogInformation("[frontend] Verifying toolchain packages...");
+            FrontendPackageEnsureResult frontendResult = await FrontendPackageInstaller.EnsureAsync(_workspace);
+            PackageEnsureResult testResult = await TestPackageInstaller.EnsureAsync(_workspace);
+
+            bool installRequired = frontendResult.ToolsAdded || frontendResult.DependencyUpdated || frontendResult.TarballUpdated
+                || testResult.ToolsAdded || testResult.DependencyUpdated || testResult.TarballUpdated;
+
+            if (installRequired)
+            {
+                if (frontendResult.TarballUpdated || testResult.TarballUpdated)
+                {
+                    RemovePackageLockIfPresent();
+                    RemoveCachedPackage("@webstir/frontend");
+                    RemoveCachedPackage("@webstir/test");
+                }
+
+                _logger.LogInformation("[frontend] Toolchain changed; running npm install...");
+                NpmHelper.RunNpmInstall(_workspace.WorkingPath);
+                frontendResult = await FrontendPackageInstaller.EnsureAsync(_workspace);
+                testResult = await TestPackageInstaller.EnsureAsync(_workspace);
+            }
+            else
+            {
+                _logger.LogDebug("[frontend] Toolchain already up to date.");
+            }
+
+            _logger.LogInformation("[frontend] Toolchain verification complete.");
+
+            LogVersionMismatch(frontendResult.VersionMismatch, frontendResult.InstalledVersion, frontendResult.Metadata.Name, frontendResult.Metadata.Version);
+            LogVersionMismatch(testResult.VersionMismatch, testResult.InstalledVersion, testResult.Metadata.Name, testResult.Metadata.Version);
+
+            if (frontendResult.TarballUpdated)
+            {
+                _logger.LogInformation("{Package} tarball updated; run npm install if changes are not applied automatically.", frontendResult.Metadata.Name);
+            }
+
+            if (testResult.TarballUpdated)
+            {
+                _logger.LogInformation("{Package} tarball updated; run npm install if changes are not applied automatically.", testResult.Metadata.Name);
+            }
+
+            _toolchainVerified = true;
         }
-        else
+        finally
         {
-            _logger.LogDebug("[frontend] Toolchain already up to date.");
-        }
-
-        _logger.LogInformation("[frontend] Toolchain verification complete.");
-
-        LogVersionMismatch(frontendResult.VersionMismatch, frontendResult.InstalledVersion, frontendResult.Metadata.Name, frontendResult.Metadata.Version);
-        LogVersionMismatch(testResult.VersionMismatch, testResult.InstalledVersion, testResult.Metadata.Name, testResult.Metadata.Version);
-
-        if (frontendResult.TarballUpdated)
-        {
-            _logger.LogInformation("{Package} tarball updated; run npm install if changes are not applied automatically.", frontendResult.Metadata.Name);
-        }
-
-        if (testResult.TarballUpdated)
-        {
-            _logger.LogInformation("{Package} tarball updated; run npm install if changes are not applied automatically.", testResult.Metadata.Name);
+            _toolchainLock.Release();
         }
     }
 
@@ -296,6 +321,19 @@ public sealed class FrontendWorker : IFrontendWorker
             ? "webstir-frontend.cmd"
             : "webstir-frontend";
         return Path.Combine(binDirectory, executable);
+    }
+
+    private static bool IsVerboseWatchLoggingEnabled()
+    {
+        string? value = Environment.GetEnvironmentVariable("WEBSTIR_FRONTEND_WATCH_VERBOSE");
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        return value.Equals("1", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("true", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("yes", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task LogPublishManifestAsync()

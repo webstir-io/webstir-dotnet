@@ -5,8 +5,6 @@ using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Engine.Helpers;
-using Engine.Models;
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Bridge.Frontend;
@@ -20,6 +18,7 @@ internal sealed class FrontendWatcher
     private readonly Action<FrontendCliDiagnostic> _diagnosticHandler;
     private readonly Action<string?, bool> _outputHandler;
     private readonly Func<string> _resolveExecutablePath;
+    private readonly bool _verbose;
 
     private readonly Queue<TaskCompletionSource<FrontendCliDiagnostic>> _pendingCommands = new();
     private readonly object _pendingCommandsLock = new();
@@ -38,7 +37,8 @@ internal sealed class FrontendWatcher
         JsonSerializerOptions diagnosticSerializerOptions,
         Action<FrontendCliDiagnostic> diagnosticHandler,
         Action<string?, bool> outputHandler,
-        Func<string> resolveExecutablePath)
+        Func<string> resolveExecutablePath,
+        bool verboseLogging = false)
     {
         _workspace = workspace;
         _logger = logger;
@@ -47,6 +47,7 @@ internal sealed class FrontendWatcher
         _diagnosticHandler = diagnosticHandler;
         _outputHandler = outputHandler;
         _resolveExecutablePath = resolveExecutablePath;
+        _verbose = verboseLogging;
     }
 
     public async Task StartAsync()
@@ -156,6 +157,10 @@ internal sealed class FrontendWatcher
         psi.ArgumentList.Add("--workspace");
         psi.ArgumentList.Add(_workspace.WorkingPath);
         psi.ArgumentList.Add("--no-auto-start");
+        if (_verbose)
+        {
+            psi.ArgumentList.Add("--verbose");
+        }
 
         Process process = new()
         {
@@ -398,7 +403,7 @@ internal sealed class FrontendWatcher
         }
     }
 
-    private Exception CreateWatchCommandException(FrontendCliDiagnostic diagnostic)
+    private InvalidOperationException CreateWatchCommandException(FrontendCliDiagnostic diagnostic)
     {
         string message = string.IsNullOrWhiteSpace(diagnostic.Message)
             ? "Frontend watch command failed."

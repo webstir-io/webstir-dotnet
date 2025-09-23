@@ -1,5 +1,6 @@
 const eventSource = new EventSource('/sse');
 let isShuttingDown = false;
+let resetTimer;
 
 const indicator = document.createElement('div');
 indicator.id = 'dev-server-indicator';
@@ -21,15 +22,39 @@ indicator.style.cssText = `
 
 document.body.appendChild(indicator);
 
-function setConnected() {
+function updateIndicator(background, text, shouldReset = false) {
     indicator.style.opacity = '1';
-    indicator.style.background = '#4CAF50';
-    indicator.textContent = '● Dev Server Connected';
+    indicator.style.background = background;
+    indicator.textContent = text;
+
+    if (resetTimer) {
+        clearTimeout(resetTimer);
+        resetTimer = undefined;
+    }
+
+    if (shouldReset) {
+        resetTimer = setTimeout(setConnected, 1500);
+    }
+}
+
+function setConnected() {
+    updateIndicator('#4CAF50', '● Dev Server Connected');
 }
 
 function setDisconnected() {
-    indicator.style.background = '#f44336';
-    indicator.textContent = 'Dev Server Disconnected';
+    updateIndicator('#f44336', 'Dev Server Disconnected');
+}
+
+function setBuilding() {
+    updateIndicator('#FF9800', '● Rebuilding…');
+}
+
+function setBuildSuccess() {
+    updateIndicator('#4CAF50', '● Rebuild Complete', true);
+}
+
+function setBuildFailure() {
+    updateIndicator('#f44336', '● Build Failed');
 }
 
 eventSource.onopen = () => {
@@ -46,6 +71,22 @@ eventSource.onmessage = (event) => {
         eventSource.close();
     }
 };
+
+eventSource.addEventListener('status', (event) => {
+    switch (event.data) {
+        case 'building':
+            setBuilding();
+            break;
+        case 'success':
+            setBuildSuccess();
+            break;
+        case 'error':
+            setBuildFailure();
+            break;
+        default:
+            break;
+    }
+});
 
 eventSource.onerror = (error) => {
     if (!isShuttingDown) {

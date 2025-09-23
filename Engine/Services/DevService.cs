@@ -78,7 +78,24 @@ public class DevService(
         await _nodeServer.StartAsync(workspace);
     }
 
-    public async Task NotifyClientsAsync() => await _webServer.UpdateClientsAsync();
+    public async Task NotifyClientsAsync(ClientNotificationType type)
+    {
+        switch (type)
+        {
+            case ClientNotificationType.BuildStarting:
+                await _webServer.PublishStatusAsync("building");
+                break;
+            case ClientNotificationType.BuildSucceeded:
+                await _webServer.PublishStatusAsync("success");
+                break;
+            case ClientNotificationType.BuildFailed:
+                await _webServer.PublishStatusAsync("error");
+                break;
+            case ClientNotificationType.Reload:
+                await _webServer.UpdateClientsAsync();
+                break;
+        }
+    }
 
     private async Task WaitForExitSignalAsync(CancellationToken cancellationToken)
     {

@@ -1,6 +1,7 @@
 import path from 'node:path';
+import { performance } from 'node:perf_hooks';
 import { context as createEsbuildContext } from 'esbuild';
-import type { BuildContext, BuildFailure, Message } from 'esbuild';
+import type { BuildContext, BuildFailure, BuildResult } from 'esbuild';
 import { FOLDERS, FILES, EXTENSIONS } from '../core/constants.js';
 import { getPages, type PageInfo } from '../core/pages.js';
 import { emitDiagnostic } from '../core/diagnostics.js';
@@ -15,6 +16,7 @@ import { createHtmlBuilder } from '../builders/htmlBuilder.js';
 import { createStaticAssetsBuilder } from '../builders/staticAssetsBuilder.js';
 import type { Builder, BuilderContext } from '../builders/types.js';
 import type { WatchChangeIntent, WatchCoordinatorOptions } from './types.js';
+import { WatchReporter, serializeMessages, type SerializedMessage } from './watchReporter.js';
 
 interface PageBuildContext {
     readonly name: string;
@@ -32,15 +34,6 @@ interface AdditionalBuildResult {
     readonly assets: readonly string[];
 }
 
-interface SerializedMessage {
-    readonly text: string;
-    readonly location?: {
-        readonly file?: string;
-        readonly line?: number;
-        readonly column?: number;
-    };
-}
-
 const JAVASCRIPT_EXTENSIONS = [EXTENSIONS.ts, EXTENSIONS.js, '.tsx', '.jsx'] as const;
 
 const BUILDER_DISPLAY_NAMES: Record<string, string> = {
@@ -52,12 +45,16 @@ const BUILDER_DISPLAY_NAMES: Record<string, string> = {
 export class WatchCoordinator {
     private readonly workspaceRoot: string;
     private readonly jsContexts = new Map<string, PageBuildContext>();
+    private readonly verbose: boolean;
+    private readonly reporter: WatchReporter;
     private config?: FrontendConfig;
     private isStopping = false;
     private queue: Promise<void> = Promise.resolve();
 
     public constructor(options: WatchCoordinatorOptions) {
         this.workspaceRoot = options.workspaceRoot;
+        this.verbose = options.verbose ?? false;
+        this.reporter = new WatchReporter({ verbose: this.verbose });
     }
 
     public async start(): Promise<void> {
@@ -65,7 +62,7 @@ export class WatchCoordinator {
             return;
         }
 
-        emitDiagnostic({
+        this.reporter.emitVerbose({
             code: 'frontend.watch.starting',
             kind: 'watch-daemon',
             stage: 'startup',
@@ -78,7 +75,7 @@ export class WatchCoordinator {
         const pipelineReady = await this.runFullBuildCycle();
 
         if (pipelineReady) {
-            emitDiagnostic({
+            this.reporter.emitVerbose({
                 code: 'frontend.watch.ready',
                 kind: 'watch-daemon',
                 stage: 'startup',
@@ -95,7 +92,7 @@ export class WatchCoordinator {
                 return;
             }
 
-            emitDiagnostic({
+            this.reporter.emitVerbose({
                 code: 'frontend.watch.reload',
                 kind: 'watch-daemon',
                 stage: 'startup',
@@ -107,7 +104,7 @@ export class WatchCoordinator {
             const pipelineSucceeded = await this.runFullBuildCycle();
 
             if (pipelineSucceeded) {
-                emitDiagnostic({
+                this.reporter.emitVerbose({
                     code: 'frontend.watch.reload.complete',
                     kind: 'watch-daemon',
                     stage: 'startup',
@@ -144,7 +141,7 @@ export class WatchCoordinator {
         });
         this.isStopping = false;
 
-        emitDiagnostic({
+        this.reporter.emitVerbose({
             code: 'frontend.watch.stopped',
             kind: 'watch-daemon',
             stage: 'shutdown',
@@ -183,7 +180,7 @@ export class WatchCoordinator {
                     await context.context.dispose();
                 }
                 this.jsContexts.delete(existing);
-                emitDiagnostic({
+                this.reporter.emitVerbose({
                     code: 'frontend.watch.javascript.context.removed',
                     kind: 'watch-daemon',
                     stage: 'javascript',
@@ -235,7 +232,8 @@ export class WatchCoordinator {
             platform: 'browser',
             sourcemap: true,
             outfile: path.join(outputDir, `${FILES.index}${EXTENSIONS.js}`),
-            logLevel: 'silent'
+            logLevel: 'silent',
+            metafile: this.verbose
         });
 
         this.jsContexts.set(page.name, {
@@ -244,7 +242,7 @@ export class WatchCoordinator {
             context
         });
 
-        emitDiagnostic({
+        this.reporter.emitVerbose({
             code: 'frontend.watch.javascript.context.created',
             kind: 'watch-daemon',
             stage: 'javascript',
@@ -300,7 +298,7 @@ export class WatchCoordinator {
         const relativeChange = this.getRelativeChange(changedFile);
         const messageContext = relativeChange ? ` (${relativeChange})` : '';
 
-        emitDiagnostic({
+        this.reporter.emitVerbose({
             code: `frontend.watch.${builder.name}.build.start`,
             kind: 'watch-daemon',
             stage: builder.name,
@@ -311,7 +309,7 @@ export class WatchCoordinator {
 
         try {
             await builder.build(context);
-            emitDiagnostic({
+            this.reporter.emitVerbose({
                 code: `frontend.watch.${builder.name}.build.success`,
                 kind: 'watch-daemon',
                 stage: builder.name,
@@ -396,7 +394,7 @@ export class WatchCoordinator {
         const relativeChange = this.getRelativeChange(changedFile);
 
         if (shouldRun) {
-            emitDiagnostic({
+            this.reporter.emitVerbose({
                 code: 'frontend.watch.javascript.build.start',
                 kind: 'watch-daemon',
                 stage: 'javascript',
@@ -413,7 +411,7 @@ export class WatchCoordinator {
                 ? `JavaScript rebuild not required${relativeChange ? ` (${relativeChange})` : ''}.`
                 : `JavaScript rebuild completed (${summary.pagesBuilt.length} page(s))${relativeChange ? ` (${relativeChange})` : ''}.`;
 
-            emitDiagnostic({
+            this.reporter.emitVerbose({
                 code: 'frontend.watch.javascript.build.success',
                 kind: 'watch-daemon',
                 stage: 'javascript',
@@ -444,9 +442,12 @@ export class WatchCoordinator {
             }
 
             try {
+                const start = performance.now();
                 const result = await pageContext.context.rebuild();
+                const duration = performance.now() - start;
                 builtPages.push(pageName);
                 warnings.push(...serializeMessages(result.warnings ?? []));
+                this.reporter.emitJavaScriptStats(pageName, result, duration);
             } catch (error) {
                 throw new JavaScriptBuildError(pageName, error);
             }
@@ -590,17 +591,4 @@ function isBuildFailure(error: unknown): error is BuildFailure {
     }
 
     return Array.isArray((error as BuildFailure).errors);
-}
-
-function serializeMessages(messages: readonly Message[]): SerializedMessage[] {
-    return messages.map((message) => ({
-        text: message.text,
-        location: message.location
-            ? {
-                  file: message.location.file,
-                  line: message.location.line,
-                  column: message.location.column
-              }
-            : undefined
-    }));
 }

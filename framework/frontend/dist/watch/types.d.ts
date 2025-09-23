@@ -14,9 +14,11 @@ export type WatchDaemonCommand = {
 export interface WatchDaemonOptions {
     readonly workspaceRoot: string;
     readonly autoStart?: boolean;
+    readonly verbose?: boolean;
 }
 export interface WatchCoordinatorOptions {
     readonly workspaceRoot: string;
+    readonly verbose?: boolean;
 }
 export interface WatchChangeIntent {
     readonly path?: string;

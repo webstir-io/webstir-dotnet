@@ -7,15 +7,19 @@ using Engine.Bridge.Test;
 using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Engine.Workflows;
 
 public class WatchWorkflow(
     AppWorkspace context,
     IEnumerable<IWorkflowWorker> workers,
-    DevService devService)
+    DevService devService,
+    ILogger<WatchWorkflow> logger)
     : BaseWorkflow(context, workers)
 {
+    private readonly ILogger<WatchWorkflow> _logger = logger;
+
     public override string WorkflowName => Commands.Watch;
 
     protected override async Task ExecuteWorkflowAsync(string[] args)
@@ -54,15 +58,19 @@ public class WatchWorkflow(
 
         if (!result.TestsDiscovered)
         {
-            Console.WriteLine("No tests found under src/**/tests/");
+            _logger.LogInformation("No tests found under src/**/tests/");
             return;
         }
 
-        Console.WriteLine($"Tests: {result.Passed} passed, {result.Failed} failed ({result.Total})");
+        _logger.LogInformation(
+            "Tests completed. Passed: {Passed}, Failed: {Failed}, Total: {Total}",
+            result.Passed,
+            result.Failed,
+            result.Total);
 
         if (result.HadErrors || result.ExitCode != 0)
         {
-            Console.WriteLine("Test runner reported errors. See logs above.");
+            _logger.LogWarning("Test runner reported errors. See logs above.");
         }
     }
 }

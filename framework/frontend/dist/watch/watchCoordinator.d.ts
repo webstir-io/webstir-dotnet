@@ -2,6 +2,8 @@ import type { WatchChangeIntent, WatchCoordinatorOptions } from './types.js';
 export declare class WatchCoordinator {
     private readonly workspaceRoot;
     private readonly jsContexts;
+    private readonly verbose;
+    private readonly reporter;
     private config?;
     private isStopping;
     private queue;

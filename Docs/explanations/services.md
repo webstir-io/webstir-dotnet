@@ -13,6 +13,7 @@ See also: [Engine](engine.md) and [Servers](servers.md).
 - Serves `build/frontend/**` during `watch`.
 - Exposes an SSE endpoint to notify connected browsers to reload after frontend rebuilds.
 - Proxies `/api/*` to the Node API server that runs `build/backend/index.js`.
+- Publishes build status events (`building`, `success`, `error`) that drive the browser badge.
 - Applies clean URLs and dev cache headers.
 
 Lifecycle
@@ -37,6 +38,7 @@ Behavior
 - Categorizes a change as frontend/backend/shared based on path.
 - Computes the smallest rebuild unit (page, backend, or both).
 - Prevents duplicate or circular work.
+- Emits `ClientNotificationType` events so DevService can broadcast status/reload messages.
 
 Routing examples
 - `src/frontend/pages/home/index.ts` → frontend rebuild for `home`.

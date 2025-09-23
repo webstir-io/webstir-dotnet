@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { performance } from 'node:perf_hooks';
 import { context as createEsbuildContext } from 'esbuild';
 import { FOLDERS, FILES, EXTENSIONS } from '../core/constants.js';
 import { getPages } from '../core/pages.js';
@@ -10,6 +11,7 @@ import { findPageFromChangedFile } from '../utils/pathMatch.js';
 import { createCssBuilder } from '../builders/cssBuilder.js';
 import { createHtmlBuilder } from '../builders/htmlBuilder.js';
 import { createStaticAssetsBuilder } from '../builders/staticAssetsBuilder.js';
+import { WatchReporter, serializeMessages } from './watchReporter.js';
 const JAVASCRIPT_EXTENSIONS = [EXTENSIONS.ts, EXTENSIONS.js, '.tsx', '.jsx'];
 const BUILDER_DISPLAY_NAMES = {
     css: 'CSS',
@@ -19,17 +21,21 @@ const BUILDER_DISPLAY_NAMES = {
 export class WatchCoordinator {
     workspaceRoot;
     jsContexts = new Map();
+    verbose;
+    reporter;
     config;
     isStopping = false;
     queue = Promise.resolve();
     constructor(options) {
         this.workspaceRoot = options.workspaceRoot;
+        this.verbose = options.verbose ?? false;
+        this.reporter = new WatchReporter({ verbose: this.verbose });
     }
     async start() {
         if (this.config) {
             return;
         }
-        emitDiagnostic({
+        this.reporter.emitVerbose({
             code: 'frontend.watch.starting',
             kind: 'watch-daemon',
             stage: 'startup',
@@ -40,7 +46,7 @@ export class WatchCoordinator {
         await this.refreshJavaScriptContexts();
         const pipelineReady = await this.runFullBuildCycle();
         if (pipelineReady) {
-            emitDiagnostic({
+            this.reporter.emitVerbose({
                 code: 'frontend.watch.ready',
                 kind: 'watch-daemon',
                 stage: 'startup',
@@ -55,7 +61,7 @@ export class WatchCoordinator {
                 await this.start();
                 return;
             }
-            emitDiagnostic({
+            this.reporter.emitVerbose({
                 code: 'frontend.watch.reload',
                 kind: 'watch-daemon',
                 stage: 'startup',
@@ -65,7 +71,7 @@ export class WatchCoordinator {
             await this.refreshJavaScriptContexts();
             const pipelineSucceeded = await this.runFullBuildCycle();
             if (pipelineSucceeded) {
-                emitDiagnostic({
+                this.reporter.emitVerbose({
                     code: 'frontend.watch.reload.complete',
                     kind: 'watch-daemon',
                     stage: 'startup',
@@ -97,7 +103,7 @@ export class WatchCoordinator {
             this.config = undefined;
         });
         this.isStopping = false;
-        emitDiagnostic({
+        this.reporter.emitVerbose({
             code: 'frontend.watch.stopped',
             kind: 'watch-daemon',
             stage: 'shutdown',
@@ -132,7 +138,7 @@ export class WatchCoordinator {
                     await context.context.dispose();
                 }
                 this.jsContexts.delete(existing);
-                emitDiagnostic({
+                this.reporter.emitVerbose({
                     code: 'frontend.watch.javascript.context.removed',
                     kind: 'watch-daemon',
                     stage: 'javascript',
@@ -179,14 +185,15 @@ export class WatchCoordinator {
             platform: 'browser',
             sourcemap: true,
             outfile: path.join(outputDir, `${FILES.index}${EXTENSIONS.js}`),
-            logLevel: 'silent'
+            logLevel: 'silent',
+            metafile: this.verbose
         });
         this.jsContexts.set(page.name, {
             name: page.name,
             entryPoint,
             context
         });
-        emitDiagnostic({
+        this.reporter.emitVerbose({
             code: 'frontend.watch.javascript.context.created',
             kind: 'watch-daemon',
             stage: 'javascript',
@@ -233,7 +240,7 @@ export class WatchCoordinator {
         const displayName = BUILDER_DISPLAY_NAMES[builder.name] ?? builder.name;
         const relativeChange = this.getRelativeChange(changedFile);
         const messageContext = relativeChange ? ` (${relativeChange})` : '';
-        emitDiagnostic({
+        this.reporter.emitVerbose({
             code: `frontend.watch.${builder.name}.build.start`,
             kind: 'watch-daemon',
             stage: builder.name,
@@ -243,7 +250,7 @@ export class WatchCoordinator {
         });
         try {
             await builder.build(context);
-            emitDiagnostic({
+            this.reporter.emitVerbose({
                 code: `frontend.watch.${builder.name}.build.success`,
                 kind: 'watch-daemon',
                 stage: builder.name,
@@ -318,7 +325,7 @@ export class WatchCoordinator {
         ]);
         const relativeChange = this.getRelativeChange(changedFile);
         if (shouldRun) {
-            emitDiagnostic({
+            this.reporter.emitVerbose({
                 code: 'frontend.watch.javascript.build.start',
                 kind: 'watch-daemon',
                 stage: 'javascript',
@@ -333,7 +340,7 @@ export class WatchCoordinator {
             const message = skipped
                 ? `JavaScript rebuild not required${relativeChange ? ` (${relativeChange})` : ''}.`
                 : `JavaScript rebuild completed (${summary.pagesBuilt.length} page(s))${relativeChange ? ` (${relativeChange})` : ''}.`;
-            emitDiagnostic({
+            this.reporter.emitVerbose({
                 code: 'frontend.watch.javascript.build.success',
                 kind: 'watch-daemon',
                 stage: 'javascript',
@@ -361,9 +368,12 @@ export class WatchCoordinator {
                 continue;
             }
             try {
+                const start = performance.now();
                 const result = await pageContext.context.rebuild();
+                const duration = performance.now() - start;
                 builtPages.push(pageName);
                 warnings.push(...serializeMessages(result.warnings ?? []));
+                this.reporter.emitJavaScriptStats(pageName, result, duration);
             }
             catch (error) {
                 throw new JavaScriptBuildError(pageName, error);
@@ -482,16 +492,4 @@ function isBuildFailure(error) {
         return false;
     }
     return Array.isArray(error.errors);
-}
-function serializeMessages(messages) {
-    return messages.map((message) => ({
-        text: message.text,
-        location: message.location
-            ? {
-                file: message.location.file,
-                line: message.location.line,
-                column: message.location.column
-            }
-            : undefined
-    }));
 }

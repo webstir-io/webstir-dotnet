@@ -73,11 +73,13 @@ program
     .description('Run the persistent frontend watch daemon')
     .requiredOption('-w, --workspace <path>', 'Absolute path to the workspace root')
     .option('--no-auto-start', 'Defer startup until a start command is received')
+    .option('-v, --verbose', 'Enable verbose watch diagnostics')
     .action(async (cmd) => {
         try {
             const daemon = new WatchDaemon({
                 workspaceRoot: cmd.workspace,
-                autoStart: cmd.autoStart
+                autoStart: cmd.autoStart,
+                verbose: cmd.verbose === true
             });
             await daemon.run();
         } catch (error) {

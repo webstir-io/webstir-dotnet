@@ -27,6 +27,9 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
 {
     private readonly List<HttpContext> _sseClients = [];
     private WebApplication? _app;
+    private readonly object _reloadLock = new();
+    private CancellationTokenSource? _pendingReloadCts;
+    private Task _pendingReloadTask = Task.CompletedTask;
 
     private const string NoCache = "no-cache, no-store, must-revalidate";
     private const string NoCacheMustRevalidate = "no-cache, must-revalidate";
@@ -37,6 +40,8 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
     private const string SseRoute = "/sse";
     private const string ApiRoute = "/api";
     private const string HomeRoute = "/home";
+
+    private static readonly TimeSpan ReloadDebounceInterval = TimeSpan.FromMilliseconds(200);
 
     private static bool IsStaticAsset(string path) =>
         path.EndsWith(FileExtensions.Css, StringComparison.OrdinalIgnoreCase) || path.EndsWith(FileExtensions.Js, StringComparison.OrdinalIgnoreCase) ||
@@ -130,17 +135,9 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        byte[] shutdownMessage = Encoding.UTF8.GetBytes("data: shutdown\n\n");
-        Task[] tasks = [.. _sseClients.Select(async client =>
-        {
-            try
-            {
-                await client.Response.Body.WriteAsync(shutdownMessage, cancellationToken);
-                await client.Response.Body.FlushAsync(cancellationToken);
-            }
-            catch { }
-        })];
-        await Task.WhenAll(tasks);
+        CancelPendingReload();
+
+        await BroadcastAsync("data: shutdown\n\n", cancellationToken);
 
         foreach (HttpContext client in _sseClients.ToList())
         {
@@ -162,21 +159,28 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
 
     public async Task UpdateClientsAsync(CancellationToken cancellationToken = default)
     {
-        string message = "data: reload\n\n";
-        byte[] bytes = Encoding.UTF8.GetBytes(message);
-
-        foreach (HttpContext client in _sseClients.ToList())
+        CancellationTokenSource cts;
+        lock (_reloadLock)
         {
-            try
-            {
-                await client.Response.Body.WriteAsync(bytes, cancellationToken);
-                await client.Response.Body.FlushAsync(cancellationToken);
-            }
-            catch
-            {
-                _sseClients.Remove(client);
-            }
+            _pendingReloadCts?.Cancel();
+            _pendingReloadCts?.Dispose();
+            _pendingReloadCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts = _pendingReloadCts;
+            _pendingReloadTask = SendReloadAfterDelayAsync(cts);
         }
+
+        await _pendingReloadTask;
+    }
+
+    public async Task PublishStatusAsync(string status, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            return;
+        }
+
+        string payload = $"event: status\ndata: {status}\n\n";
+        await BroadcastAsync(payload, cancellationToken);
     }
 
     private void ConfigureServices(IServiceCollection services)
@@ -222,6 +226,66 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
             FileProvider = new PhysicalFileProvider(webRootPath),
             EnableDirectoryBrowsing = false
         });
+    }
+
+    private async Task SendReloadAfterDelayAsync(CancellationTokenSource cts)
+    {
+        try
+        {
+            await Task.Delay(ReloadDebounceInterval, cts.Token);
+            await BroadcastAsync("data: reload\n\n", cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Debounce cancelled; no reload needed.
+        }
+        finally
+        {
+            lock (_reloadLock)
+            {
+                if (_pendingReloadCts == cts)
+                {
+                    _pendingReloadCts = null;
+                    _pendingReloadTask = Task.CompletedTask;
+                }
+            }
+
+            cts.Dispose();
+        }
+    }
+
+    private async Task BroadcastAsync(string message, CancellationToken cancellationToken)
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(message);
+
+        foreach (HttpContext client in _sseClients.ToList())
+        {
+            try
+            {
+                await client.Response.Body.WriteAsync(bytes, cancellationToken);
+                await client.Response.Body.FlushAsync(cancellationToken);
+            }
+            catch
+            {
+                _sseClients.Remove(client);
+            }
+        }
+    }
+
+    private void CancelPendingReload()
+    {
+        lock (_reloadLock)
+        {
+            if (_pendingReloadCts is null)
+            {
+                return;
+            }
+
+            _pendingReloadCts.Cancel();
+            _pendingReloadCts.Dispose();
+            _pendingReloadCts = null;
+            _pendingReloadTask = Task.CompletedTask;
+        }
     }
 
     private async Task HandleServerSentEvents(HttpContext context, Func<Task> next)

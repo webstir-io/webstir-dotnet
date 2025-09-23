@@ -22,11 +22,14 @@ public class ChangeService(ILogger<ChangeService> logger)
 
     private Func<string?, bool, Task>? _onChangeAction;
     private Func<AppWorkspace, Task>? _onServerRestart;
-    private Func<Task>? _onClientNotification;
+    private Func<ClientNotificationType, Task>? _onClientNotification;
     private AppWorkspace? _workspace;
 
-    public async Task Initialize(AppWorkspace workspace, Func<string?, bool, Task>? onChangeAction = null,
-        Func<AppWorkspace, Task>? onServerRestart = null, Func<Task>? onClientNotification = null)
+    public async Task Initialize(
+        AppWorkspace workspace,
+        Func<string?, bool, Task>? onChangeAction = null,
+        Func<AppWorkspace, Task>? onServerRestart = null,
+        Func<ClientNotificationType, Task>? onClientNotification = null)
     {
         _workspace = workspace;
         _onChangeAction = onChangeAction;
@@ -73,9 +76,25 @@ public class ChangeService(ILogger<ChangeService> logger)
                     case FileChangeType.Created:
                     case FileChangeType.Renamed:
                         await WaitForFileAsync(changeEvent.FilePath);
-                        await _onChangeAction?.Invoke(changeEvent.FilePath, false)!;
+                        await NotifyClientsAsync(ClientNotificationType.BuildStarting);
 
-                        if (IsServerFile(changeEvent.FilePath))
+                        bool buildSucceeded = true;
+
+                        try
+                        {
+                            if (_onChangeAction is not null)
+                            {
+                                await _onChangeAction.Invoke(changeEvent.FilePath, false);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            buildSucceeded = false;
+                            _logger.LogError(ex, "Frontend change processing failed for {FilePath}", changeEvent.FilePath);
+                            await NotifyClientsAsync(ClientNotificationType.BuildFailed);
+                        }
+
+                        if (buildSucceeded && IsServerFile(changeEvent.FilePath))
                         {
                             _logger.LogInformation("Backend files changed, requesting server restart...");
                             if (_onServerRestart != null)
@@ -84,19 +103,36 @@ public class ChangeService(ILogger<ChangeService> logger)
                             }
                         }
 
-                        if (_onClientNotification != null)
+                        if (buildSucceeded)
                         {
-                            await _onClientNotification();
+                            await NotifyClientsAsync(ClientNotificationType.BuildSucceeded);
+                            await NotifyClientsAsync(ClientNotificationType.Reload);
                         }
                         break;
 
                     case FileChangeType.Deleted:
                         _logger.LogInformation("File deleted: {FileName}", Path.GetFileName(changeEvent.FilePath));
-                        await _onChangeAction?.Invoke(changeEvent.FilePath, false)!;
+                        await NotifyClientsAsync(ClientNotificationType.BuildStarting);
 
-                        if (_onClientNotification != null)
+                        bool deleteSucceeded = true;
+                        try
                         {
-                            await _onClientNotification();
+                            if (_onChangeAction is not null)
+                            {
+                                await _onChangeAction.Invoke(changeEvent.FilePath, false);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            deleteSucceeded = false;
+                            _logger.LogError(ex, "Frontend deletion handling failed for {FilePath}", changeEvent.FilePath);
+                            await NotifyClientsAsync(ClientNotificationType.BuildFailed);
+                        }
+
+                        if (deleteSucceeded)
+                        {
+                            await NotifyClientsAsync(ClientNotificationType.BuildSucceeded);
+                            await NotifyClientsAsync(ClientNotificationType.Reload);
                         }
                         break;
                 }
@@ -146,6 +182,14 @@ public class ChangeService(ILogger<ChangeService> logger)
 
     private bool IsServerFile(string filePath) =>
         filePath.StartsWith(_workspace!.BackendPath, StringComparison.OrdinalIgnoreCase);
+
+    private async Task NotifyClientsAsync(ClientNotificationType type)
+    {
+        if (_onClientNotification != null)
+        {
+            await _onClientNotification(type);
+        }
+    }
 
     private static bool IsIgnored(string filePath)
     {
