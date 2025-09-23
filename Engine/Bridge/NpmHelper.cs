@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using Engine.Extensions;
 
 namespace Engine.Bridge;
@@ -27,20 +28,58 @@ public static class NpmHelper
 
         process.WaitForExit();
 
+        if (process.ExitCode != 0 && npmCommand == "ci")
+        {
+            DeleteIfExists(packageLockPath);
+            processInfo.Arguments = "install";
+            using Process retryProcess = Process.Start(processInfo)
+                ?? throw new Exception("Failed to start npm install process.");
+            retryProcess.WaitForExit();
+            if (retryProcess.ExitCode != 0)
+            {
+                throw CreateInstallException(retryProcess);
+            }
+            return;
+        }
+
         if (process.ExitCode != 0)
         {
-            string errors = process.StandardError.ReadToEnd();
-            string output = process.StandardOutput.ReadToEnd();
-            string errorMessage = $"npm install failed (Exit Code: {process.ExitCode})";
-            if (!string.IsNullOrWhiteSpace(errors))
-            {
-                errorMessage += $"\nErrors:\n{errors}";
-            }
-            if (!string.IsNullOrWhiteSpace(output))
-            {
-                errorMessage += $"\nOutput:\n{output}";
-            }
-            throw new Exception(errorMessage);
+            throw CreateInstallException(process);
         }
+    }
+
+    private static void DeleteIfExists(string filePath)
+    {
+        try
+        {
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+        }
+        catch (IOException)
+        {
+            // best effort
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // best effort
+        }
+    }
+
+    private static Exception CreateInstallException(Process process)
+    {
+        string errors = process.StandardError.ReadToEnd();
+        string output = process.StandardOutput.ReadToEnd();
+        string errorMessage = $"npm install failed (Exit Code: {process.ExitCode})";
+        if (!string.IsNullOrWhiteSpace(errors))
+        {
+            errorMessage += $"\nErrors:\n{errors}";
+        }
+        if (!string.IsNullOrWhiteSpace(output))
+        {
+            errorMessage += $"\nOutput:\n{output}";
+        }
+        return new Exception(errorMessage);
     }
 }

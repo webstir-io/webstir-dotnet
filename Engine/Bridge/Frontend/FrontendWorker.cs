@@ -99,11 +99,25 @@ public sealed class FrontendWorker : IFrontendWorker
         await _watcher.StopAsync();
     }
 
-    private void HandleWatchDiagnostic(FrontendCliDiagnostic diagnostic) => LogDiagnostic(diagnostic);
+    private void HandleWatchDiagnostic(FrontendCliDiagnostic diagnostic)
+    {
+        bool isError = string.Equals(diagnostic.Severity, "error", StringComparison.OrdinalIgnoreCase);
+        bool isWarning = string.Equals(diagnostic.Severity, "warning", StringComparison.OrdinalIgnoreCase);
+
+        if (isError || isWarning)
+        {
+            LogDiagnostic(diagnostic);
+        }
+    }
 
     private void HandleWatchOutput(string? line, bool isError)
     {
         if (string.IsNullOrWhiteSpace(line))
+        {
+            return;
+        }
+
+        if (!isError && line.StartsWith("[webstir-frontend][frontend.watch.", StringComparison.Ordinal))
         {
             return;
         }
@@ -130,6 +144,13 @@ public sealed class FrontendWorker : IFrontendWorker
 
         if (installRequired)
         {
+            if (frontendResult.TarballUpdated || testResult.TarballUpdated)
+            {
+                RemovePackageLockIfPresent();
+                RemoveCachedPackage("@webstir/frontend");
+                RemoveCachedPackage("@webstir/test");
+            }
+
             _logger.LogInformation("[frontend] Toolchain changed; running npm install...");
             NpmHelper.RunNpmInstall(_workspace.WorkingPath);
             frontendResult = await FrontendPackageInstaller.EnsureAsync(_workspace);
@@ -221,6 +242,50 @@ public sealed class FrontendWorker : IFrontendWorker
         if (process.ExitCode != 0)
         {
             throw new InvalidOperationException($"webstir-frontend {command} failed with exit code {process.ExitCode}.");
+        }
+    }
+
+    private void RemovePackageLockIfPresent()
+    {
+        try
+        {
+            string packageLockPath = Path.Combine(_workspace.WorkingPath, Files.PackageLockJson);
+            if (File.Exists(packageLockPath))
+            {
+                File.Delete(packageLockPath);
+            }
+        }
+        catch (IOException ex)
+        {
+            _logger.LogDebug(ex, "Failed to remove package-lock.json while refreshing the frontend toolchain.");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogDebug(ex, "Insufficient permissions to remove package-lock.json while refreshing the frontend toolchain.");
+        }
+    }
+
+    private void RemoveCachedPackage(string packageName)
+    {
+        try
+        {
+            string packagePath = Path.Combine(_workspace.NodeModulesPath, packageName); // Handles scoped packages
+            if (Directory.Exists(packagePath))
+            {
+                Directory.Delete(packagePath, recursive: true);
+            }
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // Nothing to remove.
+        }
+        catch (IOException ex)
+        {
+            _logger.LogDebug(ex, "Failed to remove cached package {Package} while refreshing the frontend toolchain.", packageName);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogDebug(ex, "Insufficient permissions to remove cached package {Package} while refreshing the frontend toolchain.", packageName);
         }
     }
 
