@@ -12,16 +12,25 @@ cd "$ROOT_DIR"
 
 SEED_DIR="CLI/out/seed"
 
-echo "[1/4] Initializing seed at $SEED_DIR ..."
-rm -rf "$SEED_DIR"
+echo "[1/3] Initializing seed at $SEED_DIR ..."
+if [ -d "$SEED_DIR" ]; then
+  if command -v chflags >/dev/null 2>&1; then
+    chflags -R nouchg "$SEED_DIR" 2>/dev/null || true
+  fi
+  if command -v chmod >/dev/null 2>&1; then
+    chmod -RN "$SEED_DIR" 2>/dev/null || true
+    chmod -R u+w "$SEED_DIR" 2>/dev/null || true
+  fi
+  if command -v xattr >/dev/null 2>&1; then
+    xattr -dr com.apple.provenance "$SEED_DIR" 2>/dev/null || true
+  fi
+  rm -rf "$SEED_DIR"
+fi
 dotnet run --project CLI -- init "$SEED_DIR"
 
-echo "[2/4] Building seed ..."
-dotnet run --project CLI -- build --project-name "$SEED_DIR"
-
-echo "[3/4] Running tests ..."
+echo "[2/3] Running tests ..."
 if dotnet run --project CLI -- test --project-name "$SEED_DIR"; then
-  echo "[4/4] Publishing seed ..."
+  echo "[3/3] Publishing seed ..."
   dotnet run --project CLI -- publish --project-name "$SEED_DIR"
   echo "Done."
 else

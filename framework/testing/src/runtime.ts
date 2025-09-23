@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import Module from 'node:module';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import vm from 'node:vm';
 
 import { assert } from './assert.js';
@@ -82,32 +83,21 @@ export function createRuntimeRequire(file: string): RequireFn {
   return runtimeRequire;
 }
 
-export function evaluateModule(file: string): string | null {
-  const code = fs.readFileSync(file, 'utf8');
-  const runtimeRequire = createRuntimeRequire(file);
-  const context = vm.createContext({
-    test,
-    assert,
-    globalThis,
-    console,
-    setTimeout,
-    clearTimeout,
-    require: runtimeRequire,
-    __dirname: path.dirname(file),
-    __filename: file,
-  });
+const esmFallback = Symbol('esm-fallback');
 
-  try {
-    runnerGlobal.__currentFile = file;
-    registry.set(file, []);
-    const script = new vm.Script(code, { filename: file });
-    script.runInContext(context, { displayErrors: true });
+export async function evaluateModule(file: string): Promise<string | null> {
+  const code = fs.readFileSync(file, 'utf8');
+  const commonJsResult = evaluateCommonJsModule(file, code);
+
+  if (commonJsResult === null) {
     return null;
-  } catch (error) {
-    return formatError(error);
-  } finally {
-    delete runnerGlobal.__currentFile;
   }
+
+  if (commonJsResult === esmFallback) {
+    return await evaluateEsmModule(file);
+  }
+
+  return commonJsResult;
 }
 
 export async function run(files: readonly string[]): Promise<RunnerSummary> {
@@ -126,7 +116,7 @@ export async function run(files: readonly string[]): Promise<RunnerSummary> {
       continue;
     }
 
-    const evalError = evaluateModule(file);
+    const evalError = await evaluateModule(file);
     if (evalError) {
       allResults.push({
         name: '[module evaluation]',
@@ -168,6 +158,64 @@ export async function run(files: readonly string[]): Promise<RunnerSummary> {
     durationMs: Date.now() - start,
     results: allResults,
   };
+}
+
+function evaluateCommonJsModule(file: string, code: string): string | typeof esmFallback | null {
+  const runtimeRequire = createRuntimeRequire(file);
+  const context = vm.createContext({
+    test,
+    assert,
+    globalThis,
+    console,
+    setTimeout,
+    clearTimeout,
+    require: runtimeRequire,
+    __dirname: path.dirname(file),
+    __filename: file,
+  });
+
+  runnerGlobal.__currentFile = file;
+  registry.set(file, []);
+
+  try {
+    const script = new vm.Script(code, { filename: file });
+    script.runInContext(context, { displayErrors: true });
+    return null;
+  } catch (error) {
+    if (isEsModuleSyntaxError(error)) {
+      return esmFallback;
+    }
+
+    return formatError(error);
+  } finally {
+    delete runnerGlobal.__currentFile;
+  }
+}
+
+async function evaluateEsmModule(file: string): Promise<string | null> {
+  const moduleUrl = pathToFileURL(file);
+  moduleUrl.searchParams.set('ts', Date.now().toString());
+
+  try {
+    runnerGlobal.__currentFile = file;
+    registry.set(file, []);
+    await import(moduleUrl.href);
+    return null;
+  } catch (error) {
+    return formatError(error);
+  } finally {
+    delete runnerGlobal.__currentFile;
+  }
+}
+
+function isEsModuleSyntaxError(error: unknown): boolean {
+  if (!(error instanceof SyntaxError) || typeof error.message !== 'string') {
+    return false;
+  }
+
+  return error.message.includes('Cannot use import statement outside a module')
+    || error.message.includes('Unexpected token')
+    || error.message.includes('export');
 }
 
 async function runSingleTest(testCase: RegisteredTest): Promise<{ passed: boolean; message: string | null; durationMs: number; }> {

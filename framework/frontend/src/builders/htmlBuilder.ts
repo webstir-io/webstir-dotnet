@@ -6,7 +6,7 @@ import { FOLDERS, FILES, FILE_NAMES, EXTENSIONS } from '../core/constants.js';
 import { ensureDir, readFile, writeFile, pathExists, remove } from '../utils/fs.js';
 import type { Builder, BuilderContext } from './types.js';
 import { getPageDirectories } from '../core/pages.js';
-import { readPageManifest } from '../assets/assetManifest.js';
+import { readPageManifest, readSharedAssets } from '../assets/assetManifest.js';
 import { createCompressedVariants } from '../assets/precompression.js';
 import { shouldProcess } from '../utils/changedFile.js';
 import { getImageDimensions } from '../assets/imageOptimizer.js';
@@ -94,6 +94,7 @@ async function publishHtml(context: BuilderContext): Promise<void> {
 
     const targetPage = findPageFromChangedFile(context.changedFile, config.paths.src.pages);
     const pages = await getPageDirectories(buildPagesRoot);
+    const shared = await readSharedAssets(config.paths.dist.frontend);
 
     for (const page of pages) {
         if (targetPage && page.name !== targetPage) {
@@ -112,7 +113,7 @@ async function publishHtml(context: BuilderContext): Promise<void> {
         for (const relativeHtml of htmlFiles) {
             const sourcePath = path.join(page.directory, relativeHtml);
             const html = await readFile(sourcePath);
-            const rewritten = await rewriteForPublish(context, html, page.name, manifest, page.directory);
+            const rewritten = await rewriteForPublish(context, html, page.name, manifest, page.directory, shared);
             const outputPath = path.join(distDir, path.basename(relativeHtml));
             await writeFile(outputPath, rewritten);
             await handlePrecompression(context, outputPath);
@@ -150,11 +151,16 @@ async function rewriteForPublish(
     html: string,
     pageName: string,
     manifest: { js?: string; css?: string },
-    pageDirectory: string
+    pageDirectory: string,
+    shared: { css?: string } | null
 ): Promise<string> {
     const document = load(html);
 
     document(`script[src="/${FILES.refreshJs}"]`).remove();
+
+    if (shared?.css) {
+        document(`link[href="/app/app.css"]`).attr('href', `/app/${shared.css}`);
+    }
 
     if (manifest.js) {
         const selector = `script[src="${FILES.index}${EXTENSIONS.js}"]`;

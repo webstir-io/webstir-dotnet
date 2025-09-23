@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Engine.Bridge.Test;
 using Engine.Helpers;
 using Engine.Interfaces;
+using Engine.Extensions;
 
 namespace Engine.Workflows;
 
@@ -18,6 +21,7 @@ public sealed class TestWorkflow(
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         await ExecuteBuildAsync();
+        await CompileTypeScriptAsync();
 
         PackageEnsureResult ensureResult = await TestPackageUtilities.EnsurePackageAsync(Context);
         TestPackageUtilities.LogEnsureMessages(ensureResult);
@@ -76,6 +80,57 @@ public sealed class TestWorkflow(
             Console.Write("✔ ");
             Console.ResetColor();
             Console.WriteLine("All tests passed");
+        }
+    }
+
+    private async Task CompileTypeScriptAsync()
+    {
+        string tsConfigPath = Context.WorkingPath.Combine(Files.BaseTsConfigJson);
+        if (!File.Exists(tsConfigPath))
+        {
+            return;
+        }
+
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = "tsc",
+            Arguments = $"--build \"{tsConfigPath}\"",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = Context.WorkingPath
+        };
+
+        using Process process = new()
+        {
+            StartInfo = startInfo
+        };
+
+        process.OutputDataReceived += (_, args) =>
+        {
+            if (!string.IsNullOrWhiteSpace(args.Data))
+            {
+                Console.WriteLine(args.Data);
+            }
+        };
+
+        process.ErrorDataReceived += (_, args) =>
+        {
+            if (!string.IsNullOrWhiteSpace(args.Data))
+            {
+                Console.Error.WriteLine(args.Data);
+            }
+        };
+
+        process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"TypeScript compilation failed with exit code {process.ExitCode}.");
         }
     }
 }

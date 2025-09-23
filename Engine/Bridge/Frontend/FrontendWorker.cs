@@ -51,6 +51,7 @@ public sealed class FrontendWorker(
     private async Task EnsurePackagesAsync()
     {
         NodeRuntime.EnsureMinimumVersion();
+        _logger.LogInformation("[frontend] Verifying toolchain packages...");
         FrontendPackageEnsureResult frontendResult = await FrontendPackageInstaller.EnsureAsync(_workspace);
         PackageEnsureResult testResult = await TestPackageInstaller.EnsureAsync(_workspace);
 
@@ -59,10 +60,17 @@ public sealed class FrontendWorker(
 
         if (installRequired)
         {
+            _logger.LogInformation("[frontend] Toolchain changed; running npm install...");
             NpmHelper.RunNpmInstall(_workspace.WorkingPath);
             frontendResult = await FrontendPackageInstaller.EnsureAsync(_workspace);
             testResult = await TestPackageInstaller.EnsureAsync(_workspace);
         }
+        else
+        {
+            _logger.LogDebug("[frontend] Toolchain already up to date.");
+        }
+
+        _logger.LogInformation("[frontend] Toolchain verification complete.");
 
         LogVersionMismatch(frontendResult.VersionMismatch, frontendResult.InstalledVersion, frontendResult.Metadata.Name, frontendResult.Metadata.Version);
         LogVersionMismatch(testResult.VersionMismatch, testResult.InstalledVersion, testResult.Metadata.Name, testResult.Metadata.Version);
