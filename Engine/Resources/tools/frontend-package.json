@@ -1,7 +1,7 @@
 {
   "name": "@webstir/frontend",
-  "version": "0.2.1",
-  "fileName": "webstir-frontend-0-2-1.tgz",
-  "dependency": "file:./.tools/webstir-frontend-0-2-1.tgz",
-  "hash": "e8efb538f6e66df30d1ffa7eb2ba687b8472d61c1c3f2200375abf330799bc25"
+  "version": "0.2.2",
+  "fileName": "webstir-frontend-0-2-2.tgz",
+  "dependency": "file:./.tools/webstir-frontend-0-2-2.tgz",
+  "hash": "9c4386645e9c24c947ae170eddb5d9ad518e55b81e4968bda3db0aa1a80c9139"
 }

@@ -2,13 +2,13 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { context as createEsbuildContext } from 'esbuild';
 import type { BuildContext, BuildResult } from 'esbuild';
-import { FOLDERS, FILES, EXTENSIONS } from '../core/constants.js';
+import { FOLDERS, FILES, FILE_NAMES, EXTENSIONS } from '../core/constants.js';
 import { getPages, type PageInfo } from '../core/pages.js';
 import { emitDiagnostic } from '../core/diagnostics.js';
 import type { FrontendConfig } from '../types.js';
 import { prepareWorkspaceConfig } from '../config/setup.js';
 import { ensureDir } from '../utils/fs.js';
-import { shouldProcess } from '../utils/changedFile.js';
+import { shouldProcess, isPathInside } from '../utils/changedFile.js';
 import { findPageFromChangedFile } from '../utils/pathMatch.js';
 import { createCssBuilder } from '../builders/cssBuilder.js';
 import { createHtmlBuilder } from '../builders/htmlBuilder.js';
@@ -296,6 +296,23 @@ export class WatchCoordinator {
         const pageNames = Array.from(this.jsContexts.keys());
         const relativeChange = this.getRelativeChange(changedFile);
         const fallbackReasons: string[] = [];
+        const normalizedChange = changedFile ? path.resolve(changedFile) : undefined;
+        const appTemplatePath = path.resolve(config.paths.src.app, FILE_NAMES.htmlAppTemplate);
+        const isHtmlChange = Boolean(normalizedChange && (
+            (path.extname(normalizedChange).toLowerCase() === EXTENSIONS.html
+                && (isPathInside(normalizedChange, config.paths.src.pages) || isPathInside(normalizedChange, config.paths.src.app)))
+            || normalizedChange === appTemplatePath
+        ));
+        const staticAssetDirectories = [
+            config.paths.src.images,
+            config.paths.src.fonts,
+            config.paths.src.media
+        ].filter((directory): directory is string => Boolean(directory)).map((directory) => path.resolve(directory));
+        const robotsPath = path.resolve(config.paths.src.frontend, FILES.robotsTxt);
+        const isStaticAssetChange = Boolean(normalizedChange && (
+            staticAssetDirectories.some(directory => isPathInside(normalizedChange!, directory))
+            || normalizedChange === robotsPath
+        ));
 
         for (const builder of builders) {
             executed.push(builder.name);
@@ -320,9 +337,18 @@ export class WatchCoordinator {
                 fallbackReasons.push(...cssResult.fallbackReasons);
             }
 
-            if (builder.name === 'html' || builder.name === 'static-assets') {
-                requiresReload = true;
-                fallbackReasons.push(`builder.${builder.name}.reload`);
+            if (builder.name === 'html') {
+                if (!changedFile || isHtmlChange) {
+                    requiresReload = true;
+                    fallbackReasons.push('builder.html.reload');
+                }
+            }
+
+            if (builder.name === 'static-assets') {
+                if (!changedFile || isStaticAssetChange) {
+                    requiresReload = true;
+                    fallbackReasons.push('builder.static-assets.reload');
+                }
             }
         }
 

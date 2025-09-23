@@ -32,6 +32,7 @@ export const FILES = {
     index: 'index',
     indexHtml: 'index.html',
     refreshJs: 'refresh.js',
+    hmrJs: 'hmr.js',
     robotsTxt: 'robots.txt'
 };
 export const EXTENSIONS = {

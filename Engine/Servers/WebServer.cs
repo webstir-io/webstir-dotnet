@@ -376,7 +376,8 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
         {
             context.Response.Headers.CacheControl = LongCache;
         }
-        else if (path.EndsWith(Files.RefreshJs, StringComparison.Ordinal))
+        else if (path.EndsWith(Files.RefreshJs, StringComparison.Ordinal)
+                 || path.EndsWith(Files.HmrJs, StringComparison.Ordinal))
         {
             context.Response.Headers.CacheControl = NoCache;
             context.Response.Headers.Pragma = PragmaNoCache;

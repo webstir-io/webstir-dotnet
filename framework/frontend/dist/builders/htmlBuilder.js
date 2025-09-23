@@ -124,6 +124,7 @@ function mergeTemplates(appHtml, pageHtml) {
 async function rewriteForPublish(context, html, pageName, manifest, pageDirectory, shared) {
     const document = load(html);
     document(`script[src="/${FILES.refreshJs}"]`).remove();
+    document(`script[src="/${FILES.hmrJs}"]`).remove();
     if (shared?.css) {
         document(`link[href="/app/app.css"]`).attr('href', `/app/${shared.css}`);
     }

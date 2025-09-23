@@ -101,13 +101,16 @@ async function buildForProduction(config, pageName, entryPoint) {
     });
 }
 async function copyRefreshScript(config) {
-    const refreshScript = path.join(config.paths.src.app, FILES.refreshJs);
-    if (!(await pathExists(refreshScript))) {
-        return;
+    const runtimeScripts = [FILES.refreshJs, FILES.hmrJs];
+    for (const scriptName of runtimeScripts) {
+        const source = path.join(config.paths.src.app, scriptName);
+        if (!(await pathExists(source))) {
+            continue;
+        }
+        const destination = path.join(config.paths.build.frontend, scriptName);
+        await ensureDir(path.dirname(destination));
+        await copy(source, destination);
     }
-    const destination = path.join(config.paths.build.frontend, FILES.refreshJs);
-    await ensureDir(path.dirname(destination));
-    await copy(refreshScript, destination);
 }
 async function resolveEntryPoint(pageDirectory) {
     for (const extension of ENTRY_EXTENSIONS) {

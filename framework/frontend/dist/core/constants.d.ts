@@ -32,6 +32,7 @@ export declare const FILES: {
     readonly index: "index";
     readonly indexHtml: "index.html";
     readonly refreshJs: "refresh.js";
+    readonly hmrJs: "hmr.js";
     readonly robotsTxt: "robots.txt";
 };
 export declare const EXTENSIONS: {

@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Webstir frontend defaults and tooling",
   "dependencies": {
-    "@webstir/test": "file:./.tools/webstir-test-0-3-0.tgz"
+    "@webstir/test": "file:./.tools/webstir-test-0-3-0.tgz",
+    "@webstir/frontend": "file:./.tools/webstir-frontend-0-2-2.tgz"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

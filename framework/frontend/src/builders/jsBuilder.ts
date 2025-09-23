@@ -113,14 +113,18 @@ async function buildForProduction(config: BuilderContext['config'], pageName: st
 }
 
 async function copyRefreshScript(config: BuilderContext['config']): Promise<void> {
-    const refreshScript = path.join(config.paths.src.app, FILES.refreshJs);
-    if (!(await pathExists(refreshScript))) {
-        return;
-    }
+    const runtimeScripts = [FILES.refreshJs, FILES.hmrJs];
 
-    const destination = path.join(config.paths.build.frontend, FILES.refreshJs);
-    await ensureDir(path.dirname(destination));
-    await copy(refreshScript, destination);
+    for (const scriptName of runtimeScripts) {
+        const source = path.join(config.paths.src.app, scriptName);
+        if (!(await pathExists(source))) {
+            continue;
+        }
+
+        const destination = path.join(config.paths.build.frontend, scriptName);
+        await ensureDir(path.dirname(destination));
+        await copy(source, destination);
+    }
 }
 
 async function resolveEntryPoint(pageDirectory: string): Promise<string | null> {

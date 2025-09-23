@@ -1,4 +1,8 @@
-const eventSource = new EventSource('/sse');
+const existingEventSource = window.__webstirEventSource;
+const eventSource = existingEventSource instanceof EventSource
+    ? existingEventSource
+    : new EventSource('/sse');
+window.__webstirEventSource = eventSource;
 let isShuttingDown = false;
 let resetTimer;
 
@@ -37,29 +41,51 @@ function updateIndicator(background, text, shouldReset = false) {
     }
 }
 
-function setConnected() {
-    updateIndicator('#4CAF50', '● Dev Server Connected');
+function setConnected(message) {
+    updateIndicator('#4CAF50', message ?? '● Dev Server Connected');
 }
 
-function setDisconnected() {
-    updateIndicator('#f44336', 'Dev Server Disconnected');
+function setDisconnected(message) {
+    updateIndicator('#f44336', message ?? 'Dev Server Disconnected');
 }
 
-function setBuilding() {
-    updateIndicator('#FF9800', '● Rebuilding…');
+function setBuilding(message) {
+    updateIndicator('#FF9800', message ?? '● Rebuilding…');
 }
 
-function setBuildSuccess() {
-    updateIndicator('#4CAF50', '● Rebuild Complete', true);
+function setBuildSuccess(message) {
+    updateIndicator('#4CAF50', message ?? '● Rebuild Complete', true);
 }
 
-function setBuildFailure() {
-    updateIndicator('#f44336', '● Build Failed');
+function setBuildFailure(message) {
+    updateIndicator('#f44336', message ?? '● Build Failed');
 }
+
+function setHmrFallback(message) {
+    updateIndicator('#FF5722', message ?? '● Reloading (HMR fallback)…');
+}
+
+const statusHandlers = {
+    connected: setConnected,
+    disconnected: setDisconnected,
+    building: setBuilding,
+    success: setBuildSuccess,
+    error: setBuildFailure,
+    'hmr-fallback': setHmrFallback
+};
+
+function applyStatus(status, message) {
+    const handler = statusHandlers[status];
+    if (typeof handler === 'function') {
+        handler(message);
+    }
+}
+
+window.__webstirSetDevStatus = applyStatus;
 
 eventSource.onopen = () => {
     console.log('SSE connection established.');
-    setConnected();
+    applyStatus('connected');
 };
 
 eventSource.onmessage = (event) => {
@@ -73,25 +99,13 @@ eventSource.onmessage = (event) => {
 };
 
 eventSource.addEventListener('status', (event) => {
-    switch (event.data) {
-        case 'building':
-            setBuilding();
-            break;
-        case 'success':
-            setBuildSuccess();
-            break;
-        case 'error':
-            setBuildFailure();
-            break;
-        default:
-            break;
-    }
+    applyStatus(event.data);
 });
 
 eventSource.onerror = (error) => {
     if (!isShuttingDown) {
         console.error('SSE error:', error);
-        setDisconnected();
+        applyStatus('disconnected');
     }
 };
 
