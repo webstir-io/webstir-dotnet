@@ -66,6 +66,7 @@ if (typeof window === 'undefined' || typeof document === 'undefined') {
 
         const modules = Array.isArray(payload.modules) ? payload.modules : [];
         const styles = Array.isArray(payload.styles) ? payload.styles : [];
+        const stats = readStats(payload.stats);
         const cacheBuster = Date.now().toString(36);
         const baseContext = {
             changedFile: payload.changedFile ?? null,
@@ -91,10 +92,12 @@ if (typeof window === 'undefined' || typeof document === 'undefined') {
         }
 
         const changedFile = baseContext.changedFile ?? 'unknown';
-        console.info(
-            `[webstir-hmr] Applied hot update for ${changedFile}. ` +
-            `Modules: ${modules.length}, Styles: ${styles.length}.`
-        );
+        const details = [`Modules: ${modules.length}`, `Styles: ${styles.length}`];
+        if (stats) {
+            details.push(`Totals — applied: ${stats.hotUpdates}, fallbacks: ${stats.reloadFallbacks}`);
+        }
+
+        console.info(`[webstir-hmr] Applied hot update for ${changedFile}. ${details.join(', ')}.`);
 
         return { success: true };
     }
@@ -241,12 +244,14 @@ if (typeof window === 'undefined' || typeof document === 'undefined') {
         }
 
         const changedFile = payload?.changedFile ?? 'unknown';
+        const stats = readStats(payload?.stats);
         const fallbackReasons = Array.isArray(payload?.fallbackReasons) && payload.fallbackReasons.length > 0
             ? ` Fallback reasons: ${payload.fallbackReasons.join(', ')}.`
             : '';
+        const totals = stats ? ` Totals — applied: ${stats.hotUpdates}, fallbacks: ${stats.reloadFallbacks}.` : '';
         console.warn(
             `[webstir-hmr] Falling back to full reload for ${changedFile}. ` +
-            `Reason: ${reason ?? 'unknown'}.${fallbackReasons}`
+            `Reason: ${reason ?? 'unknown'}.${fallbackReasons}${totals}`
         );
 
         setStatus('hmr-fallback', 'Hot update fallback – reloading…');
@@ -275,6 +280,39 @@ if (typeof window === 'undefined' || typeof document === 'undefined') {
                 console.debug('[webstir-hmr] Fallback hook threw.', error);
             }
         }
+    }
+
+    function readStats(candidate) {
+        if (!candidate || typeof candidate !== 'object') {
+            return null;
+        }
+
+        const hotUpdates = coerceInteger(candidate.hotUpdates);
+        const reloadFallbacks = coerceInteger(candidate.reloadFallbacks);
+
+        if (hotUpdates === null || reloadFallbacks === null) {
+            return null;
+        }
+
+        return {
+            hotUpdates,
+            reloadFallbacks
+        };
+    }
+
+    function coerceInteger(value) {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return Math.trunc(value);
+        }
+
+        if (typeof value === 'string') {
+            const parsed = Number.parseInt(value, 10);
+            if (Number.isFinite(parsed)) {
+                return parsed;
+            }
+        }
+
+        return null;
     }
 
     function getOrCreateEventSource() {

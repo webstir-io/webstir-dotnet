@@ -3,8 +3,10 @@ export declare class WatchCoordinator {
     private readonly workspaceRoot;
     private readonly jsContexts;
     private readonly verbose;
+    private readonly hmrVerbose;
     private readonly reporter;
     private readonly hotUpdateTracker;
+    private readonly hmrTotals;
     private config?;
     private isStopping;
     private queue;
@@ -24,6 +26,7 @@ export declare class WatchCoordinator {
     private resolveTargetPages;
     private resolveChangedFile;
     private emitHotUpdateFallback;
+    private recordHotUpdateOutcome;
     private combineFallbackReasons;
     private requireConfig;
     private logUnexpectedError;

@@ -16,7 +16,7 @@ import { createStaticAssetsBuilder } from '../builders/staticAssetsBuilder.js';
 import type { Builder, BuilderContext } from '../builders/types.js';
 import type { WatchChangeIntent, WatchCoordinatorOptions } from './types.js';
 import { WatchReporter, serializeMessages, type SerializedMessage } from './watchReporter.js';
-import { HotUpdateTracker, type HotAsset, type HotUpdateDetails } from './hotUpdateTracker.js';
+import { HotUpdateTracker, type HotAsset, type HotUpdateDetails, type HotUpdateStats } from './hotUpdateTracker.js';
 import {
     runBuilderWithDiagnostics,
     emitPipelineSuccess,
@@ -40,8 +40,10 @@ export class WatchCoordinator {
     private readonly workspaceRoot: string;
     private readonly jsContexts = new Map<string, PageBuildContext>();
     private readonly verbose: boolean;
+    private readonly hmrVerbose: boolean;
     private readonly reporter: WatchReporter;
     private readonly hotUpdateTracker: HotUpdateTracker;
+    private readonly hmrTotals = { hotUpdates: 0, reloadFallbacks: 0 };
     private config?: FrontendConfig;
     private isStopping = false;
     private queue: Promise<void> = Promise.resolve();
@@ -49,6 +51,7 @@ export class WatchCoordinator {
     public constructor(options: WatchCoordinatorOptions) {
         this.workspaceRoot = options.workspaceRoot;
         this.verbose = options.verbose ?? false;
+        this.hmrVerbose = options.hmrVerbose ?? false;
         this.reporter = new WatchReporter({ verbose: this.verbose });
         this.hotUpdateTracker = new HotUpdateTracker({ workspaceRoot: this.workspaceRoot });
     }
@@ -264,15 +267,22 @@ export class WatchCoordinator {
 
         const requiresReload = !changedFile || summary.requiresReload || assetsResult.requiresReload;
         const fallbackReasons = this.combineFallbackReasons(summary.fallbackReasons, assetsResult.fallbackReasons);
-        const hotUpdate: HotUpdateDetails = {
+        const relativeChange = this.getRelativeChange(changedFile);
+        const baseHotUpdate = {
             modules: summary.modules,
             styles: assetsResult.styles,
             requiresReload,
             fallbackReasons,
             changedFile
         };
+        const stats = this.recordHotUpdateOutcome(changedFile, relativeChange, baseHotUpdate);
+        const hotUpdate: HotUpdateDetails = stats
+            ? {
+                  ...baseHotUpdate,
+                  stats
+              }
+            : baseHotUpdate;
 
-        const relativeChange = this.getRelativeChange(changedFile);
         if (changedFile && requiresReload) {
             this.emitHotUpdateFallback(relativeChange ?? changedFile, hotUpdate);
         }
@@ -507,7 +517,7 @@ export class WatchCoordinator {
             kind: 'watch-daemon',
             stage: 'pipeline',
             severity: 'info',
-            message: `Hot update fallback triggered for '${changedFile}'.`,
+            message: `Hot update fallback triggered for '${changedFile}' (${hotUpdate.fallbackReasons.join(', ')}).`,
             data: {
                 changedFile,
                 reasons: hotUpdate.fallbackReasons,
@@ -515,6 +525,66 @@ export class WatchCoordinator {
                 styles: hotUpdate.styles.map(asset => asset.url)
             }
         });
+    }
+
+    private recordHotUpdateOutcome(
+        changedFile: string | undefined,
+        relativeChange: string | undefined,
+        hotUpdate: Omit<HotUpdateDetails, 'stats'>
+    ): HotUpdateStats | undefined {
+        if (!changedFile) {
+            return undefined;
+        }
+
+        if (hotUpdate.requiresReload) {
+            this.hmrTotals.reloadFallbacks += 1;
+        } else {
+            this.hmrTotals.hotUpdates += 1;
+        }
+
+        const snapshot: HotUpdateStats = {
+            hotUpdates: this.hmrTotals.hotUpdates,
+            reloadFallbacks: this.hmrTotals.reloadFallbacks
+        };
+
+        if (hotUpdate.requiresReload && hotUpdate.fallbackReasons.length > 0) {
+            this.reporter.emitVerbose({
+                code: 'frontend.watch.hmr.fallback.detail',
+                kind: 'watch-daemon',
+                stage: 'pipeline',
+                severity: 'info',
+                message: `Hot update declined for '${relativeChange ?? changedFile}'.`,
+                data: {
+                    changedFile: relativeChange ?? changedFile,
+                    fallbackReasons: hotUpdate.fallbackReasons
+                }
+            });
+        }
+
+        if (this.hmrVerbose) {
+            const identifier = relativeChange ?? changedFile;
+            const modules = hotUpdate.modules.map(asset => asset.relativePath);
+            const styles = hotUpdate.styles.map(asset => asset.relativePath);
+            emitDiagnostic({
+                code: 'frontend.watch.hmr.summary',
+                kind: 'watch-daemon',
+                stage: 'pipeline',
+                severity: 'info',
+                message: hotUpdate.requiresReload
+                    ? `HMR fallback required for '${identifier}'.`
+                    : `Hot update applied for '${identifier}'.`,
+                data: {
+                    changedFile: identifier,
+                    requiresReload: hotUpdate.requiresReload,
+                    fallbackReasons: hotUpdate.fallbackReasons,
+                    modules,
+                    styles,
+                    totals: snapshot
+                }
+            });
+        }
+
+        return snapshot;
     }
 
     private combineFallbackReasons(

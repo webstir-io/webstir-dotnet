@@ -21,6 +21,7 @@ internal sealed class FrontendWatcher
     private readonly Func<string> _resolveExecutablePath;
     private readonly Action<FrontendHotUpdate>? _hotUpdateHandler;
     private readonly bool _verbose;
+    private readonly bool _hmrVerbose;
 
     private readonly Queue<TaskCompletionSource<FrontendCliDiagnostic>> _pendingCommands = new();
     private readonly object _pendingCommandsLock = new();
@@ -41,7 +42,8 @@ internal sealed class FrontendWatcher
         Action<string?, bool> outputHandler,
         Func<string> resolveExecutablePath,
         bool verboseLogging = false,
-        Action<FrontendHotUpdate>? hotUpdateHandler = null)
+        Action<FrontendHotUpdate>? hotUpdateHandler = null,
+        bool hmrVerboseLogging = false)
     {
         _workspace = workspace;
         _logger = logger;
@@ -52,6 +54,7 @@ internal sealed class FrontendWatcher
         _resolveExecutablePath = resolveExecutablePath;
         _hotUpdateHandler = hotUpdateHandler;
         _verbose = verboseLogging;
+        _hmrVerbose = hmrVerboseLogging;
     }
 
     public async Task StartAsync()
@@ -170,6 +173,10 @@ internal sealed class FrontendWatcher
         if (_verbose)
         {
             psi.ArgumentList.Add("--verbose");
+        }
+        if (_hmrVerbose)
+        {
+            psi.ArgumentList.Add("--hmr-verbose");
         }
 
         Process process = new()

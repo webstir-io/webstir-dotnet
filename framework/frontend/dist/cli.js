@@ -71,12 +71,14 @@ program
     .requiredOption('-w, --workspace <path>', 'Absolute path to the workspace root')
     .option('--no-auto-start', 'Defer startup until a start command is received')
     .option('-v, --verbose', 'Enable verbose watch diagnostics')
+    .option('--hmr-verbose', 'Log detailed hot-update diagnostics')
     .action(async (cmd) => {
     try {
         const daemon = new WatchDaemon({
             workspaceRoot: cmd.workspace,
             autoStart: cmd.autoStart,
-            verbose: cmd.verbose === true
+            verbose: cmd.verbose === true,
+            hmrVerbose: cmd.hmrVerbose === true
         });
         await daemon.run();
     }

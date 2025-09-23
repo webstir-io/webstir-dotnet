@@ -29,6 +29,11 @@ public sealed record FrontendHotUpdate
     {
         get; init;
     } = Array.Empty<string>();
+
+    public FrontendHotUpdateStats? Stats
+    {
+        get; init;
+    }
 }
 
 public sealed record FrontendHotAsset
@@ -67,3 +72,15 @@ public sealed record ChangeProcessingResult
     }
 }
 
+public sealed record FrontendHotUpdateStats
+{
+    public int HotUpdates
+    {
+        get; init;
+    }
+
+    public int ReloadFallbacks
+    {
+        get; init;
+    }
+}

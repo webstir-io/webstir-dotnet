@@ -101,6 +101,14 @@ public class DevService(
 
     private async Task PublishHotUpdateAsync(FrontendHotUpdate hotUpdate)
     {
+        if (hotUpdate.Stats is { } stats)
+        {
+            _logger.LogInformation(
+                "Hot update totals — applied: {HotUpdates}, fallbacks: {ReloadFallbacks}.",
+                stats.HotUpdates,
+                stats.ReloadFallbacks);
+        }
+
         if (hotUpdate.RequiresReload)
         {
             _logger.LogDebug(

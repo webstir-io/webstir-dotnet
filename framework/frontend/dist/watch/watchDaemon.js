@@ -14,7 +14,8 @@ export class WatchDaemon {
         this.options = options;
         this.coordinator = new WatchCoordinator({
             workspaceRoot: options.workspaceRoot,
-            verbose: options.verbose ?? false
+            verbose: options.verbose ?? false,
+            hmrVerbose: options.hmrVerbose ?? false
         });
         this.shutdownPromise = new Promise((resolve) => {
             this.resolveShutdown = resolve;

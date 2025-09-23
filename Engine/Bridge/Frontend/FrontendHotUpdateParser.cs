@@ -31,6 +31,7 @@ internal static class FrontendHotUpdateParser
         List<FrontendHotAsset> styles = CreateAssetList(hotUpdateElement, "styles");
         string? changedFile = TryGetString(hotUpdateElement, "changedFile", out string? file) ? file : null;
         List<string> fallbackReasons = CreateStringList(hotUpdateElement, "fallbackReasons");
+        FrontendHotUpdateStats? stats = TryCreateStats(hotUpdateElement, out FrontendHotUpdateStats? parsedStats) ? parsedStats : null;
 
         hotUpdate = new FrontendHotUpdate
         {
@@ -38,7 +39,8 @@ internal static class FrontendHotUpdateParser
             Modules = modules,
             Styles = styles,
             ChangedFile = changedFile,
-            FallbackReasons = fallbackReasons
+            FallbackReasons = fallbackReasons,
+            Stats = stats
         };
 
         return true;
@@ -64,6 +66,34 @@ internal static class FrontendHotUpdateParser
         return false;
     }
 
+    private static bool TryCreateStats(JsonElement parent, out FrontendHotUpdateStats? stats)
+    {
+        stats = null;
+
+        if (!TryGetProperty(parent, "stats", out JsonElement statsElement) || statsElement.ValueKind != JsonValueKind.Object)
+        {
+            return false;
+        }
+
+        if (!TryGetInt32(statsElement, "hotUpdates", out int hotUpdates))
+        {
+            return false;
+        }
+
+        if (!TryGetInt32(statsElement, "reloadFallbacks", out int reloadFallbacks))
+        {
+            return false;
+        }
+
+        stats = new FrontendHotUpdateStats
+        {
+            HotUpdates = hotUpdates,
+            ReloadFallbacks = reloadFallbacks
+        };
+
+        return true;
+    }
+
     private static bool TryGetBoolean(JsonElement parent, string propertyName, out bool value)
     {
         value = false;
@@ -80,6 +110,30 @@ internal static class FrontendHotUpdateParser
         }
 
         if (property.ValueKind == JsonValueKind.String && bool.TryParse(property.GetString(), out bool parsed))
+        {
+            value = parsed;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryGetInt32(JsonElement parent, string propertyName, out int value)
+    {
+        value = 0;
+
+        if (!TryGetProperty(parent, propertyName, out JsonElement property))
+        {
+            return false;
+        }
+
+        if (property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out int parsed))
+        {
+            value = parsed;
+            return true;
+        }
+
+        if (property.ValueKind == JsonValueKind.String && int.TryParse(property.GetString(), out parsed))
         {
             value = parsed;
             return true;
@@ -216,4 +270,3 @@ internal static class FrontendHotUpdateParser
         return values;
     }
 }
-

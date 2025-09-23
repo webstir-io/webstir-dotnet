@@ -13,6 +13,11 @@ export interface HotUpdateDetails {
     readonly requiresReload: boolean;
     readonly fallbackReasons: readonly string[];
     readonly changedFile?: string;
+    readonly stats?: HotUpdateStats;
+}
+export interface HotUpdateStats {
+    readonly hotUpdates: number;
+    readonly reloadFallbacks: number;
 }
 interface ProcessJavaScriptResult {
     readonly modules: readonly HotAsset[];

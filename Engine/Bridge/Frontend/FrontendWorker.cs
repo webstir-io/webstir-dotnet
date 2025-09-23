@@ -37,6 +37,7 @@ public sealed class FrontendWorker : IFrontendWorker
         _workspace = workspace;
         _logger = logger;
         bool verboseLogging = IsVerboseWatchLoggingEnabled();
+        bool hmrVerboseLogging = IsHmrVerboseLoggingEnabled();
 
         _watcher = new FrontendWatcher(
             _workspace,
@@ -46,12 +47,17 @@ public sealed class FrontendWorker : IFrontendWorker
             diagnostic => HandleWatchDiagnostic(diagnostic),
             (line, isError) => HandleWatchOutput(line, isError),
             GetExecutablePath,
-            verboseLogging,
-            hotUpdate => _hotUpdates.Enqueue(hotUpdate));
+            verboseLogging: verboseLogging,
+            hotUpdateHandler: hotUpdate => _hotUpdates.Enqueue(hotUpdate),
+            hmrVerboseLogging: hmrVerboseLogging);
 
         if (verboseLogging)
         {
             _logger.LogInformation("[frontend] Verbose frontend watch logging enabled (WEBSTIR_FRONTEND_WATCH_VERBOSE).");
+        }
+        if (hmrVerboseLogging)
+        {
+            _logger.LogInformation("[frontend] HMR verbose logging enabled (WEBSTIR_FRONTEND_HMR_VERBOSE).");
         }
     }
 
@@ -354,6 +360,19 @@ public sealed class FrontendWorker : IFrontendWorker
     private static bool IsVerboseWatchLoggingEnabled()
     {
         string? value = Environment.GetEnvironmentVariable("WEBSTIR_FRONTEND_WATCH_VERBOSE");
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        return value.Equals("1", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("true", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("yes", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsHmrVerboseLoggingEnabled()
+    {
+        string? value = Environment.GetEnvironmentVariable("WEBSTIR_FRONTEND_HMR_VERBOSE");
         if (string.IsNullOrWhiteSpace(value))
         {
             return false;

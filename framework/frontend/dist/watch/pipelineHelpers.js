@@ -146,6 +146,12 @@ function serializeHotUpdate(hotUpdate, relativeChange) {
     if (hotUpdate.fallbackReasons.length > 0) {
         data.fallbackReasons = hotUpdate.fallbackReasons;
     }
+    if (hotUpdate.stats) {
+        data.stats = {
+            hotUpdates: hotUpdate.stats.hotUpdates,
+            reloadFallbacks: hotUpdate.stats.reloadFallbacks
+        };
+    }
     return data;
 }
 function serializeHotAsset(asset) {

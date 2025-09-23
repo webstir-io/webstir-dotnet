@@ -63,6 +63,7 @@ Deliver fast, framework-agnostic hot module replacement (HMR) for Webstir's dev 
 - **Manual**: Smoke test key flows (JS stateful component, CSS tweak, HTML edit) across macOS/Linux/Windows.
 - **Performance**: Capture rebuild + apply timings; ensure hot updates stay under 200 ms end-to-end.
 - **Fallbacks**: Force a module to return `false` from `__webstirAccept` and verify the system triggers a reload and logs the fallback diagnostic.
+- See `docs/how-to/hmr-validation.md` for the end-to-end checklist that captures the scenarios above.
 
 ## Risks & Mitigations
 - **Module Contract Drift**: Without a framework runtime, inconsistent accept handlers could break pages. Mitigate by providing shared helpers and clear documentation.

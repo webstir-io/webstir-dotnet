@@ -214,7 +214,14 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
                 asset.Url,
                 asset.RelativePath
             }),
-            hotUpdate.FallbackReasons
+            hotUpdate.FallbackReasons,
+            Stats = hotUpdate.Stats is null
+                ? null
+                : new
+                {
+                    hotUpdate.Stats.HotUpdates,
+                    hotUpdate.Stats.ReloadFallbacks
+                }
         };
 
         string serialized = JsonSerializer.Serialize(payload, HotUpdateSerializerOptions);
