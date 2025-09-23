@@ -6,9 +6,9 @@
 - Reduce duplication between TypeScript and .NET by leaning on manifest outputs instead of ad-hoc path construction.
 
 ## Current State Snapshot
-- Worker orchestration (`FrontendWorker`) lives in `Engine/Workers`, while installers and runtime detection sit in `Engine/Helpers`.
-- Manifest models (`FrontendManifest*`), SRI, and CSP helpers remain under `Engine/Frontend`, despite being bridge consumers of CLI data.
-- Docs reference a bridge concept, but the codebase does not expose a matching namespace.
+- Frontend/Backend/Shared worker implementations now live under `Engine.Bridge.*`, while interfaces remain in `Engine.Interfaces` for workflow consumption.
+- Manifest models (`FrontendManifest*`), SRI, and CSP helpers have been relocated to `Engine.Bridge.Frontend` so consumers share the CLI view of filesystem state.
+- Docs reference a bridge concept, but some onboarding material still calls out the old `Engine/Workers` paths.
 - Legacy `Precompression` helper has been removed now that the TypeScript CLI emits Brotli/GZip variants directly; lingering doc references still need cleanup.
 
 ## Scope & Non-Goals
@@ -33,6 +33,10 @@ Engine/
       TestCliModels.cs
       TestPackageInstaller.cs
       TestPackageUtilities.cs
+    Backend/
+      BackendWorker.cs
+    Shared/
+      SharedWorker.cs
 ```
 - Follow-up slices (e.g., `Bridge/Backend`) can adopt the same convention once their pipelines are modernized.
 
@@ -54,7 +58,12 @@ Engine/
    - Update workflows and docs that reference `Engine.Testing` to the new namespace.
    - Confirm JSON event parsing and package bootstrap continue to work after the relocation.
 
-5. **Cleanup & Deprecations**
+5. **Worker Relocation**
+   - Move `FrontendWorker`, `BackendWorker`, and `SharedWorker` implementations under the bridge hierarchy (e.g., `Engine.Bridge.Frontend.FrontendWorker`).
+   - Keep `IWorkflowWorker`/`IFrontendWorker` contracts in `Engine.Interfaces`; update DI registrations and tests to reference the relocated classes.
+   - Document future runtime-specific bridge slices (TypeScript vs. potential Python) so workflows stay insulated from implementation details.
+
+6. **Cleanup & Deprecations**
    - Follow through on documentation updates now that `Precompression.cs` has already been deleted; scrub lingering references or note the CLI ownership explicitly.
    - Update docs (`frontend-*` plans, explanations) to reference the new path / namespace.
    - Run `./utilities/format-build.sh` to ensure formatting and build checks succeed post-move.
@@ -70,8 +79,9 @@ Engine/
 - **Documentation drift:** Existing plans/tutorials mention old paths. Capture doc updates as part of the workstream to keep onboarding clean.
 
 ## Exit Criteria
-- All bridge-related C# files reside under `Engine/Bridge/Frontend` (or documented exceptions).
+- All frontend bridge C# files, including `FrontendWorker`, reside under `Engine/Bridge/Frontend` (or documented exceptions).
 - Testing CLI orchestration types live under `Engine/Bridge/Test` with updated references.
+- Backend and shared workers are queued/migrated into bridge subfolders once their pipelines adopt the bridge pattern.
 - Consumers compile against the new namespaces without warnings.
 - Docs and diagrams reference the new structure.
 - Dead helpers are removed or clearly flagged with follow-up tasks.

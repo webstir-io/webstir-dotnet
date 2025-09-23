@@ -9,7 +9,7 @@ using Engine.Interfaces;
 using Engine.Models;
 using Microsoft.Extensions.Options;
 
-namespace Engine.Workers;
+namespace Engine.Bridge.Backend;
 
 public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options) : IWorkflowWorker
 {

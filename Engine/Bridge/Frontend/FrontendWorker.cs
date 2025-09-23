@@ -6,14 +6,13 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Text.Json;
 using Engine.Bridge;
-using Engine.Bridge.Frontend;
 using Engine.Bridge.Test;
 using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Models;
 using Microsoft.Extensions.Logging;
 
-namespace Engine.Workers;
+namespace Engine.Bridge.Frontend;
 
 public sealed class FrontendWorker(
     AppWorkspace workspace,

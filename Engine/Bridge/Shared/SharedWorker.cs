@@ -3,7 +3,7 @@ using Engine.Helpers;
 using Engine.Models;
 using Engine.Interfaces;
 
-namespace Engine.Workers;
+namespace Engine.Bridge.Shared;
 
 public class SharedWorker(AppWorkspace workspace) : IWorkflowWorker
 {
