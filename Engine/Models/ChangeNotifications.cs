@@ -7,6 +7,7 @@ public enum ClientNotificationType
     BuildStarting,
     BuildSucceeded,
     BuildFailed,
+    HotUpdate,
     Reload
 }
 

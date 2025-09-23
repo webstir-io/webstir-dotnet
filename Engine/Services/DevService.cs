@@ -21,7 +21,7 @@ public class DevService(
     private readonly NodeServer _nodeServer = nodeServer;
     private readonly ILogger<DevService> _logger = logger;
 
-    public async Task StartAsync(AppWorkspace workspace, Func<string?, bool, Task>? onChangeAction = null, CancellationToken cancellationToken = default)
+    public async Task StartAsync(AppWorkspace workspace, Func<string?, bool, Task<ChangeProcessingResult>>? onChangeAction = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(workspace);
         _logger.LogInformation("Starting {DevService} for {WorkspacePath}", App.DevService, workspace.WorkingPath);
@@ -30,7 +30,7 @@ public class DevService(
         {
             await _webServer.StartAsync(workspace, cancellationToken);
             await _nodeServer.StartAsync(workspace, cancellationToken);
-            await _changeService.Initialize(workspace, onChangeAction, RestartNodeServerAsync, NotifyClientsAsync);
+            await _changeService.Initialize(workspace, onChangeAction, RestartNodeServerAsync, NotifyClientsAsync, PublishHotUpdateAsync);
             await _changeService.StartAsync();
             await _watchService.Watch(workspace);
 
@@ -94,7 +94,28 @@ public class DevService(
             case ClientNotificationType.Reload:
                 await _webServer.UpdateClientsAsync();
                 break;
+            case ClientNotificationType.HotUpdate:
+                break;
         }
+    }
+
+    private async Task PublishHotUpdateAsync(FrontendHotUpdate hotUpdate)
+    {
+        if (hotUpdate.RequiresReload)
+        {
+            _logger.LogDebug(
+                "Hot update requires reload for {ChangedFile}; falling back to full reload.",
+                hotUpdate.ChangedFile ?? "unknown");
+            await _webServer.UpdateClientsAsync();
+            return;
+        }
+
+        _logger.LogDebug(
+            "Queued hot update with {ModuleCount} modules and {StyleCount} styles.",
+            hotUpdate.Modules.Count,
+            hotUpdate.Styles.Count);
+
+        await _webServer.UpdateClientsAsync();
     }
 
     private async Task WaitForExitSignalAsync(CancellationToken cancellationToken)

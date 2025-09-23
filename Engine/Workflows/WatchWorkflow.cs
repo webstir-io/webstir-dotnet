@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Engine.Bridge.Test;
 using Engine.Helpers;
 using Engine.Interfaces;
+using Engine.Models;
 using Engine.Services;
 using Microsoft.Extensions.Logging;
 
@@ -39,7 +40,25 @@ public class WatchWorkflow(
             await devService.StartAsync(Context, async (filePath, _) =>
             {
                 await ExecuteBuildAsync(filePath);
+
+                FrontendHotUpdate? hotUpdate = null;
+                FrontendHotUpdate? candidate;
+                while ((candidate = Frontend.DequeueHotUpdate()) is not null)
+                {
+                    hotUpdate = candidate;
+                }
+
                 await RunTestsAsync();
+
+                if (hotUpdate is null)
+                {
+                    return ChangeProcessingResult.Empty;
+                }
+
+                return new ChangeProcessingResult
+                {
+                    HotUpdate = hotUpdate
+                };
             });
         }
         finally

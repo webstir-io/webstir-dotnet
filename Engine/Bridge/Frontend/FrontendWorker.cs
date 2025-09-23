@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -26,6 +27,7 @@ public sealed class FrontendWorker : IFrontendWorker
     };
 
     private readonly FrontendWatcher _watcher;
+    private readonly ConcurrentQueue<FrontendHotUpdate> _hotUpdates = new();
     private bool _watchModeEnabled;
     private readonly SemaphoreSlim _toolchainLock = new(1, 1);
     private bool _toolchainVerified;
@@ -44,7 +46,8 @@ public sealed class FrontendWorker : IFrontendWorker
             diagnostic => HandleWatchDiagnostic(diagnostic),
             (line, isError) => HandleWatchOutput(line, isError),
             GetExecutablePath,
-            verboseLogging);
+            verboseLogging,
+            hotUpdate => _hotUpdates.Enqueue(hotUpdate));
 
         if (verboseLogging)
         {
@@ -62,8 +65,16 @@ public sealed class FrontendWorker : IFrontendWorker
         if (_watchModeEnabled)
         {
             object payload = string.IsNullOrWhiteSpace(changedFilePath)
-                ? new { type = "reload" }
-                : new { type = "change", path = changedFilePath };
+                ? new
+                {
+                    type = "reload"
+                }
+                : new
+                {
+                    type = "change",
+                    path = changedFilePath
+                };
+            ResetHotUpdateQueue();
             await _watcher.SendAsync(payload, waitForCompletion: true, CancellationToken.None);
             return;
         }
@@ -107,6 +118,23 @@ public sealed class FrontendWorker : IFrontendWorker
     {
         _watchModeEnabled = false;
         await _watcher.StopAsync();
+    }
+
+    public FrontendHotUpdate? DequeueHotUpdate()
+    {
+        if (_hotUpdates.TryDequeue(out FrontendHotUpdate? update))
+        {
+            return update;
+        }
+
+        return null;
+    }
+
+    private void ResetHotUpdateQueue()
+    {
+        while (_hotUpdates.TryDequeue(out _))
+        {
+        }
     }
 
     private void HandleWatchDiagnostic(FrontendCliDiagnostic diagnostic)

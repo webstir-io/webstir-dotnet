@@ -41,3 +41,6 @@
 
 ## Documentation
 - Use XML `///` comments for public APIs and keep any other comments concise and purposeful.
+
+## File Sizes
+- Please try to keep file size to around 500 lines or less if possible.

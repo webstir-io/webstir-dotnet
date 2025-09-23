@@ -17,7 +17,13 @@ internal sealed class FrontendCliDiagnostic
 
     public string Message { get; init; } = string.Empty;
 
-    public Dictionary<string, JsonElement>? Data { get; init; }
+    public Dictionary<string, JsonElement>? Data
+    {
+        get; init;
+    }
 
-    public string? Suggestion { get; init; }
+    public string? Suggestion
+    {
+        get; init;
+    }
 }

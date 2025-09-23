@@ -20,21 +20,24 @@ public class ChangeService(ILogger<ChangeService> logger)
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private Task? _processingTask;
 
-    private Func<string?, bool, Task>? _onChangeAction;
+    private Func<string?, bool, Task<ChangeProcessingResult>>? _onChangeAction;
     private Func<AppWorkspace, Task>? _onServerRestart;
     private Func<ClientNotificationType, Task>? _onClientNotification;
+    private Func<FrontendHotUpdate, Task>? _onHotUpdate;
     private AppWorkspace? _workspace;
 
     public async Task Initialize(
         AppWorkspace workspace,
-        Func<string?, bool, Task>? onChangeAction = null,
+        Func<string?, bool, Task<ChangeProcessingResult>>? onChangeAction = null,
         Func<AppWorkspace, Task>? onServerRestart = null,
-        Func<ClientNotificationType, Task>? onClientNotification = null)
+        Func<ClientNotificationType, Task>? onClientNotification = null,
+        Func<FrontendHotUpdate, Task>? onHotUpdate = null)
     {
         _workspace = workspace;
         _onChangeAction = onChangeAction;
         _onServerRestart = onServerRestart;
         _onClientNotification = onClientNotification;
+        _onHotUpdate = onHotUpdate;
 
         await Task.CompletedTask;
     }
@@ -79,12 +82,13 @@ public class ChangeService(ILogger<ChangeService> logger)
                         await NotifyClientsAsync(ClientNotificationType.BuildStarting);
 
                         bool buildSucceeded = true;
+                        ChangeProcessingResult changeResult = ChangeProcessingResult.Empty;
 
                         try
                         {
                             if (_onChangeAction is not null)
                             {
-                                await _onChangeAction.Invoke(changeEvent.FilePath, false);
+                                changeResult = await _onChangeAction.Invoke(changeEvent.FilePath, false);
                             }
                         }
                         catch (Exception ex)
@@ -106,7 +110,7 @@ public class ChangeService(ILogger<ChangeService> logger)
                         if (buildSucceeded)
                         {
                             await NotifyClientsAsync(ClientNotificationType.BuildSucceeded);
-                            await NotifyClientsAsync(ClientNotificationType.Reload);
+                            await DispatchClientNotificationAsync(changeResult);
                         }
                         break;
 
@@ -115,11 +119,12 @@ public class ChangeService(ILogger<ChangeService> logger)
                         await NotifyClientsAsync(ClientNotificationType.BuildStarting);
 
                         bool deleteSucceeded = true;
+                        ChangeProcessingResult deleteResult = ChangeProcessingResult.Empty;
                         try
                         {
                             if (_onChangeAction is not null)
                             {
-                                await _onChangeAction.Invoke(changeEvent.FilePath, false);
+                                deleteResult = await _onChangeAction.Invoke(changeEvent.FilePath, false);
                             }
                         }
                         catch (Exception ex)
@@ -132,7 +137,7 @@ public class ChangeService(ILogger<ChangeService> logger)
                         if (deleteSucceeded)
                         {
                             await NotifyClientsAsync(ClientNotificationType.BuildSucceeded);
-                            await NotifyClientsAsync(ClientNotificationType.Reload);
+                            await DispatchClientNotificationAsync(deleteResult);
                         }
                         break;
                 }
@@ -189,6 +194,39 @@ public class ChangeService(ILogger<ChangeService> logger)
         {
             await _onClientNotification(type);
         }
+    }
+
+    private async Task DispatchClientNotificationAsync(ChangeProcessingResult result)
+    {
+        if (result.HotUpdate is { } hotUpdate)
+        {
+            if (!hotUpdate.RequiresReload)
+            {
+                await NotifyClientsAsync(ClientNotificationType.HotUpdate);
+                await NotifyHotUpdateAsync(hotUpdate);
+                return;
+            }
+
+            if (hotUpdate.FallbackReasons.Count > 0)
+            {
+                _logger.LogDebug(
+                    "Hot update fallback requested for {ChangedFile}. Reasons: {FallbackReasons}",
+                    hotUpdate.ChangedFile ?? "unknown",
+                    string.Join(", ", hotUpdate.FallbackReasons));
+            }
+        }
+
+        await NotifyClientsAsync(ClientNotificationType.Reload);
+    }
+
+    private async Task NotifyHotUpdateAsync(FrontendHotUpdate hotUpdate)
+    {
+        if (_onHotUpdate is null)
+        {
+            return;
+        }
+
+        await _onHotUpdate(hotUpdate);
     }
 
     private static bool IsIgnored(string filePath)

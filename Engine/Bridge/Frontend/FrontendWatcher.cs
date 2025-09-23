@@ -5,6 +5,7 @@ using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Engine.Models;
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Bridge.Frontend;
@@ -18,6 +19,7 @@ internal sealed class FrontendWatcher
     private readonly Action<FrontendCliDiagnostic> _diagnosticHandler;
     private readonly Action<string?, bool> _outputHandler;
     private readonly Func<string> _resolveExecutablePath;
+    private readonly Action<FrontendHotUpdate>? _hotUpdateHandler;
     private readonly bool _verbose;
 
     private readonly Queue<TaskCompletionSource<FrontendCliDiagnostic>> _pendingCommands = new();
@@ -38,7 +40,8 @@ internal sealed class FrontendWatcher
         Action<FrontendCliDiagnostic> diagnosticHandler,
         Action<string?, bool> outputHandler,
         Func<string> resolveExecutablePath,
-        bool verboseLogging = false)
+        bool verboseLogging = false,
+        Action<FrontendHotUpdate>? hotUpdateHandler = null)
     {
         _workspace = workspace;
         _logger = logger;
@@ -47,6 +50,7 @@ internal sealed class FrontendWatcher
         _diagnosticHandler = diagnosticHandler;
         _outputHandler = outputHandler;
         _resolveExecutablePath = resolveExecutablePath;
+        _hotUpdateHandler = hotUpdateHandler;
         _verbose = verboseLogging;
     }
 
@@ -61,7 +65,10 @@ internal sealed class FrontendWatcher
                 return;
             }
 
-            await WritePayloadAsync(new { type = "start" }, waitForCompletion: true, CancellationToken.None).ConfigureAwait(false);
+            await WritePayloadAsync(new
+            {
+                type = "start"
+            }, waitForCompletion: true, CancellationToken.None).ConfigureAwait(false);
             _ready = true;
         }
         finally
@@ -92,7 +99,10 @@ internal sealed class FrontendWatcher
         {
             if (_input is not null)
             {
-                await WritePayloadAsync(new { type = "shutdown" }, waitForCompletion: false, CancellationToken.None).ConfigureAwait(false);
+                await WritePayloadAsync(new
+                {
+                    type = "shutdown"
+                }, waitForCompletion: false, CancellationToken.None).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -287,6 +297,7 @@ internal sealed class FrontendWatcher
         {
             case "frontend.watch.pipeline.success":
                 CompletePendingCommandSuccess(diagnostic);
+                TryDispatchHotUpdate(diagnostic);
                 return;
             case "frontend.watch.javascript.build.failure":
             case "frontend.watch.command.failure":
@@ -298,6 +309,28 @@ internal sealed class FrontendWatcher
         if (string.Equals(diagnostic.Severity, "error", StringComparison.OrdinalIgnoreCase))
         {
             CompletePendingCommandFailure(CreateWatchCommandException(diagnostic));
+        }
+    }
+
+    private void TryDispatchHotUpdate(FrontendCliDiagnostic diagnostic)
+    {
+        if (_hotUpdateHandler is null)
+        {
+            return;
+        }
+
+        if (!FrontendHotUpdateParser.TryCreateHotUpdate(diagnostic, out FrontendHotUpdate? hotUpdate) || hotUpdate is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _hotUpdateHandler.Invoke(hotUpdate);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to dispatch frontend hot update diagnostic.");
         }
     }
 

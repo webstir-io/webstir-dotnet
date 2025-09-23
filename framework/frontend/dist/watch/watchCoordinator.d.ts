@@ -4,6 +4,7 @@ export declare class WatchCoordinator {
     private readonly jsContexts;
     private readonly verbose;
     private readonly reporter;
+    private readonly hotUpdateTracker;
     private config?;
     private isStopping;
     private queue;
@@ -17,15 +18,13 @@ export declare class WatchCoordinator {
     private ensureJavaScriptContext;
     private runFullBuildCycle;
     private runAdditionalBuilders;
-    private runBuilderWithDiagnostics;
-    private emitPipelineSuccess;
     private getRelativeChange;
     private runJavaScriptBuild;
     private executeJavaScriptBuild;
     private resolveTargetPages;
-    private serializeSummary;
-    private emitJavaScriptFailure;
     private resolveChangedFile;
+    private emitHotUpdateFallback;
+    private combineFallbackReasons;
     private requireConfig;
     private logUnexpectedError;
 }
