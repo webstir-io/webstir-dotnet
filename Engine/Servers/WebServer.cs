@@ -7,10 +7,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
 
 using Engine.Bridge.Frontend;
 using Engine.Extensions;
 using Engine.Middleware;
+using Engine.Models;
 using Engine.Services;
 
 using Microsoft.AspNetCore.Builder;
@@ -30,6 +32,12 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
     private readonly object _reloadLock = new();
     private CancellationTokenSource? _pendingReloadCts;
     private Task _pendingReloadTask = Task.CompletedTask;
+
+    private static readonly JsonSerializerOptions HotUpdateSerializerOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 
     private const string NoCache = "no-cache, no-store, must-revalidate";
     private const string NoCacheMustRevalidate = "no-cache, must-revalidate";
@@ -179,8 +187,38 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
             return;
         }
 
-        string payload = $"event: status\ndata: {status}\n\n";
-        await BroadcastAsync(payload, cancellationToken);
+        await SendSseEventAsync("status", status, cancellationToken);
+    }
+
+    public async Task PublishHotUpdateAsync(FrontendHotUpdate hotUpdate, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(hotUpdate);
+
+        if (hotUpdate.RequiresReload)
+        {
+            throw new InvalidOperationException("Hot updates that require reload must be handled via UpdateClientsAsync().");
+        }
+
+        object payload = new
+        {
+            ChangedFile = string.IsNullOrWhiteSpace(hotUpdate.ChangedFile) ? null : hotUpdate.ChangedFile,
+            Modules = hotUpdate.Modules.Select(asset => new
+            {
+                asset.Type,
+                asset.Url,
+                asset.RelativePath
+            }),
+            Styles = hotUpdate.Styles.Select(asset => new
+            {
+                asset.Type,
+                asset.Url,
+                asset.RelativePath
+            }),
+            hotUpdate.FallbackReasons
+        };
+
+        string serialized = JsonSerializer.Serialize(payload, HotUpdateSerializerOptions);
+        await SendSseEventAsync("hmr", serialized, cancellationToken);
     }
 
     private void ConfigureServices(IServiceCollection services)
@@ -270,6 +308,19 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
                 _sseClients.Remove(client);
             }
         }
+    }
+
+    private Task SendSseEventAsync(string eventName, string? data, CancellationToken cancellationToken)
+    {
+        StringBuilder builder = new();
+        builder.Append("event: ").Append(eventName).Append('\n');
+        if (!string.IsNullOrEmpty(data))
+        {
+            builder.Append("data: ").Append(data).Append('\n');
+        }
+
+        builder.Append('\n');
+        return BroadcastAsync(builder.ToString(), cancellationToken);
     }
 
     private void CancelPendingReload()

@@ -106,16 +106,31 @@ public class DevService(
             _logger.LogDebug(
                 "Hot update requires reload for {ChangedFile}; falling back to full reload.",
                 hotUpdate.ChangedFile ?? "unknown");
+
+            await _webServer.PublishStatusAsync("hmr-fallback");
             await _webServer.UpdateClientsAsync();
             return;
         }
 
         _logger.LogDebug(
-            "Queued hot update with {ModuleCount} modules and {StyleCount} styles.",
+            "Streaming hot update with {ModuleCount} modules and {StyleCount} styles.",
             hotUpdate.Modules.Count,
             hotUpdate.Styles.Count);
 
-        await _webServer.UpdateClientsAsync();
+        try
+        {
+            await _webServer.PublishHotUpdateAsync(hotUpdate);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed to stream hot update for {ChangedFile}; falling back to reload.",
+                hotUpdate.ChangedFile ?? "unknown");
+
+            await _webServer.PublishStatusAsync("hmr-fallback");
+            await _webServer.UpdateClientsAsync();
+        }
     }
 
     private async Task WaitForExitSignalAsync(CancellationToken cancellationToken)
