@@ -1,15 +1,16 @@
 // Basic Home page test: verifies merged HTML has expected parts
-// Use CommonJS require to avoid ESM in the runner context
-const fs = require('node:fs');
-const path = require('node:path');
-const { test, assert } = require('@webstir/test') as typeof import('@webstir/test');
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { test, assert } from '@webstir/test';
 
-// __dirname is provided by the runner context and points to build/.../tests
-// Built HTML is at build/frontend/pages/home/index.html
+// Node runs this test as ESM; derive the directory from the module URL.
+const currentDir = dirname(fileURLToPath(import.meta.url));
 
+// Built HTML is at build/frontend/pages/home/index.html relative to the compiled test output.
 test('home page has expected parts', () => {
-  const htmlPath = path.resolve(__dirname, '..', 'index.html');
-  const html = fs.readFileSync(htmlPath, 'utf8');
+  const htmlPath = resolve(currentDir, '..', 'index.html');
+  const html = readFileSync(htmlPath, 'utf8');
 
   assert.isTrue(html.includes('<title>Home</title>'), 'Missing <title>Home</title>');
   assert.isTrue(html.includes('<link rel="stylesheet" href="index.css"'), 'Missing CSS link to index.css');

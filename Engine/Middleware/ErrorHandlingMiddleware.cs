@@ -14,11 +14,11 @@ namespace Engine.Middleware;
 public sealed class ErrorHandlingMiddleware(
     RequestDelegate next,
     ILogger<ErrorHandlingMiddleware> logger,
-    IErrorTrackingService errorTracking)
+    ErrorTrackingService errorTracking)
 {
     private readonly RequestDelegate _next = next;
     private readonly ILogger<ErrorHandlingMiddleware> _logger = logger;
-    private readonly IErrorTrackingService _errorTracking = errorTracking;
+    private readonly ErrorTrackingService _errorTracking = errorTracking;
 
     public async Task Invoke(HttpContext context)
     {

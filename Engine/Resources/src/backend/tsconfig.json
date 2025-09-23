@@ -9,7 +9,7 @@
     "incremental": true,
     "tsBuildInfoFile": "../../build/backend/.tsbuildinfo"
   },
-  "include": ["**/*.ts"],
+  "include": ["**/*.ts", "../../types/**/*.d.ts"],
   "exclude": ["node_modules", "../../build", "../../dist"],
   "references": []
 }

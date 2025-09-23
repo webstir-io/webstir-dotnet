@@ -10,13 +10,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Engine.Middleware;
 
-public sealed class ClientErrorMiddleware(RequestDelegate next, ILogger<ClientErrorMiddleware> logger, IErrorTrackingService errorTracking)
+public sealed class ClientErrorMiddleware(RequestDelegate next, ILogger<ClientErrorMiddleware> logger, ErrorTrackingService errorTracking)
 {
     private const string Route = "/client-errors";
 
     private readonly RequestDelegate _next = next;
     private readonly ILogger<ClientErrorMiddleware> _logger = logger;
-    private readonly IErrorTrackingService _errorTracking = errorTracking;
+    private readonly ErrorTrackingService _errorTracking = errorTracking;
 
     public async Task Invoke(HttpContext context)
     {

@@ -15,7 +15,7 @@ See also: [Engine](engine.md) and [Services](services.md).
 - Live reload: SSE endpoint notifies connected browsers after frontend rebuilds.
 - Caching: static assets cache with short TTL in dev; HTML not cached.
 - Logs: prints server URL and proxy target on startup.
-- Client Errors: accepts `POST /client-errors` (JSON, <=32KB). Returns `204` on success, `415` for non-JSON, `413` if too large. Forwards to `IErrorTrackingService` and includes correlation id.
+- Client Errors: accepts `POST /client-errors` (JSON, <=32KB). Returns `204` on success, `415` for non-JSON, `413` if too large. Forwards to `ErrorTrackingService` and includes correlation id.
 
 ### Prod‑parity Toggles (Kestrel only)
 The following flags affect only the ASP.NET Core dev server. They do nothing for nginx/S3/CloudFront.

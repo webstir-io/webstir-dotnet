@@ -53,7 +53,7 @@ try
     services.AddSingleton<DevService>();
     services.AddSingleton<WebServer>();
     services.AddSingleton<NodeServer>();
-    services.AddSingleton<IErrorTrackingService, ErrorTrackingService>();
+    services.AddSingleton<ErrorTrackingService>();
     services.AddSingleton(new JsonSerializerOptions
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
