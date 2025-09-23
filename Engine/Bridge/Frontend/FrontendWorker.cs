@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
-using Engine.Bridge;
 using Engine.Bridge.Test;
 using Engine.Helpers;
 using Engine.Interfaces;
@@ -14,18 +14,33 @@ using Microsoft.Extensions.Logging;
 
 namespace Engine.Bridge.Frontend;
 
-public sealed class FrontendWorker(
-    AppWorkspace workspace,
-    ILogger<FrontendWorker> logger) : IFrontendWorker
+public sealed class FrontendWorker : IFrontendWorker
 {
-    private readonly AppWorkspace _workspace = workspace;
-    private readonly ILogger<FrontendWorker> _logger = logger;
+    private readonly AppWorkspace _workspace;
+    private readonly ILogger<FrontendWorker> _logger;
 
     private const string DiagnosticPrefix = "WEBSTIR_DIAGNOSTIC ";
     private static readonly JsonSerializerOptions DiagnosticSerializerOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
+
+    private readonly FrontendWatcher _watcher;
+    private bool _watchModeEnabled;
+
+    public FrontendWorker(AppWorkspace workspace, ILogger<FrontendWorker> logger)
+    {
+        _workspace = workspace;
+        _logger = logger;
+        _watcher = new FrontendWatcher(
+            _workspace,
+            _logger,
+            DiagnosticPrefix,
+            DiagnosticSerializerOptions,
+            diagnostic => HandleWatchDiagnostic(diagnostic),
+            (line, isError) => HandleWatchOutput(line, isError),
+            GetExecutablePath);
+    }
 
     public int BuildOrder => 1;
 
@@ -34,6 +49,15 @@ public sealed class FrontendWorker(
 
     public async Task BuildAsync(string? changedFilePath = null)
     {
+        if (_watchModeEnabled)
+        {
+            object payload = string.IsNullOrWhiteSpace(changedFilePath)
+                ? new { type = "reload" }
+                : new { type = "change", path = changedFilePath };
+            await _watcher.SendAsync(payload, waitForCompletion: true, CancellationToken.None);
+            return;
+        }
+
         await EnsurePackagesAsync();
         string command = string.IsNullOrWhiteSpace(changedFilePath) ? "build" : "rebuild";
         await RunFrontendCliAsync(command, changedFilePath);
@@ -47,6 +71,52 @@ public sealed class FrontendWorker(
     }
 
     public async Task AddPageAsync(string pageName) => await RunFrontendCliAsync("add-page", null, pageName);
+
+    public async Task StartWatchAsync()
+    {
+        if (_watchModeEnabled)
+        {
+            return;
+        }
+
+        _watchModeEnabled = true;
+
+        try
+        {
+            await EnsurePackagesAsync();
+            await _watcher.StartAsync();
+        }
+        catch
+        {
+            _watchModeEnabled = false;
+            throw;
+        }
+    }
+
+    public async Task StopWatchAsync()
+    {
+        _watchModeEnabled = false;
+        await _watcher.StopAsync();
+    }
+
+    private void HandleWatchDiagnostic(FrontendCliDiagnostic diagnostic) => LogDiagnostic(diagnostic);
+
+    private void HandleWatchOutput(string? line, bool isError)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+        {
+            return;
+        }
+
+        if (isError)
+        {
+            _logger.LogWarning("[frontend-watch] {Line}", line);
+        }
+        else
+        {
+            _logger.LogInformation("[frontend-watch] {Line}", line);
+        }
+    }
 
     private async Task EnsurePackagesAsync()
     {
@@ -281,21 +351,4 @@ public sealed class FrontendWorker(
         }
     }
 
-    private sealed class FrontendCliDiagnostic
-    {
-        public string Type { get; init; } = string.Empty;
-        public string Code { get; init; } = string.Empty;
-        public string Kind { get; init; } = string.Empty;
-        public string Stage { get; init; } = string.Empty;
-        public string Severity { get; init; } = string.Empty;
-        public string Message { get; init; } = string.Empty;
-        public Dictionary<string, JsonElement>? Data
-        {
-            get; init;
-        }
-        public string? Suggestion
-        {
-            get; init;
-        }
-    }
 }

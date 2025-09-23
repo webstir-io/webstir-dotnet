@@ -26,11 +26,25 @@ public class WatchWorkflow(
         TestPackageUtilities.LogEnsureMessages(ensureResult);
 
         await RunTestsAsync();
-        await devService.StartAsync(Context, async (filePath, _) =>
+        bool watchStarted = false;
+        try
         {
-            await ExecuteBuildAsync(filePath);
-            await RunTestsAsync();
-        });
+            await Frontend.StartWatchAsync();
+            watchStarted = true;
+
+            await devService.StartAsync(Context, async (filePath, _) =>
+            {
+                await ExecuteBuildAsync(filePath);
+                await RunTestsAsync();
+            });
+        }
+        finally
+        {
+            if (watchStarted)
+            {
+                await Frontend.StopWatchAsync();
+            }
+        }
     }
 
     private async Task RunTestsAsync()

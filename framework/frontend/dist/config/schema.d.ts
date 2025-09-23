@@ -10,21 +10,21 @@ export declare const frontendPathSchema: z.ZodObject<{
         fonts: z.ZodString;
         media: z.ZodString;
     }, "strip", z.ZodTypeAny, {
-        root: string;
         frontend: string;
         app: string;
         pages: string;
         images: string;
         fonts: string;
         media: string;
+        root: string;
     }, {
-        root: string;
         frontend: string;
         app: string;
         pages: string;
         images: string;
         fonts: string;
         media: string;
+        root: string;
     }>;
     build: z.ZodObject<{
         root: z.ZodString;
@@ -35,21 +35,21 @@ export declare const frontendPathSchema: z.ZodObject<{
         fonts: z.ZodString;
         media: z.ZodString;
     }, "strip", z.ZodTypeAny, {
-        root: string;
         frontend: string;
         app: string;
         pages: string;
         images: string;
         fonts: string;
         media: string;
+        root: string;
     }, {
-        root: string;
         frontend: string;
         app: string;
         pages: string;
         images: string;
         fonts: string;
         media: string;
+        root: string;
     }>;
     dist: z.ZodObject<{
         root: z.ZodString;
@@ -60,80 +60,80 @@ export declare const frontendPathSchema: z.ZodObject<{
         fonts: z.ZodString;
         media: z.ZodString;
     }, "strip", z.ZodTypeAny, {
-        root: string;
         frontend: string;
         app: string;
         pages: string;
         images: string;
         fonts: string;
         media: string;
+        root: string;
     }, {
-        root: string;
         frontend: string;
         app: string;
         pages: string;
         images: string;
         fonts: string;
         media: string;
+        root: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    workspace: string;
     src: {
-        root: string;
         frontend: string;
         app: string;
         pages: string;
         images: string;
         fonts: string;
         media: string;
+        root: string;
     };
     build: {
-        root: string;
         frontend: string;
         app: string;
         pages: string;
         images: string;
         fonts: string;
         media: string;
+        root: string;
     };
     dist: {
-        root: string;
         frontend: string;
         app: string;
         pages: string;
         images: string;
         fonts: string;
         media: string;
+        root: string;
     };
+    workspace: string;
 }, {
-    workspace: string;
     src: {
-        root: string;
         frontend: string;
         app: string;
         pages: string;
         images: string;
         fonts: string;
         media: string;
+        root: string;
     };
     build: {
-        root: string;
         frontend: string;
         app: string;
         pages: string;
         images: string;
         fonts: string;
         media: string;
+        root: string;
     };
     dist: {
-        root: string;
         frontend: string;
         app: string;
         pages: string;
         images: string;
         fonts: string;
         media: string;
+        root: string;
     };
+    workspace: string;
 }>;
 export declare const frontendFeatureFlagsSchema: z.ZodObject<{
     htmlSecurity: z.ZodDefault<z.ZodBoolean>;
@@ -161,21 +161,21 @@ export declare const frontendConfigSchema: z.ZodObject<{
             fonts: z.ZodString;
             media: z.ZodString;
         }, "strip", z.ZodTypeAny, {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         }, {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         }>;
         build: z.ZodObject<{
             root: z.ZodString;
@@ -186,21 +186,21 @@ export declare const frontendConfigSchema: z.ZodObject<{
             fonts: z.ZodString;
             media: z.ZodString;
         }, "strip", z.ZodTypeAny, {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         }, {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         }>;
         dist: z.ZodObject<{
             root: z.ZodString;
@@ -211,80 +211,80 @@ export declare const frontendConfigSchema: z.ZodObject<{
             fonts: z.ZodString;
             media: z.ZodString;
         }, "strip", z.ZodTypeAny, {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         }, {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         }>;
     }, "strip", z.ZodTypeAny, {
-        workspace: string;
         src: {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         };
         build: {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         };
         dist: {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         };
+        workspace: string;
     }, {
-        workspace: string;
         src: {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         };
         build: {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         };
         dist: {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         };
+        workspace: string;
     }>;
     features: z.ZodObject<{
         htmlSecurity: z.ZodDefault<z.ZodBoolean>;
@@ -302,34 +302,34 @@ export declare const frontendConfigSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     version: 1;
     paths: {
-        workspace: string;
         src: {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         };
         build: {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         };
         dist: {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         };
+        workspace: string;
     };
     features: {
         htmlSecurity: boolean;
@@ -339,34 +339,34 @@ export declare const frontendConfigSchema: z.ZodObject<{
 }, {
     version: 1;
     paths: {
-        workspace: string;
         src: {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         };
         build: {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         };
         dist: {
-            root: string;
             frontend: string;
             app: string;
             pages: string;
             images: string;
             fonts: string;
             media: string;
+            root: string;
         };
+        workspace: string;
     };
     features: {
         htmlSecurity?: boolean | undefined;

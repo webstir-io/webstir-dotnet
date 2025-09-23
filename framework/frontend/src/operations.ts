@@ -1,22 +1,10 @@
-import { writeConfigManifest } from './config/manifest.js';
 import type { AddPageCommandOptions, FrontendCommandOptions } from './types.js';
-import { buildConfig } from './config/workspace.js';
-import { ensureToolsDirectory, resolveManifestPath } from './config/paths.js';
 import { runPipeline } from './pipeline.js';
 import { createPageScaffold } from './html/pageScaffold.js';
-
-async function prepareConfig(workspaceRoot: string) {
-    const config = buildConfig(workspaceRoot);
-    await ensureToolsDirectory(workspaceRoot);
-    await writeConfigManifest({
-        outputPath: resolveManifestPath(workspaceRoot),
-        data: config
-    });
-    return config;
-}
+import { prepareWorkspaceConfig } from './config/setup.js';
 
 export async function runBuild(options: FrontendCommandOptions): Promise<void> {
-    const config = await prepareConfig(options.workspaceRoot);
+    const config = await prepareWorkspaceConfig(options.workspaceRoot);
 
     console.info('[webstir-frontend] Running build pipeline...');
     await runPipeline(config, 'build', { changedFile: options.changedFile });
@@ -24,7 +12,7 @@ export async function runBuild(options: FrontendCommandOptions): Promise<void> {
 }
 
 export async function runPublish(options: FrontendCommandOptions): Promise<void> {
-    const config = await prepareConfig(options.workspaceRoot);
+    const config = await prepareWorkspaceConfig(options.workspaceRoot);
 
     console.info('[webstir-frontend] Running publish pipeline...');
     await runPipeline(config, 'publish');
@@ -32,7 +20,7 @@ export async function runPublish(options: FrontendCommandOptions): Promise<void>
 }
 
 export async function runRebuild(options: FrontendCommandOptions): Promise<void> {
-    const config = await prepareConfig(options.workspaceRoot);
+    const config = await prepareWorkspaceConfig(options.workspaceRoot);
 
     console.info('[webstir-frontend] Running rebuild pipeline...');
     await runPipeline(config, 'build', { changedFile: options.changedFile });
@@ -40,7 +28,7 @@ export async function runRebuild(options: FrontendCommandOptions): Promise<void>
 }
 
 export async function runAddPage(options: AddPageCommandOptions): Promise<void> {
-    const config = await prepareConfig(options.workspaceRoot);
+    const config = await prepareWorkspaceConfig(options.workspaceRoot);
     console.info('[webstir-frontend] Creating page scaffold...');
     await createPageScaffold({
         workspaceRoot: options.workspaceRoot,

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { runAddPage, runBuild, runPublish, runRebuild } from './operations.js';
+import { WatchDaemon } from './watch/watchDaemon.js';
 
 const program = new Command();
 
@@ -62,6 +63,23 @@ program
                 workspaceRoot: cmd.workspace,
                 pageName: name
             });
+        } catch (error) {
+            handleError(error);
+        }
+    });
+
+program
+    .command('watch-daemon')
+    .description('Run the persistent frontend watch daemon')
+    .requiredOption('-w, --workspace <path>', 'Absolute path to the workspace root')
+    .option('--no-auto-start', 'Defer startup until a start command is received')
+    .action(async (cmd) => {
+        try {
+            const daemon = new WatchDaemon({
+                workspaceRoot: cmd.workspace,
+                autoStart: cmd.autoStart
+            });
+            await daemon.run();
         } catch (error) {
             handleError(error);
         }
