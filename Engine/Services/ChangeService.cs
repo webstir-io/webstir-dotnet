@@ -4,24 +4,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-
+using Engine.Models;
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Services;
-
-public enum FileChangeType
-{
-    Modified,
-    Created,
-    Deleted,
-    Renamed
-}
-
-public record FileChangeEvent(
-    string FilePath,
-    FileChangeType ChangeType,
-    DateTime Timestamp
-);
 
 public class ChangeService(ILogger<ChangeService> logger)
 {
