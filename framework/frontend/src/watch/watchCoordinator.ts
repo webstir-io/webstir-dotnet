@@ -1,14 +1,13 @@
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { context as createEsbuildContext } from 'esbuild';
-import type { BuildContext, BuildFailure, BuildResult } from 'esbuild';
+import type { BuildContext, BuildResult } from 'esbuild';
 import { FOLDERS, FILES, EXTENSIONS } from '../core/constants.js';
 import { getPages, type PageInfo } from '../core/pages.js';
 import { emitDiagnostic } from '../core/diagnostics.js';
-import type { DiagnosticSeverity } from '../core/diagnostics.js';
 import type { FrontendConfig } from '../types.js';
 import { prepareWorkspaceConfig } from '../config/setup.js';
-import { ensureDir, pathExists, copy } from '../utils/fs.js';
+import { ensureDir } from '../utils/fs.js';
 import { shouldProcess } from '../utils/changedFile.js';
 import { findPageFromChangedFile } from '../utils/pathMatch.js';
 import { createCssBuilder } from '../builders/cssBuilder.js';
@@ -17,6 +16,17 @@ import { createStaticAssetsBuilder } from '../builders/staticAssetsBuilder.js';
 import type { Builder, BuilderContext } from '../builders/types.js';
 import type { WatchChangeIntent, WatchCoordinatorOptions } from './types.js';
 import { WatchReporter, serializeMessages, type SerializedMessage } from './watchReporter.js';
+import { HotUpdateTracker, type HotAsset, type HotUpdateDetails } from './hotUpdateTracker.js';
+import {
+    runBuilderWithDiagnostics,
+    emitPipelineSuccess,
+    serializeSummary,
+    emitJavaScriptFailure,
+    JavaScriptBuildError,
+    type JavaScriptBuildSummary,
+    type AdditionalBuildResult
+} from './pipelineHelpers.js';
+import { resolveEntryPoint, copyRefreshScript } from './frontendFiles.js';
 
 interface PageBuildContext {
     readonly name: string;
@@ -24,29 +34,14 @@ interface PageBuildContext {
     readonly context: BuildContext;
 }
 
-interface JavaScriptBuildSummary {
-    readonly pagesBuilt: readonly string[];
-    readonly warnings: readonly SerializedMessage[];
-}
-
-interface AdditionalBuildResult {
-    readonly succeeded: boolean;
-    readonly assets: readonly string[];
-}
-
 const JAVASCRIPT_EXTENSIONS = [EXTENSIONS.ts, EXTENSIONS.js, '.tsx', '.jsx'] as const;
-
-const BUILDER_DISPLAY_NAMES: Record<string, string> = {
-    css: 'CSS',
-    html: 'HTML',
-    'static-assets': 'Static assets'
-} as const;
 
 export class WatchCoordinator {
     private readonly workspaceRoot: string;
     private readonly jsContexts = new Map<string, PageBuildContext>();
     private readonly verbose: boolean;
     private readonly reporter: WatchReporter;
+    private readonly hotUpdateTracker: HotUpdateTracker;
     private config?: FrontendConfig;
     private isStopping = false;
     private queue: Promise<void> = Promise.resolve();
@@ -55,6 +50,7 @@ export class WatchCoordinator {
         this.workspaceRoot = options.workspaceRoot;
         this.verbose = options.verbose ?? false;
         this.reporter = new WatchReporter({ verbose: this.verbose });
+        this.hotUpdateTracker = new HotUpdateTracker({ workspaceRoot: this.workspaceRoot });
     }
 
     public async start(): Promise<void> {
@@ -137,6 +133,7 @@ export class WatchCoordinator {
                 await entry.context.dispose();
             }
             this.jsContexts.clear();
+            this.hotUpdateTracker.reset();
             this.config = undefined;
         });
         this.isStopping = false;
@@ -180,6 +177,7 @@ export class WatchCoordinator {
                     await context.context.dispose();
                 }
                 this.jsContexts.delete(existing);
+                this.hotUpdateTracker.removePage(existing);
                 this.reporter.emitVerbose({
                     code: 'frontend.watch.javascript.context.removed',
                     kind: 'watch-daemon',
@@ -207,6 +205,7 @@ export class WatchCoordinator {
                     await existing.context.dispose();
                 }
                 this.jsContexts.delete(page.name);
+                this.hotUpdateTracker.removePage(page.name);
             }
             return;
         }
@@ -219,6 +218,7 @@ export class WatchCoordinator {
         if (existing) {
             await existing.context.dispose();
             this.jsContexts.delete(page.name);
+            this.hotUpdateTracker.removePage(page.name);
         }
 
         const outputDir = path.join(config.paths.build.frontend, FOLDERS.pages, page.name);
@@ -233,7 +233,7 @@ export class WatchCoordinator {
             sourcemap: true,
             outfile: path.join(outputDir, `${FILES.index}${EXTENSIONS.js}`),
             logLevel: 'silent',
-            metafile: this.verbose
+            metafile: true
         });
 
         this.jsContexts.set(page.name, {
@@ -262,7 +262,21 @@ export class WatchCoordinator {
             return false;
         }
 
-        this.emitPipelineSuccess(summary, assetsResult, changedFile);
+        const requiresReload = !changedFile || summary.requiresReload || assetsResult.requiresReload;
+        const fallbackReasons = this.combineFallbackReasons(summary.fallbackReasons, assetsResult.fallbackReasons);
+        const hotUpdate: HotUpdateDetails = {
+            modules: summary.modules,
+            styles: assetsResult.styles,
+            requiresReload,
+            fallbackReasons,
+            changedFile
+        };
+
+        const relativeChange = this.getRelativeChange(changedFile);
+        if (changedFile && requiresReload) {
+            this.emitHotUpdateFallback(relativeChange ?? changedFile, hotUpdate);
+        }
+        emitPipelineSuccess(summary, assetsResult, changedFile, relativeChange, hotUpdate);
         return true;
     }
 
@@ -276,97 +290,49 @@ export class WatchCoordinator {
         ];
 
         const executed: string[] = [];
+        const styles: HotAsset[] = [];
         let succeeded = true;
+        let requiresReload = false;
+        const pageNames = Array.from(this.jsContexts.keys());
+        const relativeChange = this.getRelativeChange(changedFile);
+        const fallbackReasons: string[] = [];
 
         for (const builder of builders) {
             executed.push(builder.name);
-            const builderSucceeded = await this.runBuilderWithDiagnostics(builder, context, changedFile);
+            const builderSucceeded = await runBuilderWithDiagnostics(
+                builder,
+                this.reporter,
+                context,
+                changedFile,
+                relativeChange
+            );
             if (!builderSucceeded) {
                 succeeded = false;
                 break;
+            }
+
+            if (builder.name === 'css') {
+                const cssResult = await this.hotUpdateTracker.collectCssChanges(context, pageNames);
+                styles.push(...cssResult.styles);
+                if (cssResult.requiresReload) {
+                    requiresReload = true;
+                }
+                fallbackReasons.push(...cssResult.fallbackReasons);
+            }
+
+            if (builder.name === 'html' || builder.name === 'static-assets') {
+                requiresReload = true;
+                fallbackReasons.push(`builder.${builder.name}.reload`);
             }
         }
 
         return {
             succeeded,
-            assets: executed
+            assets: executed,
+            styles,
+            requiresReload,
+            fallbackReasons: this.combineFallbackReasons([], fallbackReasons)
         };
-    }
-
-    private async runBuilderWithDiagnostics(builder: Builder, context: BuilderContext, changedFile?: string): Promise<boolean> {
-        const displayName = BUILDER_DISPLAY_NAMES[builder.name] ?? builder.name;
-        const relativeChange = this.getRelativeChange(changedFile);
-        const messageContext = relativeChange ? ` (${relativeChange})` : '';
-
-        this.reporter.emitVerbose({
-            code: `frontend.watch.${builder.name}.build.start`,
-            kind: 'watch-daemon',
-            stage: builder.name,
-            severity: 'info',
-            message: `Starting ${displayName} rebuild${messageContext}.`,
-            data: changedFile ? { changedFile, builder: builder.name } : { builder: builder.name }
-        });
-
-        try {
-            await builder.build(context);
-            this.reporter.emitVerbose({
-                code: `frontend.watch.${builder.name}.build.success`,
-                kind: 'watch-daemon',
-                stage: builder.name,
-                severity: 'info',
-                message: `${displayName} rebuild completed${messageContext}.`,
-                data: changedFile ? { changedFile, builder: builder.name } : { builder: builder.name }
-            });
-            return true;
-        } catch (error) {
-            const details: Record<string, unknown> = { builder: builder.name };
-            if (changedFile) {
-                details.changedFile = changedFile;
-            }
-            if (error instanceof Error) {
-                details.error = error.message;
-            } else {
-                details.error = String(error);
-            }
-
-            emitDiagnostic({
-                code: `frontend.watch.${builder.name}.build.failure`,
-                kind: 'watch-daemon',
-                stage: builder.name,
-                severity: 'error',
-                message: `${displayName} rebuild failed${messageContext}.`,
-                data: details
-            });
-
-            return false;
-        }
-    }
-
-    private emitPipelineSuccess(summary: JavaScriptBuildSummary, assetsResult: AdditionalBuildResult, changedFile?: string): void {
-        const relativeChange = this.getRelativeChange(changedFile);
-        const message = `Frontend rebuild pipeline completed${relativeChange ? ` (${relativeChange})` : ''}.`;
-
-        const data: Record<string, unknown> = {
-            pages: summary.pagesBuilt,
-            assets: assetsResult.assets
-        };
-
-        if (changedFile) {
-            data.changedFile = changedFile;
-        }
-
-        if (summary.warnings.length > 0) {
-            data.javascriptWarnings = summary.warnings;
-        }
-
-        emitDiagnostic({
-            code: 'frontend.watch.pipeline.success',
-            kind: 'watch-daemon',
-            stage: 'pipeline',
-            severity: 'info',
-            message,
-            data
-        });
     }
 
     private getRelativeChange(changedFile?: string): string | undefined {
@@ -405,7 +371,9 @@ export class WatchCoordinator {
         }
 
         try {
-            const summary = shouldRun ? await this.executeJavaScriptBuild(changedFile) : { pagesBuilt: [], warnings: [] };
+            const summary = shouldRun
+                ? await this.executeJavaScriptBuild(changedFile)
+                : { pagesBuilt: [], warnings: [], modules: [], requiresReload: false, fallbackReasons: [] };
             const skipped = !shouldRun;
             const message = skipped
                 ? `JavaScript rebuild not required${relativeChange ? ` (${relativeChange})` : ''}.`
@@ -417,24 +385,28 @@ export class WatchCoordinator {
                 stage: 'javascript',
                 severity: 'info',
                 message,
-                data: this.serializeSummary(summary, changedFile, skipped)
+                data: serializeSummary(summary, changedFile, skipped)
             });
 
             return summary;
         } catch (error) {
-            this.emitJavaScriptFailure(error, changedFile);
+            emitJavaScriptFailure(error, changedFile);
             return null;
         }
     }
 
     private async executeJavaScriptBuild(changedFile?: string): Promise<JavaScriptBuildSummary> {
+        const config = this.requireConfig();
         const targetPages = this.resolveTargetPages(changedFile);
         if (targetPages.length === 0) {
-            return { pagesBuilt: [], warnings: [] };
+            return { pagesBuilt: [], warnings: [], modules: [], requiresReload: false, fallbackReasons: [] };
         }
 
         const warnings: SerializedMessage[] = [];
         const builtPages: string[] = [];
+        const modules: HotAsset[] = [];
+        let requiresReload = false;
+        const fallbackReasons: string[] = [];
         for (const pageName of targetPages) {
             const pageContext = this.jsContexts.get(pageName);
             if (!pageContext) {
@@ -448,6 +420,13 @@ export class WatchCoordinator {
                 builtPages.push(pageName);
                 warnings.push(...serializeMessages(result.warnings ?? []));
                 this.reporter.emitJavaScriptStats(pageName, result, duration);
+
+                const outputDetails = await this.hotUpdateTracker.processJavaScriptResult(pageName, result, config);
+                modules.push(...outputDetails.modules);
+                if (outputDetails.requiresReload) {
+                    requiresReload = true;
+                }
+                fallbackReasons.push(...outputDetails.fallbackReasons);
             } catch (error) {
                 throw new JavaScriptBuildError(pageName, error);
             }
@@ -457,7 +436,13 @@ export class WatchCoordinator {
             await copyRefreshScript(this.requireConfig());
         }
 
-        return { pagesBuilt: builtPages, warnings };
+        return {
+            pagesBuilt: builtPages,
+            warnings,
+            modules,
+            requiresReload,
+            fallbackReasons: this.combineFallbackReasons([], fallbackReasons)
+        };
     }
 
     private resolveTargetPages(changedFile?: string): string[] {
@@ -474,50 +459,6 @@ export class WatchCoordinator {
         return Array.from(this.jsContexts.keys());
     }
 
-    private serializeSummary(summary: JavaScriptBuildSummary, changedFile?: string, skipped = false) {
-        const data: Record<string, unknown> = {
-            pages: summary.pagesBuilt
-        };
-
-        if (changedFile) {
-            data.changedFile = changedFile;
-        }
-
-        if (summary.warnings.length > 0) {
-            data.warnings = summary.warnings;
-        }
-
-        if (skipped) {
-            data.skipped = true;
-        }
-
-        return data;
-    }
-
-    private emitJavaScriptFailure(error: unknown, changedFile?: string): void {
-        let message = 'JavaScript rebuild failed.';
-        let severity: DiagnosticSeverity = 'error';
-        const data: Record<string, unknown> = changedFile ? { changedFile } : {};
-
-        if (error instanceof JavaScriptBuildError) {
-            message = `JavaScript rebuild failed for page '${error.pageName}'.`;
-            if (error.details.length > 0) {
-                data.errors = error.details;
-            }
-        } else if (error instanceof Error) {
-            message = `JavaScript rebuild failed: ${error.message}`;
-        }
-
-        emitDiagnostic({
-            code: 'frontend.watch.javascript.build.failure',
-            kind: 'watch-daemon',
-            stage: 'javascript',
-            severity,
-            message,
-            data: Object.keys(data).length > 0 ? data : undefined
-        });
-    }
-
     private resolveChangedFile(changedFile?: string): string | undefined {
         if (!changedFile) {
             return undefined;
@@ -528,6 +469,33 @@ export class WatchCoordinator {
         }
 
         return path.resolve(this.workspaceRoot, changedFile);
+    }
+
+    private emitHotUpdateFallback(changedFile: string, hotUpdate: HotUpdateDetails): void {
+        if (hotUpdate.fallbackReasons.length === 0) {
+            return;
+        }
+
+        emitDiagnostic({
+            code: 'frontend.watch.pipeline.hmrfallback',
+            kind: 'watch-daemon',
+            stage: 'pipeline',
+            severity: 'info',
+            message: `Hot update fallback triggered for '${changedFile}'.`,
+            data: {
+                changedFile,
+                reasons: hotUpdate.fallbackReasons,
+                modules: hotUpdate.modules.map(asset => asset.url),
+                styles: hotUpdate.styles.map(asset => asset.url)
+            }
+        });
+    }
+
+    private combineFallbackReasons(
+        first: readonly string[],
+        second: readonly string[]
+    ): readonly string[] {
+        return Array.from(new Set([...first, ...second].filter(Boolean)));
     }
 
     private requireConfig(): FrontendConfig {
@@ -547,48 +515,4 @@ export class WatchCoordinator {
             message: `Unexpected watch daemon error: ${message}`
         });
     }
-}
-
-class JavaScriptBuildError extends Error {
-    public readonly pageName: string;
-    public readonly details: readonly SerializedMessage[];
-
-    public constructor(pageName: string, cause: unknown) {
-        const message = cause instanceof Error ? cause.message : String(cause);
-        super(message);
-        this.pageName = pageName;
-        this.details = isBuildFailure(cause) ? serializeMessages(cause.errors ?? []) : [];
-    }
-}
-
-async function resolveEntryPoint(pageDirectory: string): Promise<string | null> {
-    const candidates = [`${FILES.index}${EXTENSIONS.ts}`, `${FILES.index}.tsx`, `${FILES.index}${EXTENSIONS.js}`, `${FILES.index}.jsx`];
-
-    for (const candidate of candidates) {
-        const file = path.join(pageDirectory, candidate);
-        if (await pathExists(file)) {
-            return file;
-        }
-    }
-
-    return null;
-}
-
-async function copyRefreshScript(config: FrontendConfig): Promise<void> {
-    const source = path.join(config.paths.src.app, FILES.refreshJs);
-    if (!(await pathExists(source))) {
-        return;
-    }
-
-    const destination = path.join(config.paths.build.frontend, FILES.refreshJs);
-    await ensureDir(path.dirname(destination));
-    await copy(source, destination);
-}
-
-function isBuildFailure(error: unknown): error is BuildFailure {
-    if (typeof error !== 'object' || error === null) {
-        return false;
-    }
-
-    return Array.isArray((error as BuildFailure).errors);
 }

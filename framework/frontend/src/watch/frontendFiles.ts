@@ -1,0 +1,28 @@
+import path from 'node:path';
+import { ensureDir, pathExists, copy } from '../utils/fs.js';
+import { FILES, EXTENSIONS } from '../core/constants.js';
+import type { FrontendConfig } from '../types.js';
+
+export async function resolveEntryPoint(pageDirectory: string): Promise<string | null> {
+    const candidates = [`${FILES.index}${EXTENSIONS.ts}`, `${FILES.index}.tsx`, `${FILES.index}${EXTENSIONS.js}`, `${FILES.index}.jsx`];
+
+    for (const candidate of candidates) {
+        const file = path.join(pageDirectory, candidate);
+        if (await pathExists(file)) {
+            return file;
+        }
+    }
+
+    return null;
+}
+
+export async function copyRefreshScript(config: FrontendConfig): Promise<void> {
+    const source = path.join(config.paths.src.app, FILES.refreshJs);
+    if (!(await pathExists(source))) {
+        return;
+    }
+
+    const destination = path.join(config.paths.build.frontend, FILES.refreshJs);
+    await ensureDir(path.dirname(destination));
+    await copy(source, destination);
+}
