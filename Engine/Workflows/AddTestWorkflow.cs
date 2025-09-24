@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Engine.Bridge;
+using Engine.Bridge.Packages;
 using Engine.Bridge.Test;
 using Engine.Helpers;
 using Engine.Interfaces;
@@ -33,8 +34,8 @@ public sealed class AddTestWorkflow(AppWorkspace context,
 
     private async Task EnsurePackageAsync()
     {
-        PackageEnsureResult result = await TestPackageUtilities.EnsurePackageAsync(Context);
-        TestPackageUtilities.LogEnsureMessages(result);
+        ToolchainEnsureSummary summary = await TestPackageUtilities.EnsurePackageAsync(Context);
+        TestPackageUtilities.LogEnsureMessages(summary);
     }
     private async Task RunTestCliAsync(string name)
     {

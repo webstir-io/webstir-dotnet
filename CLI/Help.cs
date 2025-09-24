@@ -16,6 +16,7 @@ public static class Help
         [Commands.Build] = GetBuildCommand(),
         [Commands.Test] = GetTestCommand(),
         [Commands.Watch] = GetWatchCommand(),
+        [Commands.Install] = GetInstallCommand(),
         [Commands.Publish] = GetPublishCommand(),
         [Commands.Help] = GetHelpCommand()
     };
@@ -89,6 +90,14 @@ public static class Help
                 Option(BuildOptions.Clean, "Clean build directory before building")
             ],
             "[options]");
+
+    private static CommandHelp GetInstallCommand() =>
+        CreateCommand(Commands.Install,
+            "Synchronize framework toolchain dependencies",
+            [
+                Example($"{App.Name} {Commands.Install}", "Install bundled frontend/test packages"),
+                Example($"{App.Name} {Commands.Install} ./my-app", "Synchronize packages for ./my-app")
+            ]);
 
     private static CommandHelp GetTestCommand() =>
         CreateCommand(Commands.Test,

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "packages": {
+    "@webstir/frontend": {
+      "name": "@webstir/frontend",
+      "version": "0.2.2",
+      "fileName": "webstir-frontend-0-2-2.tgz",
+      "dependency": "file:./.tools/webstir-frontend-0-2-2.tgz",
+      "hash": "9c4386645e9c24c947ae170eddb5d9ad518e55b81e4968bda3db0aa1a80c9139",
+      "repositoryPath": "frontend/0.2.2/webstir-frontend-0-2-2.tgz"
+    },
+    "@webstir/test": {
+      "name": "@webstir/test",
+      "version": "0.3.0",
+      "fileName": "webstir-test-0-3-0.tgz",
+      "dependency": "file:./.tools/webstir-test-0-3-0.tgz",
+      "hash": "9c3188c07dd7654915d3f917149ff19b4f4aab478aa7b55ffef3d2a6c150d4b2",
+      "repositoryPath": "testing/0.3.0/webstir-test-0-3-0.tgz"
+    }
+  }
+}

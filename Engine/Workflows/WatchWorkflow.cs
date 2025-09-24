@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Engine.Bridge.Packages;
 using Engine.Bridge.Test;
 using Engine.Helpers;
 using Engine.Interfaces;
@@ -27,8 +28,8 @@ public class WatchWorkflow(
     {
         await ExecuteBuildAsync();
 
-        PackageEnsureResult ensureResult = await TestPackageUtilities.EnsurePackageAsync(Context);
-        TestPackageUtilities.LogEnsureMessages(ensureResult);
+        ToolchainEnsureSummary ensureSummary = await TestPackageUtilities.EnsurePackageAsync(Context);
+        TestPackageUtilities.LogEnsureMessages(ensureSummary);
 
         await RunTestsAsync();
         bool watchStarted = false;

@@ -5,6 +5,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Engine.Bridge.Packages;
 using Engine.Bridge.Test;
 using Engine.Helpers;
 using Engine.Interfaces;
@@ -23,8 +24,8 @@ public sealed class TestWorkflow(
         await ExecuteBuildAsync();
         await CompileTypeScriptAsync();
 
-        PackageEnsureResult ensureResult = await TestPackageUtilities.EnsurePackageAsync(Context);
-        TestPackageUtilities.LogEnsureMessages(ensureResult);
+        ToolchainEnsureSummary ensureSummary = await TestPackageUtilities.EnsurePackageAsync(Context);
+        TestPackageUtilities.LogEnsureMessages(ensureSummary);
 
         TestCliRunner runner = new(Context);
         TestCliRunResult runResult = await runner.RunTestsAsync(CancellationToken.None);

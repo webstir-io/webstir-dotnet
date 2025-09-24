@@ -70,6 +70,7 @@ try
     services.AddTransient<IWorkflow, InitWorkflow>();
     services.AddTransient<IWorkflow, BuildWorkflow>();
     services.AddTransient<IWorkflow, PublishWorkflow>();
+    services.AddTransient<IWorkflow, InstallWorkflow>();
     services.AddTransient<IWorkflow, AddPageWorkflow>();
     services.AddTransient<IWorkflow, AddTestWorkflow>();
     services.AddTransient<IWorkflow, TestWorkflow>();

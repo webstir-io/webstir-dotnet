@@ -19,7 +19,10 @@ public sealed class HtmlTests : TestSuite
             new HtmlWhitespaceCollapsed(),
             new HtmlAttributesAndCommentsOptimized(),
             new HtmlMetaPreservation(),
-            new HtmlPerfOptimizations()
+            new HtmlDevelopmentIncludesRuntimeScripts(),
+            new HtmlPublishOmitsRuntimeScripts(),
+            new HtmlPerfOptimizations(),
+            new HtmlFeatureFlagsRespectDisables()
         ];
 
         foreach (ITestCase testCase in FilterByMode(cases))

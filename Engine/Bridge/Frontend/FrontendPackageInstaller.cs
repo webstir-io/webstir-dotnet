@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
+using Engine.Bridge.Packages;
 using Engine.Extensions;
 using Engine.Helpers;
 
@@ -23,17 +24,89 @@ internal static class FrontendPackageInstaller
 
         FrontendPackageMetadata metadata = Manifest.Value;
         string toolsDirectory = workspace.WorkingPath.Combine(Folders.Tools);
+        Directory.CreateDirectory(toolsDirectory);
+
         string tarballPath = toolsDirectory.Combine(metadata.FileName);
         bool hadTarball = File.Exists(tarballPath);
 
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.ToolsPath, toolsDirectory);
+        bool copiedFromRepository = await TryCopyFromRepositoryAsync(metadata, tarballPath);
+        if (!copiedFromRepository)
+        {
+            await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.ToolsPath, toolsDirectory);
+        }
+
         bool hasTarball = File.Exists(tarballPath);
+
+        await WriteManifestAsync(Path.Combine(toolsDirectory, ManifestFileName), metadata);
 
         bool dependencyUpdated = await EnsureDependencyAsync(workspace.WorkingPath.Combine(Files.PackageJson), metadata);
         bool tarballUpdated = await DetectTarballMismatchAsync(tarballPath, metadata.Hash);
         FrontendPackageInstallState installState = await DetectInstalledVersionMismatchAsync(workspace, metadata);
 
         return new FrontendPackageEnsureResult(!hadTarball && hasTarball, dependencyUpdated, tarballUpdated, installState.VersionMismatch, installState.InstalledVersion, metadata);
+    }
+
+    private static async Task<bool> TryCopyFromRepositoryAsync(FrontendPackageMetadata metadata, string destinationTarballPath)
+    {
+        if (!FrameworkPackageRepository.TryGetPackage(metadata.Name, out FrameworkPackageManifestEntry entry))
+        {
+            return false;
+        }
+
+        if (!string.Equals(entry.Version, metadata.Version, StringComparison.Ordinal) || !string.Equals(entry.FileName, metadata.FileName, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (!File.Exists(entry.AbsolutePath))
+        {
+            Console.Error.WriteLine($"Warning: Local package archive not found for {metadata.Name} at {entry.AbsolutePath}.");
+            return false;
+        }
+
+        if (!string.IsNullOrEmpty(metadata.Hash))
+        {
+            string repositoryHash = await ComputeFileHashAsync(entry.AbsolutePath);
+            if (!string.Equals(repositoryHash, metadata.Hash, StringComparison.OrdinalIgnoreCase))
+            {
+                Console.Error.WriteLine($"Warning: Local package archive hash mismatch for {metadata.Name}; falling back to embedded resources.");
+                return false;
+            }
+        }
+
+        try
+        {
+            File.Copy(entry.AbsolutePath, destinationTarballPath, overwrite: true);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Warning: Unable to copy {metadata.Name} from local repository: {ex.Message}");
+            return false;
+        }
+    }
+
+    private static async Task WriteManifestAsync(string manifestPath, FrontendPackageMetadata metadata)
+    {
+        JsonObject obj = new()
+        {
+            ["name"] = metadata.Name,
+            ["version"] = metadata.Version,
+            ["fileName"] = metadata.FileName,
+            ["dependency"] = metadata.Dependency
+        };
+
+        if (!string.IsNullOrEmpty(metadata.Hash))
+        {
+            obj["hash"] = metadata.Hash;
+        }
+
+        JsonSerializerOptions options = new()
+        {
+            WriteIndented = true
+        };
+
+        await File.WriteAllTextAsync(manifestPath, obj.ToJsonString(options));
     }
 
     private static FrontendPackageMetadata LoadManifest()

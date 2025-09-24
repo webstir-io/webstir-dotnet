@@ -21,6 +21,7 @@ Common patterns:
 - `webstir build --clean`
 - `webstir watch`
 - `webstir test`
+- `webstir install`
 - `webstir publish`
 - `webstir add-page about`
 - `webstir add-test auth/login`
@@ -59,6 +60,7 @@ What it does:
 - Starts the dev web server (serves `build/frontend/**`) and the Node API server (runs `build/backend/index.js`).
 - Watches `src/**` for changes and performs targeted, incremental rebuilds.
 - Restarts the Node server on backend changes; notifies browsers via SSE to reload on frontend changes.
+- Stops early with an actionable message if framework packages drift, pointing to `webstir install`.
 
 ### test
 Usage: `webstir test`
@@ -67,6 +69,19 @@ What it does:
 - Builds the project, ensures the bundled `@webstir/test` tools are installed, then shells into the `webstir-test` TypeScript CLI.
 - Executes compiled frontend and backend tests, emitting structured events the .NET bridge relays.
 - Prints a pass/fail summary; integrates with CI using standard exit codes.
+- Fails fast if bundled package versions drift and directs you to `webstir install`.
+
+### install
+Usage: `webstir install`
+
+What it does:
+- Synchronizes the bundled `@webstir/frontend` and `@webstir/test` packages with `node_modules`.
+- Installs tarballs from the local framework repository and updates `.tools/*.json` manifests.
+- Verifies versions against the CLI manifest and exits with guidance if drift remains.
+
+Notes:
+- Run after upgrading the CLI or whenever `npm install` has modified pinned dependencies.
+- Safe to run repeatedly; skips work when packages are already in sync.
 
 ### publish
 Usage: `webstir publish`
@@ -147,6 +162,7 @@ Commands:
   build       Build frontend and backend
   watch       Build, run servers, and watch (default)
   test        Build then run tests
+  install     Synchronize toolchain packages
   publish     Produce optimized dist outputs
   add-page    Scaffold a new frontend page
   add-test    Scaffold a new test file

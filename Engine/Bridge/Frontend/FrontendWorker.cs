@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
+using Engine.Bridge.Packages;
 using Engine.Bridge.Test;
 using Engine.Helpers;
 using Engine.Interfaces;
@@ -188,46 +189,36 @@ public sealed class FrontendWorker : IFrontendWorker
 
             NodeRuntime.EnsureMinimumVersion();
             _logger.LogInformation("[frontend] Verifying toolchain packages...");
-            FrontendPackageEnsureResult frontendResult = await FrontendPackageInstaller.EnsureAsync(_workspace);
-            PackageEnsureResult testResult = await TestPackageInstaller.EnsureAsync(_workspace);
 
-            bool installRequired = frontendResult.ToolsAdded || frontendResult.DependencyUpdated || frontendResult.TarballUpdated
-                || testResult.ToolsAdded || testResult.DependencyUpdated || testResult.TarballUpdated;
+            ToolchainEnsureSummary summary = await ToolchainSynchronizer.EnsureAsync(
+                _workspace,
+                _logger,
+                includeFrontend: true,
+                includeTesting: true,
+                autoInstall: true);
 
-            if (installRequired)
+            if (summary.InstallPerformed)
             {
-                if (frontendResult.TarballUpdated || testResult.TarballUpdated)
-                {
-                    RemovePackageLockIfPresent();
-                    RemoveCachedPackage("@webstir/frontend");
-                    RemoveCachedPackage("@webstir/test");
-                }
-
-                _logger.LogInformation("[frontend] Toolchain changed; running npm install...");
-                NpmHelper.RunNpmInstall(_workspace.WorkingPath);
-                frontendResult = await FrontendPackageInstaller.EnsureAsync(_workspace);
-                testResult = await TestPackageInstaller.EnsureAsync(_workspace);
+                _logger.LogInformation("[frontend] Toolchain refreshed; dependencies reinstalled.");
             }
             else
             {
                 _logger.LogDebug("[frontend] Toolchain already up to date.");
             }
 
+            LogTarballUpdates(summary);
+
+            if (summary.InstallRequiredButSkipped)
+            {
+                throw new InvalidOperationException($"Framework toolchain requires installation. Run '{App.Name} install' to synchronize dependencies.");
+            }
+
+            if (summary.HasVersionMismatch)
+            {
+                ThrowMismatch(summary);
+            }
+
             _logger.LogInformation("[frontend] Toolchain verification complete.");
-
-            LogVersionMismatch(frontendResult.VersionMismatch, frontendResult.InstalledVersion, frontendResult.Metadata.Name, frontendResult.Metadata.Version);
-            LogVersionMismatch(testResult.VersionMismatch, testResult.InstalledVersion, testResult.Metadata.Name, testResult.Metadata.Version);
-
-            if (frontendResult.TarballUpdated)
-            {
-                _logger.LogInformation("{Package} tarball updated; run npm install if changes are not applied automatically.", frontendResult.Metadata.Name);
-            }
-
-            if (testResult.TarballUpdated)
-            {
-                _logger.LogInformation("{Package} tarball updated; run npm install if changes are not applied automatically.", testResult.Metadata.Name);
-            }
-
             _toolchainVerified = true;
         }
         finally
@@ -236,19 +227,58 @@ public sealed class FrontendWorker : IFrontendWorker
         }
     }
 
-    private void LogVersionMismatch(bool mismatch, string? installedVersion, string packageName, string expectedVersion)
+    private void LogTarballUpdates(ToolchainEnsureSummary summary)
     {
-        if (!mismatch)
+        if (summary.Frontend is { TarballUpdated: true } frontend)
+        {
+            _logger.LogInformation("{Package} tarball updated; dependencies refreshed automatically.", frontend.Metadata.Name);
+        }
+
+        if (summary.Testing is { TarballUpdated: true } testing)
+        {
+            _logger.LogInformation("{Package} tarball updated; dependencies refreshed automatically.", testing.Metadata.Name);
+        }
+    }
+
+    private void ThrowMismatch(ToolchainEnsureSummary summary)
+    {
+        List<string> mismatches = [];
+
+        if (summary.Frontend is { VersionMismatch: true } frontend)
+        {
+            string installed = string.IsNullOrWhiteSpace(frontend.InstalledVersion)
+                ? "missing"
+                : frontend.InstalledVersion!;
+            _logger.LogWarning(
+                "{Package} {InstalledVersion} detected but {ExpectedVersion} is bundled. Run '{Command} install' to refresh dependencies.",
+                frontend.Metadata.Name,
+                installed,
+                frontend.Metadata.Version,
+                App.Name);
+            mismatches.Add($"{frontend.Metadata.Name} (found {installed}, expected {frontend.Metadata.Version})");
+        }
+
+        if (summary.Testing is { VersionMismatch: true } testing)
+        {
+            string installed = string.IsNullOrWhiteSpace(testing.InstalledVersion)
+                ? "missing"
+                : testing.InstalledVersion!;
+            _logger.LogWarning(
+                "{Package} {InstalledVersion} detected but {ExpectedVersion} is bundled. Run '{Command} install' to refresh dependencies.",
+                testing.Metadata.Name,
+                installed,
+                testing.Metadata.Version,
+                App.Name);
+            mismatches.Add($"{testing.Metadata.Name} (found {installed}, expected {testing.Metadata.Version})");
+        }
+
+        if (mismatches.Count == 0)
         {
             return;
         }
 
-        string installed = string.IsNullOrWhiteSpace(installedVersion) ? "missing" : installedVersion!;
-        _logger.LogWarning(
-            "{Package} {InstalledVersion} detected but {ExpectedVersion} is bundled. Run npm install to refresh dependencies.",
-            packageName,
-            installed,
-            expectedVersion);
+        string details = string.Join(", ", mismatches);
+        throw new InvalidOperationException($"Framework packages are out of sync: {details}. Run '{App.Name} install' to synchronize dependencies.");
     }
 
     private async Task RunFrontendCliAsync(string command, string? changedFile, params string[] extraArgs)
@@ -301,50 +331,6 @@ public sealed class FrontendWorker : IFrontendWorker
         if (process.ExitCode != 0)
         {
             throw new InvalidOperationException($"webstir-frontend {command} failed with exit code {process.ExitCode}.");
-        }
-    }
-
-    private void RemovePackageLockIfPresent()
-    {
-        try
-        {
-            string packageLockPath = Path.Combine(_workspace.WorkingPath, Files.PackageLockJson);
-            if (File.Exists(packageLockPath))
-            {
-                File.Delete(packageLockPath);
-            }
-        }
-        catch (IOException ex)
-        {
-            _logger.LogDebug(ex, "Failed to remove package-lock.json while refreshing the frontend toolchain.");
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            _logger.LogDebug(ex, "Insufficient permissions to remove package-lock.json while refreshing the frontend toolchain.");
-        }
-    }
-
-    private void RemoveCachedPackage(string packageName)
-    {
-        try
-        {
-            string packagePath = Path.Combine(_workspace.NodeModulesPath, packageName); // Handles scoped packages
-            if (Directory.Exists(packagePath))
-            {
-                Directory.Delete(packagePath, recursive: true);
-            }
-        }
-        catch (DirectoryNotFoundException)
-        {
-            // Nothing to remove.
-        }
-        catch (IOException ex)
-        {
-            _logger.LogDebug(ex, "Failed to remove cached package {Package} while refreshing the frontend toolchain.", packageName);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            _logger.LogDebug(ex, "Insufficient permissions to remove cached package {Package} while refreshing the frontend toolchain.", packageName);
         }
     }
 
