@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -52,7 +52,7 @@ public sealed class ToolchainWorkflow(
             _logger.LogInformation("[toolchain] Publish mode enabled; packages will be pushed to the registry if missing.");
         }
 
-        ToolchainManifestMetadata manifestMetadata = ToolchainPackageBuilder.CreateManifestMetadata(repositoryRoot);
+        ToolchainManifestMetadata manifestMetadata = ToolchainPackageBuilder.CreateManifestMetadata();
 
         if (parsed.IncludeFrontend)
         {
@@ -119,42 +119,15 @@ public sealed class ToolchainWorkflow(
 
         if (!string.IsNullOrWhiteSpace(output))
         {
-            string trimmed = output.Trim();
-            if (string.Equals(trimmed, "M framework/out/manifest.json", StringComparison.Ordinal) && ManifestMatchesHead(repositoryRoot))
-            {
-                _logger.LogInformation("[toolchain] Manifest metadata reflects current HEAD (uncommitted); remember to commit the updated manifest.");
-            }
-            else
-            {
-                Console.Write(output);
-                throw new InvalidOperationException("Toolchain artifacts are out of sync. Run 'webstir toolchain sync' and commit the changes.");
-            }
+            Console.Write(output);
+            throw new InvalidOperationException("Toolchain artifacts are out of sync. Run 'webstir toolchain sync' and commit the changes.");
         }
 
-        ValidateManifestMetadata(repositoryRoot);
+        ValidateManifestArtifacts(repositoryRoot);
         _logger.LogInformation("[toolchain] Toolchain artifacts are in sync.");
     }
 
-    private bool ManifestMatchesHead(string repositoryRoot)
-    {
-        string manifestPath = Path.Combine(repositoryRoot, "framework", "out", "manifest.json");
-        if (!File.Exists(manifestPath))
-        {
-            return false;
-        }
-
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(manifestPath));
-        if (!document.RootElement.TryGetProperty("metadata", out JsonElement metadata) || metadata.ValueKind != JsonValueKind.Object)
-        {
-            return false;
-        }
-
-        string? manifestCommit = metadata.TryGetProperty("commit", out JsonElement commitElement) ? commitElement.GetString() : null;
-        string? currentCommit = ToolchainPackageBuilder.CreateManifestMetadata(repositoryRoot).Commit;
-        return !string.IsNullOrWhiteSpace(manifestCommit) && string.Equals(manifestCommit, currentCommit, StringComparison.Ordinal);
-    }
-
-    private void ValidateManifestMetadata(string repositoryRoot)
+    private void ValidateManifestArtifacts(string repositoryRoot)
     {
         string manifestPath = Path.Combine(repositoryRoot, "framework", "out", "manifest.json");
         if (!File.Exists(manifestPath))
@@ -164,27 +137,42 @@ public sealed class ToolchainWorkflow(
 
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(manifestPath));
         JsonElement root = document.RootElement;
-        if (!root.TryGetProperty("metadata", out JsonElement metadataElement) || metadataElement.ValueKind != JsonValueKind.Object)
+        if (!root.TryGetProperty("packages", out JsonElement packagesElement) || packagesElement.ValueKind != JsonValueKind.Object)
         {
-            throw new InvalidOperationException("Toolchain manifest missing metadata. Run 'webstir toolchain sync'.");
+            throw new InvalidOperationException("Toolchain manifest missing packages. Run 'webstir toolchain sync'.");
         }
 
-        if (!metadataElement.TryGetProperty("generatedAtUtc", out JsonElement generatedAtElement) || generatedAtElement.ValueKind != JsonValueKind.String ||
-            !DateTimeOffset.TryParse(generatedAtElement.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _))
+        foreach (JsonProperty package in packagesElement.EnumerateObject())
         {
-            throw new InvalidOperationException("Toolchain manifest metadata missing generatedAtUtc timestamp. Run 'webstir toolchain sync'.");
+            JsonElement packageNode = package.Value;
+            string name = packageNode.GetProperty("name").GetString() ?? package.Name;
+            string hash = packageNode.GetProperty("hash").GetString() ?? string.Empty;
+            string fileName = packageNode.GetProperty("fileName").GetString() ?? string.Empty;
+            string dependency = packageNode.GetProperty("dependency").GetString() ?? string.Empty;
+            string repositoryPath = packageNode.GetProperty("repositoryPath").GetString() ?? string.Empty;
+
+            EnsureHashMatches(Path.Combine(repositoryRoot, "Engine", "Resources", "tools", fileName), hash, name);
+            EnsureHashMatches(Path.Combine(repositoryRoot, repositoryPath.Replace('/', Path.DirectorySeparatorChar)), hash, name);
+
+            if (!dependency.EndsWith(fileName, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException($"Manifest dependency for {name} does not match tarball name. Run 'webstir toolchain sync'.");
+            }
+        }
+    }
+
+    private static void EnsureHashMatches(string filePath, string expectedHash, string packageName)
+    {
+        if (!File.Exists(filePath))
+        {
+            throw new InvalidOperationException($"Expected tarball missing for {packageName}: {filePath}. Run 'webstir toolchain sync'.");
         }
 
-        if (!metadataElement.TryGetProperty("commit", out JsonElement commitElement) || commitElement.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(commitElement.GetString()))
+        using FileStream stream = File.OpenRead(filePath);
+        string actualHash = Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+        if (!string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Toolchain manifest metadata missing commit hash. Run 'webstir toolchain sync'.");
-        }
-
-        string? manifestCommit = commitElement.GetString();
-        string? currentCommit = ToolchainPackageBuilder.CreateManifestMetadata(repositoryRoot).Commit;
-        if (!string.IsNullOrWhiteSpace(currentCommit) && !string.Equals(manifestCommit, currentCommit, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException("Toolchain manifest metadata commit does not match current HEAD. Run 'webstir toolchain sync'.");
+            throw new InvalidOperationException($"Tarball hash mismatch for {packageName} (expected {expectedHash}, found {actualHash}). Run 'webstir toolchain sync'.");
         }
     }
 
@@ -202,7 +190,7 @@ public sealed class ToolchainWorkflow(
             index = 1;
         }
 
-    if (index < args.Length && !IsOption(args[index]))
+        if (index < args.Length && !IsOption(args[index]))
         {
             mode = args[index].ToLowerInvariant();
             index++;

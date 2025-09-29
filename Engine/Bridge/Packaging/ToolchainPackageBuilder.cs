@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -24,38 +23,8 @@ public sealed class ToolchainPackageBuilder
         _logger = logger;
     }
 
-    internal static ToolchainManifestMetadata CreateManifestMetadata(string repositoryRoot) =>
-        new ToolchainManifestMetadata(DateTimeOffset.UtcNow, TryGetGitCommit(repositoryRoot));
-
-    private static string? TryGetGitCommit(string repositoryRoot)
-    {
-        try
-        {
-            ProcessStartInfo startInfo = new()
-            {
-                FileName = "git",
-                Arguments = "rev-parse HEAD",
-                WorkingDirectory = repositoryRoot,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false
-            };
-
-            using Process? process = Process.Start(startInfo);
-            if (process is null)
-            {
-                return null;
-            }
-
-            string output = process.StandardOutput.ReadLine() ?? string.Empty;
-            process.WaitForExit();
-            return process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output) ? output.Trim() : null;
-        }
-        catch
-        {
-            return null;
-        }
-    }
+    internal static ToolchainManifestMetadata CreateManifestMetadata() =>
+        new ToolchainManifestMetadata(DateTimeOffset.UtcNow);
 
     internal async Task<ToolchainPackageBuildResult> BuildFrontendAsync(string repositoryRoot, ToolchainManifestMetadata metadata, bool publish) =>
         await BuildAsync(repositoryRoot, ToolchainPackageOptions.Frontend, metadata, publish);
@@ -538,7 +507,7 @@ internal readonly record struct ToolchainManifestEntry(
     string RepositoryPath,
     string? RegistrySpecifier);
 
-internal readonly record struct ToolchainManifestMetadata(DateTimeOffset GeneratedAtUtc, string? Commit)
+internal readonly record struct ToolchainManifestMetadata(DateTimeOffset GeneratedAtUtc)
 {
     internal JsonObject ToJson()
     {
@@ -546,10 +515,6 @@ internal readonly record struct ToolchainManifestMetadata(DateTimeOffset Generat
         {
             ["generatedAtUtc"] = GeneratedAtUtc.ToString("O")
         };
-        if (!string.IsNullOrWhiteSpace(Commit))
-        {
-            obj["commit"] = Commit;
-        }
         return obj;
     }
 }
@@ -574,7 +539,14 @@ internal static class ToolchainManifestWriter
         int schemaVersion = root["schemaVersion"]?.GetValue<int>() ?? 1;
         JsonObject packages = root["packages"] as JsonObject ?? new JsonObject();
 
-        packages[entry.Name] = CreatePackageNode(entry);
+        JsonObject packageNode = CreatePackageNode(entry);
+        bool packageChanged = true;
+        if (packages.ContainsKey(entry.Name) && packages[entry.Name] is JsonObject existingPackage)
+        {
+            packageChanged = !JsonEquals(existingPackage, packageNode);
+        }
+
+        packages[entry.Name] = packageNode;
 
         JsonObject sortedPackages = new();
         foreach (KeyValuePair<string, JsonNode?> item in packages.OrderBy(pair => pair.Key, StringComparer.Ordinal))
@@ -582,18 +554,24 @@ internal static class ToolchainManifestWriter
             sortedPackages[item.Key] = item.Value?.DeepClone();
         }
 
+        JsonSerializerOptions options = new()
+        {
+            WriteIndented = true
+        };
+
         JsonObject output = new()
         {
             ["schemaVersion"] = schemaVersion,
             ["packages"] = sortedPackages
         };
 
-        output["metadata"] = metadata.ToJson();
-
-        JsonSerializerOptions options = new()
+        JsonObject metadataNode = metadata.ToJson();
+        if (!packageChanged && root["metadata"] is JsonObject existingMetadata)
         {
-            WriteIndented = true
-        };
+            metadataNode = (JsonObject)existingMetadata.DeepClone();
+        }
+
+        output["metadata"] = metadataNode;
 
         string serialized = output.ToJsonString(options) + Environment.NewLine;
         if (File.Exists(manifestPath) && string.Equals(File.ReadAllText(manifestPath), serialized, StringComparison.Ordinal))
@@ -604,6 +582,9 @@ internal static class ToolchainManifestWriter
         Directory.CreateDirectory(Path.GetDirectoryName(manifestPath)!);
         File.WriteAllText(manifestPath, serialized);
     }
+
+    private static bool JsonEquals(JsonObject left, JsonObject right) =>
+        string.Equals(left.ToJsonString(), right.ToJsonString(), StringComparison.Ordinal);
 
     private static JsonObject CreatePackageNode(ToolchainManifestEntry entry)
     {
