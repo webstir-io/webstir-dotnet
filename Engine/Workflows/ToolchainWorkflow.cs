@@ -119,12 +119,39 @@ public sealed class ToolchainWorkflow(
 
         if (!string.IsNullOrWhiteSpace(output))
         {
-            Console.Write(output);
-            throw new InvalidOperationException("Toolchain artifacts are out of sync. Run 'webstir toolchain sync' and commit the changes.");
+            string trimmed = output.Trim();
+            if (string.Equals(trimmed, "M framework/out/manifest.json", StringComparison.Ordinal) && ManifestMatchesHead(repositoryRoot))
+            {
+                _logger.LogInformation("[toolchain] Manifest metadata reflects current HEAD (uncommitted); remember to commit the updated manifest.");
+            }
+            else
+            {
+                Console.Write(output);
+                throw new InvalidOperationException("Toolchain artifacts are out of sync. Run 'webstir toolchain sync' and commit the changes.");
+            }
         }
 
         ValidateManifestMetadata(repositoryRoot);
         _logger.LogInformation("[toolchain] Toolchain artifacts are in sync.");
+    }
+
+    private bool ManifestMatchesHead(string repositoryRoot)
+    {
+        string manifestPath = Path.Combine(repositoryRoot, "framework", "out", "manifest.json");
+        if (!File.Exists(manifestPath))
+        {
+            return false;
+        }
+
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(manifestPath));
+        if (!document.RootElement.TryGetProperty("metadata", out JsonElement metadata) || metadata.ValueKind != JsonValueKind.Object)
+        {
+            return false;
+        }
+
+        string? manifestCommit = metadata.TryGetProperty("commit", out JsonElement commitElement) ? commitElement.GetString() : null;
+        string? currentCommit = ToolchainPackageBuilder.CreateManifestMetadata(repositoryRoot).Commit;
+        return !string.IsNullOrWhiteSpace(manifestCommit) && string.Equals(manifestCommit, currentCommit, StringComparison.Ordinal);
     }
 
     private void ValidateManifestMetadata(string repositoryRoot)

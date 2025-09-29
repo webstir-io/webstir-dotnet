@@ -588,13 +588,7 @@ internal static class ToolchainManifestWriter
             ["packages"] = sortedPackages
         };
 
-        JsonObject metadataNode = metadata.ToJson();
-        if (root["metadata"] is JsonObject existingMetadata && existingMetadata["commit"]?.GetValue<string>() is string existingCommit && !string.IsNullOrWhiteSpace(existingCommit) && string.Equals(existingCommit, metadata.Commit, StringComparison.Ordinal))
-        {
-            metadataNode = (JsonObject)existingMetadata.DeepClone();
-        }
-
-        output["metadata"] = metadataNode;
+        output["metadata"] = metadata.ToJson();
 
         JsonSerializerOptions options = new()
         {
