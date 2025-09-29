@@ -97,7 +97,11 @@ public static class Help
             "Synchronize framework toolchain dependencies",
             [
                 Example($"{App.Name} {Commands.Install}", "Install bundled frontend/test packages"),
-                Example($"{App.Name} {Commands.Install} ./my-app", "Synchronize packages for ./my-app")
+                Example($"{App.Name} {Commands.Install} ./my-app", "Synchronize packages for ./my-app"),
+                Example($"{App.Name} {Commands.Install} {InstallOptions.DryRun}", "Preview actions without running npm install")
+            ],
+            [
+                Option(InstallOptions.DryRun, "Report pending changes without running npm install")
             ]);
 
     private static CommandHelp GetTestCommand() =>
@@ -119,20 +123,23 @@ public static class Help
 
     private static CommandHelp GetToolchainCommand() =>
         CreateCommand(Commands.Toolchain,
-            "Build and verify framework packages",
+            "Build, publish, and verify framework packages",
             [
                 Example($"{App.Name} {Commands.Toolchain} sync", "Rebuild frontend and testing packages"),
                 Example($"{App.Name} {Commands.Toolchain} sync --frontend", "Rebuild only the frontend package"),
+                Example($"{App.Name} {Commands.Toolchain} publish", "Rebuild and publish packages to GitHub Packages"),
                 Example($"{App.Name} {Commands.Toolchain} verify", "Ensure manifests and tarballs are committed")
             ],
             [
                 Option("sync", "Rebuild toolchain packages (default)"),
+                Option("publish", "Rebuild and publish packages to the configured registry"),
                 Option("verify", "Check that toolchain artifacts are committed"),
                 Option("--frontend", "Only rebuild the frontend package"),
                 Option("--test", "Only rebuild the testing package"),
-                Option("--verify", "After syncing, ensure git status is clean for toolchain files")
+                Option("--verify", "After syncing, ensure git status is clean for toolchain files"),
+                Option("--publish", "Publish packages after syncing")
             ],
-            "[sync|verify] [options]");
+            "[sync|publish|verify] [options]");
 
     private static CommandHelp GetPublishCommand() =>
         CreateCommand(Commands.Publish,

@@ -43,7 +43,7 @@
 ### 4. Registry & Offline Parity
 - Normalize configuration so the same manifest entry contains both `tarballPath` and optional `registrySpecifier`.
 - Provide a single environment variable (`WEBSTIR_PACKAGE_SOURCE=auto|registry|local`) with clear precedence and doc examples.
-- Ensure `toolchain sync` can optionally publish to a development registry (wrapping `npm-publisher.sh`) when requested.
+- Ensure `toolchain sync` can optionally publish to a development registry (wrapping `npm-publisher.sh`) when requested. (`toolchain publish` now targets GitHub Packages; update sandbox flows next.)
 - Migrate the default registry target from the local Verdaccio instance to GitHub Packages (`npm.pkg.github.com`), including PAT-based auth guidance and `.npmrc` templates for contributors and CI.
 
 ### 5. Developer Guidance
@@ -54,9 +54,9 @@
 ## Implementation Steps
 1. ✅ Introduce a `toolchain sync` CLI workflow that wraps the current build scripts (baseline experience).
 2. ✅ Refactor the shell scripts into reusable modules (CLI now drives a cross-platform builder; legacy scripts delegate).
-3. Implement manifest regeneration with metadata and integrate the CI/verification check (GitHub Actions running `webstir toolchain sync --verify`).
+3. ✅ Implement manifest regeneration with metadata and integrate the CI/verification check (GitHub Actions running `webstir toolchain sync --verify`).
 4. Update installers to support dry-run reporting and less invasive installs; document npm expectations.
-5. Add registry configuration helpers, migrate the default registry to GitHub Packages, and integrate optional publishing flows.
+5. 🔄 Add registry configuration helpers, migrate the default registry to GitHub Packages, and integrate optional publishing flows (CLI publish support in progress).
 6. Refresh documentation (how-to guide, CLI reference, troubleshooting section).
 7. Monitor adoption and iterate on developer feedback; tighten CI if manual steps disappear.
 

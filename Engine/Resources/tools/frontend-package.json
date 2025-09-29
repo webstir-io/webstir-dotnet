@@ -3,5 +3,6 @@
   "version": "0.2.2",
   "fileName": "webstir-frontend-0-2-2.tgz",
   "dependency": "file:./.tools/webstir-frontend-0-2-2.tgz",
-  "hash": "6323b8bb185edeebd82cc0194f57edeb4bea592582e6ee9d700cca4bda325fc0"
+  "hash": "3ec6cb77c5afc26f1aed2c381f242cf54be91aeb4b3182d9581d62ee5835b9da",
+  "registrySpecifier": "@electric-coding-llc/webstir-frontend@0.2.2"
 }

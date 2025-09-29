@@ -36,3 +36,8 @@ public static class BuildOptions
 {
     public const string Clean = "--clean";
 }
+
+public static class InstallOptions
+{
+    public const string DryRun = "--dry-run";
+}

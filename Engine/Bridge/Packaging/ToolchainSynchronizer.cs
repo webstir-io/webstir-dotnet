@@ -42,15 +42,29 @@ internal static class ToolchainSynchronizer
         {
             if (autoInstall)
             {
+                bool packageLockRemoved = false;
+
                 if (frontendResult?.TarballUpdated == true)
                 {
-                    RemovePackageLockIfPresent(workspace, logger);
+                    if (!packageLockRemoved)
+                    {
+                        RemovePackageLockIfPresent(workspace, logger);
+                        packageLockRemoved = true;
+                    }
+
+                    logger?.LogInformation("[toolchain] Clearing cached frontend package before install.");
                     RemoveCachedPackage(workspace, logger, "@electric-coding-llc/webstir-frontend");
                 }
 
                 if (testResult?.TarballUpdated == true)
                 {
-                    RemovePackageLockIfPresent(workspace, logger);
+                    if (!packageLockRemoved)
+                    {
+                        RemovePackageLockIfPresent(workspace, logger);
+                        packageLockRemoved = true;
+                    }
+
+                    logger?.LogInformation("[toolchain] Clearing cached testing package before install.");
                     RemoveCachedPackage(workspace, logger, "@electric-coding-llc/webstir-test");
                 }
 
@@ -77,33 +91,21 @@ internal static class ToolchainSynchronizer
         return new ToolchainEnsureSummary(frontendResult, testResult, installPerformed, installRequiredButSkipped);
     }
 
-    private static bool NeedsInstall(FrontendPackageEnsureResult? result) => result is
-    {
-        ToolsAdded: true
-    } or
-    {
-        DependencyUpdated: true
-    } or
-    {
-        TarballUpdated: true
-    } or
-    {
-        VersionMismatch: true
-    };
-
-    private static bool NeedsInstall(PackageEnsureResult? result) => result is
-    {
-        ToolsAdded: true
-    } or
-    {
-        DependencyUpdated: true
-    } or
-    {
-        TarballUpdated: true
-    } or
-    {
-        VersionMismatch: true
-    };
+    private static bool NeedsInstall<TEnsure>(TEnsure? result)
+        where TEnsure : struct, IPackageEnsureResult =>
+        result is
+        {
+            ToolsAdded: true
+        } or
+        {
+            DependencyUpdated: true
+        } or
+        {
+            TarballUpdated: true
+        } or
+        {
+            VersionMismatch: true
+        };
 
     private static void RemovePackageLockIfPresent(AppWorkspace workspace, ILogger? logger)
     {

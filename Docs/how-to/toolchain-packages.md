@@ -14,7 +14,8 @@ This guide explains how the bundled frontend and testing packages are produced, 
 2. Run `webstir toolchain sync` from the repo root.
    - Add `--frontend` or `--test` to rebuild a single package when only one changed.
    - The workflow runs `npm ci`, packs the tarballs, refreshes the copies in `Engine/Resources/tools` and `framework/out`, and rewrites `framework/out/manifest.json` with the new hashes.
-   - If you want CLI users to prefer a registry build, set `WEBSTIR_FRONTEND_REGISTRY_SPEC` or `WEBSTIR_TEST_REGISTRY_SPEC` before running the command so the manifest includes the external specifier.
+   - If you want CLI users to prefer a registry build, set `WEBSTIR_FRONTEND_REGISTRY_SPEC` or `WEBSTIR_TEST_REGISTRY_SPEC` before running the command so the manifest includes the external specifier (e.g. `https://npm.pkg.github.com/@electric-coding-llc/webstir-frontend`).
+   - Use `webstir toolchain publish` (or `sync --publish`) after the rebuild to push the new tarballs to GitHub Packages if the version is missing. Ensure `GH_PACKAGES_TOKEN` is exported so npm can authenticate.
    - For CI enforcement, run `webstir toolchain sync --verify` (or `webstir toolchain verify`) to ensure the manifest and tarballs are committed.
 3. Commit the updated tarballs, manifests, and any source changes.
 
@@ -22,6 +23,7 @@ This guide explains how the bundled frontend and testing packages are produced, 
 - Run `webstir install` (or rerun any workflow that calls `ToolchainSynchronizer`) in the consuming project.
 - The installer copies the tarballs into `.tools`, pins the dependency in `package.json`, and compares the hash recorded in the manifest to detect stale archives.
 - When versions drift, the workflow clears `node_modules/@electric-coding-llc/*` and reruns `npm install`, so the bundled packages match the manifest.
+- Use `webstir install --dry-run` to see what would change before reinstalling dependencies.
 
 ## Registry And Offline Modes
 - By default, installers reuse the local tarballs described in `framework/out/manifest.json`.
@@ -34,3 +36,4 @@ This guide explains how the bundled frontend and testing packages are produced, 
 - Run `webstir install` inside a sample workspace to confirm the new tarball installs cleanly and that the desired registry preference is respected.
 - Optionally, run `webstir toolchain verify` to ensure `framework/out` and `Engine/Resources/tools` remain unchanged (useful in CI after a clean checkout).
 - `./utilities/format-build.sh` already includes a `webstir toolchain sync --verify` check, so running that helper before handing off guarantees manifests and tarballs are current.
+- Manifests record the generation timestamp and commit hash; `webstir toolchain verify` ensures they match `git rev-parse HEAD` before passing.

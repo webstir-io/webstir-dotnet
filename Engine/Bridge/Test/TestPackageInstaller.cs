@@ -247,7 +247,7 @@ internal readonly record struct PackageEnsureResult(
     bool TarballUpdated,
     bool VersionMismatch,
     string? InstalledVersion,
-    TestPackageMetadata Metadata);
+    TestPackageMetadata Metadata) : IPackageEnsureResult;
 
 internal readonly record struct PackageInstallState(bool VersionMismatch, string? InstalledVersion);
 

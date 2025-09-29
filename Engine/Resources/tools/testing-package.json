@@ -3,5 +3,6 @@
   "version": "0.3.0",
   "fileName": "webstir-test-0-3-0.tgz",
   "dependency": "file:./.tools/webstir-test-0-3-0.tgz",
-  "hash": "12dee3d80b4ab1f9695ba2d3da5869e27bbdc2c7a0614cd4b5d7ad9bd40b11c0"
+  "hash": "12dee3d80b4ab1f9695ba2d3da5869e27bbdc2c7a0614cd4b5d7ad9bd40b11c0",
+  "registrySpecifier": "@electric-coding-llc/webstir-test@0.3.0"
 }

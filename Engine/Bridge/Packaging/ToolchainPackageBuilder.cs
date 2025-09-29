@@ -24,13 +24,46 @@ public sealed class ToolchainPackageBuilder
         _logger = logger;
     }
 
-    internal async Task<ToolchainPackageBuildResult> BuildFrontendAsync(string repositoryRoot) =>
-        await BuildAsync(repositoryRoot, ToolchainPackageOptions.Frontend);
+    internal static ToolchainManifestMetadata CreateManifestMetadata(string repositoryRoot) =>
+        new ToolchainManifestMetadata(DateTimeOffset.UtcNow, TryGetGitCommit(repositoryRoot));
 
-    internal async Task<ToolchainPackageBuildResult> BuildTestingAsync(string repositoryRoot) =>
-        await BuildAsync(repositoryRoot, ToolchainPackageOptions.Testing);
+    private static string? TryGetGitCommit(string repositoryRoot)
+    {
+        try
+        {
+            ProcessStartInfo startInfo = new()
+            {
+                FileName = "git",
+                Arguments = "rev-parse HEAD",
+                WorkingDirectory = repositoryRoot,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            };
 
-    private async Task<ToolchainPackageBuildResult> BuildAsync(string repositoryRoot, ToolchainPackageOptions options)
+            using Process? process = Process.Start(startInfo);
+            if (process is null)
+            {
+                return null;
+            }
+
+            string output = process.StandardOutput.ReadLine() ?? string.Empty;
+            process.WaitForExit();
+            return process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output) ? output.Trim() : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    internal async Task<ToolchainPackageBuildResult> BuildFrontendAsync(string repositoryRoot, ToolchainManifestMetadata metadata, bool publish) =>
+        await BuildAsync(repositoryRoot, ToolchainPackageOptions.Frontend, metadata, publish);
+
+    internal async Task<ToolchainPackageBuildResult> BuildTestingAsync(string repositoryRoot, ToolchainManifestMetadata metadata, bool publish) =>
+        await BuildAsync(repositoryRoot, ToolchainPackageOptions.Testing, metadata, publish);
+
+    private async Task<ToolchainPackageBuildResult> BuildAsync(string repositoryRoot, ToolchainPackageOptions options, ToolchainManifestMetadata manifestMetadata, bool publishPackages)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
 
@@ -86,7 +119,17 @@ public sealed class ToolchainPackageBuilder
         File.Copy(targetTarballPath, toolsTarballPath, overwrite: true);
 
         string hash = await ComputeSha256Async(repositoryTarballPath);
-        string? registrySpecifier = GetRegistrySpecifier(options.RegistrySpecifierEnvironmentVariable);
+
+        string? registrySpecifier = GetRegistrySpecifier(options.RegistrySpecifierEnvironmentVariable)
+            ?? options.GetDefaultRegistrySpecifier(metadata.Version);
+
+        bool published = false;
+        if (publishPackages && options.SupportsPublishing && !string.IsNullOrWhiteSpace(options.PublishRegistryUrl))
+        {
+            registrySpecifier ??= options.GetPackageSpec(metadata.Version);
+            string spec = options.GetPackageSpec(metadata.Version);
+            published = await PublishToRegistryAsync(spec, options.PublishRegistryUrl!, repositoryTarballPath, options.PublishAccess);
+        }
 
         string manifestPath = Path.Combine(frameworkOutDirectory, "manifest.json");
         ToolchainManifestWriter.Update(manifestPath, new ToolchainManifestEntry(
@@ -96,7 +139,7 @@ public sealed class ToolchainPackageBuilder
             $"file:./.tools/{targetTarballName}",
             hash,
             GetRepositoryPath(manifestPath, repositoryTarballPath),
-            registrySpecifier));
+            registrySpecifier), manifestMetadata);
 
         string toolsManifestPath = Path.Combine(toolsDirectory, options.ToolsManifestFileName);
         WriteToolsManifest(toolsManifestPath, metadata.PackageName, metadata.Version, targetTarballName, hash, registrySpecifier);
@@ -106,7 +149,7 @@ public sealed class ToolchainPackageBuilder
 
         await CleanupPackageDirectoryAsync(packageDirectory, options.CleanupDirectories, options.TarballPattern);
 
-        return new ToolchainPackageBuildResult(metadata.PackageName, metadata.Version, targetTarballName, hash, registrySpecifier);
+        return new ToolchainPackageBuildResult(metadata.PackageName, metadata.Version, targetTarballName, hash, registrySpecifier, published);
     }
 
     private static PackageMetadata LoadPackageMetadata(string packageJsonPath, ToolchainPackageOptions options)
@@ -127,7 +170,8 @@ public sealed class ToolchainPackageBuilder
             WorkingDirectory = workingDirectory,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            UseShellExecute = false
+            UseShellExecute = false,
+            CreateNoWindow = true
         };
 
         try
@@ -250,6 +294,103 @@ public sealed class ToolchainPackageBuilder
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
+    private async Task<bool> PublishToRegistryAsync(string spec, string registryUrl, string tarballPath, string publishAccess)
+    {
+        if (string.IsNullOrWhiteSpace(registryUrl))
+        {
+            return false;
+        }
+
+        string directory = Path.GetDirectoryName(tarballPath)!;
+
+        if (registryUrl.Contains("npm.pkg.github.com", StringComparison.OrdinalIgnoreCase))
+        {
+            string token = Environment.GetEnvironmentVariable("GH_PACKAGES_TOKEN") ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                _logger.LogWarning("[toolchain] GH_PACKAGES_TOKEN is not set; skipping publish of {Spec}.", spec);
+                return false;
+            }
+        }
+
+        if (await PackageExistsAsync(spec, registryUrl, directory))
+        {
+            _logger.LogInformation("[toolchain] {Spec} already exists in {Registry}.", spec, registryUrl);
+            return false;
+        }
+
+        string fileName = Path.GetFileName(tarballPath);
+
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = "npm",
+            Arguments = $"publish \"{fileName}\" --registry \"{registryUrl}\" --access {publishAccess}",
+            WorkingDirectory = directory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using Process? process = Process.Start(startInfo);
+        if (process is null)
+        {
+            throw new InvalidOperationException($"Failed to start npm publish for {spec}.");
+        }
+
+        string output = await process.StandardOutput.ReadToEndAsync();
+        string error = await process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode != 0)
+        {
+            if (!string.IsNullOrWhiteSpace(error) && error.IndexOf("EPUBLISHCONFLICT", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                _logger.LogInformation("[toolchain] {Spec} already exists in {Registry}.", spec, registryUrl);
+                return false;
+            }
+
+            StringBuilder builder = new();
+            builder.AppendLine(FormattableString.Invariant($"npm publish failed for {spec} (exit {process.ExitCode})."));
+            if (!string.IsNullOrWhiteSpace(error))
+            {
+                builder.AppendLine(error.Trim());
+            }
+            if (!string.IsNullOrWhiteSpace(output))
+            {
+                builder.AppendLine(output.Trim());
+            }
+
+            throw new InvalidOperationException(builder.ToString().Trim());
+        }
+
+        _logger.LogInformation("[toolchain] Published {Spec} to {Registry}.", spec, registryUrl);
+        return true;
+    }
+
+    private static async Task<bool> PackageExistsAsync(string spec, string registryUrl, string workingDirectory)
+    {
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = "npm",
+            Arguments = $"view {spec} version --registry \"{registryUrl}\"",
+            WorkingDirectory = workingDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using Process? process = Process.Start(startInfo);
+        if (process is null)
+        {
+            return false;
+        }
+
+        await process.WaitForExitAsync();
+        return process.ExitCode == 0;
+    }
+
     private static void WriteToolsManifest(string manifestPath, string packageName, string version, string tarballName, string hash, string? registrySpecifier)
     {
         JsonObject manifest = new()
@@ -335,7 +476,10 @@ public sealed class ToolchainPackageBuilder
         string RepositoryFolderName,
         string ToolsManifestFileName,
         string? RegistrySpecifierEnvironmentVariable,
-        IReadOnlyCollection<string> CleanupDirectories)
+        IReadOnlyCollection<string> CleanupDirectories,
+        string? DefaultRegistrySpecifierPattern,
+        string? PublishRegistryUrl,
+        string PublishAccess)
     {
         internal static ToolchainPackageOptions Frontend
         {
@@ -348,7 +492,16 @@ public sealed class ToolchainPackageBuilder
             "frontend",
             "frontend-package.json",
             "WEBSTIR_FRONTEND_REGISTRY_SPEC",
-            new[] { "node_modules" });
+            new[] { "node_modules" },
+            "@electric-coding-llc/webstir-frontend@{version}",
+            "https://npm.pkg.github.com",
+            "restricted");
+
+        internal string? GetDefaultRegistrySpecifier(string version) => string.IsNullOrWhiteSpace(DefaultRegistrySpecifierPattern) ? null : DefaultRegistrySpecifierPattern.Replace("{version}", version, StringComparison.Ordinal);
+
+        internal bool SupportsPublishing => !string.IsNullOrWhiteSpace(PublishRegistryUrl);
+
+        internal string GetPackageSpec(string version) => $"{PackageName}@{version}";
 
         internal static ToolchainPackageOptions Testing
         {
@@ -361,7 +514,10 @@ public sealed class ToolchainPackageBuilder
             "testing",
             "testing-package.json",
             "WEBSTIR_TEST_REGISTRY_SPEC",
-            new[] { "node_modules", "dist" });
+            new[] { "node_modules", "dist" },
+            "@electric-coding-llc/webstir-test@{version}",
+            "https://npm.pkg.github.com",
+            "restricted");
     }
 }
 
@@ -370,7 +526,8 @@ internal readonly record struct ToolchainPackageBuildResult(
     string Version,
     string TarballName,
     string Hash,
-    string? RegistrySpecifier);
+    string? RegistrySpecifier,
+    bool Published);
 
 internal readonly record struct ToolchainManifestEntry(
     string Name,
@@ -381,9 +538,25 @@ internal readonly record struct ToolchainManifestEntry(
     string RepositoryPath,
     string? RegistrySpecifier);
 
+internal readonly record struct ToolchainManifestMetadata(DateTimeOffset GeneratedAtUtc, string? Commit)
+{
+    internal JsonObject ToJson()
+    {
+        JsonObject obj = new()
+        {
+            ["generatedAtUtc"] = GeneratedAtUtc.ToString("O")
+        };
+        if (!string.IsNullOrWhiteSpace(Commit))
+        {
+            obj["commit"] = Commit;
+        }
+        return obj;
+    }
+}
+
 internal static class ToolchainManifestWriter
 {
-    internal static void Update(string manifestPath, ToolchainManifestEntry entry)
+    internal static void Update(string manifestPath, ToolchainManifestEntry entry, ToolchainManifestMetadata metadata)
     {
         JsonObject root;
         if (File.Exists(manifestPath))
@@ -414,6 +587,7 @@ internal static class ToolchainManifestWriter
             ["schemaVersion"] = schemaVersion,
             ["packages"] = sortedPackages
         };
+        output["metadata"] = metadata.ToJson();
 
         JsonSerializerOptions options = new()
         {

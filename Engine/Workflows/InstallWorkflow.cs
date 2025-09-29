@@ -22,15 +22,24 @@ public sealed class InstallWorkflow(
 
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
+        bool dryRun = Array.Exists(args, arg => string.Equals(arg, InstallOptions.DryRun, StringComparison.OrdinalIgnoreCase));
+
         NodeRuntime.EnsureMinimumVersion();
-        _logger.LogInformation("Synchronizing framework packages...");
+        _logger.LogInformation(dryRun ? "Inspecting framework packages (dry run)..." : "Synchronizing framework packages...");
 
         ToolchainEnsureSummary summary = await ToolchainSynchronizer.EnsureAsync(
             Context,
             _logger,
             includeFrontend: true,
             includeTesting: true,
-            autoInstall: true);
+            autoInstall: !dryRun);
+
+        if (dryRun)
+        {
+            LogDryRunSummary(summary);
+            Environment.ExitCode = summary.InstallRequiredButSkipped || summary.HasVersionMismatch ? 1 : 0;
+            return;
+        }
 
         LogFrontendMessages(summary);
         TestPackageUtilities.LogEnsureMessages(summary);
@@ -46,6 +55,63 @@ public sealed class InstallWorkflow(
         }
 
         _logger.LogInformation("Framework packages are synchronized.");
+    }
+
+    private void LogDryRunSummary(ToolchainEnsureSummary summary)
+    {
+        bool anyChanges = false;
+
+        LogPackage(summary.Frontend?.Metadata.Name ?? "@electric-coding-llc/webstir-frontend", summary.Frontend);
+        LogPackage(summary.Testing?.Metadata.Name ?? "@electric-coding-llc/webstir-test", summary.Testing);
+
+        if (summary.InstallRequiredButSkipped && !anyChanges)
+        {
+            anyChanges = true;
+            _logger.LogInformation("[dry-run] npm install would run due to prior toolchain drift.");
+        }
+
+        if (!anyChanges)
+        {
+            _logger.LogInformation("[dry-run] Framework packages are already synchronized.");
+        }
+
+        void LogPackage<TEnsure>(string packageName, TEnsure? result) where TEnsure : struct, IPackageEnsureResult
+        {
+            if (result is not { } value)
+            {
+                _logger.LogInformation("[dry-run] {Package} is up to date.", packageName);
+                return;
+            }
+
+            bool needsInstall = value.ToolsAdded || value.DependencyUpdated || value.TarballUpdated || value.VersionMismatch;
+            if (!needsInstall)
+            {
+                _logger.LogInformation("[dry-run] {Package} is up to date.", packageName);
+                return;
+            }
+
+            anyChanges = true;
+            List<string> reasons = new();
+            if (value.ToolsAdded)
+            {
+                reasons.Add("tools archive added");
+            }
+            if (value.DependencyUpdated)
+            {
+                reasons.Add("package.json dependency updated");
+            }
+            if (value.TarballUpdated)
+            {
+                reasons.Add("tarball hash changed");
+            }
+            if (value.VersionMismatch)
+            {
+                string installed = string.IsNullOrWhiteSpace(value.InstalledVersion) ? "missing" : value.InstalledVersion!;
+                reasons.Add($"installed {installed}");
+            }
+
+            _logger.LogInformation("[dry-run] {Package} requires npm install ({Reasons}).", packageName, string.Join(", ", reasons));
+        }
     }
 
     private void LogFrontendMessages(ToolchainEnsureSummary summary)

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -euo pipefail
 
-REGISTRY_URL="${NPM_REGISTRY:-http://registry:4873}"
+REGISTRY_URL="${NPM_REGISTRY:-https://npm.pkg.github.com}"
 FRONTEND_PACKAGE="${FRONTEND_PACKAGE:-@electric-coding-llc/webstir-frontend}"
 FRONTEND_DIR="${FRONTEND_DIR:-framework/frontend}"
 TEST_PACKAGE="${TEST_PACKAGE:-@electric-coding-llc/webstir-test}"
@@ -40,7 +40,7 @@ publish_if_missing() {
       if npm run build --silent >/dev/null 2>&1; then
         echo "publisher: built ${spec} before publish"
       fi
-      npm publish --registry "${REGISTRY_URL}" --access=public >/dev/null 2>&1
+      npm publish --registry "${REGISTRY_URL}" --access=restricted >/dev/null 2>&1
     )
     rm -rf "${temp_dir}"
     echo "publisher: published ${spec}"

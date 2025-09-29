@@ -23,6 +23,7 @@ Common patterns:
 - `webstir test`
 - `webstir install`
 - `webstir toolchain sync`
+- `webstir toolchain publish`
 - `webstir publish`
 - `webstir add-page about`
 - `webstir add-test auth/login`
@@ -73,7 +74,7 @@ What it does:
 - Fails fast if bundled package versions drift and directs you to `webstir install`.
 
 ### install
-Usage: `webstir install`
+Usage: `webstir install [--dry-run]`
 
 What it does:
 - Synchronizes the bundled `@electric-coding-llc/webstir-frontend` and `@electric-coding-llc/webstir-test` packages with `node_modules`.
@@ -83,6 +84,7 @@ What it does:
 Notes:
 - Run after upgrading the CLI or whenever `npm install` has modified pinned dependencies.
 - Safe to run repeatedly; skips work when packages are already in sync.
+- Use `--dry-run` to preview which packages would be installed or updated without running `npm install` (non-zero exit code means action is required).
 - Set `WEBSTIR_PACKAGE_SOURCE=registry` (or `WEBSTIR_PREFER_REGISTRY=1`) to install from a published npm registry using the manifest's `registrySpecifier`; leave unset to use the bundled tarballs. Configure npm auth before enabling registry mode.
 
 ### publish
@@ -200,15 +202,17 @@ Options:
 - Testing — [.codex/testing.md](../../.codex/testing.md), [tests](../explanations/testing.md)
 - Workspace and paths — [workspace](../explanations/workspace.md)
 ### toolchain
-Usage: `webstir toolchain [sync|verify] [--frontend|--test] [--verify]`
+Usage: `webstir toolchain [sync|publish|verify] [--frontend|--test] [--verify] [--publish]`
 
 What it does:
 - Wraps the toolchain packaging scripts to rebuild the bundled `@electric-coding-llc/webstir-frontend` and `@electric-coding-llc/webstir-test` tarballs.
 - Copies the new artifacts into `Engine/Resources/tools` and `framework/out`, regenerating `framework/out/manifest.json`.
+- `publish` (or `--publish`) pushes the rebuilt tarballs to GitHub Packages if the version is missing.
 - Optional `--frontend` or `--test` limits the rebuild to a single package.
 - `--verify` (or the standalone `verify` subcommand) ensures the manifest and tarballs are already committed—handy for CI checks.
 
 Notes:
 - Run from the repository root (where `utilities/` lives).
-- Registry overrides still respect `WEBSTIR_FRONTEND_REGISTRY_SPEC` and `WEBSTIR_TEST_REGISTRY_SPEC` if set before invoking the command.
+- Registry overrides still respect `WEBSTIR_FRONTEND_REGISTRY_SPEC` and `WEBSTIR_TEST_REGISTRY_SPEC` if set before invoking the command (set to URLs such as `https://npm.pkg.github.com/@electric-coding-llc/webstir-frontend`).
+- Publishing requires an `.npmrc` with `https://npm.pkg.github.com` credentials (e.g., export `GH_PACKAGES_TOKEN` and source `.env.local`).
 - The legacy shell scripts remain available for automation but the CLI workflow is the canonical entry point.

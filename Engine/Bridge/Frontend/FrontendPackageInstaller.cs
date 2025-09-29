@@ -252,7 +252,7 @@ internal readonly record struct FrontendPackageEnsureResult(
     bool TarballUpdated,
     bool VersionMismatch,
     string? InstalledVersion,
-    FrontendPackageMetadata Metadata);
+    FrontendPackageMetadata Metadata) : IPackageEnsureResult;
 
 internal readonly record struct FrontendPackageInstallState(bool VersionMismatch, string? InstalledVersion);
 
