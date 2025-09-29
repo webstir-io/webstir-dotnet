@@ -587,15 +587,28 @@ internal static class ToolchainManifestWriter
             ["schemaVersion"] = schemaVersion,
             ["packages"] = sortedPackages
         };
-        output["metadata"] = metadata.ToJson();
+
+        JsonObject metadataNode = metadata.ToJson();
+        if (root["metadata"] is JsonObject existingMetadata && existingMetadata["commit"]?.GetValue<string>() is string existingCommit && !string.IsNullOrWhiteSpace(existingCommit) && string.Equals(existingCommit, metadata.Commit, StringComparison.Ordinal))
+        {
+            metadataNode = (JsonObject)existingMetadata.DeepClone();
+        }
+
+        output["metadata"] = metadataNode;
 
         JsonSerializerOptions options = new()
         {
             WriteIndented = true
         };
 
+        string serialized = output.ToJsonString(options) + Environment.NewLine;
+        if (File.Exists(manifestPath) && string.Equals(File.ReadAllText(manifestPath), serialized, StringComparison.Ordinal))
+        {
+            return;
+        }
+
         Directory.CreateDirectory(Path.GetDirectoryName(manifestPath)!);
-        File.WriteAllText(manifestPath, output.ToJsonString(options) + Environment.NewLine);
+        File.WriteAllText(manifestPath, serialized);
     }
 
     private static JsonObject CreatePackageNode(ToolchainManifestEntry entry)
