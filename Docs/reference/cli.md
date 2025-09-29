@@ -82,6 +82,7 @@ What it does:
 Notes:
 - Run after upgrading the CLI or whenever `npm install` has modified pinned dependencies.
 - Safe to run repeatedly; skips work when packages are already in sync.
+- Set `WEBSTIR_PACKAGE_SOURCE=registry` (or `WEBSTIR_PREFER_REGISTRY=1`) to install from a published npm registry using the manifest's `registrySpecifier`; leave unset to use the bundled tarballs. Configure npm auth before enabling registry mode.
 
 ### publish
 Usage: `webstir publish`

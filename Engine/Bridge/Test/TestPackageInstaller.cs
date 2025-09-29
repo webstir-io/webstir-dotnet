@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
-using Engine.Bridge.Packages;
+using Engine.Bridge.Packaging;
 using Engine.Extensions;
 using Engine.Helpers;
 
@@ -18,7 +18,7 @@ internal static class TestPackageInstaller
 
     private static readonly Lazy<TestPackageMetadata> Manifest = new(LoadManifest, isThreadSafe: true);
 
-    internal static async Task<PackageEnsureResult> EnsureAsync(AppWorkspace workspace)
+    internal static async Task<PackageEnsureResult> EnsureAsync(AppWorkspace workspace, bool preferRegistry)
     {
         ArgumentNullException.ThrowIfNull(workspace);
 
@@ -39,7 +39,7 @@ internal static class TestPackageInstaller
 
         await WriteManifestAsync(Path.Combine(toolsDirectory, ManifestFileName), metadata);
 
-        bool dependencyUpdated = await EnsureDependencyAsync(workspace.WorkingPath.Combine(Files.PackageJson), metadata);
+        bool dependencyUpdated = await EnsureDependencyAsync(workspace.WorkingPath.Combine(Files.PackageJson), metadata, preferRegistry);
         bool tarballUpdated = await DetectTarballMismatchAsync(tarballPath, metadata.Hash);
         PackageInstallState installState = await DetectInstalledVersionMismatchAsync(workspace, metadata);
 
@@ -101,6 +101,11 @@ internal static class TestPackageInstaller
             obj["hash"] = metadata.Hash;
         }
 
+        if (!string.IsNullOrEmpty(metadata.RegistrySpecifier))
+        {
+            obj["registrySpecifier"] = metadata.RegistrySpecifier;
+        }
+
         JsonSerializerOptions options = new()
         {
             WriteIndented = true
@@ -128,11 +133,12 @@ internal static class TestPackageInstaller
         string fileName = root.GetProperty("fileName").GetString() ?? throw new InvalidOperationException("Manifest missing fileName.");
         string dependency = root.GetProperty("dependency").GetString() ?? throw new InvalidOperationException("Manifest missing dependency string.");
         string? hash = root.TryGetProperty("hash", out JsonElement hashElement) ? hashElement.GetString() : null;
+        string? registrySpecifier = root.TryGetProperty("registrySpecifier", out JsonElement registryElement) ? registryElement.GetString() : null;
 
-        return new TestPackageMetadata(name, version, fileName, dependency, hash);
+        return new TestPackageMetadata(name, version, fileName, dependency, hash, registrySpecifier);
     }
 
-    private static async Task<bool> EnsureDependencyAsync(string packageJsonPath, TestPackageMetadata metadata)
+    private static async Task<bool> EnsureDependencyAsync(string packageJsonPath, TestPackageMetadata metadata, bool preferRegistry)
     {
         if (!File.Exists(packageJsonPath))
         {
@@ -154,13 +160,15 @@ internal static class TestPackageInstaller
                 obj["dependencies"] = dependencies;
             }
 
+            string desiredSpecifier = GetDependencySpecifier(metadata, preferRegistry);
+
             string? currentValue = dependencies[metadata.Name]?.GetValue<string>();
-            if (string.Equals(currentValue, metadata.Dependency, StringComparison.Ordinal))
+            if (string.Equals(currentValue, desiredSpecifier, StringComparison.Ordinal))
             {
                 return false;
             }
 
-            dependencies[metadata.Name] = metadata.Dependency;
+            dependencies[metadata.Name] = desiredSpecifier;
 
             JsonSerializerOptions options = new()
             {
@@ -221,6 +229,16 @@ internal static class TestPackageInstaller
         byte[] hash = await SHA256.HashDataAsync(stream);
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
+
+    private static string GetDependencySpecifier(TestPackageMetadata metadata, bool preferRegistry)
+    {
+        if (preferRegistry && !string.IsNullOrWhiteSpace(metadata.RegistrySpecifier))
+        {
+            return metadata.RegistrySpecifier!;
+        }
+
+        return metadata.Dependency;
+    }
 }
 
 internal readonly record struct PackageEnsureResult(
@@ -238,7 +256,8 @@ internal readonly record struct TestPackageMetadata(
     string Version,
     string FileName,
     string Dependency,
-    string? Hash)
+    string? Hash,
+    string? RegistrySpecifier)
 {
     private const char ScopeSeparator = '/';
 

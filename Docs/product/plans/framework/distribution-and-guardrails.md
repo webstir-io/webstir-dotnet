@@ -42,6 +42,7 @@
 - Publish the same artifacts to npm when ready; reuse the manifest to point either at the local cache or registry URLs.
 - Allow the CLI to prefer registry installs while falling back to on-disk packages when offline.
 - Keep Phase 1–3 behavior intact so adopting npm is a configuration flip, not a restructuring project.
+- Manifest entries now carry `registrySpecifier`; set `WEBSTIR_PACKAGE_SOURCE=registry` (or `WEBSTIR_PREFER_REGISTRY=1`) so `webstir install` uses the published package, falling back to local archives if absent.
 
 ## Implementation Checklist
 1. Scaffold `framework/out` build scripts and manifest writer.

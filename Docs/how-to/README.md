@@ -8,6 +8,7 @@ Task-oriented docs for doing specific things.
 - [Frontend Watch Daemon](./frontend-watch.md)
 - [Test](./test.md)
 - [Publish](./publish.md)
+- [Extend Pipelines with Hooks](./pipeline-hooks.md)
 - [Precompression](./precompression.md)
 - [Sandbox](./sandbox.md)
 - [Add Page](./add-page.md)

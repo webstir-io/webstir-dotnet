@@ -3,7 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 
 using Engine;
-using Engine.Bridge.Packages;
+using Engine.Bridge.Packaging;
 
 namespace Engine.Bridge.Test;
 
@@ -48,7 +48,7 @@ internal static class TestPackageUtilities
 
         if (result.Value.DependencyUpdated)
         {
-            Console.WriteLine($"Pinned @webstir/test to {result.Value.Metadata.Dependency} in {Files.PackageJson}");
+            Console.WriteLine($"Pinned @webstir/test dependency in {Files.PackageJson}");
         }
 
         if (result.Value.TarballUpdated && !summary.InstallPerformed)

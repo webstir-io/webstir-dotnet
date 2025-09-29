@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
-using Engine.Bridge.Packages;
+using Engine.Bridge.Packaging;
 using Engine.Extensions;
 using Engine.Helpers;
 
@@ -18,7 +18,7 @@ internal static class FrontendPackageInstaller
 
     private static readonly Lazy<FrontendPackageMetadata> Manifest = new(LoadManifest, isThreadSafe: true);
 
-    internal static async Task<FrontendPackageEnsureResult> EnsureAsync(AppWorkspace workspace)
+    internal static async Task<FrontendPackageEnsureResult> EnsureAsync(AppWorkspace workspace, bool preferRegistry)
     {
         ArgumentNullException.ThrowIfNull(workspace);
 
@@ -39,7 +39,7 @@ internal static class FrontendPackageInstaller
 
         await WriteManifestAsync(Path.Combine(toolsDirectory, ManifestFileName), metadata);
 
-        bool dependencyUpdated = await EnsureDependencyAsync(workspace.WorkingPath.Combine(Files.PackageJson), metadata);
+        bool dependencyUpdated = await EnsureDependencyAsync(workspace.WorkingPath.Combine(Files.PackageJson), metadata, preferRegistry);
         bool tarballUpdated = await DetectTarballMismatchAsync(tarballPath, metadata.Hash);
         FrontendPackageInstallState installState = await DetectInstalledVersionMismatchAsync(workspace, metadata);
 
@@ -101,6 +101,11 @@ internal static class FrontendPackageInstaller
             obj["hash"] = metadata.Hash;
         }
 
+        if (!string.IsNullOrEmpty(metadata.RegistrySpecifier))
+        {
+            obj["registrySpecifier"] = metadata.RegistrySpecifier;
+        }
+
         JsonSerializerOptions options = new()
         {
             WriteIndented = true
@@ -128,11 +133,12 @@ internal static class FrontendPackageInstaller
         string fileName = root.GetProperty("fileName").GetString() ?? throw new InvalidOperationException("Manifest missing fileName.");
         string dependency = root.GetProperty("dependency").GetString() ?? throw new InvalidOperationException("Manifest missing dependency string.");
         string? hash = root.TryGetProperty("hash", out JsonElement hashElement) ? hashElement.GetString() : null;
+        string? registrySpecifier = root.TryGetProperty("registrySpecifier", out JsonElement registryElement) ? registryElement.GetString() : null;
 
-        return new FrontendPackageMetadata(name, version, fileName, dependency, hash);
+        return new FrontendPackageMetadata(name, version, fileName, dependency, hash, registrySpecifier);
     }
 
-    private static async Task<bool> EnsureDependencyAsync(string packageJsonPath, FrontendPackageMetadata metadata)
+    private static async Task<bool> EnsureDependencyAsync(string packageJsonPath, FrontendPackageMetadata metadata, bool preferRegistry)
     {
         if (!File.Exists(packageJsonPath))
         {
@@ -159,13 +165,15 @@ internal static class FrontendPackageInstaller
                 obj["dependencies"] = dependencies;
             }
 
+            string desiredSpecifier = GetDependencySpecifier(metadata, preferRegistry);
+
             string? currentValue = dependencies[metadata.Name]?.GetValue<string>();
-            if (string.Equals(currentValue, metadata.Dependency, StringComparison.Ordinal))
+            if (string.Equals(currentValue, desiredSpecifier, StringComparison.Ordinal))
             {
                 return false;
             }
 
-            dependencies[metadata.Name] = metadata.Dependency;
+            dependencies[metadata.Name] = desiredSpecifier;
 
             JsonSerializerOptions options = new()
             {
@@ -226,6 +234,16 @@ internal static class FrontendPackageInstaller
         byte[] hash = await SHA256.HashDataAsync(stream);
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
+
+    private static string GetDependencySpecifier(FrontendPackageMetadata metadata, bool preferRegistry)
+    {
+        if (preferRegistry && !string.IsNullOrWhiteSpace(metadata.RegistrySpecifier))
+        {
+            return metadata.RegistrySpecifier!;
+        }
+
+        return metadata.Dependency;
+    }
 }
 
 internal readonly record struct FrontendPackageEnsureResult(
@@ -243,7 +261,8 @@ internal readonly record struct FrontendPackageMetadata(
     string Version,
     string FileName,
     string Dependency,
-    string? Hash)
+    string? Hash,
+    string? RegistrySpecifier)
 {
     private const char ScopeSeparator = '/';
 

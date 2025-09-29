@@ -1,6 +1,62 @@
 name: webstir-sandbox
 
 services:
+  registry:
+    image: verdaccio/verdaccio:5
+    restart: unless-stopped
+    ports:
+      - "4873:4873"
+    volumes:
+      - registry-storage:/verdaccio/storage
+      - ./verdaccio/config.yaml:/verdaccio/conf/config.yaml:ro
+    networks:
+      - webstir
+
+  npmrc:
+    build:
+      context: ./npmrc
+    depends_on:
+      registry:
+        condition: service_started
+    restart: "no"
+    environment:
+      - NPM_USERNAME=webstir
+      - NPM_PASSWORD=webstir
+      - NPM_EMAIL=dev@local.test
+      - NPM_SCOPE=@webstir
+      - NPM_REGISTRY=http://registry:4873
+      - HOST_NPMRC_DIR=/host-npmrc
+    volumes:
+      - ./npmrc:/out
+      - ${NPMRC_HOST_DIR:-./npmrc/host}:/host-npmrc
+    networks:
+      - webstir
+
+  publisher:
+    image: node:20.19.2-alpine3.22
+    restart: "no"
+    depends_on:
+      registry:
+        condition: service_started
+      npmrc:
+        condition: service_completed_successfully
+    working_dir: /workspace
+    command: ["sh", "/workspace/utilities/npm-publisher.sh"]
+    environment:
+      - NPM_REGISTRY=http://registry:4873
+      - FRONTEND_PACKAGE=@webstir/frontend
+      - FRONTEND_DIR=framework/frontend
+      - TEST_PACKAGE=@webstir/test
+      - TEST_DIR=framework/testing
+      - NPM_USERCONFIG=/npmrc/host/.npmrc
+      - NPMRC_FALLBACK=/workspace/Sandbox/npmrc/host/.npmrc
+      - WORKSPACE=/workspace
+    volumes:
+      - ..:/workspace
+      - ./npmrc:/npmrc
+    networks:
+      - webstir
+
   certs:
     build:
       context: ./mkcert
@@ -21,6 +77,8 @@ services:
         condition: service_completed_successfully
       api:
         condition: service_started
+      publisher:
+        condition: service_completed_successfully
     ports:
       - "8080:80"
       - "8443:443"
@@ -38,7 +96,7 @@ services:
       - webstir
 
   api:
-    image: node:20-alpine
+    image: node:20.19.2-alpine3.22
     working_dir: /app
     command: ["node", "build/backend/index.js"]
     environment:
@@ -55,7 +113,13 @@ services:
       - "8000:8000"
     networks:
       - webstir
+    depends_on:
+      publisher:
+        condition: service_completed_successfully
 
 networks:
   webstir:
     driver: bridge
+
+volumes:
+  registry-storage:

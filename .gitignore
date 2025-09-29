@@ -404,3 +404,7 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+
+Sandbox/npmrc/.npmrc
+Sandbox/npmrc/host/.npmrc

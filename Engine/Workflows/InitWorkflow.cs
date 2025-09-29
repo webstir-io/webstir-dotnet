@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Engine.Bridge.Packaging;
 using Engine.Bridge.Test;
 using Engine.Extensions;
 using Engine.Helpers;
@@ -45,7 +46,8 @@ public class InitWorkflow(
         ProjectMode mode = ParseProjectMode(args);
         await ResourceHelpers.CopyEmbeddedRootFilesAsync(Resources.Path, Context.WorkingPath);
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.TypesPath, Context.WorkingPath.Combine(Folders.Types));
-        await TestPackageInstaller.EnsureAsync(Context);
+        bool preferRegistry = PackageSourceSelector.ShouldPreferRegistry();
+        await TestPackageInstaller.EnsureAsync(Context, preferRegistry);
         await ExecuteWorkersAsync(async worker => await worker.InitAsync(mode), mode);
     }
 

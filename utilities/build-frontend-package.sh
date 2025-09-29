@@ -7,6 +7,7 @@ TOOLS_DIR="${ROOT_DIR}/Engine/Resources/tools"
 FRAMEWORK_OUT_DIR="${ROOT_DIR}/framework/out"
 MANIFEST_PATH="${TOOLS_DIR}/frontend-package.json"
 LOCAL_MANIFEST_PATH="${FRAMEWORK_OUT_DIR}/manifest.json"
+FRONTEND_REGISTRY_SPEC="${WEBSTIR_FRONTEND_REGISTRY_SPEC:-}"
 
 cd "${PACKAGE_DIR}"
 
@@ -42,7 +43,7 @@ cp "${TARGET_TARBALL}" "${TOOLS_DIR}/${TARGET_TARBALL}"
 
 HASH="$(node -e "const fs=require('fs');const crypto=require('crypto');const file=process.argv[1];const hash=crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');process.stdout.write(hash);" "${REPO_TARBALL_PATH}")"
 
-node "${ROOT_DIR}/utilities/update-package-manifest.js" "${LOCAL_MANIFEST_PATH}" "@webstir/frontend" "${VERSION}" "${REPO_TARBALL_PATH}" "${HASH}"
+node "${ROOT_DIR}/utilities/update-package-manifest.js" "${LOCAL_MANIFEST_PATH}" "@webstir/frontend" "${VERSION}" "${REPO_TARBALL_PATH}" "${HASH}" "${FRONTEND_REGISTRY_SPEC}"
 
 cat <<JSON > "${MANIFEST_PATH}"
 {

@@ -68,6 +68,13 @@ Build and publish stages for HTML, CSS, JS/TS, and static assets (Images, Fonts,
   - Pages: `dist/frontend/pages/<page>/index.html`, `index-<hash>.js`, `index.<hash>.css`, `manifest.json`
   - Shared chunks: `dist/frontend/chunks/*-<hash>.js` (vendor libraries, common code)
 
+## Hooks
+- Optional `webstir.config.js` at the workspace root can inject pre/post logic.
+- Pipeline hooks: `beforeAll`/`afterAll` around the entire build or publish run.
+- Builder hooks: `before`/`after` per stage (`javascript`, `css`, `html`, `static-assets`).
+- Handlers receive `{ config, mode, workspaceRoot, builderName?, changedFile? }`.
+- See [Extend Pipelines with Hooks](../how-to/pipeline-hooks.md) for usage details.
+
 ## Related Docs
 - Engine internals — engine.md
 - Workflows — ../reference/workflows.md

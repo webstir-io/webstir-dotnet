@@ -3,15 +3,16 @@ const fs = require('fs');
 const path = require('path');
 
 if (process.argv.length < 6) {
-  console.error('Usage: update-package-manifest <manifestPath> <packageName> <version> <tarballPath> <hash>');
+  console.error('Usage: update-package-manifest <manifestPath> <packageName> <version> <tarballPath> <hash> [registrySpecifier]');
   process.exit(1);
 }
 
-const [, , manifestPath, packageName, version, tarballPath, hash] = process.argv;
+const [, , manifestPath, packageName, version, tarballPath, hash, registrySpecifierRaw] = process.argv;
 const manifestDir = path.dirname(manifestPath);
 const absoluteTarballPath = path.resolve(tarballPath);
 const fileName = path.basename(absoluteTarballPath);
 const repositoryPath = path.relative(manifestDir, absoluteTarballPath).split(path.sep).join('/');
+const registrySpecifier = (registrySpecifierRaw ?? '').trim();
 
 const next = {
   schemaVersion: 1,
@@ -40,6 +41,10 @@ next.packages[packageName] = {
   hash,
   repositoryPath
 };
+
+if (registrySpecifier) {
+  next.packages[packageName].registrySpecifier = registrySpecifier;
+}
 
 const sortedEntries = Object.keys(next.packages).sort().reduce((acc, key) => {
   acc[key] = next.packages[key];
