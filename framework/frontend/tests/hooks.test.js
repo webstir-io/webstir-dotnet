@@ -20,6 +20,14 @@ async function createWorkspaceWithHooks() {
     await fs.writeFile(path.join(pageDir, 'index.ts'), 'console.log("home");', 'utf8');
     await fs.writeFile(path.join(pageDir, 'index.css'), 'body { color: blue; }', 'utf8');
 
+    const packageJson = {
+        name: 'webstir-hooks-fixture',
+        version: '0.0.0',
+        private: true,
+        type: 'module'
+    };
+    await fs.writeFile(path.join(workspaceRoot, 'package.json'), JSON.stringify(packageJson, null, 2), 'utf8');
+
     const hookConfig = `import fs from 'node:fs/promises';\nimport path from 'node:path';\n\nasync function record(event, context) {\n  const logPath = path.join(context.workspaceRoot, 'hook-log.json');\n  const payload = JSON.stringify({ event, mode: context.mode, builder: context.builderName ?? null });\n  await fs.appendFile(logPath, payload + '\\n', 'utf8');\n}\n\nexport default {\n  hooks: {\n    pipeline: {\n      beforeAll: (context) => record('pipeline-before', context),\n      afterAll: (context) => record('pipeline-after', context)\n    },\n    builders: {\n      javascript: {\n        before: (context) => record('javascript-before', context),\n        after: (context) => record('javascript-after', context)\n      }\n    }\n  }\n};\n`;
     await fs.writeFile(path.join(workspaceRoot, 'webstir.config.js'), hookConfig, 'utf8');
 
