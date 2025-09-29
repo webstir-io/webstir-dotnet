@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Engine.Bridge.Frontend;
 using Engine.Bridge.Packaging;
@@ -47,6 +49,8 @@ public class InitWorkflow(
         ProjectMode mode = ParseProjectMode(args);
         await ResourceHelpers.CopyEmbeddedRootFilesAsync(Resources.Path, Context.WorkingPath);
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.TypesPath, Context.WorkingPath.Combine(Folders.Types));
+        TrimTypeScriptReferences(mode);
+
         bool preferRegistry = PackageSourceSelector.ShouldPreferRegistry();
         await FrontendPackageInstaller.EnsureAsync(Context, preferRegistry);
         await TestPackageInstaller.EnsureAsync(Context, preferRegistry);
@@ -64,5 +68,54 @@ public class InitWorkflow(
             return ProjectMode.ServerOnly;
         }
         return ProjectMode.Fullstack;
+    }
+
+    private void TrimTypeScriptReferences(ProjectMode mode)
+    {
+        string tsConfigPath = Context.WorkingPath.Combine(Files.BaseTsConfigJson);
+        if (!File.Exists(tsConfigPath))
+        {
+            return;
+        }
+
+        if (JsonNode.Parse(File.ReadAllText(tsConfigPath)) is not JsonObject root)
+        {
+            return;
+        }
+
+        JsonArray references = root["references"] as JsonArray ?? [];
+        references.Clear();
+
+        foreach (string path in GetTsReferences(mode))
+        {
+            references.Add(new JsonObject
+            {
+                ["path"] = path
+            });
+        }
+
+        root["references"] = references;
+
+        JsonSerializerOptions options = new()
+        {
+            WriteIndented = true
+        };
+
+        File.WriteAllText(tsConfigPath, root.ToJsonString(options) + Environment.NewLine);
+    }
+
+    private static IEnumerable<string> GetTsReferences(ProjectMode mode)
+    {
+        yield return Path.Combine(Folders.Src, Folders.Shared);
+
+        if (mode is ProjectMode.Fullstack or ProjectMode.ClientOnly)
+        {
+            yield return Path.Combine(Folders.Src, Folders.Frontend);
+        }
+
+        if (mode is ProjectMode.Fullstack or ProjectMode.ServerOnly)
+        {
+            yield return Path.Combine(Folders.Src, Folders.Backend);
+        }
     }
 }
