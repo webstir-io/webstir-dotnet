@@ -20,6 +20,7 @@ dotnet build Webstir.sln -v minimal
 
 echo "Running frontend package tests..."
 pushd "$ROOT_DIR/framework/frontend" > /dev/null
+npm ci --silent
 npm test
 popd > /dev/null
 

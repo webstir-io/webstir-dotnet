@@ -408,3 +408,5 @@ FodyWeavers.xsd
 
 Sandbox/npmrc/.npmrc
 Sandbox/npmrc/host/.npmrc
+.env
+.env.local

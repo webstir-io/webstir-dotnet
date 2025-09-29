@@ -337,7 +337,10 @@ public sealed class ToolchainPackageBuilder
         string? RegistrySpecifierEnvironmentVariable,
         IReadOnlyCollection<string> CleanupDirectories)
     {
-        internal static ToolchainPackageOptions Frontend { get; } = new(
+        internal static ToolchainPackageOptions Frontend
+        {
+            get;
+        } = new(
             "@electric-coding-llc/webstir-frontend",
             Path.Combine("framework", "frontend"),
             "webstir-frontend-",
@@ -347,7 +350,10 @@ public sealed class ToolchainPackageBuilder
             "WEBSTIR_FRONTEND_REGISTRY_SPEC",
             new[] { "node_modules" });
 
-        internal static ToolchainPackageOptions Testing { get; } = new(
+        internal static ToolchainPackageOptions Testing
+        {
+            get;
+        } = new(
             "@electric-coding-llc/webstir-test",
             Path.Combine("framework", "testing"),
             "webstir-test-",

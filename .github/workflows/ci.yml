@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    env:
+      GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+      NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Set up Node 20.18.1
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.18.1
+          cache: npm
+          cache-dependency-path: |
+            framework/frontend/package-lock.json
+            framework/testing/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: framework/frontend
+
+      - name: Install testing dependencies
+        run: npm ci
+        working-directory: framework/testing
+
+      - name: Build solution
+        run: dotnet build Webstir.sln -v minimal
+
+      - name: Verify toolchain artifacts
+        run: dotnet run --project CLI -- toolchain verify
+
+      - name: Run .NET workflow tests
+        run: dotnet run --project Tests
+
+      - name: Run frontend package tests
+        run: npm test
+        working-directory: framework/frontend
