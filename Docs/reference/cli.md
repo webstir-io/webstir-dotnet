@@ -22,6 +22,7 @@ Common patterns:
 - `webstir watch`
 - `webstir test`
 - `webstir install`
+- `webstir toolchain sync`
 - `webstir publish`
 - `webstir add-page about`
 - `webstir add-test auth/login`
@@ -66,7 +67,7 @@ What it does:
 Usage: `webstir test`
 
 What it does:
-- Builds the project, ensures the bundled `@webstir/test` tools are installed, then shells into the `webstir-test` TypeScript CLI.
+- Builds the project, ensures the bundled `@electric-coding-llc/webstir-test` tools are installed, then shells into the `webstir-test` TypeScript CLI.
 - Executes compiled frontend and backend tests, emitting structured events the .NET bridge relays.
 - Prints a pass/fail summary; integrates with CI using standard exit codes.
 - Fails fast if bundled package versions drift and directs you to `webstir install`.
@@ -75,7 +76,7 @@ What it does:
 Usage: `webstir install`
 
 What it does:
-- Synchronizes the bundled `@webstir/frontend` and `@webstir/test` packages with `node_modules`.
+- Synchronizes the bundled `@electric-coding-llc/webstir-frontend` and `@electric-coding-llc/webstir-test` packages with `node_modules`.
 - Installs tarballs from the local framework repository and updates `.tools/*.json` manifests.
 - Verifies versions against the CLI manifest and exits with guidance if drift remains.
 
@@ -98,7 +99,7 @@ Usage: `webstir add-page <name>`
 What it does:
 - Scaffolds `index.html`, `index.css`, and `index.ts` in `src/frontend/pages/<name>/`.
 - Ready to build and serve without extra configuration.
-- Delegates to the `@webstir/frontend` CLI so the scaffold matches the current framework templates.
+- Delegates to the `@electric-coding-llc/webstir-frontend` CLI so the scaffold matches the current framework templates.
 
 ### add-test
 Usage: `webstir add-test <name-or-path>`
@@ -106,7 +107,7 @@ Usage: `webstir add-test <name-or-path>`
 What it does:
 - Creates a `.test.ts` file under the nearest `tests/` folder relative to the path provided.
 - Works for both frontend and backend test locations.
-- Uses the `@webstir/test` CLI to write the template and keep dependencies pinned.
+- Uses the `@electric-coding-llc/webstir-test` CLI to write the template and keep dependencies pinned.
 
 ## Dev Server & Watch
 - Serves `build/` over ASP.NET Core with an SSE endpoint for live reload.
@@ -164,6 +165,7 @@ Commands:
   watch       Build, run servers, and watch (default)
   test        Build then run tests
   install     Synchronize toolchain packages
+  toolchain   Build and verify framework packages
   publish     Produce optimized dist outputs
   add-page    Scaffold a new frontend page
   add-test    Scaffold a new test file
@@ -197,3 +199,16 @@ Options:
 - Templates — [templates](templates.md)
 - Testing — [.codex/testing.md](../../.codex/testing.md), [tests](../explanations/testing.md)
 - Workspace and paths — [workspace](../explanations/workspace.md)
+### toolchain
+Usage: `webstir toolchain [sync|verify] [--frontend|--test] [--verify]`
+
+What it does:
+- Wraps the toolchain packaging scripts to rebuild the bundled `@electric-coding-llc/webstir-frontend` and `@electric-coding-llc/webstir-test` tarballs.
+- Copies the new artifacts into `Engine/Resources/tools` and `framework/out`, regenerating `framework/out/manifest.json`.
+- Optional `--frontend` or `--test` limits the rebuild to a single package.
+- `--verify` (or the standalone `verify` subcommand) ensures the manifest and tarballs are already committed—handy for CI checks.
+
+Notes:
+- Run from the repository root (where `utilities/` lives).
+- Registry overrides still respect `WEBSTIR_FRONTEND_REGISTRY_SPEC` and `WEBSTIR_TEST_REGISTRY_SPEC` if set before invoking the command.
+- The legacy shell scripts remain available for automation but the CLI workflow is the canonical entry point.

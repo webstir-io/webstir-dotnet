@@ -4,8 +4,8 @@
 Fold the existing C#-based test discovery/runner (`Engine.Pipelines.Test`) into the TypeScript workspace so the `framework/testing` package exposes the canonical `webstir test` CLI for both frontend and backend scenarios.
 
 ## Current State
-- The frontend build/publish flows already shell into `@webstir/frontend` and rely on the manifest for asset metadata.
-- Test workflows (`watch`, `test`) now ensure the bundled `@webstir/test` package and shell into the unified `webstir-test` CLI for both frontend and backend suites.
+- The frontend build/publish flows already shell into `@electric-coding-llc/webstir-frontend` and rely on the manifest for asset metadata.
+- Test workflows (`watch`, `test`) now ensure the bundled `@electric-coding-llc/webstir-test` package and shell into the unified `webstir-test` CLI for both frontend and backend suites.
 - The TypeScript CLI owns discovery, manifest generation, and node-based execution for both runtimes while preserving the JSON event stream contract for future host specialization.
 
 ## Workstreams

@@ -15,7 +15,7 @@ Build the project and execute tests through the bundled `webstir-test` TypeScrip
 
 ## Steps
 1. Ensure build outputs are up to date (runs `build` if needed).
-2. Ensure the embedded `@webstir/test` package is installed into the workspace.
+2. Ensure the embedded `@electric-coding-llc/webstir-test` package is installed into the workspace.
 3. Execute compiled frontend and backend tests via the `webstir-test` CLI and stream structured results back to the .NET host.
 4. Print pass/fail summary with file names for failures.
 

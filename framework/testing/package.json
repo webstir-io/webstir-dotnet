@@ -1,5 +1,5 @@
 {
-  "name": "@webstir/test",
+  "name": "@electric-coding-llc/webstir-test",
   "version": "0.3.0",
   "description": "Testing runtime and CLI for Webstir TypeScript projects.",
   "type": "module",

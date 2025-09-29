@@ -5,8 +5,8 @@
   "type": "module",
   "description": "Webstir frontend defaults and tooling",
   "dependencies": {
-    "@webstir/test": "file:./.tools/webstir-test-0-3-0.tgz",
-    "@webstir/frontend": "file:./.tools/webstir-frontend-0-2-2.tgz"
+    "@electric-coding-llc/webstir-test": "file:./.tools/webstir-test-0-3-0.tgz",
+    "@electric-coding-llc/webstir-frontend": "file:./.tools/webstir-frontend-0-2-2.tgz"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -17,7 +17,7 @@
     "last 2 chrome versions",
     "last 2 firefox versions",
     "last 2 safari major versions",
-    "iOS >= 14",
+    "iOS \u003E= 14",
     "not dead"
   ]
 }

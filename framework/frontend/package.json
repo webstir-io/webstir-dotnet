@@ -1,5 +1,5 @@
 {
-  "name": "@webstir/frontend",
+  "name": "@electric-coding-llc/webstir-frontend",
   "version": "0.2.2",
   "description": "Frontend build and publish tooling for Webstir workspaces.",
   "type": "module",

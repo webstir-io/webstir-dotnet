@@ -207,7 +207,7 @@ internal static class FrontendPackageInstaller
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Warning: Unable to read installed @webstir/frontend version: {ex.Message}");
+            Console.Error.WriteLine($"Warning: Unable to read installed @electric-coding-llc/webstir-frontend version: {ex.Message}");
             return new FrontendPackageInstallState(true, null);
         }
     }

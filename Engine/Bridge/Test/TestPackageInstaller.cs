@@ -202,7 +202,7 @@ internal static class TestPackageInstaller
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Warning: Unable to read installed @webstir/test version: {ex.Message}");
+            Console.Error.WriteLine($"Warning: Unable to read installed @electric-coding-llc/webstir-test version: {ex.Message}");
             return new PackageInstallState(true, null);
         }
     }

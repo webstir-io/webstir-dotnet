@@ -18,7 +18,7 @@ Quick Start
 
 3) (Optional) Start the local npm registry:
    - `docker compose -f Sandbox/docker-compose.yml up registry`
-   - The compose stack also runs an `npmrc` helper (writes `Sandbox/npmrc/.npmrc`) and a `publisher` helper that publishes `@webstir/frontend` and `@webstir/test` if they are missing.
+   - The compose stack also runs an `npmrc` helper (writes `Sandbox/npmrc/.npmrc`) and a `publisher` helper that publishes `@electric-coding-llc/webstir-frontend` and `@electric-coding-llc/webstir-test` if they are missing.
    - The Verdaccio container uses `bcrypt` for htpasswd entries via `Sandbox/verdaccio/config.yaml`; tweak the config if you need different access rules.
    - Manual regeneration: `docker compose -f Sandbox/docker-compose.yml run --rm npmrc`
    - Credentials default to `webstir` / `webstir` / `dev@local.test`; override via env vars (`NPM_USERNAME`, `NPM_PASSWORD`, `NPM_EMAIL`, `NPM_SCOPE`, `NPM_REGISTRY`).

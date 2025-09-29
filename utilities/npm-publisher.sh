@@ -2,9 +2,9 @@
 set -euo pipefail
 
 REGISTRY_URL="${NPM_REGISTRY:-http://registry:4873}"
-FRONTEND_PACKAGE="${FRONTEND_PACKAGE:-@webstir/frontend}"
+FRONTEND_PACKAGE="${FRONTEND_PACKAGE:-@electric-coding-llc/webstir-frontend}"
 FRONTEND_DIR="${FRONTEND_DIR:-framework/frontend}"
-TEST_PACKAGE="${TEST_PACKAGE:-@webstir/test}"
+TEST_PACKAGE="${TEST_PACKAGE:-@electric-coding-llc/webstir-test}"
 TEST_DIR="${TEST_DIR:-framework/testing}"
 WORKSPACE="${WORKSPACE:-/workspace}"
 USER_NPMRC="${NPM_USERCONFIG:-/npmrc/.npmrc}"

@@ -23,4 +23,7 @@ pushd "$ROOT_DIR/framework/frontend" > /dev/null
 npm test
 popd > /dev/null
 
+echo "Verifying toolchain artifacts..."
+dotnet run --project "$ROOT_DIR/CLI" -- toolchain sync --verify
+
 echo "Done."

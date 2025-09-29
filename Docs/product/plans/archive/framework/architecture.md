@@ -47,7 +47,7 @@ webstir/
    - `add-test` writes `import` statements pointing to the published package.
    - Tests command shells out: `node ./node_modules/.bin/webstir-test`.
 4. **Cleanup**
-   - Remove `TestTypeRegistry` and `types/@webstir/**` from engine resources.
+   - Remove `TestTypeRegistry` and `types/@electric-coding-llc/**` from engine resources.
    - Update docs to explain npm dependency.
 
 ## Phase 2 – Frontend Module

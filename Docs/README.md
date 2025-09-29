@@ -8,7 +8,7 @@ Create a web application development strategy to maximize productivity by levera
 - An opinionated, architectural strategy
 - Elegantly simple and intuitive to use
 - Zero-config out of the box
-- Very few 3rd-party dependencies
+- Curated 3rd-party dependencies with pinned versions
 - Fun to use
 
 ## Vision
@@ -17,9 +17,11 @@ This is just a project I'm doing for fun, because I love coding and engineering 
 
 ## Quick Start
 
-- Tutorials: start with
+- Tutorials — begin with
   - [Getting Started](./tutorials/getting-started.md)
   - [Your First App](./tutorials/first-app.md)
+- Workflows — run through the CLI reference after the tutorials: [Workflows](./reference/workflows.md)
+- Toolchain — if you are packaging updates, run `webstir toolchain sync` and review [Synchronize Toolchain Packages](./how-to/toolchain-packages.md)
 
 ## Docs Index
 
@@ -28,20 +30,17 @@ This is just a project I'm doing for fun, because I love coding and engineering 
   - [Your First App](./tutorials/first-app.md)
 
 - How-to Guides — [README](./how-to/README.md)
-  - [Init](./how-to/init.md)
-  - [Build](./how-to/build.md)
-  - [Watch](./how-to/watch.md)
-  - [Test](./how-to/test.md)
-  - [Publish](./how-to/publish.md)
-  - [Sandbox](./how-to/sandbox.md)
-  - [Add Page](./how-to/add-page.md)
-  - [Add Test](./how-to/add-test.md)
-  - [Utilities](./how-to/utilities.md)
+  - Core workflows: [Init](./how-to/init.md), [Build](./how-to/build.md), [Watch](./how-to/watch.md), [Test](./how-to/test.md), [Publish](./how-to/publish.md)
+  - Frontend operations: [Frontend Watch Daemon](./how-to/frontend-watch.md), [HMR Validation](./how-to/hmr-validation.md), [Precompression](./how-to/precompression.md)
+  - Extensibility & tooling: [Extend Pipelines with Hooks](./how-to/pipeline-hooks.md), [Synchronize Toolchain Packages](./how-to/toolchain-packages.md), [Utilities](./how-to/utilities.md)
+  - Project scaffolding: [Add Page](./how-to/add-page.md), [Add Test](./how-to/add-test.md)
+  - Environments: [Sandbox](./how-to/sandbox.md)
 
 - Reference — [README](./reference/README.md)
   - [CLI](./reference/cli.md)
   - [Workflows](./reference/workflows.md)
   - [Templates](./reference/templates.md)
+  - [Frontend Manifest](./reference/frontend-manifest.md)
   - [Contracts & Invariants](./reference/contracts.md)
 
 - Explanations — [README](./explanations/README.md)
@@ -54,7 +53,4 @@ This is just a project I'm doing for fun, because I love coding and engineering 
   - [Workspace](./explanations/workspace.md)
   - [Testing](./explanations/testing.md)
 
-- Planning — [README](./planning/README.md)
-  - [Backlog](./planning/backlog.md)
-  - [Roadmap](./planning/roadmap.md)
-  - Specs — [README](./specs/README.md), [Template](./specs/template.md)
+- Product Plans — explore upcoming ideas in [docs/product/plans](./product/plans)

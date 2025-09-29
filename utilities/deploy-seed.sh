@@ -13,8 +13,7 @@ cd "$ROOT_DIR"
 SEED_DIR="CLI/out/seed"
 
 echo "[0/5] Updating local package tarballs ..."
-"$ROOT_DIR/utilities/build-frontend-package.sh"
-"$ROOT_DIR/utilities/build-test-package.sh"
+dotnet run --project CLI -- toolchain sync
 
 echo "[1/5] Initializing seed at $SEED_DIR ..."
 if [ -d "$SEED_DIR" ]; then

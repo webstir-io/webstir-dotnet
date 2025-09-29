@@ -32,7 +32,7 @@
 - .NET 9 SDK installed.
 - Node.js and `tsc` available on `PATH` for tests that emit TypeScript builds.
 - The repo uses a custom runner; `dotnet test` will not execute these suites.
-- Run `./utilities/format-build.sh` before or after testing to fix formatting drift and catch build failures early.
+- Run `./utilities/format-build.sh` before or after testing to fix formatting drift, refresh toolchain packages, and catch build failures early.
 
 ## In One Line
 > Test the experience, not the implementation.

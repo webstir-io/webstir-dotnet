@@ -6,7 +6,7 @@ NPM_USERNAME="${NPM_USERNAME:-webstir}"
 NPM_PASSWORD="${NPM_PASSWORD:-webstir}"
 NPM_EMAIL="${NPM_EMAIL:-dev@local.test}"
 NPM_REGISTRY="${NPM_REGISTRY:-http://registry:4873}"
-NPM_SCOPE="${NPM_SCOPE:-@webstir}"
+NPM_SCOPE="${NPM_SCOPE:-@electric-coding-llc}"
 
 mkdir -p "${OUT_PATH}"
 CONFIG_PATH="${OUT_PATH}/.npmrc"

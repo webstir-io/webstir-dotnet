@@ -17,6 +17,7 @@ public static class Help
         [Commands.Test] = GetTestCommand(),
         [Commands.Watch] = GetWatchCommand(),
         [Commands.Install] = GetInstallCommand(),
+        [Commands.Toolchain] = GetToolchainCommand(),
         [Commands.Publish] = GetPublishCommand(),
         [Commands.Help] = GetHelpCommand()
     };
@@ -115,6 +116,23 @@ public static class Help
                 Example(App.Name, $"Same as '{App.Name} {Commands.Watch}'"),
                 Example($"{App.Name} {Commands.Watch} ../project", "Watch project in parent directory")
             ]);
+
+    private static CommandHelp GetToolchainCommand() =>
+        CreateCommand(Commands.Toolchain,
+            "Build and verify framework packages",
+            [
+                Example($"{App.Name} {Commands.Toolchain} sync", "Rebuild frontend and testing packages"),
+                Example($"{App.Name} {Commands.Toolchain} sync --frontend", "Rebuild only the frontend package"),
+                Example($"{App.Name} {Commands.Toolchain} verify", "Ensure manifests and tarballs are committed")
+            ],
+            [
+                Option("sync", "Rebuild toolchain packages (default)"),
+                Option("verify", "Check that toolchain artifacts are committed"),
+                Option("--frontend", "Only rebuild the frontend package"),
+                Option("--test", "Only rebuild the testing package"),
+                Option("--verify", "After syncing, ensure git status is clean for toolchain files")
+            ],
+            "[sync|verify] [options]");
 
     private static CommandHelp GetPublishCommand() =>
         CreateCommand(Commands.Publish,

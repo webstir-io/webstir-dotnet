@@ -45,13 +45,13 @@ internal static class ToolchainSynchronizer
                 if (frontendResult?.TarballUpdated == true)
                 {
                     RemovePackageLockIfPresent(workspace, logger);
-                    RemoveCachedPackage(workspace, logger, "@webstir/frontend");
+                    RemoveCachedPackage(workspace, logger, "@electric-coding-llc/webstir-frontend");
                 }
 
                 if (testResult?.TarballUpdated == true)
                 {
                     RemovePackageLockIfPresent(workspace, logger);
-                    RemoveCachedPackage(workspace, logger, "@webstir/test");
+                    RemoveCachedPackage(workspace, logger, "@electric-coding-llc/webstir-test");
                 }
 
                 logger?.LogInformation("[toolchain] Installing framework packages...");
@@ -86,6 +86,9 @@ internal static class ToolchainSynchronizer
     } or
     {
         TarballUpdated: true
+    } or
+    {
+        VersionMismatch: true
     };
 
     private static bool NeedsInstall(PackageEnsureResult? result) => result is
@@ -97,6 +100,9 @@ internal static class ToolchainSynchronizer
     } or
     {
         TarballUpdated: true
+    } or
+    {
+        VersionMismatch: true
     };
 
     private static void RemovePackageLockIfPresent(AppWorkspace workspace, ILogger? logger)

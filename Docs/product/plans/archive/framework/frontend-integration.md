@@ -13,7 +13,7 @@
 
 ## Tasks
 1. **Package Embedding**
-   - Bundle the `@webstir/frontend` tarball during CLI packaging (same flow as `@webstir/test`).
+   - Bundle the `@electric-coding-llc/webstir-frontend` tarball during CLI packaging (same flow as `@electric-coding-llc/webstir-test`).
    - Add an installer helper (`FrontendPackageInstaller`) responsible for copying the tarball and patching `package.json` dependencies.
 2. **Worker Bridge**
    - Trim `FrontendWorker` down to:

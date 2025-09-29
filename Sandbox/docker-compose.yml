@@ -23,7 +23,7 @@ services:
       - NPM_USERNAME=webstir
       - NPM_PASSWORD=webstir
       - NPM_EMAIL=dev@local.test
-      - NPM_SCOPE=@webstir
+      - NPM_SCOPE=@electric-coding-llc
       - NPM_REGISTRY=http://registry:4873
       - HOST_NPMRC_DIR=/host-npmrc
     volumes:
@@ -44,9 +44,9 @@ services:
     command: ["sh", "/workspace/utilities/npm-publisher.sh"]
     environment:
       - NPM_REGISTRY=http://registry:4873
-      - FRONTEND_PACKAGE=@webstir/frontend
+      - FRONTEND_PACKAGE=@electric-coding-llc/webstir-frontend
       - FRONTEND_DIR=framework/frontend
-      - TEST_PACKAGE=@webstir/test
+      - TEST_PACKAGE=@electric-coding-llc/webstir-test
       - TEST_DIR=framework/testing
       - NPM_USERCONFIG=/npmrc/host/.npmrc
       - NPMRC_FALLBACK=/workspace/Sandbox/npmrc/host/.npmrc

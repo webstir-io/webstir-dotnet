@@ -5,6 +5,7 @@ using CLI;
 using Engine;
 using Engine.Bridge.Backend;
 using Engine.Bridge.Frontend;
+using Engine.Bridge.Packaging;
 using Engine.Bridge.Shared;
 using Engine.Servers;
 using Engine.Services;
@@ -66,11 +67,13 @@ try
     services.AddTransient<IWorkflowWorker, FrontendWorker>();
     services.AddTransient<IWorkflowWorker, BackendWorker>();
     services.AddTransient<IWorkflowWorker, SharedWorker>();
+    services.AddTransient<ToolchainPackageBuilder>();
 
     services.AddTransient<IWorkflow, InitWorkflow>();
     services.AddTransient<IWorkflow, BuildWorkflow>();
     services.AddTransient<IWorkflow, PublishWorkflow>();
     services.AddTransient<IWorkflow, InstallWorkflow>();
+    services.AddTransient<IWorkflow, ToolchainWorkflow>();
     services.AddTransient<IWorkflow, AddPageWorkflow>();
     services.AddTransient<IWorkflow, AddTestWorkflow>();
     services.AddTransient<IWorkflow, TestWorkflow>();
