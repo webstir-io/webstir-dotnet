@@ -5,8 +5,8 @@
   "type": "module",
   "description": "Webstir frontend defaults and tooling",
   "dependencies": {
-    "@electric-coding-llc/webstir-test": "file:./.tools/webstir-test-0-3-0.tgz",
-    "@electric-coding-llc/webstir-frontend": "file:./.tools/webstir-frontend-0-2-2.tgz"
+    "@electric-coding-llc/webstir-test": "@electric-coding-llc/webstir-test@0.3.0",
+    "@electric-coding-llc/webstir-frontend": "@electric-coding-llc/webstir-frontend@0.2.2"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Threading.Tasks;
 
 using Engine;
@@ -45,19 +44,9 @@ internal static class TestPackageUtilities
             return;
         }
 
-        if (result.Value.ToolsAdded)
-        {
-            Console.WriteLine($"Added testing package archive: {Path.Combine(Folders.Tools, result.Value.Metadata.FileName)}");
-        }
-
         if (result.Value.DependencyUpdated)
         {
             Console.WriteLine($"Pinned @electric-coding-llc/webstir-test dependency in {Files.PackageJson}");
-        }
-
-        if (result.Value.TarballUpdated && !summary.InstallPerformed)
-        {
-            Console.WriteLine("Updated @electric-coding-llc/webstir-test tarball; run 'npm install' if changes are not applied automatically.");
         }
 
         if (result.Value.VersionMismatch)

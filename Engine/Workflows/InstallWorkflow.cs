@@ -86,7 +86,7 @@ public sealed class InstallWorkflow(
                 return;
             }
 
-            bool needsInstall = value.ToolsAdded || value.DependencyUpdated || value.TarballUpdated || value.VersionMismatch;
+            bool needsInstall = value.DependencyUpdated || value.VersionMismatch;
             if (!needsInstall)
             {
                 _logger.LogInformation("[dry-run] {Package} is up to date.", packageName);
@@ -95,17 +95,9 @@ public sealed class InstallWorkflow(
 
             anyChanges = true;
             List<string> reasons = new();
-            if (value.ToolsAdded)
-            {
-                reasons.Add("tools archive added");
-            }
             if (value.DependencyUpdated)
             {
                 reasons.Add("package.json dependency updated");
-            }
-            if (value.TarballUpdated)
-            {
-                reasons.Add("tarball hash changed");
             }
             if (value.VersionMismatch)
             {
@@ -124,9 +116,9 @@ public sealed class InstallWorkflow(
             _logger.LogInformation("Reinstalled frontend package dependencies.");
         }
 
-        if (summary.Frontend is { TarballUpdated: true } frontend)
+        if (summary.Frontend is { DependencyUpdated: true } frontend)
         {
-            _logger.LogInformation("{Package} tarball updated; dependencies refreshed automatically.", frontend.Metadata.Name);
+            _logger.LogInformation("{Package} dependency updated to {Specifier}.", frontend.Metadata.Name, frontend.Metadata.RegistrySpecifier);
         }
     }
 

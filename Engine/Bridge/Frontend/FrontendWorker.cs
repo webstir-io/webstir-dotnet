@@ -210,7 +210,7 @@ public sealed class FrontendWorker : IFrontendWorker
                 _logger.LogDebug("[frontend] Packages already up to date.");
             }
 
-            LogTarballUpdates(summary);
+            LogDependencyUpdates(summary);
 
             if (summary.InstallRequiredButSkipped)
             {
@@ -231,16 +231,16 @@ public sealed class FrontendWorker : IFrontendWorker
         }
     }
 
-    private void LogTarballUpdates(PackageEnsureSummary summary)
+    private void LogDependencyUpdates(PackageEnsureSummary summary)
     {
-        if (summary.Frontend is { TarballUpdated: true } frontend)
+        if (summary.Frontend is { DependencyUpdated: true } frontend)
         {
-            _logger.LogInformation("{Package} tarball updated; dependencies refreshed automatically.", frontend.Metadata.Name);
+            _logger.LogInformation("{Package} dependency updated to {Specifier}.", frontend.Metadata.Name, frontend.Metadata.RegistrySpecifier);
         }
 
-        if (summary.Testing is { TarballUpdated: true } testing)
+        if (summary.Testing is { DependencyUpdated: true } testing)
         {
-            _logger.LogInformation("{Package} tarball updated; dependencies refreshed automatically.", testing.Metadata.Name);
+            _logger.LogInformation("{Package} dependency updated to {Specifier}.", testing.Metadata.Name, testing.Metadata.RegistrySpecifier);
         }
     }
 

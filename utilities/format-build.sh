@@ -24,7 +24,7 @@ npm ci --silent
 npm test
 popd > /dev/null
 
-echo "Verifying package artifacts..."
-dotnet run --project "$ROOT_DIR/framework/Framework.csproj" -- packages sync --verify
+echo "Building framework packages..."
+dotnet run --project "$ROOT_DIR/framework/Framework.csproj" -- packages sync
 
 echo "Done."

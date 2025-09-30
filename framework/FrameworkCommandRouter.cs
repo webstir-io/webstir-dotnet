@@ -53,8 +53,7 @@ internal sealed class FrameworkCommandRouter
 
     private static bool IsPackagesSubcommand(string value) =>
         value.Equals("sync", StringComparison.OrdinalIgnoreCase)
-        || value.Equals("publish", StringComparison.OrdinalIgnoreCase)
-        || value.Equals("verify", StringComparison.OrdinalIgnoreCase);
+        || value.Equals("publish", StringComparison.OrdinalIgnoreCase);
 
     private static bool ContainsHelp(string[] args)
     {
@@ -76,26 +75,23 @@ internal sealed class FrameworkCommandRouter
 
     private static void ShowUsage()
     {
-        Console.WriteLine("Usage: framework packages [sync|publish|verify] [options]");
+        Console.WriteLine("Usage: framework packages [sync|publish] [options]");
         Console.WriteLine("       framework packages --help");
         Console.WriteLine("       framework sync [options] (shorthand)\n");
     }
 
     private int ShowPackagesUsage()
     {
-        Console.WriteLine("framework packages <sync|publish|verify> [options]");
+        Console.WriteLine("framework packages <sync|publish> [options]");
         Console.WriteLine();
         Console.WriteLine("Commands:");
-        Console.WriteLine("  sync       Rebuild framework packages (default).");
-        Console.WriteLine("  publish    Rebuild and publish packages missing from the registry.");
-        Console.WriteLine("  verify     Ensure manifests and tarballs are committed.");
+        Console.WriteLine("  sync       Build framework packages (default).");
+        Console.WriteLine("  publish    Build and publish packages to the configured registry.");
         Console.WriteLine();
         Console.WriteLine("Options:");
         Console.WriteLine("  --frontend     Rebuild only the frontend package.");
         Console.WriteLine("  --test         Rebuild only the testing package.");
         Console.WriteLine("  --both         Rebuild both packages (default).");
-        Console.WriteLine("  --publish      Publish tarballs after syncing.");
-        Console.WriteLine("  --verify       After syncing, ensure git status is clean.");
         Console.WriteLine("  --help, -h     Show this message.");
         return 0;
     }

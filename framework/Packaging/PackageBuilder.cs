@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -23,16 +22,13 @@ public sealed class PackageBuilder
         _logger = logger;
     }
 
-    public static PackageManifestMetadata CreateManifestMetadata() =>
-        new PackageManifestMetadata(DateTimeOffset.UtcNow);
+    public async Task<PackageBuildResult> BuildFrontendAsync(string repositoryRoot, bool publish) =>
+        await BuildAsync(repositoryRoot, PackageBuildOptions.Frontend, publish);
 
-    public async Task<PackageBuildResult> BuildFrontendAsync(string repositoryRoot, PackageManifestMetadata metadata, bool publish) =>
-        await BuildAsync(repositoryRoot, PackageBuildOptions.Frontend, metadata, publish);
+    public async Task<PackageBuildResult> BuildTestingAsync(string repositoryRoot, bool publish) =>
+        await BuildAsync(repositoryRoot, PackageBuildOptions.Testing, publish);
 
-    public async Task<PackageBuildResult> BuildTestingAsync(string repositoryRoot, PackageManifestMetadata metadata, bool publish) =>
-        await BuildAsync(repositoryRoot, PackageBuildOptions.Testing, metadata, publish);
-
-    private async Task<PackageBuildResult> BuildAsync(string repositoryRoot, PackageBuildOptions options, PackageManifestMetadata manifestMetadata, bool publishPackages)
+    private async Task<PackageBuildResult> BuildAsync(string repositoryRoot, PackageBuildOptions options, bool publishPackages)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
 
@@ -42,8 +38,6 @@ public sealed class PackageBuilder
             throw new DirectoryNotFoundException($"Package directory not found: {packageDirectory}");
         }
 
-        string toolsDirectory = Path.Combine(repositoryRoot, "framework", "Resources", "tools");
-        string frameworkOutDirectory = Path.Combine(repositoryRoot, "framework", "out");
         string packageJsonPath = Path.Combine(packageDirectory, "package.json");
         if (!File.Exists(packageJsonPath))
         {
@@ -76,49 +70,23 @@ public sealed class PackageBuilder
             targetTarballPath = createdTarballPath;
         }
 
-        string repositoryPackageDirectory = Path.Combine(frameworkOutDirectory, options.RepositoryFolderName, metadata.Version);
-        Directory.CreateDirectory(repositoryPackageDirectory);
-        DeleteMatchingFiles(repositoryPackageDirectory, options.TarballPattern);
-        string repositoryTarballPath = Path.Combine(repositoryPackageDirectory, targetTarballName);
-        File.Copy(targetTarballPath, repositoryTarballPath, overwrite: true);
-
-        Directory.CreateDirectory(toolsDirectory);
-        DeleteMatchingFiles(toolsDirectory, options.TarballPattern);
-        string toolsTarballPath = Path.Combine(toolsDirectory, targetTarballName);
-        File.Copy(targetTarballPath, toolsTarballPath, overwrite: true);
-
-        string hash = await ComputeSha256Async(repositoryTarballPath);
-
-        string? registrySpecifier = GetRegistrySpecifier(options.RegistrySpecifierEnvironmentVariable)
-            ?? options.GetDefaultRegistrySpecifier(metadata.Version);
+        string registrySpecifier = GetRegistrySpecifier(options.RegistrySpecifierEnvironmentVariable)
+            ?? options.GetDefaultRegistrySpecifier(metadata.Version)
+            ?? options.GetPackageSpec(metadata.Version);
 
         bool published = false;
         if (publishPackages && options.SupportsPublishing && !string.IsNullOrWhiteSpace(options.PublishRegistryUrl))
         {
-            registrySpecifier ??= options.GetPackageSpec(metadata.Version);
             string spec = options.GetPackageSpec(metadata.Version);
-            published = await PublishToRegistryAsync(spec, options.PublishRegistryUrl!, repositoryTarballPath, options.PublishAccess);
+            published = await PublishToRegistryAsync(spec, options.PublishRegistryUrl!, targetTarballPath, options.PublishAccess);
         }
 
-        string manifestPath = Path.Combine(frameworkOutDirectory, "manifest.json");
-        PackageManifestWriter.Update(manifestPath, new PackageManifestEntry(
-            metadata.PackageName,
-            metadata.Version,
-            targetTarballName,
-            $"file:./.tools/{targetTarballName}",
-            hash,
-            GetRepositoryPath(manifestPath, repositoryTarballPath),
-            registrySpecifier), manifestMetadata);
-
-        string toolsManifestPath = Path.Combine(toolsDirectory, options.ToolsManifestFileName);
-        WriteToolsManifest(toolsManifestPath, metadata.PackageName, metadata.Version, targetTarballName, hash, registrySpecifier);
-
-        string engineResourcesPackageJson = Path.Combine(repositoryRoot, "Engine", "Resources", "package.json");
-        UpdateEngineResourcesPackageJson(engineResourcesPackageJson, metadata.PackageName, targetTarballName);
+        UpdatePackageCatalog(repositoryRoot, metadata.PackageName, metadata.Version, registrySpecifier);
+        UpdateEngineResourcesPackageJson(Path.Combine(repositoryRoot, "Engine", "Resources", "package.json"), metadata.PackageName, registrySpecifier);
 
         await CleanupPackageDirectoryAsync(packageDirectory, options.CleanupDirectories, options.TarballPattern);
 
-        return new PackageBuildResult(metadata.PackageName, metadata.Version, targetTarballName, hash, registrySpecifier, published);
+        return new PackageBuildResult(metadata.PackageName, metadata.Version, targetTarballPath, registrySpecifier, published);
     }
 
     private static PackageMetadata LoadPackageMetadata(string packageJsonPath, PackageBuildOptions options)
@@ -229,27 +197,13 @@ public sealed class PackageBuilder
             }
             catch (IOException)
             {
-                // best effort
+                // best effort cleanup
             }
             catch (UnauthorizedAccessException)
             {
-                // best effort
+                // best effort cleanup
             }
         }
-    }
-
-    private static async Task<string> ComputeSha256Async(string filePath)
-    {
-        await using FileStream stream = File.OpenRead(filePath);
-        byte[] hash = await SHA256.HashDataAsync(stream);
-        return Convert.ToHexString(hash).ToLowerInvariant();
-    }
-
-    private static string GetRepositoryPath(string manifestPath, string repositoryTarballPath)
-    {
-        string manifestDirectory = Path.GetDirectoryName(manifestPath) ?? string.Empty;
-        string relative = Path.GetRelativePath(manifestDirectory, repositoryTarballPath);
-        return relative.Replace(Path.DirectorySeparatorChar, '/');
     }
 
     private static string? GetRegistrySpecifier(string? environmentVariable)
@@ -360,45 +314,48 @@ public sealed class PackageBuilder
         return process.ExitCode == 0;
     }
 
-    private static void WriteToolsManifest(string manifestPath, string packageName, string version, string tarballName, string hash, string? registrySpecifier)
+    private static void UpdatePackageCatalog(string repositoryRoot, string packageName, string version, string registrySpecifier)
     {
-        JsonObject manifest = new()
+        string catalogPath = Path.Combine(repositoryRoot, "framework", "Packaging", "framework-packages.json");
+        JsonObject root = File.Exists(catalogPath)
+            ? JsonNode.Parse(File.ReadAllText(catalogPath)) as JsonObject ?? new JsonObject()
+            : new JsonObject();
+
+        JsonObject packages = root["packages"] as JsonObject ?? new JsonObject();
+        JsonObject packageNode = new()
         {
             ["name"] = packageName,
             ["version"] = version,
-            ["fileName"] = tarballName,
-            ["dependency"] = $"file:./.tools/{tarballName}",
-            ["hash"] = hash
+            ["registrySpecifier"] = registrySpecifier
         };
 
-        if (!string.IsNullOrWhiteSpace(registrySpecifier))
+        packages[packageName] = packageNode;
+
+        JsonObject orderedPackages = new();
+        foreach (KeyValuePair<string, JsonNode?> item in packages.OrderBy(pair => pair.Key, StringComparer.Ordinal))
         {
-            manifest["registrySpecifier"] = registrySpecifier;
+            orderedPackages[item.Key] = item.Value?.DeepClone();
         }
+
+        root["packages"] = orderedPackages;
 
         JsonSerializerOptions options = new()
         {
             WriteIndented = true
         };
 
-        Directory.CreateDirectory(Path.GetDirectoryName(manifestPath)!);
-        File.WriteAllText(manifestPath, manifest.ToJsonString(options) + Environment.NewLine);
+        Directory.CreateDirectory(Path.GetDirectoryName(catalogPath)!);
+        File.WriteAllText(catalogPath, root.ToJsonString(options) + Environment.NewLine);
     }
 
-    private static void UpdateEngineResourcesPackageJson(string packageJsonPath, string packageName, string tarballName)
+    private static void UpdateEngineResourcesPackageJson(string packageJsonPath, string packageName, string dependencySpecifier)
     {
-        JsonObject root;
-        if (File.Exists(packageJsonPath))
-        {
-            root = JsonNode.Parse(File.ReadAllText(packageJsonPath)) as JsonObject ?? new JsonObject();
-        }
-        else
-        {
-            root = new JsonObject();
-        }
+        JsonObject root = File.Exists(packageJsonPath)
+            ? JsonNode.Parse(File.ReadAllText(packageJsonPath)) as JsonObject ?? new JsonObject()
+            : new JsonObject();
 
         JsonObject dependencies = root["dependencies"] as JsonObject ?? new JsonObject();
-        dependencies[packageName] = $"file:./.tools/{tarballName}";
+        dependencies[packageName] = dependencySpecifier;
         root["dependencies"] = dependencies;
 
         JsonSerializerOptions options = new()
@@ -442,167 +399,48 @@ public sealed class PackageBuilder
         string PackageRelativePath,
         string TarballPrefix,
         string TarballPattern,
-        string RepositoryFolderName,
-        string ToolsManifestFileName,
         string? RegistrySpecifierEnvironmentVariable,
         IReadOnlyCollection<string> CleanupDirectories,
         string? DefaultRegistrySpecifierPattern,
         string? PublishRegistryUrl,
         string PublishAccess)
     {
-        internal static PackageBuildOptions Frontend
-        {
-            get;
-        } = new(
+        internal static PackageBuildOptions Frontend { get; } = new(
             "@electric-coding-llc/webstir-frontend",
             Path.Combine("framework", "frontend"),
             "webstir-frontend-",
             "webstir-frontend-*.tgz",
-            "frontend",
-            "frontend-package.json",
             "WEBSTIR_FRONTEND_REGISTRY_SPEC",
             new[] { "node_modules" },
             "@electric-coding-llc/webstir-frontend@{version}",
             "https://npm.pkg.github.com",
             "restricted");
 
-        internal string? GetDefaultRegistrySpecifier(string version) => string.IsNullOrWhiteSpace(DefaultRegistrySpecifierPattern) ? null : DefaultRegistrySpecifierPattern.Replace("{version}", version, StringComparison.Ordinal);
-
-        internal bool SupportsPublishing => !string.IsNullOrWhiteSpace(PublishRegistryUrl);
-
-        internal string GetPackageSpec(string version) => $"{PackageName}@{version}";
-
-        internal static PackageBuildOptions Testing
-        {
-            get;
-        } = new(
+        internal static PackageBuildOptions Testing { get; } = new(
             "@electric-coding-llc/webstir-test",
             Path.Combine("framework", "testing"),
             "webstir-test-",
             "webstir-test-*.tgz",
-            "testing",
-            "testing-package.json",
             "WEBSTIR_TEST_REGISTRY_SPEC",
             new[] { "node_modules", "dist" },
             "@electric-coding-llc/webstir-test@{version}",
             "https://npm.pkg.github.com",
             "restricted");
+
+        internal string? GetDefaultRegistrySpecifier(string version) =>
+            string.IsNullOrWhiteSpace(DefaultRegistrySpecifierPattern)
+                ? null
+                : DefaultRegistrySpecifierPattern.Replace("{version}", version, StringComparison.Ordinal);
+
+        internal bool SupportsPublishing => !string.IsNullOrWhiteSpace(PublishRegistryUrl);
+
+        internal string GetPackageSpec(string version) => $"{PackageName}@{version}";
     }
 }
 
 public readonly record struct PackageBuildResult(
     string PackageName,
     string Version,
-    string TarballName,
-    string Hash,
-    string? RegistrySpecifier,
+    string TarballPath,
+    string RegistrySpecifier,
     bool Published);
-
-internal readonly record struct PackageManifestEntry(
-    string Name,
-    string Version,
-    string FileName,
-    string Dependency,
-    string Hash,
-    string RepositoryPath,
-    string? RegistrySpecifier);
-
-public readonly record struct PackageManifestMetadata(DateTimeOffset GeneratedAtUtc)
-{
-    internal JsonObject ToJson()
-    {
-        JsonObject obj = new()
-        {
-            ["generatedAtUtc"] = GeneratedAtUtc.ToString("O")
-        };
-        return obj;
-    }
-}
-
-internal static class PackageManifestWriter
-{
-    internal static void Update(string manifestPath, PackageManifestEntry entry, PackageManifestMetadata metadata)
-    {
-        JsonObject root;
-        if (File.Exists(manifestPath))
-        {
-            root = JsonNode.Parse(File.ReadAllText(manifestPath)) as JsonObject ?? new JsonObject();
-        }
-        else
-        {
-            root = new JsonObject
-            {
-                ["schemaVersion"] = 1
-            };
-        }
-
-        int schemaVersion = root["schemaVersion"]?.GetValue<int>() ?? 1;
-        JsonObject packages = root["packages"] as JsonObject ?? new JsonObject();
-
-        JsonObject packageNode = CreatePackageNode(entry);
-        bool packageChanged = true;
-        if (packages.ContainsKey(entry.Name) && packages[entry.Name] is JsonObject existingPackage)
-        {
-            packageChanged = !JsonEquals(existingPackage, packageNode);
-        }
-
-        packages[entry.Name] = packageNode;
-
-        JsonObject sortedPackages = new();
-        foreach (KeyValuePair<string, JsonNode?> item in packages.OrderBy(pair => pair.Key, StringComparer.Ordinal))
-        {
-            sortedPackages[item.Key] = item.Value?.DeepClone();
-        }
-
-        JsonSerializerOptions options = new()
-        {
-            WriteIndented = true
-        };
-
-        JsonObject output = new()
-        {
-            ["schemaVersion"] = schemaVersion,
-            ["packages"] = sortedPackages
-        };
-
-        JsonObject metadataNode = metadata.ToJson();
-        if (!packageChanged && root["metadata"] is JsonObject existingMetadata)
-        {
-            metadataNode = (JsonObject)existingMetadata.DeepClone();
-        }
-
-        output["metadata"] = metadataNode;
-
-        string serialized = output.ToJsonString(options) + Environment.NewLine;
-        if (File.Exists(manifestPath) && string.Equals(File.ReadAllText(manifestPath), serialized, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        Directory.CreateDirectory(Path.GetDirectoryName(manifestPath)!);
-        File.WriteAllText(manifestPath, serialized);
-    }
-
-    private static bool JsonEquals(JsonObject left, JsonObject right) =>
-        string.Equals(left.ToJsonString(), right.ToJsonString(), StringComparison.Ordinal);
-
-    private static JsonObject CreatePackageNode(PackageManifestEntry entry)
-    {
-        JsonObject packageNode = new()
-        {
-            ["name"] = entry.Name,
-            ["version"] = entry.Version,
-            ["fileName"] = entry.FileName,
-            ["dependency"] = entry.Dependency,
-            ["hash"] = entry.Hash,
-            ["repositoryPath"] = entry.RepositoryPath
-        };
-
-        if (!string.IsNullOrWhiteSpace(entry.RegistrySpecifier))
-        {
-            packageNode["registrySpecifier"] = entry.RegistrySpecifier;
-        }
-
-        return packageNode;
-    }
-}

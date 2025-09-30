@@ -1,8 +1,0 @@
-{
-  "name": "@electric-coding-llc/webstir-frontend",
-  "version": "0.2.2",
-  "fileName": "webstir-frontend-0-2-2.tgz",
-  "dependency": "file:./.tools/webstir-frontend-0-2-2.tgz",
-  "hash": "3ec6cb77c5afc26f1aed2c381f242cf54be91aeb4b3182d9581d62ee5835b9da",
-  "registrySpecifier": "@electric-coding-llc/webstir-frontend@0.2.2"
-}

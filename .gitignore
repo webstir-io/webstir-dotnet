@@ -411,5 +411,4 @@ Sandbox/npmrc/host/.npmrc
 .env
 .env.local
 Engine/Resources/tools/*.tgz
-framework/out/**/*.tgz
 framework/frontend/*.tgz

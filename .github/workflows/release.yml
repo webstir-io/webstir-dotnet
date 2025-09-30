@@ -161,25 +161,14 @@ jobs:
         if: env.IS_DRY_RUN != 'true'
         env:
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
-        run: dotnet run --project framework/Framework.csproj -- packages sync --publish --verify
-
-      - name: Compute tarball file names
-        if: env.IS_DRY_RUN != 'true'
-        id: tarballs
-        run: |
-          SAFE_VERSION="${RELEASE_VERSION//./-}"
-          FRONTEND_PATH="framework/out/frontend/${RELEASE_VERSION}/webstir-frontend-${SAFE_VERSION}.tgz"
-          TESTING_PATH="framework/out/testing/${RELEASE_VERSION}/webstir-test-${SAFE_VERSION}.tgz"
-          echo "frontend=$FRONTEND_PATH" >> "$GITHUB_OUTPUT"
-          echo "testing=$TESTING_PATH" >> "$GITHUB_OUTPUT"
-          echo "SAFE_VERSION=$SAFE_VERSION" >> "$GITHUB_ENV"
+        run: dotnet run --project framework/Framework.csproj -- packages publish
 
       - name: Commit release artifacts
         if: github.event_name == 'workflow_dispatch' && env.IS_DRY_RUN != 'true'
         run: |
           git add framework/frontend/package.json framework/frontend/package-lock.json \
                   framework/testing/package.json framework/testing/package-lock.json \
-                  framework/out/manifest.json
+                  framework/Packaging/framework-packages.json Engine/Resources/package.json
           if git diff --cached --quiet; then
             echo "No changes detected; nothing to commit."
           else
@@ -199,6 +188,3 @@ jobs:
         with:
           tag_name: v${{ env.RELEASE_VERSION }}
           name: Webstir v${{ env.RELEASE_VERSION }}
-          files: |
-            ${{ steps.tarballs.outputs.frontend }}
-            ${{ steps.tarballs.outputs.testing }}

@@ -24,6 +24,10 @@ public static class PackageSynchronizer
         {
             logger?.LogInformation("[packages] Prefer registry packages (WEBSTIR_PACKAGE_SOURCE=registry).");
         }
+        else
+        {
+            logger?.LogWarning("[packages] Local package archives are no longer bundled; registry packages will be used instead.");
+        }
 
         FrontendPackageEnsureResult? frontendResult = includeFrontend && ensureFrontend is not null
             ? await ensureFrontend(preferRegistry)
@@ -43,7 +47,7 @@ public static class PackageSynchronizer
             {
                 bool packageLockRemoved = false;
 
-                if (frontendResult?.TarballUpdated == true)
+                if (NeedsInstall(frontendResult))
                 {
                     if (!packageLockRemoved)
                     {
@@ -55,7 +59,7 @@ public static class PackageSynchronizer
                     RemoveCachedPackage(workspace, logger, "@electric-coding-llc/webstir-frontend");
                 }
 
-                if (testResult?.TarballUpdated == true)
+                if (NeedsInstall(testResult))
                 {
                     if (!packageLockRemoved)
                     {
@@ -92,19 +96,7 @@ public static class PackageSynchronizer
 
     private static bool NeedsInstall<TEnsure>(TEnsure? result)
         where TEnsure : struct, IPackageEnsureResult =>
-        result is
-        {
-            ToolsAdded: true
-        } or
-        {
-            DependencyUpdated: true
-        } or
-        {
-            TarballUpdated: true
-        } or
-        {
-            VersionMismatch: true
-        };
+        result is { DependencyUpdated: true } or { VersionMismatch: true };
 
     private static void RemovePackageLockIfPresent(IPackageWorkspace workspace, ILogger? logger)
     {

@@ -1,10 +1,7 @@
 namespace Framework.Commands;
 
 using System;
-using System.Diagnostics;
 using System.IO;
-using System.Security.Cryptography;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Framework.Packaging;
 using Microsoft.Extensions.Logging;
@@ -13,7 +10,6 @@ internal sealed class PackageConsoleCommand
 {
     private const string SyncCommand = "sync";
     private const string PublishCommand = "publish";
-    private const string VerifyCommand = "verify";
 
     private readonly PackageBuilder _packageBuilder;
     private readonly ILogger<PackageConsoleCommand> _logger;
@@ -30,20 +26,30 @@ internal sealed class PackageConsoleCommand
         {
             ParsedArguments parsed = ParseArguments(args);
             string repositoryRoot = Directory.GetCurrentDirectory();
+            bool publishPackages = parsed.Mode == PublishCommand;
 
-            if (parsed.Mode == VerifyCommand)
+            if (publishPackages)
             {
-                await VerifyAsync(repositoryRoot);
-                return 0;
+                _logger.LogInformation("[packages] Publishing framework packages to the configured registry...");
+            }
+            else
+            {
+                _logger.LogInformation("[packages] Building framework packages...");
             }
 
-            await RunSyncAsync(repositoryRoot, parsed, parsed.PublishPackages);
-
-            if (parsed.RunVerifyAfterSync)
+            if (parsed.IncludeFrontend)
             {
-                await VerifyAsync(repositoryRoot);
+                PackageBuildResult result = await _packageBuilder.BuildFrontendAsync(repositoryRoot, publishPackages);
+                LogResult(result, publishPackages);
             }
 
+            if (parsed.IncludeTesting)
+            {
+                PackageBuildResult result = await _packageBuilder.BuildTestingAsync(repositoryRoot, publishPackages);
+                LogResult(result, publishPackages);
+            }
+
+            _logger.LogInformation("[packages] Done.");
             return 0;
         }
         catch (Exception ex)
@@ -53,130 +59,24 @@ internal sealed class PackageConsoleCommand
         }
     }
 
-    private async Task RunSyncAsync(string repositoryRoot, ParsedArguments parsed, bool publishPackages)
+    private void LogResult(PackageBuildResult result, bool publish)
     {
-        _logger.LogInformation("[packages] Synchronizing framework packages...");
-        if (publishPackages)
+        _logger.LogInformation(
+            "[packages] Built {Package} {Version}. Tarball: {Tarball}.",
+            result.PackageName,
+            result.Version,
+            result.TarballPath);
+
+        if (publish)
         {
-            _logger.LogInformation("[packages] Publish mode enabled; packages will be pushed to the registry if missing.");
-        }
-
-        PackageManifestMetadata manifestMetadata = PackageBuilder.CreateManifestMetadata();
-
-        if (parsed.IncludeFrontend)
-        {
-            PackageBuildResult result = await _packageBuilder.BuildFrontendAsync(repositoryRoot, manifestMetadata, publishPackages);
-            _logger.LogInformation(
-                "[packages] Rebuilt {Package} {Version} (hash {Hash}).",
-                result.PackageName,
-                result.Version,
-                result.Hash);
-
-            if (publishPackages && result.Published)
+            if (result.Published)
             {
                 _logger.LogInformation("[packages] Published {Package}@{Version} to registry.", result.PackageName, result.Version);
             }
-        }
-
-        if (parsed.IncludeTesting)
-        {
-            PackageBuildResult result = await _packageBuilder.BuildTestingAsync(repositoryRoot, manifestMetadata, publishPackages);
-            _logger.LogInformation(
-                "[packages] Rebuilt {Package} {Version} (hash {Hash}).",
-                result.PackageName,
-                result.Version,
-                result.Hash);
-        }
-
-        _logger.LogInformation("[packages] Package sync complete.");
-    }
-
-    private async Task VerifyAsync(string repositoryRoot)
-    {
-        _logger.LogInformation("[packages] Verifying committed package artifacts...");
-
-        ProcessStartInfo startInfo = new()
-        {
-            FileName = "git",
-            Arguments = "status --porcelain -- framework/Resources/tools framework/out",
-            WorkingDirectory = repositoryRoot,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-
-        using Process? process = Process.Start(startInfo);
-        if (process is null)
-        {
-            throw new InvalidOperationException("Failed to start 'git status' for verification.");
-        }
-
-        string output = await process.StandardOutput.ReadToEndAsync();
-        string error = await process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-
-        if (process.ExitCode != 0)
-        {
-            string message = string.IsNullOrWhiteSpace(error) ? output : error;
-            throw new InvalidOperationException($"git status failed during verification: {message.Trim()}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(output))
-        {
-            Console.Write(output);
-            throw new InvalidOperationException("Package artifacts are out of sync. Run 'framework packages sync' and commit the changes.");
-        }
-
-        ValidateManifestArtifacts(repositoryRoot);
-        _logger.LogInformation("[packages] Package artifacts are in sync.");
-    }
-
-    private void ValidateManifestArtifacts(string repositoryRoot)
-    {
-        string manifestPath = Path.Combine(repositoryRoot, "framework", "out", "manifest.json");
-        if (!File.Exists(manifestPath))
-        {
-            throw new InvalidOperationException("Package manifest not found. Run 'framework packages sync'.");
-        }
-
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(manifestPath));
-        JsonElement root = document.RootElement;
-        if (!root.TryGetProperty("packages", out JsonElement packagesElement) || packagesElement.ValueKind != JsonValueKind.Object)
-        {
-            throw new InvalidOperationException("Package manifest missing packages. Run 'framework packages sync'.");
-        }
-
-        foreach (JsonProperty package in packagesElement.EnumerateObject())
-        {
-            JsonElement packageNode = package.Value;
-            string name = packageNode.GetProperty("name").GetString() ?? package.Name;
-            string hash = packageNode.GetProperty("hash").GetString() ?? string.Empty;
-            string fileName = packageNode.GetProperty("fileName").GetString() ?? string.Empty;
-            string dependency = packageNode.GetProperty("dependency").GetString() ?? string.Empty;
-            string repositoryPath = packageNode.GetProperty("repositoryPath").GetString() ?? string.Empty;
-
-            EnsureHashMatches(Path.Combine(repositoryRoot, "framework", "Resources", "tools", fileName), hash, name);
-            EnsureHashMatches(Path.Combine(repositoryRoot, repositoryPath.Replace('/', Path.DirectorySeparatorChar)), hash, name);
-
-            if (!dependency.EndsWith(fileName, StringComparison.Ordinal))
+            else
             {
-                throw new InvalidOperationException($"Manifest dependency for {name} does not match tarball name. Run 'framework packages sync'.");
+                _logger.LogInformation("[packages] Skipped publishing {Package}@{Version}; version already exists or publish disabled.", result.PackageName, result.Version);
             }
-        }
-    }
-
-    private static void EnsureHashMatches(string filePath, string expectedHash, string packageName)
-    {
-        if (!File.Exists(filePath))
-        {
-            throw new InvalidOperationException($"Expected tarball missing for {packageName}: {filePath}. Run 'framework packages sync'.");
-        }
-
-        using FileStream stream = File.OpenRead(filePath);
-        string actualHash = Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
-        if (!string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException($"Tarball hash mismatch for {packageName} (expected {expectedHash}, found {actualHash}). Run 'framework packages sync'.");
         }
     }
 
@@ -185,8 +85,6 @@ internal sealed class PackageConsoleCommand
         string mode = SyncCommand;
         bool includeFrontend = true;
         bool includeTesting = true;
-        bool runVerifyAfterSync = false;
-        bool publishPackages = false;
 
         int index = 0;
         if (args.Length > 0 && !IsOption(args[0]))
@@ -214,44 +112,26 @@ internal sealed class PackageConsoleCommand
                     includeFrontend = true;
                     includeTesting = true;
                     break;
-                case "--verify":
-                    runVerifyAfterSync = true;
-                    break;
-                case "--publish":
-                    publishPackages = true;
-                    break;
                 default:
                     throw new InvalidOperationException($"Unknown packages option '{current}'.");
             }
         }
 
-        if (mode == PublishCommand)
+        if (mode is not SyncCommand and not PublishCommand)
         {
-            publishPackages = true;
-            runVerifyAfterSync = true;
-            mode = SyncCommand;
+            throw new InvalidOperationException($"Unknown packages command '{mode}'. Use '{SyncCommand}' or '{PublishCommand}'.");
         }
 
-        if (mode is not SyncCommand and not VerifyCommand)
-        {
-            throw new InvalidOperationException($"Unknown packages command '{mode}'. Use '{SyncCommand}' or '{VerifyCommand}'.");
-        }
-
-        if (mode == SyncCommand && !includeFrontend && !includeTesting)
+        if (!includeFrontend && !includeTesting)
         {
             includeFrontend = true;
             includeTesting = true;
         }
 
-        return new ParsedArguments(mode, includeFrontend, includeTesting, runVerifyAfterSync, publishPackages);
+        return new ParsedArguments(mode, includeFrontend, includeTesting);
     }
 
     private static bool IsOption(string value) => value.StartsWith("-", StringComparison.Ordinal);
 
-    private readonly record struct ParsedArguments(
-        string Mode,
-        bool IncludeFrontend,
-        bool IncludeTesting,
-        bool RunVerifyAfterSync,
-        bool PublishPackages);
+    private readonly record struct ParsedArguments(string Mode, bool IncludeFrontend, bool IncludeTesting);
 }

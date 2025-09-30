@@ -76,14 +76,14 @@ Usage: `webstir install [--dry-run]`
 
 What it does:
 - Synchronizes the bundled `@electric-coding-llc/webstir-frontend` and `@electric-coding-llc/webstir-test` packages with `node_modules`.
-- Installs tarballs from the local framework repository and updates `.tools/*.json` manifests.
+- Installs packages from the configured npm registry using the specifiers embedded in the CLI.
 - Verifies versions against the CLI manifest and exits with guidance if drift remains.
 
 Notes:
 - Run after upgrading the CLI or whenever `npm install` has modified pinned dependencies.
 - Safe to run repeatedly; skips work when packages are already in sync.
 - Use `--dry-run` to preview which packages would be installed or updated without running `npm install` (non-zero exit code means action is required).
-- Set `WEBSTIR_PACKAGE_SOURCE=registry` (or `WEBSTIR_PREFER_REGISTRY=1`) to install from a published npm registry using the manifest's `registrySpecifier`; leave unset to use the bundled tarballs. Configure npm auth before enabling registry mode.
+- Registry access is required; configure `.npmrc` with the appropriate credentials (currently `GH_PACKAGES_TOKEN` for GitHub Packages) before running the workflow.
 
 ### publish
 Usage: `webstir publish`
@@ -199,4 +199,3 @@ Options:
 - Templates — [templates](templates.md)
 - Testing — [.codex/testing.md](../../.codex/testing.md), [tests](../explanations/testing.md)
 - Workspace and paths — [workspace](../explanations/workspace.md)
-
