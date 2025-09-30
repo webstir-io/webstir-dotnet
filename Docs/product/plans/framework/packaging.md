@@ -8,14 +8,14 @@
 - Provide clear guardrails so contributors know when to regenerate artifacts and how to verify the results.
 
 ## Current Pain Points
-- Legacy tooling required multiple bash scripts (`build-frontend-package.sh`, `build-test-package.sh`) to run in the right order; this has been replaced by the managed `webstir packages` workflow, but we should continue simplifying configuration so no shell fallbacks resurface.
+- Legacy tooling required multiple bash scripts (`build-frontend-package.sh`, `build-test-package.sh`) to run in the right order; this has been replaced by the managed `framework packages` workflow, but we should continue simplifying configuration so no shell fallbacks resurface.
 - `framework/out/manifest.json` is generated but committed, leaving contributors unsure when to rerun the scripts versus editing by hand.
 - Runtime installers rewrite `package.json` and delete `node_modules` entries, which surprises anyone experimenting with alternative package managers or workspaces.
 - Documentation for the workflow is spread across scripts and CLI output, making the end-to-end story feel clunky.
 
 ## Desired Experience
 1. A contributor updates TypeScript sources.
-2. They run a single package command (e.g., `webstir packages sync`), which:
+2. They run a single package command (e.g., `dotnet run --project framework/Framework.csproj -- packages sync`), which:
    - Builds the packages that changed.
    - Regenerates `framework/out/manifest.json` and embeds the manifests/resources into the CLI.
    - Records a concise changelog or diff so reviewers see what changed.
@@ -64,7 +64,7 @@
 - **Command Host** — Keep the package workflow inside the existing dotnet CLI. This preserves the single binary entry point, lets us reuse dependency injection/logging, and avoids shipping an additional Node wrapper. The CLI will orchestrate shell/Node helpers as child processes when needed.
 - **Manifest Versioning** — Maintain per-package semantic versions (as today) and add a generated metadata block with the command timestamp and git commit. No extra top-level manifest version is required; reviews can rely on the individual package bumps plus the generated metadata to confirm freshness.
 - **Build Caching** — Detect changes via git diff of `framework/frontend` or `framework/testing`. If no tracked files changed, skip `npm pack`; otherwise rebuild and overwrite the prior tarball. Long term we can hash source folders to double-check, but git diff gating is the first milestone.
-- **CI Verification** — Add a lightweight job (or test target) that runs `webstir packages sync --verify` in a clean checkout and fails if git status is dirty afterward. This keeps runtime under control while guaranteeing that committed manifests and tarballs match the sources.
+- **CI Verification** — Add a lightweight job (or test target) that runs `dotnet run --project framework/Framework.csproj -- packages sync --verify` in a clean checkout and fails if git status is dirty afterward. This keeps runtime under control while guaranteeing that committed manifests and tarballs match the sources.
 
 ## Success Criteria
 - Contributors routinely use a single command to refresh packages; ad-hoc script usage drops.

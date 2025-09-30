@@ -2,6 +2,8 @@ using System;
 using System.Globalization;
 using System.Threading.Tasks;
 using Framework;
+using Framework.Commands;
+using Framework.Packaging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -20,6 +22,8 @@ try
     ServiceCollection services = new();
     services.AddSingleton<IConfiguration>(configuration);
     services.AddLogging(builder => builder.AddSerilog(logger, dispose: true));
+    services.AddSingleton<PackageBuilder>();
+    services.AddSingleton<PackageConsoleCommand>();
     services.AddSingleton<FrameworkCommandRouter>();
 
     await using ServiceProvider provider = services.BuildServiceProvider();

@@ -1,46 +1,55 @@
+namespace Framework.Commands;
+
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading.Tasks;
-
-using Engine.Interfaces;
 using Framework.Packaging;
 using Microsoft.Extensions.Logging;
 
-namespace Engine.Workflows;
-
-public sealed class PackageWorkflow(
-    ILogger<PackageWorkflow> logger,
-    PackageBuilder packageBuilder) : IWorkflow
+internal sealed class PackageConsoleCommand
 {
     private const string SyncCommand = "sync";
-    private const string VerifyCommand = "verify";
     private const string PublishCommand = "publish";
-    private readonly ILogger<PackageWorkflow> _logger = logger;
-    private readonly PackageBuilder _packageBuilder = packageBuilder;
+    private const string VerifyCommand = "verify";
 
-    public string WorkflowName => Commands.Packages;
+    private readonly PackageBuilder _packageBuilder;
+    private readonly ILogger<PackageConsoleCommand> _logger;
 
-    public async Task ExecuteAsync(string[] args)
+    public PackageConsoleCommand(PackageBuilder packageBuilder, ILogger<PackageConsoleCommand> logger)
     {
-        ArgumentNullException.ThrowIfNull(args);
+        _packageBuilder = packageBuilder;
+        _logger = logger;
+    }
 
-        string repositoryRoot = Directory.GetCurrentDirectory();
-        ParsedArguments parsed = ParseArguments(args);
-
-        if (parsed.Mode == VerifyCommand)
+    public async Task<int> ExecuteAsync(string[] args)
+    {
+        try
         {
-            await VerifyAsync(repositoryRoot);
-            return;
+            ParsedArguments parsed = ParseArguments(args);
+            string repositoryRoot = Directory.GetCurrentDirectory();
+
+            if (parsed.Mode == VerifyCommand)
+            {
+                await VerifyAsync(repositoryRoot);
+                return 0;
+            }
+
+            await RunSyncAsync(repositoryRoot, parsed, parsed.PublishPackages);
+
+            if (parsed.RunVerifyAfterSync)
+            {
+                await VerifyAsync(repositoryRoot);
+            }
+
+            return 0;
         }
-
-        await RunSyncAsync(repositoryRoot, parsed, parsed.PublishPackages);
-
-        if (parsed.RunVerifyAfterSync)
+        catch (Exception ex)
         {
-            await VerifyAsync(repositoryRoot);
+            _logger.LogError(ex, "framework packages command failed.");
+            return 1;
         }
     }
 
@@ -115,7 +124,7 @@ public sealed class PackageWorkflow(
         if (!string.IsNullOrWhiteSpace(output))
         {
             Console.Write(output);
-            throw new InvalidOperationException("Package artifacts are out of sync. Run 'webstir packages sync' and commit the changes.");
+            throw new InvalidOperationException("Package artifacts are out of sync. Run 'framework packages sync' and commit the changes.");
         }
 
         ValidateManifestArtifacts(repositoryRoot);
@@ -127,14 +136,14 @@ public sealed class PackageWorkflow(
         string manifestPath = Path.Combine(repositoryRoot, "framework", "out", "manifest.json");
         if (!File.Exists(manifestPath))
         {
-            throw new InvalidOperationException("Package manifest not found. Run 'webstir packages sync'.");
+            throw new InvalidOperationException("Package manifest not found. Run 'framework packages sync'.");
         }
 
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(manifestPath));
         JsonElement root = document.RootElement;
         if (!root.TryGetProperty("packages", out JsonElement packagesElement) || packagesElement.ValueKind != JsonValueKind.Object)
         {
-            throw new InvalidOperationException("Package manifest missing packages. Run 'webstir packages sync'.");
+            throw new InvalidOperationException("Package manifest missing packages. Run 'framework packages sync'.");
         }
 
         foreach (JsonProperty package in packagesElement.EnumerateObject())
@@ -151,7 +160,7 @@ public sealed class PackageWorkflow(
 
             if (!dependency.EndsWith(fileName, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException($"Manifest dependency for {name} does not match tarball name. Run 'webstir packages sync'.");
+                throw new InvalidOperationException($"Manifest dependency for {name} does not match tarball name. Run 'framework packages sync'.");
             }
         }
     }
@@ -160,14 +169,14 @@ public sealed class PackageWorkflow(
     {
         if (!File.Exists(filePath))
         {
-            throw new InvalidOperationException($"Expected tarball missing for {packageName}: {filePath}. Run 'webstir packages sync'.");
+            throw new InvalidOperationException($"Expected tarball missing for {packageName}: {filePath}. Run 'framework packages sync'.");
         }
 
         using FileStream stream = File.OpenRead(filePath);
         string actualHash = Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
         if (!string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException($"Tarball hash mismatch for {packageName} (expected {expectedHash}, found {actualHash}). Run 'webstir packages sync'.");
+            throw new InvalidOperationException($"Tarball hash mismatch for {packageName} (expected {expectedHash}, found {actualHash}). Run 'framework packages sync'.");
         }
     }
 
@@ -176,25 +185,14 @@ public sealed class PackageWorkflow(
         string mode = SyncCommand;
         bool includeFrontend = true;
         bool includeTesting = true;
-        bool verifyAfterSync = false;
+        bool runVerifyAfterSync = false;
         bool publishPackages = false;
 
         int index = 0;
-        if (args.Length > 0 && string.Equals(args[0], Commands.Packages, StringComparison.OrdinalIgnoreCase))
+        if (args.Length > 0 && !IsOption(args[0]))
         {
+            mode = args[0].ToLowerInvariant();
             index = 1;
-        }
-
-        if (index < args.Length && !IsOption(args[index]))
-        {
-            mode = args[index].ToLowerInvariant();
-            index++;
-        }
-
-        if (string.Equals(mode, PublishCommand, StringComparison.OrdinalIgnoreCase))
-        {
-            publishPackages = true;
-            verifyAfterSync = true;
         }
 
         for (int i = index; i < args.Length; i++)
@@ -217,33 +215,35 @@ public sealed class PackageWorkflow(
                     includeTesting = true;
                     break;
                 case "--verify":
-                    verifyAfterSync = true;
+                    runVerifyAfterSync = true;
                     break;
                 case "--publish":
                     publishPackages = true;
                     break;
                 default:
-                    throw new InvalidOperationException($"Unknown package option '{current}'.");
+                    throw new InvalidOperationException($"Unknown packages option '{current}'.");
             }
         }
 
-        if (mode is not SyncCommand and not VerifyCommand and not PublishCommand)
+        if (mode == PublishCommand)
         {
-            throw new InvalidOperationException($"Unknown package command '{mode}'. Use '{SyncCommand}', '{PublishCommand}', or '{VerifyCommand}'.");
+            publishPackages = true;
+            runVerifyAfterSync = true;
+            mode = SyncCommand;
         }
 
-        if (publishPackages)
+        if (mode is not SyncCommand and not VerifyCommand)
         {
-            verifyAfterSync = true;
+            throw new InvalidOperationException($"Unknown packages command '{mode}'. Use '{SyncCommand}' or '{VerifyCommand}'.");
         }
 
-        if ((mode == SyncCommand || mode == PublishCommand) && !includeFrontend && !includeTesting)
+        if (mode == SyncCommand && !includeFrontend && !includeTesting)
         {
             includeFrontend = true;
             includeTesting = true;
         }
 
-        return new ParsedArguments(mode, includeFrontend, includeTesting, verifyAfterSync, publishPackages);
+        return new ParsedArguments(mode, includeFrontend, includeTesting, runVerifyAfterSync, publishPackages);
     }
 
     private static bool IsOption(string value) => value.StartsWith("-", StringComparison.Ordinal);

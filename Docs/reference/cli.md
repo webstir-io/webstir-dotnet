@@ -22,8 +22,6 @@ Common patterns:
 - `webstir watch`
 - `webstir test`
 - `webstir install`
-- `webstir packages sync`
-- `webstir packages publish`
 - `webstir publish`
 - `webstir add-page about`
 - `webstir add-test auth/login`
@@ -167,7 +165,6 @@ Commands:
   watch       Build, run servers, and watch (default)
   test        Build then run tests
   install     Synchronize framework packages
-  packages    Build and verify framework packages
   publish     Produce optimized dist outputs
   add-page    Scaffold a new frontend page
   add-test    Scaffold a new test file
@@ -195,24 +192,11 @@ Options:
 - `Engine/Workflows/` orchestrates `init`, `build`, `watch`, `test`, `publish`, `add-page`, `add-test`.
 - Use `AppWorkspace` and `Engine/Constants.cs` for paths. Avoid manual string manipulation; prefer helpers in `Engine.Extensions`.
 - Keep changes minimal and behavior-preserving. Follow `.codex/style.md` and `.editorconfig` when editing C#.
+- Framework packaging commands live in `framework/Framework.csproj`; run `dotnet run --project framework/Framework.csproj -- packages ...` when rebuilding bundles.
 
 ## Related Docs
 - High-level solution overview — [solution](../explanations/solution.md)
 - Templates — [templates](templates.md)
 - Testing — [.codex/testing.md](../../.codex/testing.md), [tests](../explanations/testing.md)
 - Workspace and paths — [workspace](../explanations/workspace.md)
-### packages
-Usage: `webstir packages [sync|publish|verify] [--frontend|--test] [--verify] [--publish]`
 
-What it does:
-- Wraps the framework packaging workflow to rebuild the bundled `@electric-coding-llc/webstir-frontend` and `@electric-coding-llc/webstir-test` tarballs.
-- Copies the new artifacts into `framework/Resources/tools` and `framework/out`, regenerating `framework/out/manifest.json`.
-- `publish` (or `--publish`) pushes the rebuilt tarballs to GitHub Packages if the version is missing.
-- Optional `--frontend` or `--test` limits the rebuild to a single package.
-- `--verify` (or the standalone `verify` subcommand) ensures the manifest and tarballs are already committed—handy for CI checks.
-
-Notes:
-- Run from the repository root (where `utilities/` lives).
-- Registry overrides still respect `WEBSTIR_FRONTEND_REGISTRY_SPEC` and `WEBSTIR_TEST_REGISTRY_SPEC` if set before invoking the command (set to URLs such as `https://npm.pkg.github.com/@electric-coding-llc/webstir-frontend`).
-- Publishing requires an `.npmrc` with `https://npm.pkg.github.com` credentials (e.g., export `GH_PACKAGES_TOKEN` and source `.env.local`).
-- The legacy shell scripts remain available for automation but the CLI workflow is the canonical entry point.

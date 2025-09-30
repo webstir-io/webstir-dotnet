@@ -13,7 +13,7 @@ cd "$ROOT_DIR"
 SEED_DIR="CLI/out/seed"
 
 echo "[0/5] Updating local package tarballs ..."
-dotnet run --project CLI -- packages sync
+dotnet run --project framework/Framework.csproj -- packages sync
 
 echo "[1/5] Initializing seed at $SEED_DIR ..."
 if [ -d "$SEED_DIR" ]; then

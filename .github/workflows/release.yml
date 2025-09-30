@@ -161,7 +161,7 @@ jobs:
         if: env.IS_DRY_RUN != 'true'
         env:
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
-        run: dotnet run --project FrameworkCLI -- build --publish --verify
+        run: dotnet run --project framework/Framework.csproj -- packages sync --publish --verify
 
       - name: Compute tarball file names
         if: env.IS_DRY_RUN != 'true'

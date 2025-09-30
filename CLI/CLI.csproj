@@ -18,7 +18,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Engine\Engine.csproj" />
-    <ProjectReference Include="..\framework\Framework.csproj" />
   </ItemGroup>
 
   <ItemGroup>

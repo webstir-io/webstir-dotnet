@@ -17,7 +17,6 @@ public static class Help
         [Commands.Test] = GetTestCommand(),
         [Commands.Watch] = GetWatchCommand(),
         [Commands.Install] = GetInstallCommand(),
-        [Commands.Packages] = GetPackagesCommand(),
         [Commands.Publish] = GetPublishCommand(),
         [Commands.Help] = GetHelpCommand()
     };
@@ -120,26 +119,6 @@ public static class Help
                 Example(App.Name, $"Same as '{App.Name} {Commands.Watch}'"),
                 Example($"{App.Name} {Commands.Watch} ../project", "Watch project in parent directory")
             ]);
-
-    private static CommandHelp GetPackagesCommand() =>
-        CreateCommand(Commands.Packages,
-            "Build, publish, and verify framework packages",
-            [
-                Example($"{App.Name} {Commands.Packages} sync", "Rebuild frontend and testing packages"),
-                Example($"{App.Name} {Commands.Packages} sync --frontend", "Rebuild only the frontend package"),
-                Example($"{App.Name} {Commands.Packages} publish", "Rebuild and publish packages to GitHub Packages"),
-                Example($"{App.Name} {Commands.Packages} verify", "Ensure manifests and tarballs are committed")
-            ],
-            [
-                Option("sync", "Rebuild package packages (default)"),
-                Option("publish", "Rebuild and publish packages to the configured registry"),
-                Option("verify", "Check that package artifacts are committed"),
-                Option("--frontend", "Only rebuild the frontend package"),
-                Option("--test", "Only rebuild the testing package"),
-                Option("--verify", "After syncing, ensure git status is clean for package files"),
-                Option("--publish", "Publish packages after syncing")
-            ],
-            "[sync|publish|verify] [options]");
 
     private static CommandHelp GetPublishCommand() =>
         CreateCommand(Commands.Publish,

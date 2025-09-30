@@ -25,6 +25,6 @@ npm test
 popd > /dev/null
 
 echo "Verifying package artifacts..."
-dotnet run --project "$ROOT_DIR/CLI" -- packages sync --verify
+dotnet run --project "$ROOT_DIR/framework/Framework.csproj" -- packages sync --verify
 
 echo "Done."

@@ -7,13 +7,13 @@ Usage: utilities/build-packages.sh [--force] [build-options]
 
 Detects changes under framework/frontend or framework/testing. If any tracked
 changes are found (staged or unstaged), the script runs:
-  dotnet run --project FrameworkCLI -- build [build-options]
+  dotnet run --project framework/Framework.csproj -- packages sync [build-options]
 
 Options:
   --force   Run the build command even when no changes are detected.
   -h|--help Show this help text.
 
-Any additional arguments are passed straight to `framework build`.
+Any additional arguments are passed straight to `framework packages sync`.
 USAGE
 }
 
@@ -52,7 +52,7 @@ if [[ "$FORCE" != "true" ]]; then
 fi
 
 echo "[build-packages] Detected framework package changes; rebuilding packages." >&2
-dotnet run --project FrameworkCLI -- build "${SYNC_ARGS[@]}"
+dotnet run --project framework/Framework.csproj -- packages sync "${SYNC_ARGS[@]}"
 
 if git ls-files --error-unmatch framework/out/manifest.json >/dev/null 2>&1; then
   if git status --porcelain=v1 framework/out/manifest.json | grep -q '.'; then
