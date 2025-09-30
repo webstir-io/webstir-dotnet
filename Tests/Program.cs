@@ -14,6 +14,7 @@ using PublishWorkflowTests = Tests.Workflows.Publish.PublishTests;
 using WatchWorkflowTests = Tests.Workflows.Watch.WatchTests;
 using AddWorkflowTests = Tests.Workflows.Add.AddTests;
 using TestWorkflowTests = Tests.Workflows.Test.TestTests;
+using PackageInstallerTests = Tests.PackageInstallers.PackageInstallerTests;
 
 namespace Tests;
 
@@ -124,6 +125,7 @@ public class Program
         Console.WriteLine("  publish              - Tests the publish command");
         Console.WriteLine("  help                 - Tests the help command");
         Console.WriteLine("  add                  - Tests add workflow");
+        Console.WriteLine("  packages             - Tests framework package installers");
         Console.WriteLine();
         Console.WriteLine("Examples:");
         Console.WriteLine("  dotnet run                    # Run quick tests");
@@ -152,6 +154,7 @@ public class Program
         services.AddTransient<ITestSuite, AddWorkflowTests>();
         services.AddTransient<ITestSuite, FrontendManifestTests>();
         services.AddTransient<ITestSuite, TestWorkflowTests>();
+        services.AddTransient<ITestSuite, PackageInstallerTests>();
 
         // Register test runner and output manager
         services.AddTransient<ITestRunner, TestRunner>();

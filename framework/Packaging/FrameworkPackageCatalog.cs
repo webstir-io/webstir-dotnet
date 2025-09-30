@@ -6,17 +6,17 @@ using System.IO;
 using System.Reflection;
 using System.Text.Json;
 
-internal static class FrameworkPackageCatalog
+public static class FrameworkPackageCatalog
 {
     private const string ResourceName = "Framework.Packaging.framework-packages.json";
 
     private static readonly Lazy<IDictionary<string, FrameworkPackageMetadata>> Packages = new(Load, true);
 
-    internal static FrameworkPackageMetadata Frontend => Get("@electric-coding-llc/webstir-frontend");
+    public static FrameworkPackageMetadata Frontend => Get("@electric-coding-llc/webstir-frontend");
 
-    internal static FrameworkPackageMetadata Testing => Get("@electric-coding-llc/webstir-test");
+    public static FrameworkPackageMetadata Testing => Get("@electric-coding-llc/webstir-test");
 
-    internal static FrameworkPackageMetadata Get(string packageName)
+    public static FrameworkPackageMetadata Get(string packageName)
     {
         if (!Packages.Value.TryGetValue(packageName, out FrameworkPackageMetadata metadata))
         {

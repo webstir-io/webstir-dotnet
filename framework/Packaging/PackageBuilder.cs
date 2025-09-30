@@ -28,6 +28,35 @@ public sealed class PackageBuilder
     public async Task<PackageBuildResult> BuildTestingAsync(string repositoryRoot, bool publish) =>
         await BuildAsync(repositoryRoot, PackageBuildOptions.Testing, publish);
 
+    public async Task ValidatePublishAsync(string repositoryRoot)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
+
+        HashSet<string> registries = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (PackageBuildOptions options in PackageBuildOptions.All)
+        {
+            if (string.IsNullOrWhiteSpace(options.PublishRegistryUrl))
+            {
+                continue;
+            }
+
+            string registry = options.PublishRegistryUrl!;
+            if (!registries.Add(registry))
+            {
+                continue;
+            }
+
+            _logger.LogInformation("[packages] Verifying access to {Registry}...", registry);
+            await RunCommandAsync("npm", $"ping --registry \"{registry}\"", repositoryRoot, $"npm ping ({registry})");
+        }
+
+        if (registries.Count > 0)
+        {
+            _logger.LogInformation("[packages] Registry validation succeeded.");
+        }
+    }
+
     private async Task<PackageBuildResult> BuildAsync(string repositoryRoot, PackageBuildOptions options, bool publishPackages)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
@@ -426,6 +455,11 @@ public sealed class PackageBuilder
             "@electric-coding-llc/webstir-test@{version}",
             "https://npm.pkg.github.com",
             "restricted");
+
+        internal static IReadOnlyList<PackageBuildOptions> All
+        {
+            get;
+        } = new[] { Frontend, Testing };
 
         internal string? GetDefaultRegistrySpecifier(string version) =>
             string.IsNullOrWhiteSpace(DefaultRegistrySpecifierPattern)

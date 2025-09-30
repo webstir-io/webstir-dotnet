@@ -31,6 +31,7 @@ internal sealed class PackageConsoleCommand
             if (publishPackages)
             {
                 _logger.LogInformation("[packages] Publishing framework packages to the configured registry...");
+                await _packageBuilder.ValidatePublishAsync(repositoryRoot);
             }
             else
             {
