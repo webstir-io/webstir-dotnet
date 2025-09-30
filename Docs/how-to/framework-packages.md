@@ -27,7 +27,7 @@ This guide explains how maintainers rebuild the bundled frontend and testing pac
 - Provide `dry_run: true` if you only want to preview the next version without publishing packages or pushing commits.
 
 ## Developer Helpers
-- Run `utilities/build-packages.sh` before committing frontend/testing changes. The helper checks for tracked changes under `framework/frontend` or `framework/testing`, calls `framework packages sync` when needed, and stages the updated `framework/out/manifest.json` for you.
+- Before committing frontend/testing changes, run `dotnet run --project framework/Framework.csproj -- packages sync` to keep `framework/out/manifest.json` and tarballs up to date.
 
 ## Install In A Workspace
 - Run `webstir install` (or any workflow that indirectly calls it) inside a consuming workspace.

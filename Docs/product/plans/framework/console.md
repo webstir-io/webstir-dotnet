@@ -24,10 +24,9 @@
    - Configures Serilog logging (matches main CLI style) and DI container with required services only.
    - Relocate current `framework/frontend`, `framework/testing`, and `framework/out` under the project so packaging assets and code ship together.
 2. **Command Surface**
-   - `framework build [--frontend|--test|--both] [--publish] [--verify]`
-   - `framework publish` (shortcut for `build --publish --verify`).
-   - `framework verify` (hash/manifest check only).
-   - Simple argument parser; reuse existing change detection/staging logic where helpful.
+   - Expose `framework packages <sync|publish|verify>` with shared option parsing.
+   - Support `--frontend`, `--test`, `--both`, `--publish`, and `--verify` modifiers.
+   - Provide `--help` output and reuse existing staging/verification logic.
 3. **Shared Services**
    - Relocate the packaging services to the project (e.g., move `Engine/Bridge/Packaging` into a Framework-owned namespace) and expose helper methods/public records such as `CreateManifestMetadata` and `PackageBuildResult` for `Engine` to consume.
    - Keep logging messages scoped with `[framework]` to make CI logs easy to scan.
@@ -45,10 +44,10 @@
    - Packaging uses `IPackageWorkspace` + resource helpers under `framework/Resources/tools`, while Engine adapts via `PackageWorkspaceAdapter` and no longer embeds tool tarballs directly.
 5. [x] Implement command routing + logging + DI registration.
 6. [x] Update Engine workflows and helpers (`FrontendWorker`, `InstallWorkflow`, `TestPackageUtilities`, etc.) to call the new `Package*` contracts and namespaces.
-7. [ ] Publicize necessary members from packaging services (`PackageBuilder`, etc.).
+7. [x] Publicize necessary members from packaging services (`PackageBuilder`, etc.).
 8. [x] Port logic from the removed `packages` workflow into the new console commands.
-9. [ ] Update the solution, build scripts, and CI to add the new project and remove the old `framework` folder wiring.
-10. [ ] Update bash helpers, CI, release workflow, and docs to call the new console and new paths (remove `utilities/build-packages.sh`).
+9. [x] Update the solution, build scripts, and CI to add the new project and remove the old `framework` folder wiring.
+10. [x] Update bash helpers, CI, release workflow, and docs to call the new console (retired `utilities/build-packages.sh`).
 11. [x] Remove the maintainer-only packages command from the main CLI (`Commands.Packages`, workflow, help entries`).
 12. [x] Document usage in `docs/how-to/framework-packages.md` and cross-link from README / plans, highlighting auto-staging behavior.
 ## Dependencies / Considerations
@@ -81,7 +80,7 @@
 - `framework/Packaging/IPackageEnsureResult.cs`
   - Implemented by `FrontendPackageEnsureResult` and `PackageEnsureResult`, enabling shared logging in workflows.
 - Scripts & docs using the console
-  - `utilities/build-packages.sh` calls the console via `dotnet run --project framework/Framework.csproj -- packages sync …`.
+  - Maintainers call `dotnet run --project framework/Framework.csproj -- packages …` directly in CI and helper docs.
   - `docs/how-to/framework-packages.md` documents the framework console entry point and helper behaviour.
 - Assets to relocate alongside the project
   - `framework/frontend`, `framework/testing`, and `framework/out` now sit alongside `Framework.csproj`; outputs remain tracked in `framework/out/manifest.json`.
