@@ -10,7 +10,7 @@ The plan covers the TypeScript frontend workspace (`framework/frontend`), the .N
 
 ## Workstreams
 
-### Runtime & Toolchain
+### Runtime & Packaging
 - Update `package.json` engines to `>=20` and audit all scripts for compatibility with Node 20 features (test runner, fetch, permissions).
 - Switch `tsconfig.json` to `module: "nodenext"` and `moduleResolution: "nodenext"`; enable `target` upgrades if required by dependencies.
 - Regenerate compiled output as `.mjs` (or ESM `.js` under `type: module`) and ensure source maps still generate as expected.

@@ -1,19 +1,18 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Engine.Bridge;
-using Engine.Bridge.Frontend;
-using Engine.Bridge.Test;
-using Engine.Extensions;
+
 using Microsoft.Extensions.Logging;
 
-namespace Engine.Bridge.Packaging;
+namespace Framework.Packaging;
 
-internal static class ToolchainSynchronizer
+public static class PackageSynchronizer
 {
-    internal static async Task<ToolchainEnsureSummary> EnsureAsync(
-        AppWorkspace workspace,
+    public static async Task<PackageEnsureSummary> EnsureAsync(
+        IPackageWorkspace workspace,
         ILogger? logger,
+        Func<bool, Task<FrontendPackageEnsureResult>>? ensureFrontend,
+        Func<bool, Task<PackageEnsureResult>>? ensureTesting,
         bool includeFrontend = true,
         bool includeTesting = true,
         bool autoInstall = true)
@@ -23,15 +22,15 @@ internal static class ToolchainSynchronizer
         bool preferRegistry = PackageSourceSelector.ShouldPreferRegistry();
         if (preferRegistry)
         {
-            logger?.LogInformation("[toolchain] Prefer registry packages (WEBSTIR_PACKAGE_SOURCE=registry).");
+            logger?.LogInformation("[packages] Prefer registry packages (WEBSTIR_PACKAGE_SOURCE=registry).");
         }
 
-        FrontendPackageEnsureResult? frontendResult = includeFrontend
-            ? await FrontendPackageInstaller.EnsureAsync(workspace, preferRegistry)
+        FrontendPackageEnsureResult? frontendResult = includeFrontend && ensureFrontend is not null
+            ? await ensureFrontend(preferRegistry)
             : null;
 
-        PackageEnsureResult? testResult = includeTesting
-            ? await TestPackageInstaller.EnsureAsync(workspace, preferRegistry)
+        PackageEnsureResult? testResult = includeTesting && ensureTesting is not null
+            ? await ensureTesting(preferRegistry)
             : null;
 
         bool needsInstall = NeedsInstall(frontendResult) || NeedsInstall(testResult);
@@ -52,7 +51,7 @@ internal static class ToolchainSynchronizer
                         packageLockRemoved = true;
                     }
 
-                    logger?.LogInformation("[toolchain] Clearing cached frontend package before install.");
+                    logger?.LogInformation("[packages] Clearing cached frontend package before install.");
                     RemoveCachedPackage(workspace, logger, "@electric-coding-llc/webstir-frontend");
                 }
 
@@ -64,22 +63,22 @@ internal static class ToolchainSynchronizer
                         packageLockRemoved = true;
                     }
 
-                    logger?.LogInformation("[toolchain] Clearing cached testing package before install.");
+                    logger?.LogInformation("[packages] Clearing cached testing package before install.");
                     RemoveCachedPackage(workspace, logger, "@electric-coding-llc/webstir-test");
                 }
 
-                logger?.LogInformation("[toolchain] Installing framework packages...");
-                NpmHelper.RunNpmInstall(workspace.WorkingPath);
+                logger?.LogInformation("[packages] Installing framework packages...");
+                await workspace.RunNpmInstallAsync();
                 installPerformed = true;
 
-                if (includeFrontend)
+                if (includeFrontend && ensureFrontend is not null)
                 {
-                    frontendResult = await FrontendPackageInstaller.EnsureAsync(workspace, preferRegistry);
+                    frontendResult = await ensureFrontend(preferRegistry);
                 }
 
-                if (includeTesting)
+                if (includeTesting && ensureTesting is not null)
                 {
-                    testResult = await TestPackageInstaller.EnsureAsync(workspace, preferRegistry);
+                    testResult = await ensureTesting(preferRegistry);
                 }
             }
             else
@@ -88,7 +87,7 @@ internal static class ToolchainSynchronizer
             }
         }
 
-        return new ToolchainEnsureSummary(frontendResult, testResult, installPerformed, installRequiredButSkipped);
+        return new PackageEnsureSummary(frontendResult, testResult, installPerformed, installRequiredButSkipped);
     }
 
     private static bool NeedsInstall<TEnsure>(TEnsure? result)
@@ -107,11 +106,11 @@ internal static class ToolchainSynchronizer
             VersionMismatch: true
         };
 
-    private static void RemovePackageLockIfPresent(AppWorkspace workspace, ILogger? logger)
+    private static void RemovePackageLockIfPresent(IPackageWorkspace workspace, ILogger? logger)
     {
         try
         {
-            string packageLockPath = Path.Combine(workspace.WorkingPath, Files.PackageLockJson);
+            string packageLockPath = Path.Combine(workspace.WorkingPath, "package-lock.json");
             if (File.Exists(packageLockPath))
             {
                 File.Delete(packageLockPath);
@@ -119,15 +118,15 @@ internal static class ToolchainSynchronizer
         }
         catch (IOException ex)
         {
-            logger?.LogDebug(ex, "Failed to remove package-lock.json while refreshing the toolchain.");
+            logger?.LogDebug(ex, "Failed to remove package-lock.json while refreshing the packages.");
         }
         catch (UnauthorizedAccessException ex)
         {
-            logger?.LogDebug(ex, "Insufficient permissions to remove package-lock.json while refreshing the toolchain.");
+            logger?.LogDebug(ex, "Insufficient permissions to remove package-lock.json while refreshing the packages.");
         }
     }
 
-    private static void RemoveCachedPackage(AppWorkspace workspace, ILogger? logger, string packageName)
+    private static void RemoveCachedPackage(IPackageWorkspace workspace, ILogger? logger, string packageName)
     {
         try
         {
@@ -143,16 +142,16 @@ internal static class ToolchainSynchronizer
         }
         catch (IOException ex)
         {
-            logger?.LogDebug(ex, "Failed to remove cached package {Package} while refreshing the toolchain.", packageName);
+            logger?.LogDebug(ex, "Failed to remove cached package {Package} while refreshing the packages.", packageName);
         }
         catch (UnauthorizedAccessException ex)
         {
-            logger?.LogDebug(ex, "Insufficient permissions to remove cached package {Package} while refreshing the toolchain.", packageName);
+            logger?.LogDebug(ex, "Insufficient permissions to remove cached package {Package} while refreshing the packages.", packageName);
         }
     }
 }
 
-internal readonly record struct ToolchainEnsureSummary(
+public readonly record struct PackageEnsureSummary(
     FrontendPackageEnsureResult? Frontend,
     PackageEnsureResult? Testing,
     bool InstallPerformed,

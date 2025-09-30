@@ -17,7 +17,7 @@ public static class Help
         [Commands.Test] = GetTestCommand(),
         [Commands.Watch] = GetWatchCommand(),
         [Commands.Install] = GetInstallCommand(),
-        [Commands.Toolchain] = GetToolchainCommand(),
+        [Commands.Packages] = GetPackagesCommand(),
         [Commands.Publish] = GetPublishCommand(),
         [Commands.Help] = GetHelpCommand()
     };
@@ -94,7 +94,7 @@ public static class Help
 
     private static CommandHelp GetInstallCommand() =>
         CreateCommand(Commands.Install,
-            "Synchronize framework toolchain dependencies",
+            "Synchronize framework package dependencies",
             [
                 Example($"{App.Name} {Commands.Install}", "Install bundled frontend/test packages"),
                 Example($"{App.Name} {Commands.Install} ./my-app", "Synchronize packages for ./my-app"),
@@ -121,22 +121,22 @@ public static class Help
                 Example($"{App.Name} {Commands.Watch} ../project", "Watch project in parent directory")
             ]);
 
-    private static CommandHelp GetToolchainCommand() =>
-        CreateCommand(Commands.Toolchain,
+    private static CommandHelp GetPackagesCommand() =>
+        CreateCommand(Commands.Packages,
             "Build, publish, and verify framework packages",
             [
-                Example($"{App.Name} {Commands.Toolchain} sync", "Rebuild frontend and testing packages"),
-                Example($"{App.Name} {Commands.Toolchain} sync --frontend", "Rebuild only the frontend package"),
-                Example($"{App.Name} {Commands.Toolchain} publish", "Rebuild and publish packages to GitHub Packages"),
-                Example($"{App.Name} {Commands.Toolchain} verify", "Ensure manifests and tarballs are committed")
+                Example($"{App.Name} {Commands.Packages} sync", "Rebuild frontend and testing packages"),
+                Example($"{App.Name} {Commands.Packages} sync --frontend", "Rebuild only the frontend package"),
+                Example($"{App.Name} {Commands.Packages} publish", "Rebuild and publish packages to GitHub Packages"),
+                Example($"{App.Name} {Commands.Packages} verify", "Ensure manifests and tarballs are committed")
             ],
             [
-                Option("sync", "Rebuild toolchain packages (default)"),
+                Option("sync", "Rebuild package packages (default)"),
                 Option("publish", "Rebuild and publish packages to the configured registry"),
-                Option("verify", "Check that toolchain artifacts are committed"),
+                Option("verify", "Check that package artifacts are committed"),
                 Option("--frontend", "Only rebuild the frontend package"),
                 Option("--test", "Only rebuild the testing package"),
-                Option("--verify", "After syncing, ensure git status is clean for toolchain files"),
+                Option("--verify", "After syncing, ensure git status is clean for package files"),
                 Option("--publish", "Publish packages after syncing")
             ],
             "[sync|publish|verify] [options]");

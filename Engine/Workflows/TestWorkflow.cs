@@ -5,11 +5,11 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Engine.Bridge.Packaging;
 using Engine.Bridge.Test;
 using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Extensions;
+using Framework.Packaging;
 
 namespace Engine.Workflows;
 
@@ -24,7 +24,7 @@ public sealed class TestWorkflow(
         await ExecuteBuildAsync();
         await CompileTypeScriptAsync();
 
-        ToolchainEnsureSummary ensureSummary = await TestPackageUtilities.EnsurePackageAsync(Context);
+        PackageEnsureSummary ensureSummary = await TestPackageUtilities.EnsurePackageAsync(Context);
         TestPackageUtilities.LogEnsureMessages(ensureSummary);
 
         TestCliRunner runner = new(Context);

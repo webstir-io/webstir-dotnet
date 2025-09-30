@@ -1,52 +1,45 @@
 using System;
 using System.IO;
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
-using Engine.Bridge.Packaging;
-using Engine.Extensions;
-using Engine.Helpers;
+namespace Framework.Packaging;
 
-namespace Engine.Bridge.Test;
-
-internal static class TestPackageInstaller
+public static class FrontendPackageInstaller
 {
-    private const string ManifestFileName = "testing-package.json";
+    private const string ManifestFileName = "frontend-package.json";
 
-    private static readonly Lazy<TestPackageMetadata> Manifest = new(LoadManifest, isThreadSafe: true);
-
-    internal static async Task<PackageEnsureResult> EnsureAsync(AppWorkspace workspace, bool preferRegistry)
+    public static async Task<FrontendPackageEnsureResult> EnsureAsync(IPackageWorkspace workspace, bool preferRegistry)
     {
         ArgumentNullException.ThrowIfNull(workspace);
 
-        TestPackageMetadata metadata = Manifest.Value;
-        string toolsDirectory = workspace.WorkingPath.Combine(Folders.Tools);
+        FrontendPackageMetadata metadata = await LoadManifestAsync();
+        string toolsDirectory = workspace.ToolsPath;
         Directory.CreateDirectory(toolsDirectory);
 
-        string tarballPath = toolsDirectory.Combine(metadata.FileName);
+        string tarballPath = Path.Combine(toolsDirectory, metadata.FileName);
         bool hadTarball = File.Exists(tarballPath);
 
         bool copiedFromRepository = await TryCopyFromRepositoryAsync(metadata, tarballPath);
         if (!copiedFromRepository)
         {
-            await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.ToolsPath, toolsDirectory);
+            await ToolResourceProvider.CopyEmbeddedToolsAsync(toolsDirectory);
         }
 
         bool hasTarball = File.Exists(tarballPath);
 
         await WriteManifestAsync(Path.Combine(toolsDirectory, ManifestFileName), metadata);
 
-        bool dependencyUpdated = await EnsureDependencyAsync(workspace.WorkingPath.Combine(Files.PackageJson), metadata, preferRegistry);
+        bool dependencyUpdated = await EnsureDependencyAsync(Path.Combine(workspace.WorkingPath, "package.json"), metadata, preferRegistry);
         bool tarballUpdated = await DetectTarballMismatchAsync(tarballPath, metadata.Hash);
-        PackageInstallState installState = await DetectInstalledVersionMismatchAsync(workspace, metadata);
+        FrontendPackageInstallState installState = await DetectInstalledVersionMismatchAsync(workspace, metadata);
 
-        return new PackageEnsureResult(!hadTarball && hasTarball, dependencyUpdated, tarballUpdated, installState.VersionMismatch, installState.InstalledVersion, metadata);
+        return new FrontendPackageEnsureResult(!hadTarball && hasTarball, dependencyUpdated, tarballUpdated, installState.VersionMismatch, installState.InstalledVersion, metadata);
     }
 
-    private static async Task<bool> TryCopyFromRepositoryAsync(TestPackageMetadata metadata, string destinationTarballPath)
+    private static async Task<bool> TryCopyFromRepositoryAsync(FrontendPackageMetadata metadata, string destinationTarballPath)
     {
         if (!FrameworkPackageRepository.TryGetPackage(metadata.Name, out FrameworkPackageManifestEntry entry))
         {
@@ -86,7 +79,7 @@ internal static class TestPackageInstaller
         }
     }
 
-    private static async Task WriteManifestAsync(string manifestPath, TestPackageMetadata metadata)
+    private static async Task WriteManifestAsync(string manifestPath, FrontendPackageMetadata metadata)
     {
         JsonObject obj = new()
         {
@@ -114,31 +107,19 @@ internal static class TestPackageInstaller
         await File.WriteAllTextAsync(manifestPath, obj.ToJsonString(options));
     }
 
-    private static TestPackageMetadata LoadManifest()
+    private static async Task<FrontendPackageMetadata> LoadManifestAsync()
     {
-        Assembly assembly = Assembly.GetExecutingAssembly();
-        string resourceName = $"{Resources.ToolsPath}.{ManifestFileName}";
-
-        using Stream? stream = assembly.GetManifestResourceStream(resourceName);
-        if (stream == null)
-        {
-            throw new InvalidOperationException($"Unable to load test package manifest: {resourceName}");
-        }
-
-        using JsonDocument doc = JsonDocument.Parse(stream);
-        JsonElement root = doc.RootElement;
-
-        string name = root.GetProperty("name").GetString() ?? throw new InvalidOperationException("Manifest missing package name.");
-        string version = root.GetProperty("version").GetString() ?? throw new InvalidOperationException("Manifest missing package version.");
-        string fileName = root.GetProperty("fileName").GetString() ?? throw new InvalidOperationException("Manifest missing fileName.");
-        string dependency = root.GetProperty("dependency").GetString() ?? throw new InvalidOperationException("Manifest missing dependency string.");
-        string? hash = root.TryGetProperty("hash", out JsonElement hashElement) ? hashElement.GetString() : null;
-        string? registrySpecifier = root.TryGetProperty("registrySpecifier", out JsonElement registryElement) ? registryElement.GetString() : null;
-
-        return new TestPackageMetadata(name, version, fileName, dependency, hash, registrySpecifier);
+        ToolPackageManifest manifest = await ToolResourceProvider.LoadManifestAsync(ManifestFileName);
+        return new FrontendPackageMetadata(
+            manifest.Name,
+            manifest.Version,
+            manifest.FileName,
+            manifest.Dependency,
+            manifest.Hash,
+            manifest.RegistrySpecifier);
     }
 
-    private static async Task<bool> EnsureDependencyAsync(string packageJsonPath, TestPackageMetadata metadata, bool preferRegistry)
+    private static async Task<bool> EnsureDependencyAsync(string packageJsonPath, FrontendPackageMetadata metadata, bool preferRegistry)
     {
         if (!File.Exists(packageJsonPath))
         {
@@ -152,6 +133,11 @@ internal static class TestPackageInstaller
             if (root is not JsonObject obj)
             {
                 return false;
+            }
+
+            if (obj["devDependencies"] is JsonObject devDependencies && devDependencies.ContainsKey(metadata.Name))
+            {
+                devDependencies.Remove(metadata.Name);
             }
 
             if (obj["dependencies"] is not JsonObject dependencies)
@@ -180,17 +166,17 @@ internal static class TestPackageInstaller
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Warning: Unable to update {Files.PackageJson}: {ex.Message}");
+            Console.Error.WriteLine($"Warning: Unable to update package.json: {ex.Message}");
             return false;
         }
     }
 
-    private static async Task<PackageInstallState> DetectInstalledVersionMismatchAsync(AppWorkspace workspace, TestPackageMetadata metadata)
+    private static async Task<FrontendPackageInstallState> DetectInstalledVersionMismatchAsync(IPackageWorkspace workspace, FrontendPackageMetadata metadata)
     {
         string packageJsonPath = metadata.GetInstalledPackageJsonPath(workspace);
         if (!File.Exists(packageJsonPath))
         {
-            return new PackageInstallState(true, null);
+            return new FrontendPackageInstallState(true, null);
         }
 
         try
@@ -198,12 +184,12 @@ internal static class TestPackageInstaller
             using JsonDocument doc = JsonDocument.Parse(await File.ReadAllTextAsync(packageJsonPath));
             string installedVersion = doc.RootElement.GetProperty("version").GetString() ?? string.Empty;
             bool mismatch = !string.Equals(installedVersion, metadata.Version, StringComparison.Ordinal);
-            return new PackageInstallState(mismatch, installedVersion);
+            return new FrontendPackageInstallState(mismatch, installedVersion);
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Warning: Unable to read installed @electric-coding-llc/webstir-test version: {ex.Message}");
-            return new PackageInstallState(true, null);
+            Console.Error.WriteLine($"Warning: Unable to read installed @electric-coding-llc/webstir-frontend version: {ex.Message}");
+            return new FrontendPackageInstallState(true, null);
         }
     }
 
@@ -219,8 +205,8 @@ internal static class TestPackageInstaller
             return true;
         }
 
-        string actualHash = await ComputeFileHashAsync(tarballPath);
-        return !string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase);
+        string actual = await ComputeFileHashAsync(tarballPath);
+        return !string.Equals(actual, expectedHash, StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task<string> ComputeFileHashAsync(string filePath)
@@ -230,7 +216,7 @@ internal static class TestPackageInstaller
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
-    private static string GetDependencySpecifier(TestPackageMetadata metadata, bool preferRegistry)
+    private static string GetDependencySpecifier(FrontendPackageMetadata metadata, bool preferRegistry)
     {
         if (preferRegistry && !string.IsNullOrWhiteSpace(metadata.RegistrySpecifier))
         {
@@ -241,17 +227,17 @@ internal static class TestPackageInstaller
     }
 }
 
-internal readonly record struct PackageEnsureResult(
+public readonly record struct FrontendPackageEnsureResult(
     bool ToolsAdded,
     bool DependencyUpdated,
     bool TarballUpdated,
     bool VersionMismatch,
     string? InstalledVersion,
-    TestPackageMetadata Metadata) : IPackageEnsureResult;
+    FrontendPackageMetadata Metadata) : IPackageEnsureResult;
 
-internal readonly record struct PackageInstallState(bool VersionMismatch, string? InstalledVersion);
+internal readonly record struct FrontendPackageInstallState(bool VersionMismatch, string? InstalledVersion);
 
-internal readonly record struct TestPackageMetadata(
+public readonly record struct FrontendPackageMetadata(
     string Name,
     string Version,
     string FileName,
@@ -261,14 +247,14 @@ internal readonly record struct TestPackageMetadata(
 {
     private const char ScopeSeparator = '/';
 
-    internal string GetInstalledPackageJsonPath(AppWorkspace workspace)
+    internal string GetInstalledPackageJsonPath(IPackageWorkspace workspace)
     {
-        string path = workspace.WorkingPath.Combine(Folders.NodeModules);
+        string path = workspace.NodeModulesPath;
         foreach (string segment in Name.Split(ScopeSeparator, StringSplitOptions.RemoveEmptyEntries))
         {
-            path = path.Combine(segment);
+            path = Path.Combine(path, segment);
         }
 
-        return path.Combine(Files.PackageJson);
+        return Path.Combine(path, "package.json");
     }
 }

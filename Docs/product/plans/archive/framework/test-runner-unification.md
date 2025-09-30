@@ -30,7 +30,7 @@ Fold the existing C#-based test discovery/runner (`Engine.Pipelines.Test`) into 
 
 ### 5. Tooling & Automation
 - Update `utilities/format-build.sh`, CI jobs, and local docs to invoke the TypeScript CLI for tests.
-- Ensure tarball embedding (`Engine/Resources/tools`) includes the new package version and regenerate hashes.
+- Ensure tarball embedding (`framework/Resources/tools`) includes the new package version and regenerate hashes.
 
 ## Risks & Mitigations
 - **Backend runner drift** – Mitigate by keeping the existing .NET host as the execution engine in early phases (TypeScript CLI spawns it) before considering a full port.

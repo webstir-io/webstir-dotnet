@@ -25,7 +25,7 @@ npm ci --silent --prefix framework/frontend
 echo "[local-ci] Running frontend package tests"
 npm test --prefix framework/frontend
 
-echo "[local-ci] Verifying toolchain artifacts"
-dotnet run --project CLI -- toolchain verify
+echo "[local-ci] Verifying package artifacts"
+dotnet run --project CLI -- packages verify
 
 echo "[local-ci] Done."

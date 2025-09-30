@@ -3,18 +3,22 @@ using System.IO;
 using System.Threading.Tasks;
 
 using Engine;
-using Engine.Bridge.Packaging;
+using Engine.Bridge;
+using Framework.Packaging;
 
 namespace Engine.Bridge.Test;
 
 internal static class TestPackageUtilities
 {
-    internal static async Task<ToolchainEnsureSummary> EnsurePackageAsync(AppWorkspace workspace)
+    internal static async Task<PackageEnsureSummary> EnsurePackageAsync(AppWorkspace workspace)
     {
         NodeRuntime.EnsureMinimumVersion();
-        ToolchainEnsureSummary summary = await ToolchainSynchronizer.EnsureAsync(
-            workspace,
+        PackageWorkspaceAdapter workspaceAdapter = new(workspace);
+        PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
+            workspaceAdapter,
             logger: null,
+            ensureFrontend: null,
+            ensureTesting: preferRegistry => TestPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
             includeFrontend: false,
             includeTesting: true,
             autoInstall: true);
@@ -22,7 +26,7 @@ internal static class TestPackageUtilities
         return summary;
     }
 
-    internal static void LogEnsureMessages(ToolchainEnsureSummary summary)
+    internal static void LogEnsureMessages(PackageEnsureSummary summary)
     {
         PackageEnsureResult? result = summary.Testing;
 
@@ -33,7 +37,7 @@ internal static class TestPackageUtilities
 
         if (summary.InstallRequiredButSkipped)
         {
-            Console.WriteLine($"Warning: Framework toolchain requires installation. Run '{App.Name} install' to synchronize dependencies.");
+            Console.WriteLine($"Warning: Framework packages require installation. Run '{App.Name} install' to synchronize dependencies.");
         }
 
         if (result is null)
@@ -65,11 +69,11 @@ internal static class TestPackageUtilities
         }
     }
 
-    private static void ValidateSummary(ToolchainEnsureSummary summary)
+    private static void ValidateSummary(PackageEnsureSummary summary)
     {
         if (summary.InstallRequiredButSkipped)
         {
-            throw new InvalidOperationException($"Framework toolchain requires installation. Run '{App.Name} install' to synchronize dependencies.");
+            throw new InvalidOperationException($"Framework packages require installation. Run '{App.Name} install' to synchronize dependencies.");
         }
 
         if (summary.Testing is { VersionMismatch: true } testing)

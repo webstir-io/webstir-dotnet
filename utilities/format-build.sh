@@ -24,7 +24,7 @@ npm ci --silent
 npm test
 popd > /dev/null
 
-echo "Verifying toolchain artifacts..."
-dotnet run --project "$ROOT_DIR/CLI" -- toolchain sync --verify
+echo "Verifying package artifacts..."
+dotnet run --project "$ROOT_DIR/CLI" -- packages sync --verify
 
 echo "Done."

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
-namespace Engine.Bridge.Packaging;
+namespace Framework.Packaging;
 
-internal static class FrameworkPackageRepository
+public static class FrameworkPackageRepository
 {
     private const string ManifestFileName = "manifest.json";
     private const string PackageRootEnvironmentVariable = "WEBSTIR_PACKAGE_ROOT";
@@ -14,7 +14,7 @@ internal static class FrameworkPackageRepository
 
     private static readonly Lazy<RepositoryState> State = new(Initialize, isThreadSafe: true);
 
-    internal static bool TryGetPackage(string packageName, out FrameworkPackageManifestEntry entry)
+    public static bool TryGetPackage(string packageName, out FrameworkPackageManifestEntry entry)
     {
         RepositoryState state = State.Value;
         if (state.Manifest is null)
@@ -124,7 +124,7 @@ internal static class FrameworkPackageRepository
     }
 }
 
-internal readonly record struct FrameworkPackageManifestEntry(
+public readonly record struct FrameworkPackageManifestEntry(
     string Name,
     string Version,
     string FileName,

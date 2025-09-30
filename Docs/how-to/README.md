@@ -13,5 +13,5 @@ Task-oriented docs for doing specific things.
 - [Sandbox](./sandbox.md)
 - [Add Page](./add-page.md)
 - [Add Test](./add-test.md)
-- [Synchronize Toolchain Packages](./toolchain-packages.md)
+- [Synchronize Framework Packages](./package-synchronization.md)
 - [Utilities](./utilities.md)

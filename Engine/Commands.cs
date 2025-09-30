@@ -10,7 +10,7 @@ public static class Commands
     public const string Watch = "watch";
     public const string Publish = "publish";
     public const string Install = "install";
-    public const string Toolchain = "toolchain";
+    public const string Packages = "packages";
     public const string Help = "help";
 }
 

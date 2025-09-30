@@ -12,27 +12,27 @@ using System.Threading.Tasks;
 
 using Microsoft.Extensions.Logging;
 
-namespace Engine.Bridge.Packaging;
+namespace Framework.Packaging;
 
-public sealed class ToolchainPackageBuilder
+public sealed class PackageBuilder
 {
-    private readonly ILogger<ToolchainPackageBuilder> _logger;
+    private readonly ILogger<PackageBuilder> _logger;
 
-    public ToolchainPackageBuilder(ILogger<ToolchainPackageBuilder> logger)
+    public PackageBuilder(ILogger<PackageBuilder> logger)
     {
         _logger = logger;
     }
 
-    internal static ToolchainManifestMetadata CreateManifestMetadata() =>
-        new ToolchainManifestMetadata(DateTimeOffset.UtcNow);
+    public static PackageManifestMetadata CreateManifestMetadata() =>
+        new PackageManifestMetadata(DateTimeOffset.UtcNow);
 
-    internal async Task<ToolchainPackageBuildResult> BuildFrontendAsync(string repositoryRoot, ToolchainManifestMetadata metadata, bool publish) =>
-        await BuildAsync(repositoryRoot, ToolchainPackageOptions.Frontend, metadata, publish);
+    public async Task<PackageBuildResult> BuildFrontendAsync(string repositoryRoot, PackageManifestMetadata metadata, bool publish) =>
+        await BuildAsync(repositoryRoot, PackageBuildOptions.Frontend, metadata, publish);
 
-    internal async Task<ToolchainPackageBuildResult> BuildTestingAsync(string repositoryRoot, ToolchainManifestMetadata metadata, bool publish) =>
-        await BuildAsync(repositoryRoot, ToolchainPackageOptions.Testing, metadata, publish);
+    public async Task<PackageBuildResult> BuildTestingAsync(string repositoryRoot, PackageManifestMetadata metadata, bool publish) =>
+        await BuildAsync(repositoryRoot, PackageBuildOptions.Testing, metadata, publish);
 
-    private async Task<ToolchainPackageBuildResult> BuildAsync(string repositoryRoot, ToolchainPackageOptions options, ToolchainManifestMetadata manifestMetadata, bool publishPackages)
+    private async Task<PackageBuildResult> BuildAsync(string repositoryRoot, PackageBuildOptions options, PackageManifestMetadata manifestMetadata, bool publishPackages)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
 
@@ -42,7 +42,7 @@ public sealed class ToolchainPackageBuilder
             throw new DirectoryNotFoundException($"Package directory not found: {packageDirectory}");
         }
 
-        string toolsDirectory = Path.Combine(repositoryRoot, "Engine", "Resources", "tools");
+        string toolsDirectory = Path.Combine(repositoryRoot, "framework", "Resources", "tools");
         string frameworkOutDirectory = Path.Combine(repositoryRoot, "framework", "out");
         string packageJsonPath = Path.Combine(packageDirectory, "package.json");
         if (!File.Exists(packageJsonPath))
@@ -101,7 +101,7 @@ public sealed class ToolchainPackageBuilder
         }
 
         string manifestPath = Path.Combine(frameworkOutDirectory, "manifest.json");
-        ToolchainManifestWriter.Update(manifestPath, new ToolchainManifestEntry(
+        PackageManifestWriter.Update(manifestPath, new PackageManifestEntry(
             metadata.PackageName,
             metadata.Version,
             targetTarballName,
@@ -118,10 +118,10 @@ public sealed class ToolchainPackageBuilder
 
         await CleanupPackageDirectoryAsync(packageDirectory, options.CleanupDirectories, options.TarballPattern);
 
-        return new ToolchainPackageBuildResult(metadata.PackageName, metadata.Version, targetTarballName, hash, registrySpecifier, published);
+        return new PackageBuildResult(metadata.PackageName, metadata.Version, targetTarballName, hash, registrySpecifier, published);
     }
 
-    private static PackageMetadata LoadPackageMetadata(string packageJsonPath, ToolchainPackageOptions options)
+    private static PackageMetadata LoadPackageMetadata(string packageJsonPath, PackageBuildOptions options)
     {
         using FileStream stream = File.OpenRead(packageJsonPath);
         using JsonDocument document = JsonDocument.Parse(stream);
@@ -277,14 +277,14 @@ public sealed class ToolchainPackageBuilder
             string token = Environment.GetEnvironmentVariable("GH_PACKAGES_TOKEN") ?? string.Empty;
             if (string.IsNullOrWhiteSpace(token))
             {
-                _logger.LogWarning("[toolchain] GH_PACKAGES_TOKEN is not set; skipping publish of {Spec}.", spec);
+                _logger.LogWarning("[packages] GH_PACKAGES_TOKEN is not set; skipping publish of {Spec}.", spec);
                 return false;
             }
         }
 
         if (await PackageExistsAsync(spec, registryUrl, directory))
         {
-            _logger.LogInformation("[toolchain] {Spec} already exists in {Registry}.", spec, registryUrl);
+            _logger.LogInformation("[packages] {Spec} already exists in {Registry}.", spec, registryUrl);
             return false;
         }
 
@@ -315,7 +315,7 @@ public sealed class ToolchainPackageBuilder
         {
             if (!string.IsNullOrWhiteSpace(error) && error.IndexOf("EPUBLISHCONFLICT", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                _logger.LogInformation("[toolchain] {Spec} already exists in {Registry}.", spec, registryUrl);
+                _logger.LogInformation("[packages] {Spec} already exists in {Registry}.", spec, registryUrl);
                 return false;
             }
 
@@ -333,7 +333,7 @@ public sealed class ToolchainPackageBuilder
             throw new InvalidOperationException(builder.ToString().Trim());
         }
 
-        _logger.LogInformation("[toolchain] Published {Spec} to {Registry}.", spec, registryUrl);
+        _logger.LogInformation("[packages] Published {Spec} to {Registry}.", spec, registryUrl);
         return true;
     }
 
@@ -437,7 +437,7 @@ public sealed class ToolchainPackageBuilder
 
     private readonly record struct PackageMetadata(string PackageName, string Version);
 
-    private sealed record ToolchainPackageOptions(
+    private sealed record PackageBuildOptions(
         string PackageName,
         string PackageRelativePath,
         string TarballPrefix,
@@ -450,7 +450,7 @@ public sealed class ToolchainPackageBuilder
         string? PublishRegistryUrl,
         string PublishAccess)
     {
-        internal static ToolchainPackageOptions Frontend
+        internal static PackageBuildOptions Frontend
         {
             get;
         } = new(
@@ -472,7 +472,7 @@ public sealed class ToolchainPackageBuilder
 
         internal string GetPackageSpec(string version) => $"{PackageName}@{version}";
 
-        internal static ToolchainPackageOptions Testing
+        internal static PackageBuildOptions Testing
         {
             get;
         } = new(
@@ -490,7 +490,7 @@ public sealed class ToolchainPackageBuilder
     }
 }
 
-internal readonly record struct ToolchainPackageBuildResult(
+public readonly record struct PackageBuildResult(
     string PackageName,
     string Version,
     string TarballName,
@@ -498,7 +498,7 @@ internal readonly record struct ToolchainPackageBuildResult(
     string? RegistrySpecifier,
     bool Published);
 
-internal readonly record struct ToolchainManifestEntry(
+internal readonly record struct PackageManifestEntry(
     string Name,
     string Version,
     string FileName,
@@ -507,7 +507,7 @@ internal readonly record struct ToolchainManifestEntry(
     string RepositoryPath,
     string? RegistrySpecifier);
 
-internal readonly record struct ToolchainManifestMetadata(DateTimeOffset GeneratedAtUtc)
+public readonly record struct PackageManifestMetadata(DateTimeOffset GeneratedAtUtc)
 {
     internal JsonObject ToJson()
     {
@@ -519,9 +519,9 @@ internal readonly record struct ToolchainManifestMetadata(DateTimeOffset Generat
     }
 }
 
-internal static class ToolchainManifestWriter
+internal static class PackageManifestWriter
 {
-    internal static void Update(string manifestPath, ToolchainManifestEntry entry, ToolchainManifestMetadata metadata)
+    internal static void Update(string manifestPath, PackageManifestEntry entry, PackageManifestMetadata metadata)
     {
         JsonObject root;
         if (File.Exists(manifestPath))
@@ -586,7 +586,7 @@ internal static class ToolchainManifestWriter
     private static bool JsonEquals(JsonObject left, JsonObject right) =>
         string.Equals(left.ToJsonString(), right.ToJsonString(), StringComparison.Ordinal);
 
-    private static JsonObject CreatePackageNode(ToolchainManifestEntry entry)
+    private static JsonObject CreatePackageNode(PackageManifestEntry entry)
     {
         JsonObject packageNode = new()
         {

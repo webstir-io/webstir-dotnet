@@ -22,8 +22,8 @@ Common patterns:
 - `webstir watch`
 - `webstir test`
 - `webstir install`
-- `webstir toolchain sync`
-- `webstir toolchain publish`
+- `webstir packages sync`
+- `webstir packages publish`
 - `webstir publish`
 - `webstir add-page about`
 - `webstir add-test auth/login`
@@ -166,8 +166,8 @@ Commands:
   build       Build frontend and backend
   watch       Build, run servers, and watch (default)
   test        Build then run tests
-  install     Synchronize toolchain packages
-  toolchain   Build and verify framework packages
+  install     Synchronize framework packages
+  packages    Build and verify framework packages
   publish     Produce optimized dist outputs
   add-page    Scaffold a new frontend page
   add-test    Scaffold a new test file
@@ -201,12 +201,12 @@ Options:
 - Templates — [templates](templates.md)
 - Testing — [.codex/testing.md](../../.codex/testing.md), [tests](../explanations/testing.md)
 - Workspace and paths — [workspace](../explanations/workspace.md)
-### toolchain
-Usage: `webstir toolchain [sync|publish|verify] [--frontend|--test] [--verify] [--publish]`
+### packages
+Usage: `webstir packages [sync|publish|verify] [--frontend|--test] [--verify] [--publish]`
 
 What it does:
-- Wraps the toolchain packaging scripts to rebuild the bundled `@electric-coding-llc/webstir-frontend` and `@electric-coding-llc/webstir-test` tarballs.
-- Copies the new artifacts into `Engine/Resources/tools` and `framework/out`, regenerating `framework/out/manifest.json`.
+- Wraps the framework packaging workflow to rebuild the bundled `@electric-coding-llc/webstir-frontend` and `@electric-coding-llc/webstir-test` tarballs.
+- Copies the new artifacts into `framework/Resources/tools` and `framework/out`, regenerating `framework/out/manifest.json`.
 - `publish` (or `--publish`) pushes the rebuilt tarballs to GitHub Packages if the version is missing.
 - Optional `--frontend` or `--test` limits the rebuild to a single package.
 - `--verify` (or the standalone `verify` subcommand) ensures the manifest and tarballs are already committed—handy for CI checks.

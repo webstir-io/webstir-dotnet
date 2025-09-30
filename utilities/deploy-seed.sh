@@ -13,7 +13,7 @@ cd "$ROOT_DIR"
 SEED_DIR="CLI/out/seed"
 
 echo "[0/5] Updating local package tarballs ..."
-dotnet run --project CLI -- toolchain sync
+dotnet run --project CLI -- packages sync
 
 echo "[1/5] Initializing seed at $SEED_DIR ..."
 if [ -d "$SEED_DIR" ]; then
@@ -31,7 +31,7 @@ if [ -d "$SEED_DIR" ]; then
 fi
 dotnet run --project CLI -- init "$SEED_DIR"
 
-echo "[2/5] Synchronizing framework toolchain ..."
+echo "[2/5] Synchronizing framework packages ..."
 dotnet run --project CLI -- install --project-name "$SEED_DIR"
 
 echo "[3/5] Running tests ..."

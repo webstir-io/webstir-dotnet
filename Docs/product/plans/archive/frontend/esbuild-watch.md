@@ -5,7 +5,7 @@ Adopt esbuild's incremental `context.watch()` flow inside the frontend CLI so de
 
 ## Desired Outcomes
 - Sub-150 ms rebuilds for typical page/component edits without spawning new Node processes.
-- A long-lived frontend worker process that streams build status back to the .NET toolchain.
+- A long-lived frontend worker process that streams build status back to the .NET CLI runtime.
 - No regressions to HTML/CSS/static asset outputs, manifests, or SSE reload behavior.
 - Straightforward rollback to the current per-invocation CLI execution model.
 

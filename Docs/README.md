@@ -21,7 +21,7 @@ This is just a project I'm doing for fun, because I love coding and engineering 
   - [Getting Started](./tutorials/getting-started.md)
   - [Your First App](./tutorials/first-app.md)
 - Workflows — run through the CLI reference after the tutorials: [Workflows](./reference/workflows.md)
-- Toolchain — if you are packaging updates, run `webstir toolchain sync` and review [Synchronize Toolchain Packages](./how-to/toolchain-packages.md)
+- Packages — if you are packaging updates, run `webstir packages sync` and review [Synchronize Framework Packages](./how-to/package-synchronization.md)
 
 ## Docs Index
 
@@ -32,7 +32,7 @@ This is just a project I'm doing for fun, because I love coding and engineering 
 - How-to Guides — [README](./how-to/README.md)
   - Core workflows: [Init](./how-to/init.md), [Build](./how-to/build.md), [Watch](./how-to/watch.md), [Test](./how-to/test.md), [Publish](./how-to/publish.md)
   - Frontend operations: [Frontend Watch Daemon](./how-to/frontend-watch.md), [HMR Validation](./how-to/hmr-validation.md), [Precompression](./how-to/precompression.md)
-  - Extensibility & tooling: [Extend Pipelines with Hooks](./how-to/pipeline-hooks.md), [Synchronize Toolchain Packages](./how-to/toolchain-packages.md), [Utilities](./how-to/utilities.md)
+  - Extensibility & tooling: [Extend Pipelines with Hooks](./how-to/pipeline-hooks.md), [Synchronize Framework Packages](./how-to/package-synchronization.md), [Utilities](./how-to/utilities.md)
   - Project scaffolding: [Add Page](./how-to/add-page.md), [Add Test](./how-to/add-test.md)
   - Environments: [Sandbox](./how-to/sandbox.md)
 

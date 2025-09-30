@@ -7,11 +7,12 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
-using Engine.Bridge.Packaging;
+using Engine.Bridge;
 using Engine.Bridge.Test;
 using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Models;
+using Framework.Packaging;
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Bridge.Frontend;
@@ -30,8 +31,8 @@ public sealed class FrontendWorker : IFrontendWorker
     private readonly FrontendWatcher _watcher;
     private readonly ConcurrentQueue<FrontendHotUpdate> _hotUpdates = new();
     private bool _watchModeEnabled;
-    private readonly SemaphoreSlim _toolchainLock = new(1, 1);
-    private bool _toolchainVerified;
+    private readonly SemaphoreSlim _packageLock = new(1, 1);
+    private bool _packagesVerified;
 
     public FrontendWorker(AppWorkspace workspace, ILogger<FrontendWorker> logger)
     {
@@ -179,38 +180,41 @@ public sealed class FrontendWorker : IFrontendWorker
 
     private async Task EnsurePackagesAsync()
     {
-        await _toolchainLock.WaitAsync();
+        await _packageLock.WaitAsync();
         try
         {
-            if (_toolchainVerified)
+            if (_packagesVerified)
             {
                 return;
             }
 
             NodeRuntime.EnsureMinimumVersion();
-            _logger.LogInformation("[frontend] Verifying toolchain packages...");
+            _logger.LogInformation("[frontend] Verifying framework packages...");
 
-            ToolchainEnsureSummary summary = await ToolchainSynchronizer.EnsureAsync(
-                _workspace,
+            PackageWorkspaceAdapter workspaceAdapter = new(_workspace);
+            PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
+                workspaceAdapter,
                 _logger,
+                ensureFrontend: preferRegistry => FrontendPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
+                ensureTesting: preferRegistry => TestPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
                 includeFrontend: true,
                 includeTesting: true,
                 autoInstall: true);
 
             if (summary.InstallPerformed)
             {
-                _logger.LogInformation("[frontend] Toolchain refreshed; dependencies reinstalled.");
+                _logger.LogInformation("[frontend] Package dependencies refreshed; npm install completed.");
             }
             else
             {
-                _logger.LogDebug("[frontend] Toolchain already up to date.");
+                _logger.LogDebug("[frontend] Packages already up to date.");
             }
 
             LogTarballUpdates(summary);
 
             if (summary.InstallRequiredButSkipped)
             {
-                throw new InvalidOperationException($"Framework toolchain requires installation. Run '{App.Name} install' to synchronize dependencies.");
+                throw new InvalidOperationException($"Framework packages require installation. Run '{App.Name} install' to synchronize dependencies.");
             }
 
             if (summary.HasVersionMismatch)
@@ -218,16 +222,16 @@ public sealed class FrontendWorker : IFrontendWorker
                 ThrowMismatch(summary);
             }
 
-            _logger.LogInformation("[frontend] Toolchain verification complete.");
-            _toolchainVerified = true;
+            _logger.LogInformation("[frontend] Package verification complete.");
+            _packagesVerified = true;
         }
         finally
         {
-            _toolchainLock.Release();
+            _packageLock.Release();
         }
     }
 
-    private void LogTarballUpdates(ToolchainEnsureSummary summary)
+    private void LogTarballUpdates(PackageEnsureSummary summary)
     {
         if (summary.Frontend is { TarballUpdated: true } frontend)
         {
@@ -240,7 +244,7 @@ public sealed class FrontendWorker : IFrontendWorker
         }
     }
 
-    private void ThrowMismatch(ToolchainEnsureSummary summary)
+    private void ThrowMismatch(PackageEnsureSummary summary)
     {
         List<string> mismatches = [];
 

@@ -5,13 +5,12 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using Engine.Bridge.Frontend;
-using Engine.Bridge.Packaging;
-using Engine.Bridge.Test;
+using Engine.Bridge;
 using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Models;
+using Framework.Packaging;
 
 namespace Engine.Workflows;
 
@@ -52,8 +51,9 @@ public class InitWorkflow(
         TrimTypeScriptReferences(mode);
 
         bool preferRegistry = PackageSourceSelector.ShouldPreferRegistry();
-        await FrontendPackageInstaller.EnsureAsync(Context, preferRegistry);
-        await TestPackageInstaller.EnsureAsync(Context, preferRegistry);
+        PackageWorkspaceAdapter workspaceAdapter = new(Context);
+        await FrontendPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry);
+        await TestPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry);
         await ExecuteWorkersAsync(async worker => await worker.InitAsync(mode), mode);
     }
 

@@ -1,13 +1,13 @@
 using System;
 
-namespace Engine.Bridge.Packaging;
+namespace Framework.Packaging;
 
-internal static class PackageSourceSelector
+public static class PackageSourceSelector
 {
     private const string SourceEnvironmentVariable = "WEBSTIR_PACKAGE_SOURCE";
     private const string PreferEnvironmentVariable = "WEBSTIR_PREFER_REGISTRY";
 
-    internal static bool ShouldPreferRegistry()
+    public static bool ShouldPreferRegistry()
     {
         string? source = Environment.GetEnvironmentVariable(SourceEnvironmentVariable);
         if (!string.IsNullOrWhiteSpace(source))

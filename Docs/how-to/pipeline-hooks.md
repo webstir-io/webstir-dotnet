@@ -2,7 +2,7 @@
 
 Webstir exposes optional hook points so you can layer custom logic onto the
 frontend build/publish pipelines without forking the framework packages. Hooks
-run after the CLI verifies toolchain versions, so they always execute against
+run after the CLI verifies package versions, so they always execute against
 the pinned dependencies from `webstir install`.
 
 ## Create `webstir.config.js`

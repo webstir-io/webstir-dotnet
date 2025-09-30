@@ -5,23 +5,23 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-using Engine.Bridge.Packaging;
 using Engine.Interfaces;
+using Framework.Packaging;
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Workflows;
 
-public sealed class ToolchainWorkflow(
-    ILogger<ToolchainWorkflow> logger,
-    ToolchainPackageBuilder packageBuilder) : IWorkflow
+public sealed class PackageWorkflow(
+    ILogger<PackageWorkflow> logger,
+    PackageBuilder packageBuilder) : IWorkflow
 {
     private const string SyncCommand = "sync";
     private const string VerifyCommand = "verify";
     private const string PublishCommand = "publish";
-    private readonly ILogger<ToolchainWorkflow> _logger = logger;
-    private readonly ToolchainPackageBuilder _packageBuilder = packageBuilder;
+    private readonly ILogger<PackageWorkflow> _logger = logger;
+    private readonly PackageBuilder _packageBuilder = packageBuilder;
 
-    public string WorkflowName => Commands.Toolchain;
+    public string WorkflowName => Commands.Packages;
 
     public async Task ExecuteAsync(string[] args)
     {
@@ -46,55 +46,50 @@ public sealed class ToolchainWorkflow(
 
     private async Task RunSyncAsync(string repositoryRoot, ParsedArguments parsed, bool publishPackages)
     {
-        _logger.LogInformation("[toolchain] Synchronizing framework packages...");
+        _logger.LogInformation("[packages] Synchronizing framework packages...");
         if (publishPackages)
         {
-            _logger.LogInformation("[toolchain] Publish mode enabled; packages will be pushed to the registry if missing.");
+            _logger.LogInformation("[packages] Publish mode enabled; packages will be pushed to the registry if missing.");
         }
 
-        ToolchainManifestMetadata manifestMetadata = ToolchainPackageBuilder.CreateManifestMetadata();
+        PackageManifestMetadata manifestMetadata = PackageBuilder.CreateManifestMetadata();
 
         if (parsed.IncludeFrontend)
         {
-            ToolchainPackageBuildResult result = await _packageBuilder.BuildFrontendAsync(repositoryRoot, manifestMetadata, publishPackages);
+            PackageBuildResult result = await _packageBuilder.BuildFrontendAsync(repositoryRoot, manifestMetadata, publishPackages);
             _logger.LogInformation(
-                "[toolchain] Rebuilt {Package} {Version} (hash {Hash}).",
+                "[packages] Rebuilt {Package} {Version} (hash {Hash}).",
                 result.PackageName,
                 result.Version,
                 result.Hash);
 
             if (publishPackages && result.Published)
             {
-                _logger.LogInformation("[toolchain] Published {Package}@{Version} to registry.", result.PackageName, result.Version);
-            }
-
-            if (publishPackages && result.Published)
-            {
-                _logger.LogInformation("[toolchain] Published {Package}@{Version} to registry.", result.PackageName, result.Version);
+                _logger.LogInformation("[packages] Published {Package}@{Version} to registry.", result.PackageName, result.Version);
             }
         }
 
         if (parsed.IncludeTesting)
         {
-            ToolchainPackageBuildResult result = await _packageBuilder.BuildTestingAsync(repositoryRoot, manifestMetadata, publishPackages);
+            PackageBuildResult result = await _packageBuilder.BuildTestingAsync(repositoryRoot, manifestMetadata, publishPackages);
             _logger.LogInformation(
-                "[toolchain] Rebuilt {Package} {Version} (hash {Hash}).",
+                "[packages] Rebuilt {Package} {Version} (hash {Hash}).",
                 result.PackageName,
                 result.Version,
                 result.Hash);
         }
 
-        _logger.LogInformation("[toolchain] Toolchain sync complete.");
+        _logger.LogInformation("[packages] Package sync complete.");
     }
 
     private async Task VerifyAsync(string repositoryRoot)
     {
-        _logger.LogInformation("[toolchain] Verifying committed toolchain artifacts...");
+        _logger.LogInformation("[packages] Verifying committed package artifacts...");
 
         ProcessStartInfo startInfo = new()
         {
             FileName = "git",
-            Arguments = "status --porcelain -- Engine/Resources/tools framework/out",
+            Arguments = "status --porcelain -- framework/Resources/tools framework/out",
             WorkingDirectory = repositoryRoot,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -120,11 +115,11 @@ public sealed class ToolchainWorkflow(
         if (!string.IsNullOrWhiteSpace(output))
         {
             Console.Write(output);
-            throw new InvalidOperationException("Toolchain artifacts are out of sync. Run 'webstir toolchain sync' and commit the changes.");
+            throw new InvalidOperationException("Package artifacts are out of sync. Run 'webstir packages sync' and commit the changes.");
         }
 
         ValidateManifestArtifacts(repositoryRoot);
-        _logger.LogInformation("[toolchain] Toolchain artifacts are in sync.");
+        _logger.LogInformation("[packages] Package artifacts are in sync.");
     }
 
     private void ValidateManifestArtifacts(string repositoryRoot)
@@ -132,14 +127,14 @@ public sealed class ToolchainWorkflow(
         string manifestPath = Path.Combine(repositoryRoot, "framework", "out", "manifest.json");
         if (!File.Exists(manifestPath))
         {
-            throw new InvalidOperationException("Toolchain manifest not found. Run 'webstir toolchain sync'.");
+            throw new InvalidOperationException("Package manifest not found. Run 'webstir packages sync'.");
         }
 
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(manifestPath));
         JsonElement root = document.RootElement;
         if (!root.TryGetProperty("packages", out JsonElement packagesElement) || packagesElement.ValueKind != JsonValueKind.Object)
         {
-            throw new InvalidOperationException("Toolchain manifest missing packages. Run 'webstir toolchain sync'.");
+            throw new InvalidOperationException("Package manifest missing packages. Run 'webstir packages sync'.");
         }
 
         foreach (JsonProperty package in packagesElement.EnumerateObject())
@@ -151,12 +146,12 @@ public sealed class ToolchainWorkflow(
             string dependency = packageNode.GetProperty("dependency").GetString() ?? string.Empty;
             string repositoryPath = packageNode.GetProperty("repositoryPath").GetString() ?? string.Empty;
 
-            EnsureHashMatches(Path.Combine(repositoryRoot, "Engine", "Resources", "tools", fileName), hash, name);
+            EnsureHashMatches(Path.Combine(repositoryRoot, "framework", "Resources", "tools", fileName), hash, name);
             EnsureHashMatches(Path.Combine(repositoryRoot, repositoryPath.Replace('/', Path.DirectorySeparatorChar)), hash, name);
 
             if (!dependency.EndsWith(fileName, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException($"Manifest dependency for {name} does not match tarball name. Run 'webstir toolchain sync'.");
+                throw new InvalidOperationException($"Manifest dependency for {name} does not match tarball name. Run 'webstir packages sync'.");
             }
         }
     }
@@ -165,14 +160,14 @@ public sealed class ToolchainWorkflow(
     {
         if (!File.Exists(filePath))
         {
-            throw new InvalidOperationException($"Expected tarball missing for {packageName}: {filePath}. Run 'webstir toolchain sync'.");
+            throw new InvalidOperationException($"Expected tarball missing for {packageName}: {filePath}. Run 'webstir packages sync'.");
         }
 
         using FileStream stream = File.OpenRead(filePath);
         string actualHash = Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
         if (!string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException($"Tarball hash mismatch for {packageName} (expected {expectedHash}, found {actualHash}). Run 'webstir toolchain sync'.");
+            throw new InvalidOperationException($"Tarball hash mismatch for {packageName} (expected {expectedHash}, found {actualHash}). Run 'webstir packages sync'.");
         }
     }
 
@@ -185,7 +180,7 @@ public sealed class ToolchainWorkflow(
         bool publishPackages = false;
 
         int index = 0;
-        if (args.Length > 0 && string.Equals(args[0], Commands.Toolchain, StringComparison.OrdinalIgnoreCase))
+        if (args.Length > 0 && string.Equals(args[0], Commands.Packages, StringComparison.OrdinalIgnoreCase))
         {
             index = 1;
         }
@@ -228,13 +223,13 @@ public sealed class ToolchainWorkflow(
                     publishPackages = true;
                     break;
                 default:
-                    throw new InvalidOperationException($"Unknown toolchain option '{current}'.");
+                    throw new InvalidOperationException($"Unknown package option '{current}'.");
             }
         }
 
         if (mode is not SyncCommand and not VerifyCommand and not PublishCommand)
         {
-            throw new InvalidOperationException($"Unknown toolchain command '{mode}'. Use '{SyncCommand}', '{PublishCommand}', or '{VerifyCommand}'.");
+            throw new InvalidOperationException($"Unknown package command '{mode}'. Use '{SyncCommand}', '{PublishCommand}', or '{VerifyCommand}'.");
         }
 
         if (publishPackages)

@@ -1,8 +1,8 @@
 using System;
 
-namespace Engine.Bridge.Packaging;
+namespace Framework.Packaging;
 
-internal interface IPackageEnsureResult
+public interface IPackageEnsureResult
 {
     bool ToolsAdded { get; }
     bool DependencyUpdated { get; }

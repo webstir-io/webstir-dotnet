@@ -3,7 +3,7 @@
 Guidance for running and troubleshooting the incremental frontend watch workflow.
 
 ## Overview
-- `webstir watch` launches the daemon and streams rebuild results to the .NET toolchain.
+- `webstir watch` launches the daemon and streams rebuild results to the .NET CLI runtime.
 - The browser badge reflects build state: orange for in-progress, green for success, red for errors, and red/gray when disconnected.
 - Reload events are debounced so rapid edits coalesce into a single browser refresh.
 

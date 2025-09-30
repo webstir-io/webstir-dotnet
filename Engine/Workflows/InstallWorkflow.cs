@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Engine;
 using Engine.Bridge;
-using Engine.Bridge.Packaging;
 using Engine.Bridge.Test;
 using Engine.Interfaces;
+using Framework.Packaging;
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Workflows;
@@ -27,9 +27,12 @@ public sealed class InstallWorkflow(
         NodeRuntime.EnsureMinimumVersion();
         _logger.LogInformation(dryRun ? "Inspecting framework packages (dry run)..." : "Synchronizing framework packages...");
 
-        ToolchainEnsureSummary summary = await ToolchainSynchronizer.EnsureAsync(
-            Context,
+        PackageWorkspaceAdapter workspaceAdapter = new(Context);
+        PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
+            workspaceAdapter,
             _logger,
+            ensureFrontend: preferRegistry => FrontendPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
+            ensureTesting: preferRegistry => TestPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
             includeFrontend: true,
             includeTesting: true,
             autoInstall: !dryRun);
@@ -46,7 +49,7 @@ public sealed class InstallWorkflow(
 
         if (summary.InstallRequiredButSkipped)
         {
-            throw new InvalidOperationException($"Framework toolchain requires installation. Run '{App.Name} install' to synchronize dependencies.");
+            throw new InvalidOperationException($"Framework packages require installation. Run '{App.Name} install' to synchronize dependencies.");
         }
 
         if (summary.HasVersionMismatch)
@@ -57,7 +60,7 @@ public sealed class InstallWorkflow(
         _logger.LogInformation("Framework packages are synchronized.");
     }
 
-    private void LogDryRunSummary(ToolchainEnsureSummary summary)
+    private void LogDryRunSummary(PackageEnsureSummary summary)
     {
         bool anyChanges = false;
 
@@ -67,7 +70,7 @@ public sealed class InstallWorkflow(
         if (summary.InstallRequiredButSkipped && !anyChanges)
         {
             anyChanges = true;
-            _logger.LogInformation("[dry-run] npm install would run due to prior toolchain drift.");
+            _logger.LogInformation("[dry-run] npm install would run due to prior package drift.");
         }
 
         if (!anyChanges)
@@ -114,11 +117,11 @@ public sealed class InstallWorkflow(
         }
     }
 
-    private void LogFrontendMessages(ToolchainEnsureSummary summary)
+    private void LogFrontendMessages(PackageEnsureSummary summary)
     {
         if (summary.InstallPerformed)
         {
-            _logger.LogInformation("Reinstalled frontend toolchain dependencies.");
+            _logger.LogInformation("Reinstalled frontend package dependencies.");
         }
 
         if (summary.Frontend is { TarballUpdated: true } frontend)
@@ -127,7 +130,7 @@ public sealed class InstallWorkflow(
         }
     }
 
-    private void ThrowMismatch(ToolchainEnsureSummary summary)
+    private void ThrowMismatch(PackageEnsureSummary summary)
     {
         List<string> mismatches = [];
 
