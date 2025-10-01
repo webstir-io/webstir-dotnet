@@ -2,7 +2,7 @@ export declare const FOLDERS: {
     readonly src: "src";
     readonly build: "build";
     readonly dist: "dist";
-    readonly tools: ".tools";
+    readonly webstir: ".webstir";
     readonly tests: "tests";
     readonly frontend: "frontend";
     readonly backend: "backend";

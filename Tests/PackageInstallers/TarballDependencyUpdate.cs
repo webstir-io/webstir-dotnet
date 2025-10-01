@@ -8,9 +8,9 @@ using Tests.Framework;
 
 namespace Tests.PackageInstallers;
 
-internal sealed class RegistryDependencyUpdate : ITestCase
+internal sealed class TarballDependencyUpdate : ITestCase
 {
-    public string Name => "updates frontend dependency to registry specifier";
+    public string Name => "updates frontend dependency to local tarball specifier";
 
     public TestCategory Category => TestCategory.Quick;
 
@@ -23,7 +23,7 @@ internal sealed class RegistryDependencyUpdate : ITestCase
         {
             FrameworkPackageMetadata metadata = FrameworkPackageCatalog.Frontend;
             string packageJsonPath = Path.Combine(workspaceRoot, "package.json");
-            WritePackageJson(packageJsonPath, metadata.Name, "file:./.tools/legacy.tgz");
+            WritePackageJson(packageJsonPath, metadata.Name, "file:./.webstir/legacy.tgz");
 
             TestWorkspace workspace = new(workspaceRoot);
 
@@ -41,7 +41,11 @@ internal sealed class RegistryDependencyUpdate : ITestCase
 
             FrontendPackageEnsureResult frontend = summary.Frontend!.Value;
             Assert.IsTrue(frontend.DependencyUpdated, "DependencyUpdated should be true when specifier changes.");
-            Assert.AreEqual(metadata.RegistrySpecifier, ReadDependencySpecifier(packageJsonPath, metadata.Name), "Dependency specifier not updated to registry value.");
+            string expectedSpecifier = $"file:./.webstir/{metadata.Tarball.FileName}";
+            Assert.AreEqual(expectedSpecifier, ReadDependencySpecifier(packageJsonPath, metadata.Name), "Dependency specifier not updated to tarball value.");
+
+            string tarballPath = Path.Combine(workspaceRoot, ".webstir", metadata.Tarball.FileName);
+            Assert.IsTrue(File.Exists(tarballPath), $"Tarball not copied to workspace at {tarballPath}.");
         }
         finally
         {
@@ -91,7 +95,7 @@ internal sealed class RegistryDependencyUpdate : ITestCase
 
         public string NodeModulesPath => Path.Combine(root, "node_modules");
 
-        public string ToolsPath => Path.Combine(root, ".tools");
+        public string WebstirPath => Path.Combine(root, ".webstir");
 
         public Task RunNpmInstallAsync() => Task.CompletedTask;
 

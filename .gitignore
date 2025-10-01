@@ -410,5 +410,4 @@ Sandbox/npmrc/.npmrc
 Sandbox/npmrc/host/.npmrc
 .env
 .env.local
-Engine/Resources/tools/*.tgz
 framework/frontend/*.tgz

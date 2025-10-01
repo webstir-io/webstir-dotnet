@@ -49,14 +49,37 @@ public static class FrameworkPackageCatalog
             string name = value.GetProperty("name").GetString() ?? property.Name;
             string version = value.GetProperty("version").GetString() ?? throw new InvalidOperationException($"Package '{property.Name}' missing version metadata.");
             string registrySpecifier = value.GetProperty("registrySpecifier").GetString() ?? throw new InvalidOperationException($"Package '{property.Name}' missing registry specifier metadata.");
-            result[property.Name] = new FrameworkPackageMetadata(name, version, registrySpecifier);
+            FrameworkPackageTarballMetadata tarball = ParseTarballMetadata(property.Name, value);
+            result[property.Name] = new FrameworkPackageMetadata(name, version, registrySpecifier, tarball);
         }
 
         return result;
     }
+
+    private static FrameworkPackageTarballMetadata ParseTarballMetadata(string packageName, JsonElement value)
+    {
+        if (!value.TryGetProperty("tarball", out JsonElement tarballElement) || tarballElement.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidOperationException($"Package '{packageName}' missing tarball metadata.");
+        }
+
+        string fileName = tarballElement.GetProperty("fileName").GetString()
+            ?? throw new InvalidOperationException($"Package '{packageName}' tarball missing fileName.");
+        string repositoryPath = tarballElement.GetProperty("repositoryPath").GetString()
+            ?? throw new InvalidOperationException($"Package '{packageName}' tarball missing repositoryPath.");
+        string sha256 = tarballElement.GetProperty("sha256").GetString()
+            ?? throw new InvalidOperationException($"Package '{packageName}' tarball missing sha256 hash.");
+        long size = tarballElement.GetProperty("size").GetInt64();
+
+        return new FrameworkPackageTarballMetadata(fileName, repositoryPath, sha256, size);
+    }
 }
 
-public readonly record struct FrameworkPackageMetadata(string Name, string Version, string RegistrySpecifier)
+public readonly record struct FrameworkPackageMetadata(
+    string Name,
+    string Version,
+    string RegistrySpecifier,
+    FrameworkPackageTarballMetadata Tarball)
 {
     internal string VersionSafe => Version.Replace('.', '-');
 
@@ -154,4 +177,14 @@ public readonly record struct FrameworkPackageMetadata(string Name, string Versi
 
         return null;
     }
+
+    internal Stream OpenTarballStream() => Tarball.OpenStream();
+
+    internal string GetWorkspaceTarballPath(IPackageWorkspace workspace)
+    {
+        string directory = workspace.WebstirPath;
+        return Path.Combine(directory, Tarball.FileName);
+    }
+
+    internal string GetWorkspaceDependencySpecifier() => Tarball.WorkspaceSpecifier;
 }

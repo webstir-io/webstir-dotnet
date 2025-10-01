@@ -29,7 +29,7 @@ public sealed class FrontendManifestLoaderReadsWorkspaceManifest : ITestCase
         }
 
         Directory.CreateDirectory(workspaceRoot);
-        string toolsDirectory = Path.Combine(workspaceRoot, ".tools");
+        string toolsDirectory = Path.Combine(workspaceRoot, ".webstir");
         Directory.CreateDirectory(toolsDirectory);
 
         string manifestPath = Path.Combine(toolsDirectory, Files.FrontendManifestJson);

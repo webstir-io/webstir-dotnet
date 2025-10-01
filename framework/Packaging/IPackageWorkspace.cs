@@ -12,7 +12,7 @@ public interface IPackageWorkspace
     {
         get;
     }
-    string ToolsPath
+    string WebstirPath
     {
         get;
     }

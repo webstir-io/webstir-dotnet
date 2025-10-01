@@ -2,7 +2,7 @@ export const FOLDERS = {
     src: 'src',
     build: 'build',
     dist: 'dist',
-    tools: '.tools',
+    webstir: '.webstir',
     tests: 'tests',
     frontend: 'frontend',
     backend: 'backend',

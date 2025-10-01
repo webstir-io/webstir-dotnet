@@ -13,16 +13,35 @@ public static class TestPackageInstaller
         ArgumentNullException.ThrowIfNull(workspace);
 
         FrameworkPackageMetadata metadata = FrameworkPackageCatalog.Testing;
-        _ = preferRegistry; // Registry usage is mandatory in the registry-first flow.
         string packageJsonPath = Path.Combine(workspace.WorkingPath, "package.json");
 
-        bool dependencyUpdated = await EnsureDependencyAsync(packageJsonPath, metadata);
+        string dependencySpecifier = await ResolveDependencySpecifierAsync(workspace, metadata, preferRegistry);
+
+        bool dependencyUpdated = await EnsureDependencyAsync(packageJsonPath, metadata, dependencySpecifier);
         PackageInstallState installState = await DetectInstalledVersionMismatchAsync(workspace, metadata);
 
         return new PackageEnsureResult(dependencyUpdated, installState.VersionMismatch, installState.InstalledVersion, metadata);
     }
 
-    private static async Task<bool> EnsureDependencyAsync(string packageJsonPath, FrameworkPackageMetadata metadata)
+    private static async Task<string> ResolveDependencySpecifierAsync(IPackageWorkspace workspace, FrameworkPackageMetadata metadata, bool preferRegistry)
+    {
+        if (!preferRegistry)
+        {
+            try
+            {
+                await PackageTarballManager.EnsureTarballAsync(workspace, metadata);
+                return metadata.GetWorkspaceDependencySpecifier();
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Warning: Falling back to registry for {metadata.Name}: {ex.Message}");
+            }
+        }
+
+        return metadata.RegistrySpecifier;
+    }
+
+    private static async Task<bool> EnsureDependencyAsync(string packageJsonPath, FrameworkPackageMetadata metadata, string desiredSpecifier)
     {
         if (!File.Exists(packageJsonPath))
         {
@@ -44,8 +63,6 @@ public static class TestPackageInstaller
                 obj["dependencies"] = dependencies;
             }
 
-            // Use a plain version specifier in dependencies to avoid npm alias/link indirection
-            string desiredSpecifier = metadata.Version;
             string? currentValue = dependencies[metadata.Name]?.GetValue<string>();
             if (string.Equals(currentValue, desiredSpecifier, StringComparison.Ordinal))
             {

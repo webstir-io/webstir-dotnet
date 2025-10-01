@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: read
     env:
       GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
       NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
@@ -45,6 +44,9 @@ jobs:
 
       - name: Build framework packages
         run: dotnet run --project framework/Framework.csproj -- packages sync
+
+      - name: Verify framework packages
+        run: dotnet run --project framework/Framework.csproj -- packages verify
 
       - name: Run .NET workflow tests
         run: dotnet run --project Tests

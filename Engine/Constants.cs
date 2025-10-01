@@ -11,7 +11,7 @@ public static class Folders
     public const string Src = "src";
     public const string Build = "build";
     public const string Dist = "dist";
-    public const string Tools = ".tools";
+    public const string Webstir = ".webstir";
     public const string Tests = "tests";
     public const string Frontend = "frontend";
     public const string Backend = "backend";
@@ -87,5 +87,5 @@ public static class Resources
     public const string BackendPath = $"{SrcPath}.{Folders.Backend}";
     public const string SharedPath = $"{SrcPath}.{Folders.Shared}";
     public const string TypesPath = $"{Path}.types";
-    public const string ToolsPath = $"{Path}.tools";
+    public const string WebstirPath = $"{Path}.webstir";
 }

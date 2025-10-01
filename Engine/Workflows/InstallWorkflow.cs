@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using Engine.Bridge;
 using Engine.Bridge.Test;
@@ -22,9 +23,20 @@ public sealed class InstallWorkflow(
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         bool dryRun = Array.Exists(args, arg => string.Equals(arg, InstallOptions.DryRun, StringComparison.OrdinalIgnoreCase));
+        bool clean = Array.Exists(args, arg => string.Equals(arg, InstallOptions.Clean, StringComparison.OrdinalIgnoreCase));
+
+        if (dryRun && clean)
+        {
+            throw new InvalidOperationException("--clean cannot be combined with --dry-run.");
+        }
 
         NodeRuntime.EnsureMinimumVersion();
-        _logger.LogInformation(dryRun ? "Inspecting framework packages (dry run)..." : "Synchronizing framework packages...");
+        _logger.LogInformation(dryRun ? "Inspecting framework packages (dry run)..." : clean ? "Cleaning cached tarballs and synchronizing framework packages..." : "Synchronizing framework packages...");
+
+        if (clean)
+        {
+            CleanWorkspaceTarballs();
+        }
 
         PackageWorkspaceAdapter workspaceAdapter = new(Context);
         PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
@@ -57,6 +69,43 @@ public sealed class InstallWorkflow(
         }
 
         _logger.LogInformation("Framework packages are synchronized.");
+    }
+
+    private void CleanWorkspaceTarballs()
+    {
+        string webstirPath = Context.WebstirPath;
+        if (!Directory.Exists(webstirPath))
+        {
+            _logger.LogInformation("No cached tarballs found under {Path}.", webstirPath);
+            return;
+        }
+
+        int deleted = 0;
+        foreach (string file in Directory.EnumerateFiles(webstirPath, "*.tgz", SearchOption.AllDirectories))
+        {
+            try
+            {
+                File.Delete(file);
+                deleted++;
+            }
+            catch (IOException ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete tarball {File}.", file);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "Insufficient permissions to delete tarball {File}.", file);
+            }
+        }
+
+        if (deleted == 0)
+        {
+            _logger.LogInformation("No cached tarballs found under {Path}.", webstirPath);
+        }
+        else
+        {
+            _logger.LogInformation("Removed {Count} cached tarball(s) from {Path}.", deleted, webstirPath);
+        }
     }
 
     private void LogDryRunSummary(PackageEnsureSummary summary)
@@ -117,7 +166,7 @@ public sealed class InstallWorkflow(
 
         if (summary.Frontend is { DependencyUpdated: true } frontend)
         {
-            _logger.LogInformation("{Package} dependency updated to {Specifier}.", frontend.Metadata.Name, frontend.Metadata.RegistrySpecifier);
+            _logger.LogInformation("{Package} dependency updated to match bundled tarball.", frontend.Metadata.Name);
         }
     }
 

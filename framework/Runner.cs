@@ -47,7 +47,9 @@ internal sealed class Runner(ILogger<Runner> logger, PackageConsoleCommand packa
 
     private static bool IsPackagesSubcommand(string value) =>
         value.Equals("sync", StringComparison.OrdinalIgnoreCase)
-        || value.Equals("publish", StringComparison.OrdinalIgnoreCase);
+        || value.Equals("publish", StringComparison.OrdinalIgnoreCase)
+        || value.Equals("verify", StringComparison.OrdinalIgnoreCase)
+        || value.Equals("diff", StringComparison.OrdinalIgnoreCase);
 
     private static bool ContainsHelp(string[] args)
     {
@@ -69,23 +71,26 @@ internal sealed class Runner(ILogger<Runner> logger, PackageConsoleCommand packa
 
     private static void ShowUsage()
     {
-        Console.WriteLine("Usage: framework packages [sync|publish] [options]");
+        Console.WriteLine("Usage: framework packages [sync|publish|verify|diff] [options]");
         Console.WriteLine("       framework packages --help");
         Console.WriteLine("       framework sync [options] (shorthand)\n");
     }
 
     private int ShowPackagesUsage()
     {
-        Console.WriteLine("framework packages <sync|publish> [options]");
+        Console.WriteLine("framework packages <sync|publish|verify|diff> [options]");
         Console.WriteLine();
         Console.WriteLine("Commands:");
         Console.WriteLine("  sync       Build framework packages (default).");
         Console.WriteLine("  publish    Build and publish packages to the configured registry.");
+        Console.WriteLine("  verify     Validate tarball metadata and embedded assets.");
+        Console.WriteLine("  diff       Repack tarballs and report checksum/size differences without modifying files.");
         Console.WriteLine();
         Console.WriteLine("Options:");
         Console.WriteLine("  --frontend     Rebuild only the frontend package.");
         Console.WriteLine("  --test         Rebuild only the testing package.");
         Console.WriteLine("  --both         Rebuild both packages (default).");
+        Console.WriteLine("  --prune-webstir  Remove cached .webstir tarballs under Tests/out and CLI/out (sync only).");
         Console.WriteLine("  --help, -h     Show this message.");
         return 0;
     }

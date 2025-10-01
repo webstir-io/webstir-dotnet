@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Packaging\framework-packages.json" />
+    <EmbeddedResource Include="Resources\webstir\*.tgz" />
   </ItemGroup>
 
 </Project>

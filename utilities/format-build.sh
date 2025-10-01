@@ -27,4 +27,7 @@ popd > /dev/null
 echo "Building framework packages..."
 dotnet run --project "$ROOT_DIR/framework/Framework.csproj" -- packages sync
 
+echo "Verifying framework packages..."
+dotnet run --project "$ROOT_DIR/framework/Framework.csproj" -- packages verify
+
 echo "Done."

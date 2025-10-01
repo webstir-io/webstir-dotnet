@@ -33,10 +33,10 @@
 The manifest is emitted to:
 
 ```
-.tools/frontend-manifest.json
+.webstir/frontend-manifest.json
 ```
 
-relative to the workspace root. The TypeScript CLI ensures the `.tools` directory exists and writes the manifest atomically on every `build`, `publish`, or `rebuild` command.
+relative to the workspace root. The TypeScript CLI ensures the `.webstir` directory exists and writes the manifest atomically on every `build`, `publish`, or `rebuild` command.
 
 ## Purpose
 - Serves as the only contract between the TypeScript frontend CLI and the .NET host now that the legacy C# asset handlers are removed.

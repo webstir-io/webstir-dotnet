@@ -72,18 +72,19 @@ What it does:
 - Fails fast if bundled package versions drift and directs you to `webstir install`.
 
 ### install
-Usage: `webstir install [--dry-run]`
+Usage: `webstir install [--dry-run|--clean]`
 
 What it does:
-- Synchronizes the bundled `@electric-coding-llc/webstir-frontend` and `@electric-coding-llc/webstir-test` packages with `node_modules`.
-- Installs packages from the configured npm registry using the specifiers embedded in the CLI.
+- Synchronizes the bundled `@electric-coding-llc/webstir-frontend` and `@electric-coding-llc/webstir-test` tarballs with `node_modules`.
+- Copies the embedded archives into `<workspace>/.webstir/` and pins dependencies to `file:./.webstir/<tarball>.tgz`, falling back to the registry only when explicitly requested.
 - Verifies versions against the CLI manifest and exits with guidance if drift remains.
 
 Notes:
 - Run after upgrading the CLI or whenever `npm install` has modified pinned dependencies.
 - Safe to run repeatedly; skips work when packages are already in sync.
 - Use `--dry-run` to preview which packages would be installed or updated without running `npm install` (non-zero exit code means action is required).
-- Registry access is required; configure `.npmrc` with the appropriate credentials (currently `GH_PACKAGES_TOKEN` for GitHub Packages) before running the workflow.
+- Use `--clean` to delete cached tarballs under `.webstir/` before reinstalling from the embedded archives (cannot be combined with `--dry-run`).
+- If you opt into the registry path (`WEBSTIR_PACKAGE_SOURCE=registry`), configure `.npmrc` with the appropriate credentials (currently `GH_PACKAGES_TOKEN` for GitHub Packages).
 
 ### publish
 Usage: `webstir publish`
@@ -153,6 +154,7 @@ Outputs:
 - Clean build: `webstir build --clean`
 - Add a page: `webstir add-page about && webstir watch`
 - Publish for production: `webstir publish`
+- Refresh framework tarballs: `webstir install --clean`
 
 ## Help Output (Sample)
 ```

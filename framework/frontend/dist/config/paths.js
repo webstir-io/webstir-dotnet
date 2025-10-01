@@ -3,9 +3,9 @@ import { promises as fs } from 'fs';
 import { FOLDERS } from '../core/constants.js';
 export const FRONTEND_MANIFEST_FILENAME = 'frontend-manifest.json';
 export function resolveManifestPath(workspaceRoot) {
-    return path.join(workspaceRoot, FOLDERS.tools, FRONTEND_MANIFEST_FILENAME);
+    return path.join(workspaceRoot, FOLDERS.webstir, FRONTEND_MANIFEST_FILENAME);
 }
-export async function ensureToolsDirectory(workspaceRoot) {
-    const toolsPath = path.join(workspaceRoot, FOLDERS.tools);
-    await fs.mkdir(toolsPath, { recursive: true });
+export async function ensureWebstirDirectory(workspaceRoot) {
+    const webstirPath = path.join(workspaceRoot, FOLDERS.webstir);
+    await fs.mkdir(webstirPath, { recursive: true });
 }

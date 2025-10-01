@@ -11,7 +11,7 @@ internal sealed class PackageWorkspaceAdapter(AppWorkspace workspace) : IPackage
 
     public string NodeModulesPath => _workspace.NodeModulesPath;
 
-    public string ToolsPath => _workspace.ToolsPath;
+    public string WebstirPath => _workspace.WebstirPath;
 
     public Task RunNpmInstallAsync()
     {

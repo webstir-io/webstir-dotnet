@@ -16,7 +16,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 async function record(event, context) {
-  const logPath = path.join(context.workspaceRoot, '.tools', 'pipeline.log');
+  const logPath = path.join(context.workspaceRoot, '.webstir', 'pipeline.log');
   const payload = JSON.stringify({ event, mode: context.mode, builder: context.builderName ?? null });
   await fs.appendFile(logPath, `${payload}\n`, 'utf8');
 }

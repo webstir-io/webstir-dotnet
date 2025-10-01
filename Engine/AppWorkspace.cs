@@ -12,8 +12,8 @@ public class AppWorkspace
 
     public string WorkingPath => Directory.CreateDirectory(_workingFolder).FullName;
     public string NodeModulesPath => WorkingPath.CreateSubDirectory(Folders.NodeModules);
-    public string ToolsPath => WorkingPath.Combine(Folders.Tools);
-    public string FrontendManifestPath => ToolsPath.Combine(Files.FrontendManifestJson);
+    public string WebstirPath => WorkingPath.Combine(Folders.Webstir);
+    public string FrontendManifestPath => WebstirPath.Combine(Files.FrontendManifestJson);
 
     public string SrcPath => WorkingPath.CreateSubDirectory(Folders.Src);
     public string BuildPath => WorkingPath.CreateSubDirectory(Folders.Build);

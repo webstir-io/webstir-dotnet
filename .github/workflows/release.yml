@@ -150,6 +150,10 @@ jobs:
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
         run: dotnet run --project framework/Framework.csproj -- packages publish
 
+      - name: Verify framework packages
+        if: ${{ env.IS_DRY_RUN != 'true' }}
+        run: dotnet run --project framework/Framework.csproj -- packages verify
+
       - name: Commit release artifacts
         if: ${{ github.event_name == 'workflow_dispatch' && env.IS_DRY_RUN != 'true' }}
         run: |

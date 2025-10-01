@@ -39,7 +39,7 @@ public sealed class AddTestScaffoldsFile : ITestCase
         Assert.IsTrue(File.Exists(expectedTest), $"Test file not created at {expectedTest}");
 
         // Verify testing package manifest + archive exist for offline installs
-        string manifestPath = Path.Combine(seedDir, Folders.Tools, "testing-package.json");
+        string manifestPath = Path.Combine(seedDir, Folders.Webstir, "testing-package.json");
         Assert.IsTrue(File.Exists(manifestPath), $"Test package manifest missing at {manifestPath}");
 
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
@@ -48,7 +48,7 @@ public sealed class AddTestScaffoldsFile : ITestCase
         string dependencyValue = manifest.RootElement.GetProperty("dependency").GetString()
             ?? throw new InvalidOperationException("Manifest missing dependency string.");
 
-        string toolsArchive = Path.Combine(seedDir, Folders.Tools, archiveName);
+        string toolsArchive = Path.Combine(seedDir, Folders.Webstir, archiveName);
         Assert.IsTrue(File.Exists(toolsArchive), $"Testing package archive not found at {toolsArchive}");
 
         // Verify package.json references the local archive dependency

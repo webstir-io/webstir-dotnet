@@ -21,7 +21,7 @@ public sealed class PackageInstallerTests : TestSuite
 
         ITestCase[] cases =
         [
-            new RegistryDependencyUpdate()
+            new TarballDependencyUpdate()
         ];
 
         IEnumerable<ITestCase> selected = TestMode.IsFull ? cases : cases.Where(c => c.Category == TestCategory.Quick);

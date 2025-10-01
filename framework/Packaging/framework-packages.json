@@ -3,12 +3,24 @@
     "@electric-coding-llc/webstir-frontend": {
       "name": "@electric-coding-llc/webstir-frontend",
       "version": "0.3.4",
-      "registrySpecifier": "@electric-coding-llc/webstir-frontend@0.3.4"
+      "registrySpecifier": "@electric-coding-llc/webstir-frontend@0.3.4",
+      "tarball": {
+        "fileName": "webstir-frontend-0-3-4.tgz",
+        "repositoryPath": "framework/frontend/webstir-frontend-0-3-4.tgz",
+        "sha256": "cecc7da461733d15d73c83dddd16b01dbdc4de88e2b31d5bb9c8099f16e979b7",
+        "size": 28754
+      }
     },
     "@electric-coding-llc/webstir-test": {
       "name": "@electric-coding-llc/webstir-test",
       "version": "0.3.4",
-      "registrySpecifier": "@electric-coding-llc/webstir-test@0.3.4"
+      "registrySpecifier": "@electric-coding-llc/webstir-test@0.3.4",
+      "tarball": {
+        "fileName": "webstir-test-0-3-4.tgz",
+        "repositoryPath": "framework/testing/webstir-test-0-3-4.tgz",
+        "sha256": "9657ae7c27bad57e78e5aaafde95d7739d49743cbc7185acc2305afff87a63d2",
+        "size": 7618
+      }
     }
   }
 }
