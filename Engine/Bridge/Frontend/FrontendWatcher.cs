@@ -10,18 +10,28 @@ using Microsoft.Extensions.Logging;
 
 namespace Engine.Bridge.Frontend;
 
-internal sealed class FrontendWatcher
+internal sealed class FrontendWatcher(
+    AppWorkspace workspace,
+    ILogger logger,
+    string diagnosticPrefix,
+    JsonSerializerOptions diagnosticSerializerOptions,
+    Action<FrontendCliDiagnostic> diagnosticHandler,
+    Action<string?, bool> outputHandler,
+    Func<string> resolveExecutablePath,
+    bool verboseLogging = false,
+    Action<FrontendHotUpdate>? hotUpdateHandler = null,
+    bool hmrVerboseLogging = false)
 {
-    private readonly AppWorkspace _workspace;
-    private readonly ILogger _logger;
-    private readonly string _diagnosticPrefix;
-    private readonly JsonSerializerOptions _diagnosticSerializerOptions;
-    private readonly Action<FrontendCliDiagnostic> _diagnosticHandler;
-    private readonly Action<string?, bool> _outputHandler;
-    private readonly Func<string> _resolveExecutablePath;
-    private readonly Action<FrontendHotUpdate>? _hotUpdateHandler;
-    private readonly bool _verbose;
-    private readonly bool _hmrVerbose;
+    private readonly AppWorkspace _workspace = workspace;
+    private readonly ILogger _logger = logger;
+    private readonly string _diagnosticPrefix = diagnosticPrefix;
+    private readonly JsonSerializerOptions _diagnosticSerializerOptions = diagnosticSerializerOptions;
+    private readonly Action<FrontendCliDiagnostic> _diagnosticHandler = diagnosticHandler;
+    private readonly Action<string?, bool> _outputHandler = outputHandler;
+    private readonly Func<string> _resolveExecutablePath = resolveExecutablePath;
+    private readonly Action<FrontendHotUpdate>? _hotUpdateHandler = hotUpdateHandler;
+    private readonly bool _verbose = verboseLogging;
+    private readonly bool _hmrVerbose = hmrVerboseLogging;
 
     private readonly Queue<TaskCompletionSource<FrontendCliDiagnostic>> _pendingCommands = new();
     private readonly object _pendingCommandsLock = new();
@@ -32,30 +42,6 @@ internal sealed class FrontendWatcher
     private StreamWriter? _input;
     private bool _ready;
     private bool _stopping;
-
-    public FrontendWatcher(
-        AppWorkspace workspace,
-        ILogger logger,
-        string diagnosticPrefix,
-        JsonSerializerOptions diagnosticSerializerOptions,
-        Action<FrontendCliDiagnostic> diagnosticHandler,
-        Action<string?, bool> outputHandler,
-        Func<string> resolveExecutablePath,
-        bool verboseLogging = false,
-        Action<FrontendHotUpdate>? hotUpdateHandler = null,
-        bool hmrVerboseLogging = false)
-    {
-        _workspace = workspace;
-        _logger = logger;
-        _diagnosticPrefix = diagnosticPrefix;
-        _diagnosticSerializerOptions = diagnosticSerializerOptions;
-        _diagnosticHandler = diagnosticHandler;
-        _outputHandler = outputHandler;
-        _resolveExecutablePath = resolveExecutablePath;
-        _hotUpdateHandler = hotUpdateHandler;
-        _verbose = verboseLogging;
-        _hmrVerbose = hmrVerboseLogging;
-    }
 
     public async Task StartAsync()
     {

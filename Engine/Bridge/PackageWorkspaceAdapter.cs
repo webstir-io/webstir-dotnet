@@ -3,14 +3,9 @@ using Framework.Packaging;
 
 namespace Engine.Bridge;
 
-internal sealed class PackageWorkspaceAdapter : IPackageWorkspace
+internal sealed class PackageWorkspaceAdapter(AppWorkspace workspace) : IPackageWorkspace
 {
-    private readonly AppWorkspace _workspace;
-
-    public PackageWorkspaceAdapter(AppWorkspace workspace)
-    {
-        _workspace = workspace;
-    }
+    private readonly AppWorkspace _workspace = workspace;
 
     public string WorkingPath => _workspace.WorkingPath;
 

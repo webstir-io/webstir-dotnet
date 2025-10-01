@@ -6,19 +6,13 @@ using System.Threading.Tasks;
 using Framework.Packaging;
 using Microsoft.Extensions.Logging;
 
-internal sealed class PackageConsoleCommand
+internal sealed class PackageConsoleCommand(PackageBuilder packageBuilder, ILogger<PackageConsoleCommand> logger)
 {
     private const string SyncCommand = "sync";
     private const string PublishCommand = "publish";
 
-    private readonly PackageBuilder _packageBuilder;
-    private readonly ILogger<PackageConsoleCommand> _logger;
-
-    public PackageConsoleCommand(PackageBuilder packageBuilder, ILogger<PackageConsoleCommand> logger)
-    {
-        _packageBuilder = packageBuilder;
-        _logger = logger;
-    }
+    private readonly PackageBuilder _packageBuilder = packageBuilder;
+    private readonly ILogger<PackageConsoleCommand> _logger = logger;
 
     public async Task<int> ExecuteAsync(string[] args)
     {
