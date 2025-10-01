@@ -8,19 +8,13 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-
 using Microsoft.Extensions.Logging;
 
 namespace Framework.Packaging;
 
-public sealed class PackageBuilder
+public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
 {
-    private readonly ILogger<PackageBuilder> _logger;
-
-    public PackageBuilder(ILogger<PackageBuilder> logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger<PackageBuilder> _logger = logger;
 
     public async Task<PackageBuildResult> BuildFrontendAsync(string repositoryRoot, bool publish) =>
         await BuildAsync(repositoryRoot, PackageBuildOptions.Frontend, publish);

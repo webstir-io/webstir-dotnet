@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-
 using Microsoft.Extensions.Logging;
 
 namespace Framework.Packaging;
@@ -121,6 +120,19 @@ public static class PackageSynchronizer
 
     private static void EnsureWorkspaceNpmrc(IPackageWorkspace workspace, ILogger? logger)
     {
+        // Opt-in only: by default we rely on user/repo npm config rather than
+        // writing a per-workspace .npmrc beside the app. Set
+        // WEBSTIR_WRITE_WORKSPACE_NPMRC=1 to enable this behavior.
+        string? flag = Environment.GetEnvironmentVariable("WEBSTIR_WRITE_WORKSPACE_NPMRC");
+        bool enabled = !string.IsNullOrWhiteSpace(flag) &&
+            (flag.Equals("1", StringComparison.OrdinalIgnoreCase) ||
+             flag.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+             flag.Equals("yes", StringComparison.OrdinalIgnoreCase));
+        if (!enabled)
+        {
+            return;
+        }
+
         try
         {
             string npmrcPath = Path.Combine(workspace.WorkingPath, ".npmrc");

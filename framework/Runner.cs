@@ -1,20 +1,14 @@
-namespace Framework;
-
 using System;
 using System.Threading.Tasks;
 using Framework.Commands;
 using Microsoft.Extensions.Logging;
 
-internal sealed class FrameworkCommandRouter
-{
-    private readonly ILogger<FrameworkCommandRouter> _logger;
-    private readonly PackageConsoleCommand _packages;
+namespace Framework;
 
-    public FrameworkCommandRouter(ILogger<FrameworkCommandRouter> logger, PackageConsoleCommand packages)
-    {
-        _logger = logger;
-        _packages = packages;
-    }
+internal sealed class Runner(ILogger<Runner> logger, PackageConsoleCommand packages)
+{
+    private readonly ILogger<Runner> _logger = logger;
+    private readonly PackageConsoleCommand _packages = packages;
 
     public Task<int> ExecuteAsync(string[] args)
     {

@@ -7,9 +7,6 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Engine.Bridge;
-using Engine.Models;
-
 namespace Engine.Bridge.Test;
 
 internal sealed class TestCliRunner

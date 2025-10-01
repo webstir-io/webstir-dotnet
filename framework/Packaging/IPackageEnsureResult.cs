@@ -1,5 +1,3 @@
-using System;
-
 namespace Framework.Packaging;
 
 public interface IPackageEnsureResult

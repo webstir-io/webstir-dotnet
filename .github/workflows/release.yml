@@ -28,6 +28,8 @@ jobs:
     env:
       GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
       NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
+      # define once so IDEs stop warning about env.IS_DRY_RUN being undefined
+      IS_DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run) && 'true' || 'false' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,7 +37,7 @@ jobs:
           fetch-depth: 0
 
       - name: Configure git user
-        if: github.event_name == 'workflow_dispatch'
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           git config user.name "webstir-bot"
           git config user.email "bot@webstir.dev"
@@ -62,14 +64,7 @@ jobs:
           always-auth=true
           RC
 
-      - name: Set dry-run flag
-        shell: bash
-        run: |
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            echo "IS_DRY_RUN=${{ github.event.inputs.dry_run }}" >> "$GITHUB_ENV"
-          else
-            echo "IS_DRY_RUN=false" >> "$GITHUB_ENV"
-          fi
+      # IS_DRY_RUN is computed in the job env above; no step needed
 
       - name: Resolve bump type
         id: resolve_bump
@@ -140,23 +135,23 @@ jobs:
             && exit 0
 
       - name: Install frontend dependencies
-        if: env.IS_DRY_RUN != 'true'
+        if: ${{ env.IS_DRY_RUN != 'true' }}
         run: npm ci
         working-directory: framework/frontend
 
       - name: Install testing dependencies
-        if: env.IS_DRY_RUN != 'true'
+        if: ${{ env.IS_DRY_RUN != 'true' }}
         run: npm ci
         working-directory: framework/testing
 
       - name: Build and publish framework packages
-        if: env.IS_DRY_RUN != 'true'
+        if: ${{ env.IS_DRY_RUN != 'true' }}
         env:
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
         run: dotnet run --project framework/Framework.csproj -- packages publish
 
       - name: Commit release artifacts
-        if: github.event_name == 'workflow_dispatch' && env.IS_DRY_RUN != 'true'
+        if: ${{ github.event_name == 'workflow_dispatch' && env.IS_DRY_RUN != 'true' }}
         run: |
           git add framework/frontend/package.json framework/frontend/package-lock.json \
                   framework/testing/package.json framework/testing/package-lock.json \
@@ -168,14 +163,14 @@ jobs:
           fi
 
       - name: Push changes
-        if: github.event_name == 'workflow_dispatch' && env.IS_DRY_RUN != 'true'
+        if: ${{ github.event_name == 'workflow_dispatch' && env.IS_DRY_RUN != 'true' }}
         run: |
           git push origin HEAD:main
           git tag -f "v${RELEASE_VERSION}"
           git push origin "v${RELEASE_VERSION}"
 
       - name: Create GitHub release
-        if: env.IS_DRY_RUN != 'true'
+        if: ${{ env.IS_DRY_RUN != 'true' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.RELEASE_VERSION }}

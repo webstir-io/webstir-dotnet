@@ -1,12 +1,10 @@
 using System;
 using System.Globalization;
-using System.Threading.Tasks;
 using Framework;
 using Framework.Commands;
 using Framework.Packaging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Core;
 
@@ -24,10 +22,10 @@ try
     services.AddLogging(builder => builder.AddSerilog(logger, dispose: true));
     services.AddSingleton<PackageBuilder>();
     services.AddSingleton<PackageConsoleCommand>();
-    services.AddSingleton<FrameworkCommandRouter>();
+    services.AddSingleton<Runner>();
 
     await using ServiceProvider provider = services.BuildServiceProvider();
-    FrameworkCommandRouter commandRouter = provider.GetRequiredService<FrameworkCommandRouter>();
+    Runner commandRouter = provider.GetRequiredService<Runner>();
     return await commandRouter.ExecuteAsync(args);
 }
 catch (Exception ex)
