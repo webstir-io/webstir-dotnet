@@ -94,5 +94,7 @@ internal sealed class RegistryDependencyUpdate : ITestCase
         public string ToolsPath => Path.Combine(root, ".tools");
 
         public Task RunNpmInstallAsync() => Task.CompletedTask;
+
+        public Task InstallPackagesAsync(params string[] packageSpecs) => Task.CompletedTask;
     }
 }

@@ -2,13 +2,13 @@
   "packages": {
     "@electric-coding-llc/webstir-frontend": {
       "name": "@electric-coding-llc/webstir-frontend",
-      "version": "0.2.2",
-      "registrySpecifier": "@electric-coding-llc/webstir-frontend@0.2.2"
+      "version": "0.3.4",
+      "registrySpecifier": "@electric-coding-llc/webstir-frontend@0.3.4"
     },
     "@electric-coding-llc/webstir-test": {
       "name": "@electric-coding-llc/webstir-test",
-      "version": "0.3.0",
-      "registrySpecifier": "@electric-coding-llc/webstir-test@0.3.0"
+      "version": "0.3.4",
+      "registrySpecifier": "@electric-coding-llc/webstir-test@0.3.4"
     }
   }
 }

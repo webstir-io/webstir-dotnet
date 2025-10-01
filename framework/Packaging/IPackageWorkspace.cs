@@ -8,4 +8,5 @@ public interface IPackageWorkspace
     string NodeModulesPath { get; }
     string ToolsPath { get; }
     Task RunNpmInstallAsync();
+    Task InstallPackagesAsync(params string[] packageSpecs);
 }

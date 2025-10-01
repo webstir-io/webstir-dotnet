@@ -48,6 +48,42 @@ public static class NpmHelper
         }
     }
 
+    public static void RunNpmInstallPackages(string workingPath, params string[] packageSpecs)
+    {
+        ArgumentNullException.ThrowIfNull(workingPath);
+        ArgumentNullException.ThrowIfNull(packageSpecs);
+
+        ProcessStartInfo processInfo = new()
+        {
+            FileName = "npm",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = workingPath
+        };
+
+        processInfo.ArgumentList.Add("install");
+        processInfo.ArgumentList.Add("--no-save");
+        foreach (string spec in packageSpecs)
+        {
+            processInfo.ArgumentList.Add(spec);
+        }
+
+        using Process? process = Process.Start(processInfo);
+        if (process is null)
+        {
+            throw new Exception("Failed to start npm install (explicit packages) process.");
+        }
+
+        process.WaitForExit();
+
+        if (process.ExitCode != 0)
+        {
+            throw CreateInstallException(process);
+        }
+    }
+
     private static void DeleteIfExists(string filePath)
     {
         try

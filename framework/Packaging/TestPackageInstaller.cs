@@ -44,7 +44,8 @@ public static class TestPackageInstaller
                 obj["dependencies"] = dependencies;
             }
 
-            string desiredSpecifier = metadata.RegistrySpecifier;
+            // Use a plain version specifier in dependencies to avoid npm alias/link indirection
+            string desiredSpecifier = metadata.Version;
             string? currentValue = dependencies[metadata.Name]?.GetValue<string>();
             if (string.Equals(currentValue, desiredSpecifier, StringComparison.Ordinal))
             {

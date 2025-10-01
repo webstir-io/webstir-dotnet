@@ -43,8 +43,8 @@ jobs:
       - name: Build solution
         run: dotnet build Webstir.sln -v minimal
 
-      - name: Verify package artifacts
-        run: dotnet run --project framework/Framework.csproj -- packages verify
+      - name: Build framework packages
+        run: dotnet run --project framework/Framework.csproj -- packages sync
 
       - name: Run .NET workflow tests
         run: dotnet run --project Tests

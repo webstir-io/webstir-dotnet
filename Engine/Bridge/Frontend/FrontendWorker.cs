@@ -289,14 +289,27 @@ public sealed class FrontendWorker : IFrontendWorker
     {
         NodeRuntime.EnsureMinimumVersion();
         string executable = GetExecutablePath();
+        bool useNodeLauncher = false;
+        string? cliScriptPath = null;
+        bool execViaNpmExec = false;
         if (!File.Exists(executable))
         {
-            throw new InvalidOperationException($"webstir-frontend executable not found at {executable}. Run npm install to restore dependencies.");
+            // Fallback: resolve CLI script from installed package when .bin link is missing
+            cliScriptPath = TryResolveCliScriptPath();
+            if (!string.IsNullOrEmpty(cliScriptPath) && File.Exists(cliScriptPath))
+            {
+                useNodeLauncher = true;
+            }
+            else
+            {
+                // Final fallback: run via `npm exec` with explicit version
+                execViaNpmExec = true;
+            }
         }
 
         ProcessStartInfo psi = new()
         {
-            FileName = executable,
+            FileName = execViaNpmExec ? "npm" : (useNodeLauncher ? "node" : executable),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -304,7 +317,24 @@ public sealed class FrontendWorker : IFrontendWorker
             WorkingDirectory = _workspace.WorkingPath
         };
 
-        psi.ArgumentList.Add(command);
+        if (execViaNpmExec)
+        {
+            string spec = $"{Framework.Packaging.FrameworkPackageCatalog.Frontend.Name}@{Framework.Packaging.FrameworkPackageCatalog.Frontend.Version}";
+            psi.ArgumentList.Add("exec");
+            psi.ArgumentList.Add("--yes");
+            psi.ArgumentList.Add(spec);
+            psi.ArgumentList.Add("--");
+            psi.ArgumentList.Add(command);
+        }
+        else
+        {
+            if (useNodeLauncher && !string.IsNullOrEmpty(cliScriptPath))
+            {
+                psi.ArgumentList.Add(cliScriptPath);
+            }
+
+            psi.ArgumentList.Add(command);
+        }
         foreach (string extra in extraArgs)
         {
             psi.ArgumentList.Add(extra);
@@ -345,6 +375,56 @@ public sealed class FrontendWorker : IFrontendWorker
             ? "webstir-frontend.cmd"
             : "webstir-frontend";
         return Path.Combine(binDirectory, executable);
+    }
+
+    private string? TryResolveCliScriptPath()
+    {
+        try
+        {
+            string scopePath = Path.Combine(_workspace.NodeModulesPath, "@electric-coding-llc");
+            if (!Directory.Exists(scopePath))
+            {
+                return null;
+            }
+
+            static string? Probe(string directory)
+            {
+                string candidate = Path.Combine(directory, "dist", "cli.js");
+                return File.Exists(candidate) ? candidate : null;
+            }
+
+            string direct = Path.Combine(scopePath, "webstir-frontend");
+            if (Directory.Exists(direct))
+            {
+                string? hit = Probe(direct);
+                if (hit is not null) return hit;
+            }
+
+            foreach (string dir in Directory.GetDirectories(scopePath, "webstir-frontend@*", SearchOption.TopDirectoryOnly))
+            {
+                string? hit = Probe(dir);
+                if (hit is not null) return hit;
+            }
+
+            foreach (string dir in Directory.GetDirectories(scopePath, ".webstir-frontend-*", SearchOption.TopDirectoryOnly))
+            {
+                string? hit = Probe(dir);
+                if (hit is not null) return hit;
+            }
+
+            string nested = Path.Combine(scopePath, "node_modules", "webstir-frontend");
+            if (Directory.Exists(nested))
+            {
+                string? hit = Probe(nested);
+                if (hit is not null) return hit;
+            }
+        }
+        catch
+        {
+            // best-effort resolution
+        }
+
+        return null;
     }
 
     private static bool IsVerboseWatchLoggingEnabled()

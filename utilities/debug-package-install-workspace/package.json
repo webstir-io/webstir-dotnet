@@ -1,0 +1,9 @@
+{
+  "name": "webstir-debug",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@electric-coding-llc/webstir-frontend": "@electric-coding-llc/webstir-frontend@0.3.4",
+    "@electric-coding-llc/webstir-test": "@electric-coding-llc/webstir-test@0.3.4"
+  }
+}

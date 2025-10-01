@@ -18,13 +18,9 @@ on:
         required: false
         default: false
         type: boolean
-  push:
-    tags:
-      - "v*"
 
 jobs:
   release:
-    if: github.event_name != 'push' || github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -127,7 +123,7 @@ jobs:
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             BUMP="${{ steps.resolve_bump.outputs.value }}"
-            VERSION=$(node ./utilities/release/bump-version.mjs --bump "$BUMP" $([[ "${{ github.event.inputs.dry_run }}" == "true" ]] && echo "--dry-run"))
+            VERSION=$(node ./framework/Scripts/bump-version.mjs --bump "$BUMP" $([[ "${{ github.event.inputs.dry_run }}" == "true" ]] && echo "--dry-run"))
             echo "release_version=$VERSION" >> "$GITHUB_OUTPUT"
             echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
           else
@@ -136,10 +132,6 @@ jobs:
             echo "release_version=$VERSION" >> "$GITHUB_OUTPUT"
             echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
           fi
-
-      - name: Validate package versions for tag release
-        if: github.event_name == 'push'
-        run: node ./utilities/release/assert-version.mjs --expected "${{ env.RELEASE_VERSION }}"
 
       - name: Exit early for dry runs
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true'

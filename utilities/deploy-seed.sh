@@ -10,6 +10,21 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+DEFAULT_NPMRC="$ROOT_DIR/.npmrc"
+if [[ -n "${NPM_CONFIG_USERCONFIG:-}" ]]; then
+  if [[ ! -f "$NPM_CONFIG_USERCONFIG" && -f "$DEFAULT_NPMRC" ]]; then
+    echo "deploy-seed: NPM_CONFIG_USERCONFIG points to '$NPM_CONFIG_USERCONFIG' but it does not exist; using $DEFAULT_NPMRC instead." >&2
+    export NPM_CONFIG_USERCONFIG="$DEFAULT_NPMRC"
+  fi
+elif [[ -f "$DEFAULT_NPMRC" ]]; then
+  export NPM_CONFIG_USERCONFIG="$DEFAULT_NPMRC"
+fi
+
+if [[ -z "${GH_PACKAGES_TOKEN:-}" ]]; then
+  echo "deploy-seed: GH_PACKAGES_TOKEN is not set; GitHub Packages auth is required." >&2
+  exit 1
+fi
+
 SEED_DIR="CLI/out/seed"
 
 echo "[0/5] Updating local package tarballs ..."

@@ -384,7 +384,8 @@ public sealed class PackageBuilder
             : new JsonObject();
 
         JsonObject dependencies = root["dependencies"] as JsonObject ?? new JsonObject();
-        dependencies[packageName] = dependencySpecifier;
+        // Store only the plain version to avoid npm alias/link behavior when spec is "name@version"
+        dependencies[packageName] = ExtractVersionFromSpecifier(dependencySpecifier) ?? dependencySpecifier;
         root["dependencies"] = dependencies;
 
         JsonSerializerOptions options = new()
@@ -394,6 +395,30 @@ public sealed class PackageBuilder
 
         Directory.CreateDirectory(Path.GetDirectoryName(packageJsonPath)!);
         File.WriteAllText(packageJsonPath, root.ToJsonString(options) + Environment.NewLine);
+    }
+
+    private static string? ExtractVersionFromSpecifier(string spec)
+    {
+        if (string.IsNullOrWhiteSpace(spec))
+        {
+            return null;
+        }
+
+        // common forms:
+        //   @scope/name@1.2.3
+        //   npm:@scope/name@1.2.3
+        //   name@1.2.3
+        int lastAt = spec.LastIndexOf('@');
+        if (lastAt >= 0 && lastAt + 1 < spec.Length)
+        {
+            string ver = spec[(lastAt + 1)..];
+            // naive version check: starts with digit
+            if (!string.IsNullOrWhiteSpace(ver) && char.IsDigit(ver[0]))
+            {
+                return ver;
+            }
+        }
+        return null;
     }
 
     private static Task CleanupPackageDirectoryAsync(string packageDirectory, IReadOnlyCollection<string> directoriesToRemove, string tarballPattern)

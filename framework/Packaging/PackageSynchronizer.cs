@@ -24,10 +24,6 @@ public static class PackageSynchronizer
         {
             logger?.LogInformation("[packages] Prefer registry packages (WEBSTIR_PACKAGE_SOURCE=registry).");
         }
-        else
-        {
-            logger?.LogWarning("[packages] Local package archives are no longer bundled; registry packages will be used instead.");
-        }
 
         FrontendPackageEnsureResult? frontendResult = includeFrontend && ensureFrontend is not null
             ? await ensureFrontend(preferRegistry)
@@ -55,7 +51,6 @@ public static class PackageSynchronizer
                         packageLockRemoved = true;
                     }
 
-                    logger?.LogInformation("[packages] Clearing cached frontend package before install.");
                     RemoveCachedPackage(workspace, logger, "@electric-coding-llc/webstir-frontend");
                 }
 
@@ -67,10 +62,10 @@ public static class PackageSynchronizer
                         packageLockRemoved = true;
                     }
 
-                    logger?.LogInformation("[packages] Clearing cached testing package before install.");
                     RemoveCachedPackage(workspace, logger, "@electric-coding-llc/webstir-test");
                 }
 
+                EnsureWorkspaceNpmrc(workspace, logger);
                 logger?.LogInformation("[packages] Installing framework packages...");
                 await workspace.RunNpmInstallAsync();
                 installPerformed = true;
@@ -84,6 +79,36 @@ public static class PackageSynchronizer
                 {
                     testResult = await ensureTesting(preferRegistry);
                 }
+
+                // Fallback: if packages still mismatch, force explicit install by spec
+                if ((frontendResult?.VersionMismatch ?? false) || (testResult?.VersionMismatch ?? false))
+                {
+                    System.Collections.Generic.List<string> specs = new();
+                    if (frontendResult is { VersionMismatch: true } f)
+                    {
+                        specs.Add($"{f.Metadata.Name}@{f.Metadata.Version}");
+                    }
+                    if (testResult is { VersionMismatch: true } t)
+                    {
+                        specs.Add($"{t.Metadata.Name}@{t.Metadata.Version}");
+                    }
+
+                    if (specs.Count > 0)
+                    {
+                        logger?.LogInformation("[packages] Retrying install with explicit specs: {Specs}", string.Join(", ", specs));
+                        await workspace.InstallPackagesAsync(specs.ToArray());
+
+                        // Re-evaluate after explicit install
+                        if (includeFrontend && ensureFrontend is not null)
+                        {
+                            frontendResult = await ensureFrontend(preferRegistry);
+                        }
+                        if (includeTesting && ensureTesting is not null)
+                        {
+                            testResult = await ensureTesting(preferRegistry);
+                        }
+                    }
+                }
             }
             else
             {
@@ -92,6 +117,28 @@ public static class PackageSynchronizer
         }
 
         return new PackageEnsureSummary(frontendResult, testResult, installPerformed, installRequiredButSkipped);
+    }
+
+    private static void EnsureWorkspaceNpmrc(IPackageWorkspace workspace, ILogger? logger)
+    {
+        try
+        {
+            string npmrcPath = Path.Combine(workspace.WorkingPath, ".npmrc");
+            if (File.Exists(npmrcPath))
+            {
+                return; // respect existing project config
+            }
+
+            string content = "@electric-coding-llc:registry=https://npm.pkg.github.com\n" +
+                             "//npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}\n" +
+                             "always-auth=true\n";
+            File.WriteAllText(npmrcPath, content);
+            logger?.LogDebug("[packages] Wrote workspace .npmrc for GitHub Packages auth.");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger?.LogDebug(ex, "Failed to write workspace .npmrc; relying on global npm config.");
+        }
     }
 
     private static bool NeedsInstall<TEnsure>(TEnsure? result)
@@ -106,6 +153,20 @@ public static class PackageSynchronizer
             if (File.Exists(packageLockPath))
             {
                 File.Delete(packageLockPath);
+            }
+
+            // npm may also honor a shrinkwrap file at the root
+            string shrinkwrapPath = Path.Combine(workspace.WorkingPath, "npm-shrinkwrap.json");
+            if (File.Exists(shrinkwrapPath))
+            {
+                File.Delete(shrinkwrapPath);
+            }
+
+            // npm v7+ can leave a sublock under node_modules which affects reify
+            string subLockPath = Path.Combine(workspace.NodeModulesPath, ".package-lock.json");
+            if (File.Exists(subLockPath))
+            {
+                File.Delete(subLockPath);
             }
         }
         catch (IOException ex)
@@ -127,6 +188,28 @@ public static class PackageSynchronizer
             {
                 Directory.Delete(packagePath, recursive: true);
             }
+
+            // Also remove npm's alternative layouts for the same package
+            // 1) version-suffixed directories under the scope (pkg@x.y.z)
+            string scope = packageName.Contains('/') ? packageName.Split('/')[0] : string.Empty;
+            string name = packageName.Contains('/') ? packageName.Split('/')[1] : packageName;
+            if (!string.IsNullOrWhiteSpace(scope))
+            {
+                string scopePath = Path.Combine(workspace.NodeModulesPath, scope);
+                if (Directory.Exists(scopePath))
+                {
+                    foreach (string candidate in Directory.GetDirectories(scopePath, name + "@*", SearchOption.TopDirectoryOnly))
+                    {
+                        TryDeleteDirectory(candidate, logger);
+                    }
+
+                    // 2) hidden directories used during reify (.pkg-<random>)
+                    foreach (string candidate in Directory.GetDirectories(scopePath, "." + name + "-*", SearchOption.TopDirectoryOnly))
+                    {
+                        TryDeleteDirectory(candidate, logger);
+                    }
+                }
+            }
         }
         catch (DirectoryNotFoundException)
         {
@@ -139,6 +222,21 @@ public static class PackageSynchronizer
         catch (UnauthorizedAccessException ex)
         {
             logger?.LogDebug(ex, "Insufficient permissions to remove cached package {Package} while refreshing the packages.", packageName);
+        }
+    }
+
+    private static void TryDeleteDirectory(string path, ILogger? logger)
+    {
+        try
+        {
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, recursive: true);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger?.LogDebug(ex, "Failed to remove directory while refreshing the packages: {Path}", path);
         }
     }
 }

@@ -3,6 +3,7 @@ namespace Framework.Packaging;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 
@@ -67,6 +68,90 @@ public readonly record struct FrameworkPackageMetadata(string Name, string Versi
             path = Path.Combine(path, segment);
         }
 
-        return Path.Combine(path, "package.json");
+        string packageJson = Path.Combine(path, "package.json");
+        if (File.Exists(packageJson))
+        {
+            return packageJson;
+        }
+
+        string? resolved = ResolvePackageJsonPath(path);
+        return resolved ?? packageJson;
+    }
+
+    private static string? ResolvePackageJsonPath(string expectedDirectory)
+    {
+        string? resolved = ResolveViaSymlink(expectedDirectory);
+        if (!string.IsNullOrEmpty(resolved))
+        {
+            string candidate = Path.Combine(resolved, "package.json");
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        string? parent = Path.GetDirectoryName(expectedDirectory);
+        if (string.IsNullOrEmpty(parent) || !Directory.Exists(parent))
+        {
+            return null;
+        }
+
+        string packageName = Path.GetFileName(expectedDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        if (string.IsNullOrEmpty(packageName))
+        {
+            return null;
+        }
+
+        // npm 9/10+ may materialize packages as <name>@<version> under the scope directory.
+        string? versionedDirectory = Directory.EnumerateDirectories(parent, packageName + "@*", SearchOption.TopDirectoryOnly)
+            .FirstOrDefault(directory => File.Exists(Path.Combine(directory, "package.json")));
+        if (!string.IsNullOrEmpty(versionedDirectory))
+        {
+            return Path.Combine(versionedDirectory, "package.json");
+        }
+
+        string hiddenPattern = $".{packageName}-*";
+        string? hiddenDirectory = Directory.EnumerateDirectories(parent, hiddenPattern, SearchOption.TopDirectoryOnly)
+            .FirstOrDefault(directory => File.Exists(Path.Combine(directory, "package.json")));
+        if (!string.IsNullOrEmpty(hiddenDirectory))
+        {
+            return Path.Combine(hiddenDirectory, "package.json");
+        }
+
+        // npm 10+ can create a nested node_modules folder under the scope directory.
+        string nested = Path.Combine(parent, "node_modules", packageName, "package.json");
+        if (File.Exists(nested))
+        {
+            return nested;
+        }
+
+        return null;
+    }
+
+    private static string? ResolveViaSymlink(string directoryPath)
+    {
+        try
+        {
+            if (!Directory.Exists(directoryPath))
+            {
+                DirectoryInfo info = new(directoryPath);
+                FileSystemInfo? target = info.ResolveLinkTarget(returnFinalTarget: true);
+                return (target as DirectoryInfo)?.FullName;
+            }
+        }
+        catch (IOException)
+        {
+            // ignore and fall back to other resolution strategies
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // ignore and fall back to other resolution strategies
+        }
+        catch (PlatformNotSupportedException)
+        {
+            // ignore
+        }
+
+        return null;
     }
 }

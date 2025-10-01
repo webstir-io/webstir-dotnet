@@ -25,4 +25,10 @@ internal sealed class PackageWorkspaceAdapter : IPackageWorkspace
         NpmHelper.RunNpmInstall(_workspace.WorkingPath);
         return Task.CompletedTask;
     }
+
+    public Task InstallPackagesAsync(params string[] packageSpecs)
+    {
+        NpmHelper.RunNpmInstallPackages(_workspace.WorkingPath, packageSpecs);
+        return Task.CompletedTask;
+    }
 }

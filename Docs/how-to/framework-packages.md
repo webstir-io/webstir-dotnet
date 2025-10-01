@@ -8,13 +8,13 @@ This guide explains how maintainers rebuild the frontend and testing packages th
 - `webstir install` uses `PackageSynchronizer` to ensure consuming workspaces pin the expected registry versions and reruns `npm install` when they drift.
 
 ## Update The Packages
-1. **Bump versions** – The release workflow runs `node ./utilities/release/bump-version.mjs --bump <patch|minor|major>` automatically. Run the same script locally (add `--dry-run` to preview) to update package manifests and lockfiles together.
+1. **Bump versions** – The release workflow runs `node ./framework/Scripts/bump-version.mjs --bump <patch|minor|major>` automatically. If you want to bump manually, run the script directly (add `--dry-run` to preview without touching files).
 2. **Rebuild packages** – Run `dotnet run --project framework/Framework.csproj -- packages sync` from the repo root (or invoke the published `framework` binary).
    - Add `--frontend` or `--test` to rebuild a single package.
    - The command runs `npm ci`, `npm run build`, and `npm pack` in each package directory, regenerating the tarball next to `package.json`.
    - It also updates `framework/Packaging/framework-packages.json` and `Engine/Resources/package.json` so the CLI embeds the new registry specifiers.
    - Set `WEBSTIR_FRONTEND_REGISTRY_SPEC` or `WEBSTIR_TEST_REGISTRY_SPEC` before running if you need to override the default `<name>@<version>` specifier (for example, to target a dist-tag).
-3. **Publish packages** – Run `dotnet run --project framework/Framework.csproj -- packages publish` to push any missing versions to the configured registry (GitHub Packages by default). Export `GH_PACKAGES_TOKEN` so npm can authenticate; the command skips publishing if the version already exists.
+3. **Publish packages** – Run `./framework/Scripts/publish.sh` (optionally add `--bump minor|major`; default is patch) to bump versions and push any missing releases to the configured registry (GitHub Packages by default). Append `--dry-run` to preview the next version without publishing; the helper checks `GH_PACKAGES_TOKEN` and, if present, points `NPM_CONFIG_USERCONFIG` at the repo’s `.npmrc` automatically.
 4. **Commit artifacts** – Include the updated package sources, lockfiles, `framework/Packaging/framework-packages.json`, and `Engine/Resources/package.json` in your PR.
 
 ## Automate Releases
@@ -28,7 +28,7 @@ This guide explains how maintainers rebuild the frontend and testing packages th
 
 ## Developer Helpers
 - Before committing frontend/testing changes, run `dotnet run --project framework/Framework.csproj -- packages sync` to ensure local build artifacts and metadata reflect the latest source.
-- Use `node ./utilities/release/bump-version.mjs --bump patch --dry-run` to preview the next version without touching files.
+- Use `node ./framework/Scripts/bump-version.mjs --bump patch --dry-run` to preview the next version without touching files.
 
 ## Install In A Workspace
 - Run `webstir install` (or any workflow that calls it) inside a consuming workspace.
@@ -39,7 +39,7 @@ This guide explains how maintainers rebuild the frontend and testing packages th
 ## Registry Notes
 - The CLI now requires registry access. Offline installs are no longer supported once the registry-first workflow is enabled.
 - During the private phase, keep `.npmrc` pointed at GitHub Packages and ensure `GH_PACKAGES_TOKEN` is available. When ready to publish publicly, update the registry URL and remove the token requirement.
-- For CI or sandbox flows that need an `.npmrc`, reuse the helpers under `Sandbox/npmrc` to generate the appropriate auth file.
+- For Sandbox or CI scenarios, create a `.npmrc` that includes the GitHub Packages token (see `Sandbox/README.md` for guidance) before running workflows that need registry access.
 
 ## Verify Changes
 - Run `./utilities/format-build.sh` (or at minimum `dotnet build` plus package tests) before handing off a change; the script now calls `framework packages sync` automatically.
