@@ -25,6 +25,11 @@ public sealed class MissingAppHtmlShowsError : ITestCase
         {
             try
             {
+                FileAttributes currentAttributes = File.GetAttributes(appHtml);
+                if (currentAttributes.HasFlag(FileAttributes.ReadOnly))
+                {
+                    File.SetAttributes(appHtml, currentAttributes & ~FileAttributes.ReadOnly);
+                }
                 File.Delete(appHtml);
             }
             catch { }
