@@ -33,7 +33,12 @@ public sealed class MissingAppHtmlShowsError : ITestCase
             Assert.IsFalse(File.Exists(appHtml), "Failed to delete app.html before running build.");
         }
 
-        ProcessRunner.ProcessResult result = context.Cli.Run($"{Commands.Build} {ProjectOptions.ProjectName} {projectName}", testDir, timeoutMs: 10000);
+        // Use publish here to ensure the HTML pipeline runs and validates the
+        // presence of the base app template consistently across platforms.
+        ProcessRunner.ProcessResult result = context.Cli.Run(
+            $"{Commands.Publish} {ProjectOptions.ProjectName} {projectName}",
+            testDir,
+            timeoutMs: 20000);
 
         Assert.AreEqual(0, result.ExitCode, $"{Commands.Build} command failed. Error: {result.Error}");
         string combined = (result.Output ?? string.Empty) + "\n" + (result.Error ?? string.Empty);
