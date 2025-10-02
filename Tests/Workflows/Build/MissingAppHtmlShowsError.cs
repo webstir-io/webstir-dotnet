@@ -40,7 +40,7 @@ public sealed class MissingAppHtmlShowsError : ITestCase
             testDir,
             timeoutMs: 20000);
 
-        // When app.html is missing, the pipeline should fail and surface the template error.
+        // When app.html is missing, the pipeline should fail and surface the template error. 
         if (result.ExitCode == 0)
         {
             string combined = (result.Output ?? string.Empty) + "\n" + (result.Error ?? string.Empty);
