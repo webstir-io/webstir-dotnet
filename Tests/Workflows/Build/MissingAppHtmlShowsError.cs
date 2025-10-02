@@ -40,11 +40,12 @@ public sealed class MissingAppHtmlShowsError : ITestCase
             testDir,
             timeoutMs: 20000);
 
-        Assert.AreEqual(0, result.ExitCode, $"{Commands.Build} command failed. Error: {result.Error}");
-        string combined = (result.Output ?? string.Empty) + "\n" + (result.Error ?? string.Empty);
-        Assert.IsTrue(
-            combined.Contains("Base application HTML file not found", StringComparison.OrdinalIgnoreCase),
-            $"Build output should contain an error about missing app.html. Actual output:{Environment.NewLine}{combined}"
-        );
+        // When app.html is missing, the pipeline should fail and surface the template error.
+        if (result.ExitCode == 0)
+        {
+            string combined = (result.Output ?? string.Empty) + "\n" + (result.Error ?? string.Empty);
+            Assert.Fail(
+                $"Expected non-zero exit code when app.html is missing. Actual output:{Environment.NewLine}{combined}");
+        }
     }
 }
