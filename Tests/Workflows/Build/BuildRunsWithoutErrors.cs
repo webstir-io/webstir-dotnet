@@ -19,25 +19,17 @@ public sealed class BuildRunsWithoutErrors : ITestCase
 
         string testDir = Paths.OutPath;
         Directory.CreateDirectory(testDir);
-        string seedDir = Path.Combine(testDir, Folders.Seed);
-        if (!Directory.Exists(Path.Combine(seedDir, Folders.Src)))
-        {
-            ProcessRunner.ProcessResult init = context.Cli.Run(Commands.Init, testDir, timeoutMs: 10000);
-            Assert.AreEqual(0, init.ExitCode, $"{Commands.Init} command failed. Error: {init.Error}");
-        }
+        string projectName = "seed-build";
+        string seedDir = WorkspaceManager.CreateSeedWorkspace(context, projectName);
 
         // Clean previous build
         string seedBuild = Path.Combine(seedDir, Folders.Build);
         if (Directory.Exists(seedBuild))
         {
-            try
-            {
-                Directory.Delete(seedBuild, recursive: true);
-            }
-            catch { }
+            Directory.Delete(seedBuild, recursive: true);
         }
 
-        ProcessRunner.ProcessResult result = context.Cli.Run($"{Commands.Build} {ProjectOptions.ProjectName} seed", testDir, timeoutMs: 20000);
+        ProcessRunner.ProcessResult result = context.Cli.Run($"{Commands.Build} {ProjectOptions.ProjectName} {projectName}", testDir, timeoutMs: 20000);
 
         if (result.TimedOut)
         {
@@ -48,11 +40,10 @@ public sealed class BuildRunsWithoutErrors : ITestCase
         context.AssertNoCompilationErrors(result);
 
         // Verify minimal expected artifacts
-        string seedRoot = Path.Combine(testDir, Folders.Seed);
         AppWorkspace workspace = new();
-        workspace.Initialize(seedRoot);
+        workspace.Initialize(seedDir);
 
-        string frontendRoot = ResolveFrontendRoot(workspace, seedRoot);
+        string frontendRoot = ResolveFrontendRoot(workspace, seedDir);
         Assert.IsTrue(Directory.Exists(frontendRoot), "Frontend build/dist directory does not exist");
 
         string clientPageDir = Path.Combine(frontendRoot, Folders.Pages, Folders.Home);

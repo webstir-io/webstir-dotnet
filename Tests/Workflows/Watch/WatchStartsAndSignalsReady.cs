@@ -17,12 +17,8 @@ public sealed class WatchStartsAndSignalsReady : ITestCase
 
         string testDir = Paths.OutPath;
         Directory.CreateDirectory(testDir);
-        string seedDir = Path.Combine(testDir, Folders.Seed);
-        if (!Directory.Exists(Path.Combine(seedDir, Folders.Src)))
-        {
-            ProcessRunner.ProcessResult init = context.Cli.Run(Commands.Init, testDir, timeoutMs: 10000);
-            Assert.AreEqual(0, init.ExitCode, $"{Commands.Init} command failed. Error: {init.Error}");
-        }
+        string projectName = "seed-watch";
+        string seedDir = WorkspaceManager.CreateSeedWorkspace(context, projectName);
 
         string seedBuild = Path.Combine(seedDir, Folders.Build);
         if (Directory.Exists(seedBuild))
@@ -35,7 +31,7 @@ public sealed class WatchStartsAndSignalsReady : ITestCase
         }
 
         ProcessRunner.ProcessResult result = context.Cli.Run(
-            $"{Commands.Watch} {ProjectOptions.ProjectName} seed",
+            $"{Commands.Watch} {ProjectOptions.ProjectName} {projectName}",
             testDir,
             timeoutMs: 12000,
             waitForSignal: App.DevService
@@ -46,4 +42,3 @@ public sealed class WatchStartsAndSignalsReady : ITestCase
         Assert.GreaterThan(0, result.Output.Length + result.Error.Length, $"{Commands.Watch} command produced no output");
     }
 }
-

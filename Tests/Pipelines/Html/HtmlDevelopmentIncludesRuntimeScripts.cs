@@ -16,11 +16,11 @@ public sealed class HtmlDevelopmentIncludesRuntimeScripts : ITestCase
 
         string testDirectory = Paths.OutPath;
         Directory.CreateDirectory(testDirectory);
-        string seedDirectory = Path.Combine(testDirectory, Folders.Seed);
-        EnsureSeedProject(context, testDirectory, seedDirectory);
+        string projectName = "seed-dev";
+        string seedDirectory = WorkspaceManager.CreateSeedWorkspace(context, projectName);
 
         ProcessRunner.ProcessResult build = context.Cli.Run(
-            $"{Commands.Build} {ProjectOptions.ProjectName} seed",
+            $"{Commands.Build} {ProjectOptions.ProjectName} {projectName}",
             testDirectory,
             timeoutMs: 20000);
         context.AssertNoCompilationErrors(build);
@@ -45,17 +45,4 @@ public sealed class HtmlDevelopmentIncludesRuntimeScripts : ITestCase
         Assert.Contains("src=\"/hmr.js\"", pageHtml, "Development HTML should reference HMR runtime script");
     }
 
-    private static void EnsureSeedProject(TestCaseContext context, string testDirectory, string seedDirectory)
-    {
-        if (Directory.Exists(Path.Combine(seedDirectory, Folders.Src)))
-        {
-            return;
-        }
-
-        ProcessRunner.ProcessResult init = context.Cli.Run(
-            $"{Commands.Init} {ProjectOptions.ProjectName} seed",
-            testDirectory,
-            timeoutMs: 15000);
-        Assert.AreEqual(0, init.ExitCode, $"{Commands.Init} failed: {init.Error}");
-    }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -24,9 +25,12 @@ public sealed class PublishTests : TestSuite
             new PublishRunsWithoutErrors()
         ];
 
-        foreach (ITestCase testCase in FilterByMode(workflowCases))
+        ITestCase[] selectedWorkflows = FilterByMode(workflowCases).ToArray();
+        if (selectedWorkflows.Length > 0)
         {
-            results.Add(RunTest(testCase.Name, () => testCase.Execute(context)));
+            TestResult[] workflowResults = await RunTestsAsync(selectedWorkflows
+                .Select(testCase => (testCase.Name, (Func<Task>)(() => Task.Run(() => testCase.Execute(context))))));
+            results.AddRange(workflowResults);
         }
 
         // Run pipeline test suites
@@ -38,9 +42,13 @@ public sealed class PublishTests : TestSuite
             new CoreTests()
         ];
 
-        foreach (TestSuite suite in pipelineSuites)
+        Task<TestResult[]>[] pipelineTasks = pipelineSuites
+            .Select(suite => suite.RunAsync())
+            .ToArray();
+
+        TestResult[][] pipelineResults = await Task.WhenAll(pipelineTasks);
+        foreach (TestResult[] suiteResults in pipelineResults)
         {
-            TestResult[] suiteResults = await suite.RunAsync();
             results.AddRange(suiteResults);
         }
 

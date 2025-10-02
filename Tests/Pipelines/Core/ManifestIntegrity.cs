@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Engine;
+using Tests.Pipelines.Html;
 
 using Tests.Framework;
 using Tests.Frontend;
@@ -16,10 +17,10 @@ public sealed class ManifestIntegrity : ITestCase
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        string testDirectory = Paths.OutPath;
-        string clientPageDirectory = Path.Combine(testDirectory, Folders.Seed, Folders.Dist, Folders.Frontend, Folders.Pages, Folders.Home);
-
-        PageAssetManifest manifest = PageAssetManifest.Load(clientPageDirectory);
+        HtmlPublishScenarioResult scenario = Tests.Pipelines.Html.HtmlPublishScenarios.HeadCombined(context);
+        Tests.Pipelines.Html.HtmlPageResult homePage = scenario.GetPage(Folders.Home);
+        string clientPageDirectory = homePage.DirectoryPath;
+        PageAssetManifest manifest = homePage.Manifest;
 
         // JS
         string expectedJsPath = !string.IsNullOrWhiteSpace(manifest.Js)

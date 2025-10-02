@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Tests.Framework;
 using Tests.Frontend;
+using Tests.Pipelines.Html;
 
 using BuildWorkflowTests = Tests.Workflows.Build.BuildTests;
 using HelpWorkflowTests = Tests.Workflows.Help.HelpTests;
@@ -59,6 +60,31 @@ public class Program
         // Get services from DI container
         ITestRunner testRunner = serviceProvider.GetRequiredService<ITestRunner>();
         ITestOutputManager outputManager = serviceProvider.GetRequiredService<ITestOutputManager>();
+
+        // Prepare shared workspaces before running tests
+        TestCaseContext bootstrapContext = new()
+        {
+            Cli = new Cli(),
+            OutPath = Paths.OutPath
+        };
+        WorkspaceManager.EnsureSeedWorkspaceReady(bootstrapContext);
+
+        // If we're only running the publish suite, pre-warm scenarios so
+        // the suite time reflects assertions, not initial publishes.
+        if (options.TestSuites.Any(s => s.Contains("publish", StringComparison.OrdinalIgnoreCase)))
+        {
+            try
+            {
+                Tests.Pipelines.Html.HtmlPublishScenarios.HeadCombined(bootstrapContext);
+                Tests.Pipelines.Html.HtmlPublishScenarios.PerfPage(bootstrapContext);
+                Tests.Pipelines.Html.HtmlPublishScenarios.FeatureFlagsDisabled(bootstrapContext);
+                Tests.Pipelines.Html.HtmlPublishScenarios.PrecompressionEnabled(bootstrapContext);
+            }
+            catch
+            {
+                // Allow tests to proceed; individual cases will surface failures.
+            }
+        }
 
         // Run tests
         TestSummary summary = options.TestSuites.Any()

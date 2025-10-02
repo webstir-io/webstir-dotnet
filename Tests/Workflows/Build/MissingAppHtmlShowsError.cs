@@ -18,12 +18,7 @@ public sealed class MissingAppHtmlShowsError : ITestCase
         string testDir = Paths.OutPath;
         Directory.CreateDirectory(testDir);
         string projectName = "seed-missing-app";
-        string projectDir = Path.Combine(testDir, projectName);
-        if (!Directory.Exists(Path.Combine(projectDir, Folders.Src)))
-        {
-            ProcessRunner.ProcessResult init = context.Cli.Run($"{Commands.Init} --project-name {projectName}", testDir, timeoutMs: 10000);
-            Assert.AreEqual(0, init.ExitCode, $"{Commands.Init} command failed. Error: {init.Error}");
-        }
+        string projectDir = WorkspaceManager.CreateSeedWorkspace(context, projectName);
 
         string appHtml = Path.Combine(projectDir, Folders.Src, Folders.Frontend, Folders.App, "app.html");
         if (File.Exists(appHtml))

@@ -35,7 +35,7 @@ async function buildHtml(context) {
     }
     const appTemplatePath = path.join(config.paths.src.app, FILE_NAMES.htmlAppTemplate);
     if (!(await pathExists(appTemplatePath))) {
-        throw new Error(`Missing base application template: ${appTemplatePath}`);
+        throw new Error(`Base application HTML file not found: ${appTemplatePath}`);
     }
     const templateHtml = await readFile(appTemplatePath);
     validateAppTemplate(templateHtml, appTemplatePath);
@@ -171,6 +171,9 @@ async function rewriteForPublish(context, html, pageName, manifest, pageDirector
             });
         }
     }
+    dedupeHeadMeta(document, 'name');
+    dedupeHeadMeta(document, 'property');
+    dedupeHeadLinks(document, 'rel');
     return document.root().html() ?? '';
 }
 async function handlePrecompression(context, outputPath) {
@@ -203,6 +206,44 @@ function validatePageFragment(html, filePath) {
 }
 function warn(message) {
     console.warn(`[webstir-frontend][html] ${message}`);
+}
+function dedupeHeadMeta(document, attribute) {
+    const head = document('head').first();
+    if (head.length === 0) {
+        return;
+    }
+    const seen = new Map();
+    head.find(`meta[${attribute}]`).each((_, element) => {
+        const value = element.attribs?.[attribute];
+        if (!value) {
+            return;
+        }
+        const key = value.toLowerCase();
+        const previous = seen.get(key);
+        if (previous) {
+            previous.remove();
+        }
+        seen.set(key, document(element));
+    });
+}
+function dedupeHeadLinks(document, attribute) {
+    const head = document('head').first();
+    if (head.length === 0) {
+        return;
+    }
+    const seen = new Map();
+    head.find(`link[${attribute}]`).each((_, element) => {
+        const value = element.attribs?.[attribute];
+        if (!value) {
+            return;
+        }
+        const key = value.toLowerCase();
+        const previous = seen.get(key);
+        if (previous) {
+            previous.remove();
+        }
+        seen.set(key, document(element));
+    });
 }
 async function addImageDimensions(document, context, pageDirectory) {
     const { config } = context;

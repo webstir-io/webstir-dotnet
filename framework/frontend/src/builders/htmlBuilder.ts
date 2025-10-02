@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { load } from 'cheerio';
-import type { CheerioAPI } from 'cheerio';
+import type { Cheerio, CheerioAPI } from 'cheerio';
+import type { AnyNode } from 'domhandler';
 import { glob } from 'glob';
 import { FOLDERS, FILES, FILE_NAMES, EXTENSIONS } from '../core/constants.js';
 import { ensureDir, readFile, writeFile, pathExists, remove } from '../utils/fs.js';
@@ -40,7 +41,7 @@ async function buildHtml(context: BuilderContext): Promise<void> {
     
     const appTemplatePath = path.join(config.paths.src.app, FILE_NAMES.htmlAppTemplate);
     if (!(await pathExists(appTemplatePath))) {
-        throw new Error(`Missing base application template: ${appTemplatePath}`);
+        throw new Error(`Base application HTML file not found: ${appTemplatePath}`);
     }
 
     const templateHtml = await readFile(appTemplatePath);
@@ -212,6 +213,10 @@ async function rewriteForPublish(
         }
     }
 
+    dedupeHeadMeta(document, 'name');
+    dedupeHeadMeta(document, 'property');
+    dedupeHeadLinks(document, 'rel');
+
     return document.root().html() ?? '';
 }
 
@@ -249,6 +254,52 @@ function validatePageFragment(html: string, filePath: string): void {
 
 function warn(message: string): void {
     console.warn(`[webstir-frontend][html] ${message}`);
+}
+
+function dedupeHeadMeta(document: CheerioAPI, attribute: 'name' | 'property'): void {
+    const head = document('head').first();
+    if (head.length === 0) {
+        return;
+    }
+
+    const seen = new Map<string, Cheerio<AnyNode>>();
+    head.find(`meta[${attribute}]`).each((_, element) => {
+        const value = element.attribs?.[attribute];
+        if (!value) {
+            return;
+        }
+
+        const key = value.toLowerCase();
+        const previous = seen.get(key);
+        if (previous) {
+            previous.remove();
+        }
+
+        seen.set(key, document(element));
+    });
+}
+
+function dedupeHeadLinks(document: CheerioAPI, attribute: 'rel'): void {
+    const head = document('head').first();
+    if (head.length === 0) {
+        return;
+    }
+
+    const seen = new Map<string, Cheerio<AnyNode>>();
+    head.find(`link[${attribute}]`).each((_, element) => {
+        const value = element.attribs?.[attribute];
+        if (!value) {
+            return;
+        }
+
+        const key = value.toLowerCase();
+        const previous = seen.get(key);
+        if (previous) {
+            previous.remove();
+        }
+
+        seen.set(key, document(element));
+    });
 }
 
 async function addImageDimensions(document: CheerioAPI, context: BuilderContext, pageDirectory: string): Promise<void> {

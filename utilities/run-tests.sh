@@ -7,5 +7,8 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 cd "$PROJECT_ROOT"
 
+dotnet build
+
 echo "Running full test suite..."
+
 dotnet run --project Tests -- --full

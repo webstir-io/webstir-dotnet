@@ -18,13 +18,9 @@ public sealed class AddTestScaffoldsFile : ITestCase
 
         string testDir = Paths.OutPath;
         Directory.CreateDirectory(testDir);
+        // Ensure baseline seed exists with packages so .bin CLI is available
+        WorkspaceManager.EnsureSeedWorkspaceReady(context);
         string seedDir = Path.Combine(testDir, Folders.Seed);
-
-        if (!Directory.Exists(Path.Combine(seedDir, Folders.Src)))
-        {
-            ProcessRunner.ProcessResult init = context.Cli.Run(Commands.Init, testDir, timeoutMs: 10000);
-            Assert.AreEqual(0, init.ExitCode, $"{Commands.Init} command failed. Error: {init.Error}");
-        }
 
         // Run add-test to create a home page test
         ProcessRunner.ProcessResult result = context.Cli.Run(

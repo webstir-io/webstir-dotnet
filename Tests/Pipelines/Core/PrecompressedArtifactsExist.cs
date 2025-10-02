@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Engine;
+using Tests.Pipelines.Html;
 
 using Tests.Framework;
 using Tests.Frontend;
@@ -16,8 +17,9 @@ public sealed class PrecompressedArtifactsExist : ITestCase
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        string testDirectory = Paths.OutPath;
-        string clientPageDirectory = Path.Combine(testDirectory, Folders.Seed, Folders.Dist, Folders.Frontend, Folders.Pages, Folders.Home);
+        Tests.Pipelines.Html.HtmlPublishScenarioResult scenario = Tests.Pipelines.Html.HtmlPublishScenarios.PrecompressionEnabled(context);
+        Tests.Pipelines.Html.HtmlPageResult homePage = scenario.GetPage(Folders.Home);
+        string clientPageDirectory = homePage.DirectoryPath;
 
         // HTML
         string htmlPath = Path.Combine(clientPageDirectory, $"{Files.Index}{FileExtensions.Html}");
@@ -25,7 +27,7 @@ public sealed class PrecompressedArtifactsExist : ITestCase
         Assert.IsTrue(File.Exists(htmlPath + FileExtensions.Br), ".html.br variant missing next to HTML");
 
         // CSS (via manifest)
-        PageAssetManifest manifest = PageAssetManifest.Load(clientPageDirectory);
+        PageAssetManifest manifest = homePage.Manifest;
         string cssPath = !string.IsNullOrWhiteSpace(manifest.Css)
             ? Path.Combine(clientPageDirectory, manifest.Css!)
             : Path.Combine(clientPageDirectory, $"{Files.Index}{FileExtensions.Css}");

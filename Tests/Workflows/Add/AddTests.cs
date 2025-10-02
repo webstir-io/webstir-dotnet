@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,15 +10,13 @@ public sealed class AddTests : TestSuite
 {
     public override string Name => "Add Workflow";
 
-    public override Task<TestResult[]> RunAsync()
+    public override async Task<TestResult[]> RunAsync()
     {
         TestCaseContext context = new()
         {
             Cli = new Cli(),
             OutPath = Paths.OutPath
         };
-
-        List<TestResult> results = [];
 
         ITestCase[] cases =
         [
@@ -26,12 +25,9 @@ public sealed class AddTests : TestSuite
         ];
 
         IEnumerable<ITestCase> selected = TestMode.IsFull ? cases : cases.Where(c => c.Category == TestCategory.Quick);
-        foreach (ITestCase testCase in selected)
-        {
-            results.Add(RunTest(testCase.Name, () => testCase.Execute(context)));
-        }
+        IEnumerable<(string TestName, Func<Task> TestAction)> tests = selected
+            .Select(testCase => (testCase.Name, (Func<Task>)(() => Task.Run(() => testCase.Execute(context)))));
 
-        return Task.FromResult(results.ToArray());
+        return await RunTestsAsync(tests);
     }
 }
-

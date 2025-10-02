@@ -4,6 +4,7 @@ using Engine;
 
 using Tests.Framework;
 using Tests.Frontend;
+using Tests.Pipelines.Html;
 
 namespace Tests.Pipelines.Css;
 
@@ -16,36 +17,12 @@ public sealed class CssSeedSnapshot : ITestCase
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        string testDir = Paths.OutPath;
-        Directory.CreateDirectory(testDir);
-
-        string projectName = "seed-snapshot";
-        string projectDir = Path.Combine(testDir, projectName);
-
-        if (Directory.Exists(projectDir))
-        {
-            try
-            {
-                Directory.Delete(projectDir, recursive: true);
-            }
-            catch { }
-        }
-
-        // Init a fresh project just for this snapshot
-        ProcessRunner.ProcessResult init = context.Cli.Run($"{Commands.Init} {ProjectOptions.ProjectName} {projectName}", testDir, timeoutMs: 10000);
-        Assert.AreEqual(0, init.ExitCode, $"{Commands.Init} command failed. Error: {init.Error}");
-
-        // Publish the project
-        ProcessRunner.ProcessResult publish = context.Cli.Run($"{Commands.Publish} {ProjectOptions.ProjectName} {projectName}", testDir, timeoutMs: 15000);
-        Assert.AreEqual(0, publish.ExitCode, $"{Commands.Publish} command failed. Error: {publish.Error}");
-        context.AssertNoCompilationErrors(publish);
-
-        // Read dist CSS via manifest
-        string pageDir = Path.Combine(projectDir, Folders.Dist, Folders.Frontend, Folders.Pages, Folders.Home);
-        PageAssetManifest manifest = PageAssetManifest.Load(pageDir);
+        HtmlPublishScenarioResult scenario = HtmlPublishScenarios.HeadCombined(context);
+        HtmlPageResult homePage = scenario.GetPage(Folders.Home);
+        PageAssetManifest manifest = homePage.Manifest;
         string cssPath = !string.IsNullOrWhiteSpace(manifest.Css)
-            ? Path.Combine(pageDir, manifest.Css!)
-            : Path.Combine(pageDir, $"{Files.Index}{FileExtensions.Css}");
+            ? Path.Combine(homePage.DirectoryPath, manifest.Css!)
+            : Path.Combine(homePage.DirectoryPath, $"{Files.Index}{FileExtensions.Css}");
 
         Assert.IsTrue(File.Exists(cssPath), "CSS file missing in dist (checked via manifest)");
         string actual = File.ReadAllText(cssPath);

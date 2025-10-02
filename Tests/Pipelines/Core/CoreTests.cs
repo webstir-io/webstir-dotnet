@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,10 +10,9 @@ public sealed class CoreTests : TestSuite
 {
     public override string Name => "Core Pipeline Tests";
 
-    public override Task<TestResult[]> RunAsync()
+    public override async Task<TestResult[]> RunAsync()
     {
         TestCaseContext context = BuildContext();
-        List<TestResult> results = [];
 
         ITestCase[] cases =
         [
@@ -21,12 +21,11 @@ public sealed class CoreTests : TestSuite
             new RobotsTxtExists()
         ];
 
-        foreach (ITestCase testCase in FilterByMode(cases))
-        {
-            results.Add(RunTest(testCase.Name, () => testCase.Execute(context)));
-        }
+        ITestCase[] selected = FilterByMode(cases).ToArray();
+        IEnumerable<(string TestName, Func<Task> TestAction)> tests = selected
+            .Select(testCase => (testCase.Name, (Func<Task>)(() => Task.Run(() => testCase.Execute(context)))));
 
-        return Task.FromResult(results.ToArray());
+        return await RunTestsAsync(tests, runInParallel: true);
     }
 
     private static IEnumerable<ITestCase> FilterByMode(IEnumerable<ITestCase> cases)

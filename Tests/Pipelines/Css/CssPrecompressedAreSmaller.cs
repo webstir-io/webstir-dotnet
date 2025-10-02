@@ -4,6 +4,7 @@ using Engine;
 
 using Tests.Framework;
 using Tests.Frontend;
+using Tests.Pipelines.Html;
 
 namespace Tests.Pipelines.Css;
 
@@ -16,13 +17,12 @@ public sealed class CssPrecompressedAreSmaller : ITestCase
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        string testDirectory = Paths.OutPath;
-        string clientPageDirectory = Path.Combine(testDirectory, Folders.Seed, Folders.Dist, Folders.Frontend, Folders.Pages, Folders.Home);
-
-        PageAssetManifest manifest = PageAssetManifest.Load(clientPageDirectory);
+        HtmlPublishScenarioResult scenario = HtmlPublishScenarios.PrecompressionEnabled(context);
+        HtmlPageResult homePage = scenario.GetPage(Folders.Home);
+        PageAssetManifest manifest = homePage.Manifest;
         string expectedCssPath = !string.IsNullOrWhiteSpace(manifest.Css)
-            ? Path.Combine(clientPageDirectory, manifest.Css!)
-            : Path.Combine(clientPageDirectory, $"{Files.Index}{FileExtensions.Css}");
+            ? Path.Combine(homePage.DirectoryPath, manifest.Css!)
+            : Path.Combine(homePage.DirectoryPath, $"{Files.Index}{FileExtensions.Css}");
 
         Assert.IsTrue(File.Exists(expectedCssPath), "CSS file missing in dist (checked via manifest)");
 

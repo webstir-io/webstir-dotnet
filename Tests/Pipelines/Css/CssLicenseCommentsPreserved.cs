@@ -18,13 +18,8 @@ public sealed class CssLicenseCommentsPreserved : ITestCase
 
         string testDirectory = Paths.OutPath;
         Directory.CreateDirectory(testDirectory);
-        string seedDirectory = Path.Combine(testDirectory, Folders.Seed);
-
-        if (!Directory.Exists(Path.Combine(seedDirectory, Folders.Src)))
-        {
-            ProcessRunner.ProcessResult init = context.Cli.Run(Commands.Init, testDirectory, timeoutMs: 10000);
-            Assert.AreEqual(0, init.ExitCode, $"{Commands.Init} command failed. Error: {init.Error}");
-        }
+        string projectName = "seed-license";
+        string seedDirectory = WorkspaceManager.CreateSeedWorkspace(context, projectName);
 
         string pageCss = Path.Combine(seedDirectory, Folders.Src, Folders.Frontend, Folders.Pages, Folders.Home, $"{Files.Index}{FileExtensions.Css}");
         string license = "/*! Webstir Test License v1.0 */\n";
@@ -34,22 +29,14 @@ public sealed class CssLicenseCommentsPreserved : ITestCase
         string seedDist = Path.Combine(seedDirectory, Folders.Dist);
         if (Directory.Exists(seedBuild))
         {
-            try
-            {
-                Directory.Delete(seedBuild, recursive: true);
-            }
-            catch { }
+            Directory.Delete(seedBuild, recursive: true);
         }
         if (Directory.Exists(seedDist))
         {
-            try
-            {
-                Directory.Delete(seedDist, recursive: true);
-            }
-            catch { }
+            Directory.Delete(seedDist, recursive: true);
         }
 
-        ProcessRunner.ProcessResult result = context.Cli.Run($"{Commands.Publish} {ProjectOptions.ProjectName} seed", testDirectory, timeoutMs: 15000);
+        ProcessRunner.ProcessResult result = context.Cli.Run($"{Commands.Publish} {ProjectOptions.ProjectName} {projectName}", testDirectory, timeoutMs: 15000);
         Assert.AreEqual(0, result.ExitCode, $"{Commands.Publish} command failed. Error: {result.Error}");
         context.AssertNoCompilationErrors(result);
 
@@ -64,4 +51,3 @@ public sealed class CssLicenseCommentsPreserved : ITestCase
         Assert.Contains(license.Trim(), css, "Important license comment should be preserved in output");
     }
 }
-

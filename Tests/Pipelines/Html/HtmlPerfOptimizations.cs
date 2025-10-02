@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-using System.Text;
 using Engine;
 using Tests.Framework;
 
@@ -15,52 +13,10 @@ public sealed class HtmlPerfOptimizations : ITestCase
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        string testDir = Paths.OutPath;
-        string seedDir = Path.Combine(testDir, Folders.Seed);
+        HtmlPublishScenarioResult scenario = HtmlPublishScenarios.PerfPage(context);
+        Assert.AreEqual(0, scenario.PublishResult.ExitCode, $"{Commands.Publish} failed: {scenario.PublishResult.Error}");
 
-        // Ensure seed exists
-        if (!Directory.Exists(Path.Combine(seedDir, Folders.Src)))
-        {
-            ProcessRunner.ProcessResult init = context.Cli.Run($"{Commands.Init} {ProjectOptions.ProjectName} {Folders.Seed}", testDir, timeoutMs: 15000);
-            Assert.AreEqual(0, init.ExitCode, $"{Commands.Init} failed: {init.Error}");
-        }
-
-        // Add a small page to guarantee critical CSS inline size and create anchors/images
-        ProcessRunner.ProcessResult addPage = context.Cli.Run($"{Commands.AddPage} perf {ProjectOptions.ProjectName} {Folders.Seed}", testDir, timeoutMs: 10000);
-        Assert.AreEqual(0, addPage.ExitCode, $"{Commands.AddPage} failed: {addPage.Error}");
-
-        string pageRoot = Path.Combine(seedDir, Folders.Src, Folders.Frontend, Folders.Pages, "perf");
-        Directory.CreateDirectory(pageRoot);
-
-        // Replace CSS with tiny content to be inlined as critical (<6KB)
-        string cssPath = Path.Combine(pageRoot, $"{Files.Index}{FileExtensions.Css}");
-        File.WriteAllText(cssPath, "body{color:#123}" + Environment.NewLine);
-
-        // Write a tiny 1x1 PNG to /src/frontend/images and reference it from the page
-        string imagesRoot = Path.Combine(seedDir, Folders.Src, Folders.Frontend, Folders.Images);
-        Directory.CreateDirectory(imagesRoot);
-        string pngPath = Path.Combine(imagesRoot, "test.png");
-        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AApMBgTF+tYcAAAAASUVORK5CYII=");
-        File.WriteAllBytes(pngPath, png);
-
-        // Insert two images and an anchor to /home to trigger prefetch
-        string htmlPath = Path.Combine(pageRoot, $"{Files.Index}{FileExtensions.Html}");
-        string html = File.ReadAllText(htmlPath);
-        StringBuilder sb = new(html.Replace("</main>", string.Empty, StringComparison.Ordinal));
-        sb.Append("\n        <img src=\"/images/test.png\" alt=\"a\">\n");
-        sb.Append("        <img src=\"/images/test.png\" alt=\"b\">\n");
-        sb.Append("        <a href=\"/home\">home</a>\n");
-        sb.Append("    </main>\n");
-        html = sb.ToString();
-        File.WriteAllText(htmlPath, html);
-
-        // Publish
-        ProcessRunner.ProcessResult publish = context.Cli.Run($"{Commands.Publish} {ProjectOptions.ProjectName} {Folders.Seed}", testDir, timeoutMs: 20000);
-        Assert.AreEqual(0, publish.ExitCode, $"{Commands.Publish} failed: {publish.Error}");
-
-        string distHtmlPath = Path.Combine(seedDir, Folders.Dist, Folders.Frontend, Folders.Pages, "perf", $"{Files.Index}{FileExtensions.Html}");
-        Assert.IsTrue(File.Exists(distHtmlPath), "perf page dist HTML missing");
-        string distHtml = File.ReadAllText(distHtmlPath).Replace("\r", string.Empty);
+        string distHtml = scenario.GetPage("perf").HtmlNormalized;
 
         // Critical CSS inlined in head (formatter may add ="" to attribute)
         Assert.Contains("data-critical", distHtml, "Expected critical CSS inlined in <head>");

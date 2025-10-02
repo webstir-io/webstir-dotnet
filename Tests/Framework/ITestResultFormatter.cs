@@ -32,7 +32,7 @@ public class ConsoleFormatter : ITestResultFormatter
             result.AppendLine();
             foreach (TestResult failedTest in summary.Results.Where(r => !r.Passed))
             {
-                result.AppendLine(FormattableString.Invariant($"✗ {failedTest.TestName}: {failedTest.Message}"));
+                result.AppendLine(FormattableString.Invariant($"✗ {failedTest.TestName}"));
             }
         }
 

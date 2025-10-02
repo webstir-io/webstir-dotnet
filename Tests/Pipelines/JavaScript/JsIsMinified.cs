@@ -4,6 +4,7 @@ using Engine;
 
 using Tests.Framework;
 using Tests.Frontend;
+using Tests.Pipelines.Html;
 
 namespace Tests.Pipelines.JavaScript;
 
@@ -16,13 +17,12 @@ public sealed class JsIsMinified : ITestCase
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        string testDirectory = Paths.OutPath;
-        string clientPageDirectory = Path.Combine(testDirectory, Folders.Seed, Folders.Dist, Folders.Frontend, Folders.Pages, Folders.Home);
-
-        PageAssetManifest manifest = PageAssetManifest.Load(clientPageDirectory);
+        HtmlPublishScenarioResult scenario = HtmlPublishScenarios.HeadCombined(context);
+        HtmlPageResult homePage = scenario.GetPage(Folders.Home);
+        PageAssetManifest manifest = homePage.Manifest;
         string expectedJsPath = !string.IsNullOrWhiteSpace(manifest.Js)
-            ? Path.Combine(clientPageDirectory, manifest.Js!)
-            : Path.Combine(clientPageDirectory, $"{Files.Index}{FileExtensions.Js}");
+            ? Path.Combine(homePage.DirectoryPath, manifest.Js!)
+            : Path.Combine(homePage.DirectoryPath, $"{Files.Index}{FileExtensions.Js}");
 
         Assert.IsTrue(File.Exists(expectedJsPath), "JS file missing in dist (checked via manifest)");
 

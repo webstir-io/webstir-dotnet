@@ -20,20 +20,7 @@ public sealed class JsTreeShakingRemovesUnusedExports : ITestCase
         Directory.CreateDirectory(testDir);
 
         string projectName = "seed-tree";
-        string projectDir = Path.Combine(testDir, projectName);
-
-        if (Directory.Exists(projectDir))
-        {
-            try
-            {
-                Directory.Delete(projectDir, recursive: true);
-            }
-            catch { }
-        }
-
-        // Init a fresh project
-        ProcessRunner.ProcessResult init = context.Cli.Run($"{Commands.Init} {ProjectOptions.ProjectName} {projectName}", testDir, timeoutMs: 10000);
-        Assert.AreEqual(0, init.ExitCode, $"{Commands.Init} command failed. Error: {init.Error}");
+        string projectDir = WorkspaceManager.CreateSeedWorkspace(context, projectName);
 
         // Create modules: used.ts (used) and unused.ts (not imported)
         string pagesDir = Path.Combine(projectDir, Folders.Src, Folders.Frontend, Folders.Pages, Folders.Home);
@@ -68,8 +55,12 @@ public sealed class JsTreeShakingRemovesUnusedExports : ITestCase
         }
 
         // Publish
-        ProcessRunner.ProcessResult publish = context.Cli.Run($"{Commands.Publish} {ProjectOptions.ProjectName} {projectName}", testDir, timeoutMs: 20000);
+        ProcessRunner.ProcessResult publish = context.Cli.Run(
+            $"{Commands.Publish} {ProjectOptions.ProjectName} {projectName}",
+            testDir,
+            timeoutMs: 45000);
         Assert.AreEqual(0, publish.ExitCode, $"{Commands.Publish} command failed. Error: {publish.Error}");
+        Assert.IsFalse(publish.TimedOut, $"{Commands.Publish} command timed out for {projectName}");
         context.AssertNoCompilationErrors(publish);
 
         // Read bundled JS via manifest

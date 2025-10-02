@@ -30,7 +30,9 @@ public static class TestPackageInstaller
             try
             {
                 await PackageTarballManager.EnsureTarballAsync(workspace, metadata);
-                return metadata.GetWorkspaceDependencySpecifier();
+                string specifier = metadata.GetWorkspaceDependencySpecifier();
+                WriteTestingPackageManifest(workspace, metadata, specifier);
+                return specifier;
             }
             catch (Exception ex)
             {
@@ -38,6 +40,7 @@ public static class TestPackageInstaller
             }
         }
 
+        DeleteTestingPackageManifest(workspace);
         return metadata.RegistrySpecifier;
     }
 
@@ -105,6 +108,48 @@ public static class TestPackageInstaller
         {
             Console.Error.WriteLine($"Warning: Unable to read installed {metadata.Name} version: {ex.Message}");
             return new PackageInstallState(true, null);
+        }
+    }
+
+    private static void WriteTestingPackageManifest(IPackageWorkspace workspace, FrameworkPackageMetadata metadata, string dependencySpecifier)
+    {
+        try
+        {
+            Directory.CreateDirectory(workspace.WebstirPath);
+            string manifestPath = Path.Combine(workspace.WebstirPath, "testing-package.json");
+
+            JsonObject manifest = new()
+            {
+                ["fileName"] = metadata.Tarball.FileName,
+                ["dependency"] = dependencySpecifier
+            };
+
+            JsonSerializerOptions options = new()
+            {
+                WriteIndented = true
+            };
+
+            File.WriteAllText(manifestPath, manifest.ToJsonString(options) + Environment.NewLine);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"Warning: Unable to write testing-package.json: {ex.Message}");
+        }
+    }
+
+    private static void DeleteTestingPackageManifest(IPackageWorkspace workspace)
+    {
+        try
+        {
+            string manifestPath = Path.Combine(workspace.WebstirPath, "testing-package.json");
+            if (File.Exists(manifestPath))
+            {
+                File.Delete(manifestPath);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"Warning: Unable to delete testing-package.json: {ex.Message}");
         }
     }
 }
