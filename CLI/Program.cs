@@ -82,6 +82,7 @@ try
 catch (Exception ex)
 {
     logger.Error(ex, "Fatal error occurred");
+    Environment.ExitCode = 1;
 }
 finally
 {

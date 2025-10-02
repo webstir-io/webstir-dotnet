@@ -1,0 +1,19 @@
+# Build outputs
+**/bin
+**/obj
+
+# Test artifacts
+Tests/out
+
+# Node modules and tarballs
+**/node_modules
+**/.webstir
+
+# Git, IDE, OS junk
+.git
+.gitignore
+.DS_Store
+.idea
+.vscode
+Thumbs.db
+

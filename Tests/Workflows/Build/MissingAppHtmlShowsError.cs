@@ -33,10 +33,18 @@ public sealed class MissingAppHtmlShowsError : ITestCase
             Assert.IsFalse(File.Exists(appHtml), "Failed to delete app.html before running build.");
         }
 
-        // Use publish here to ensure the HTML pipeline runs and validates the
-        // presence of the base app template consistently across platforms.
+        // Ensure a page fragment exists so the HTML builder engages
+        string pagesHome = Path.Combine(projectDir, Folders.Src, Folders.Frontend, Folders.Pages, Folders.Home);
+        Directory.CreateDirectory(pagesHome);
+        string pageFragment = Path.Combine(pagesHome, $"{Files.Index}{FileExtensions.Html}");
+        if (!File.Exists(pageFragment))
+        {
+            File.WriteAllText(pageFragment, "<head><title>Test</title></head><body><main>Home</main></body>\n");
+        }
+
+        // Run build to trigger the missing template check in the HTML builder
         ProcessRunner.ProcessResult result = context.Cli.Run(
-            $"{Commands.Publish} {ProjectOptions.ProjectName} {projectName}",
+            $"{Commands.Build} {ProjectOptions.ProjectName} {projectName}",
             testDir,
             timeoutMs: 20000);
 

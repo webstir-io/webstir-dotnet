@@ -1,0 +1,17 @@
+FROM mcr.microsoft.com/dotnet/sdk:9.0-bookworm-slim
+
+# Install Node.js 20.x
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl ca-certificates gnupg git procps \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && npm install -g typescript \
+    && rm -rf /var/lib/apt/lists/*
+
+# Show tool versions in the build log for quick diagnostics
+RUN dotnet --info && node -v && npm -v
+
+WORKDIR /workspace
+
+# Default command mirrors CI steps; can be overridden at runtime
+CMD ["bash", "-lc", "./utilities/local-ci.sh"]

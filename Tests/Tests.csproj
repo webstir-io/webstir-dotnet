@@ -27,4 +27,9 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
   </ItemGroup>
 
+  <!-- Prevent SDK default glob from adding non-existent **/*.resx; fixes MSB3552 on Linux runners -->
+  <ItemGroup>
+    <EmbeddedResource Remove="**/*.resx" />
+  </ItemGroup>
+
 </Project>
