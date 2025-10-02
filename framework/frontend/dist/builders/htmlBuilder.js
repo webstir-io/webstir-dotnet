@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { load } from 'cheerio';
 import { glob } from 'glob';
+import { minify } from 'html-minifier-terser';
 import { FOLDERS, FILES, FILE_NAMES, EXTENSIONS } from '../core/constants.js';
 import { ensureDir, readFile, writeFile, pathExists, remove } from '../utils/fs.js';
 import { getPageDirectories } from '../core/pages.js';
@@ -123,8 +124,7 @@ function mergeTemplates(appHtml, pageHtml) {
 }
 async function rewriteForPublish(context, html, pageName, manifest, pageDirectory, shared) {
     const document = load(html);
-    document(`script[src="/${FILES.refreshJs}"]`).remove();
-    document(`script[src="/${FILES.hmrJs}"]`).remove();
+    removeDevScripts(document);
     if (shared?.css) {
         document(`link[href="/app/app.css"]`).attr('href', `/app/${shared.css}`);
     }
@@ -174,7 +174,8 @@ async function rewriteForPublish(context, html, pageName, manifest, pageDirector
     dedupeHeadMeta(document, 'name');
     dedupeHeadMeta(document, 'property');
     dedupeHeadLinks(document, 'rel');
-    return document.root().html() ?? '';
+    const htmlOutput = document.root().html() ?? '';
+    return await minifyHtml(htmlOutput);
 }
 async function handlePrecompression(context, outputPath) {
     if (context.config.features.precompression) {
@@ -243,6 +244,36 @@ function dedupeHeadLinks(document, attribute) {
             previous.remove();
         }
         seen.set(key, document(element));
+    });
+}
+function removeDevScripts(document) {
+    removeDevScript(document, `/${FILES.refreshJs}`);
+    removeDevScript(document, `/${FILES.hmrJs}`);
+}
+function removeDevScript(document, selector) {
+    document(`script[src="${selector}"]`).each((_, element) => {
+        const script = document(element);
+        const next = script.next();
+        script.remove();
+        if (isWhitespaceTextNode(next)) {
+            next.remove();
+        }
+    });
+}
+function isWhitespaceTextNode(node) {
+    return node.length > 0
+        && node[0].type === 'text'
+        && (node[0].data ?? '').trim().length === 0;
+}
+async function minifyHtml(html) {
+    return minify(html, {
+        collapseWhitespace: true,
+        keepClosingSlash: true,
+        minifyCSS: false,
+        minifyJS: false,
+        removeComments: true,
+        removeOptionalTags: false,
+        removeAttributeQuotes: false
     });
 }
 async function addImageDimensions(document, context, pageDirectory) {

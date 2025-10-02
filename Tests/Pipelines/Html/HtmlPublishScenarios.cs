@@ -268,7 +268,7 @@ internal static class HtmlPublishScenarios
     <main>
         <h1>perf</h1>
         <p>Content for the perf page.</p>
-    
+
         <img src="/images/test.png" alt="a">
         <img src="/images/test.png" alt="b">
         <a href="/home">home</a>

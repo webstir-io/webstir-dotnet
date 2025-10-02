@@ -19,6 +19,7 @@ public sealed class HtmlTests : TestSuite
             new HtmlWhitespaceCollapsed(),
             new HtmlAttributesAndCommentsOptimized(),
             new HtmlMetaPreservation(),
+            new HtmlPublishIncludesMetaDescription(),
             new HtmlDevelopmentIncludesRuntimeScripts(),
             new HtmlPublishOmitsRuntimeScripts(),
             new HtmlPerfOptimizations(),

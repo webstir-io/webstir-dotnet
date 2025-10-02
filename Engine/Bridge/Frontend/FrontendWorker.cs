@@ -395,26 +395,30 @@ public sealed class FrontendWorker : IFrontendWorker
             if (Directory.Exists(direct))
             {
                 string? hit = Probe(direct);
-                if (hit is not null) return hit;
+                if (hit is not null)
+                    return hit;
             }
 
             foreach (string dir in Directory.GetDirectories(scopePath, "webstir-frontend@*", SearchOption.TopDirectoryOnly))
             {
                 string? hit = Probe(dir);
-                if (hit is not null) return hit;
+                if (hit is not null)
+                    return hit;
             }
 
             foreach (string dir in Directory.GetDirectories(scopePath, ".webstir-frontend-*", SearchOption.TopDirectoryOnly))
             {
                 string? hit = Probe(dir);
-                if (hit is not null) return hit;
+                if (hit is not null)
+                    return hit;
             }
 
             string nested = Path.Combine(scopePath, "node_modules", "webstir-frontend");
             if (Directory.Exists(nested))
             {
                 string? hit = Probe(nested);
-                if (hit is not null) return hit;
+                if (hit is not null)
+                    return hit;
             }
         }
         catch

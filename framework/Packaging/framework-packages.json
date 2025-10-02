@@ -7,8 +7,8 @@
       "tarball": {
         "fileName": "webstir-frontend-0-3-4.tgz",
         "repositoryPath": "framework/frontend/webstir-frontend-0-3-4.tgz",
-        "sha256": "3dbffd872527b0f3424dcba0416a50b8c691faca6904a39c2f0e8432f6113a82",
-        "size": 28929
+        "sha256": "292b625f57aa0f21b8bf47fca60c45ddc508ee67d9a232ec75b40a5efff059e4",
+        "size": 29228
       }
     },
     "@electric-coding-llc/webstir-test": {

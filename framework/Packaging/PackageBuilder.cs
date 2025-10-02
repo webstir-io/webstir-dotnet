@@ -801,7 +801,10 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
         string? PublishRegistryUrl,
         string PublishAccess)
     {
-        internal static PackageBuildOptions Frontend { get; } = new(
+        internal static PackageBuildOptions Frontend
+        {
+            get;
+        } = new(
             "@electric-coding-llc/webstir-frontend",
             Path.Combine("framework", "frontend"),
             "webstir-frontend-",
@@ -812,7 +815,10 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
             "https://npm.pkg.github.com",
             "restricted");
 
-        internal static PackageBuildOptions Testing { get; } = new(
+        internal static PackageBuildOptions Testing
+        {
+            get;
+        } = new(
             "@electric-coding-llc/webstir-test",
             Path.Combine("framework", "testing"),
             "webstir-test-",
