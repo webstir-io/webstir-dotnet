@@ -28,4 +28,7 @@ npm test --prefix framework/frontend --silent
 echo "[local-ci] Building framework packages"
 dotnet run --project framework/Framework.csproj -- packages sync
 
+echo "[local-ci] Verifying framework packages"
+dotnet run --project framework/Framework.csproj -- packages verify
+
 echo "[local-ci] Done."

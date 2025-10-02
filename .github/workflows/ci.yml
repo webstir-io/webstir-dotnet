@@ -42,15 +42,15 @@ jobs:
       - name: Build solution
         run: dotnet build Webstir.sln -v minimal
 
+      - name: Run .NET workflow tests
+        run: dotnet run --project Tests -- --full
+
+      - name: Run frontend package tests
+        run: npm test --silent
+        working-directory: framework/frontend
+
       - name: Build framework packages
         run: dotnet run --project framework/Framework.csproj -- packages sync
 
       - name: Verify framework packages
         run: dotnet run --project framework/Framework.csproj -- packages verify
-
-      - name: Run .NET workflow tests
-        run: dotnet run --project Tests
-
-      - name: Run frontend package tests
-        run: npm test
-        working-directory: framework/frontend
