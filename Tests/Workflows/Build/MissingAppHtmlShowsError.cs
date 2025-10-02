@@ -23,16 +23,14 @@ public sealed class MissingAppHtmlShowsError : ITestCase
         string appHtml = Path.Combine(projectDir, Folders.Src, Folders.Frontend, Folders.App, "app.html");
         if (File.Exists(appHtml))
         {
-            try
+            FileAttributes currentAttributes = File.GetAttributes(appHtml);
+            if (currentAttributes.HasFlag(FileAttributes.ReadOnly))
             {
-                FileAttributes currentAttributes = File.GetAttributes(appHtml);
-                if (currentAttributes.HasFlag(FileAttributes.ReadOnly))
-                {
-                    File.SetAttributes(appHtml, currentAttributes & ~FileAttributes.ReadOnly);
-                }
-                File.Delete(appHtml);
+                File.SetAttributes(appHtml, currentAttributes & ~FileAttributes.ReadOnly);
             }
-            catch { }
+
+            File.Delete(appHtml);
+            Assert.IsFalse(File.Exists(appHtml), "Failed to delete app.html before running build.");
         }
 
         ProcessRunner.ProcessResult result = context.Cli.Run($"{Commands.Build} {ProjectOptions.ProjectName} {projectName}", testDir, timeoutMs: 10000);
@@ -41,7 +39,7 @@ public sealed class MissingAppHtmlShowsError : ITestCase
         string combined = (result.Output ?? string.Empty) + "\n" + (result.Error ?? string.Empty);
         Assert.IsTrue(
             combined.Contains("Base application HTML file not found", StringComparison.OrdinalIgnoreCase),
-            "Build output should contain an error about missing app.html"
+            $"Build output should contain an error about missing app.html. Actual output:{Environment.NewLine}{combined}"
         );
     }
 }
