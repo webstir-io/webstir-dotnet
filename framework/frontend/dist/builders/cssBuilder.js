@@ -49,7 +49,8 @@ async function processCss(context, isProduction) {
         const processed = await processor.process(css, { from: entryPath, map: !isProduction ? { inline: true } : false });
         const normalized = resolveAppImports(processed.css, isProduction ? sharedArtifacts.appCss : undefined);
         if (isProduction) {
-            await emitProductionCss(config, page.name, normalized);
+            const inlined = await inlineAppImports(normalized, config.paths.dist.frontend);
+            await emitProductionCss(config, page.name, inlined);
         }
         else {
             await emitDevelopmentCss(config, page.name, normalized);
@@ -153,6 +154,44 @@ function resolveAppImports(css, appCssFile) {
         result = result.replace(/@import\s+['"]@app\/app\.css['"];?/g, `@import "/app/${appCssFile}";`);
     }
     return result.replace(/@app\//g, '/app/');
+}
+async function inlineAppImports(css, distRoot, seen = new Set()) {
+    const importPattern = /@import\s+(?:url\()?[\s]*['"]\/app\/([^'"\)]+)['"][\s]*\)?;?/g;
+    const segments = [];
+    let lastIndex = 0;
+    for (const match of css.matchAll(importPattern)) {
+        const index = match.index ?? 0;
+        segments.push(css.slice(lastIndex, index));
+        const relative = normalizeForwardSlashes(match[1] ?? '');
+        const inlined = await inlineAppImport(relative, distRoot, seen);
+        if (inlined !== null) {
+            segments.push(inlined);
+        }
+        else {
+            segments.push(match[0]);
+        }
+        lastIndex = index + match[0].length;
+    }
+    segments.push(css.slice(lastIndex));
+    return segments.join('');
+}
+async function inlineAppImport(relativePath, distRoot, seen) {
+    if (relativePath.length === 0 || relativePath.includes('..')) {
+        return null;
+    }
+    const resolved = path.join(distRoot, FOLDERS.app, relativePath);
+    if (!(await pathExists(resolved))) {
+        return null;
+    }
+    const key = resolved;
+    if (seen.has(key)) {
+        return '';
+    }
+    seen.add(key);
+    const content = await readFile(resolved);
+    const inlined = await inlineAppImports(content, distRoot, seen);
+    seen.delete(key);
+    return inlined;
 }
 async function emitAppStylesProduction(config, processor) {
     const sourceDir = path.join(config.paths.src.app, 'styles');

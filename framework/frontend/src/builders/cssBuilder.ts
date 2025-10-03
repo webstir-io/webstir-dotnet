@@ -61,7 +61,8 @@ async function processCss(context: BuilderContext, isProduction: boolean): Promi
         const normalized = resolveAppImports(processed.css, isProduction ? sharedArtifacts.appCss : undefined);
 
         if (isProduction) {
-            await emitProductionCss(config, page.name, normalized);
+            const inlined = await inlineAppImports(normalized, config.paths.dist.frontend);
+            await emitProductionCss(config, page.name, inlined);
         } else {
             await emitDevelopmentCss(config, page.name, normalized);
         }
@@ -178,6 +179,53 @@ function resolveAppImports(css: string, appCssFile?: string): string {
     }
 
     return result.replace(/@app\//g, '/app/');
+}
+
+async function inlineAppImports(css: string, distRoot: string, seen: Set<string> = new Set()): Promise<string> {
+    const importPattern = /@import\s+(?:url\()?[\s]*['"]\/app\/([^'"\)]+)['"][\s]*\)?;?/g;
+    const segments: string[] = [];
+    let lastIndex = 0;
+
+    for (const match of css.matchAll(importPattern)) {
+        const index = match.index ?? 0;
+        segments.push(css.slice(lastIndex, index));
+
+        const relative = normalizeForwardSlashes(match[1] ?? '');
+        const inlined = await inlineAppImport(relative, distRoot, seen);
+        if (inlined !== null) {
+            segments.push(inlined);
+        } else {
+            segments.push(match[0]);
+        }
+
+        lastIndex = index + match[0].length;
+    }
+
+    segments.push(css.slice(lastIndex));
+    return segments.join('');
+}
+
+async function inlineAppImport(relativePath: string, distRoot: string, seen: Set<string>): Promise<string | null> {
+    if (relativePath.length === 0 || relativePath.includes('..')) {
+        return null;
+    }
+
+    const resolved = path.join(distRoot, FOLDERS.app, relativePath);
+    if (!(await pathExists(resolved))) {
+        return null;
+    }
+
+    const key = resolved;
+    if (seen.has(key)) {
+        return '';
+    }
+
+    seen.add(key);
+    const content = await readFile(resolved);
+    const inlined = await inlineAppImports(content, distRoot, seen);
+    seen.delete(key);
+
+    return inlined;
 }
 
 async function emitAppStylesProduction(
