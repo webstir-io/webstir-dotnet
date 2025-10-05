@@ -9,7 +9,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-FRAMEWORK_PROJ="${REPO_ROOT}/framework/Framework.csproj"
+FRAMEWORK_PROJ="${REPO_ROOT}/Framework/Framework.csproj"
 BUMP_SCRIPT="${SCRIPT_DIR}/bump-version.mjs"
 
 if [[ ! -f "${FRAMEWORK_PROJ}" ]]; then

@@ -1,7 +1,7 @@
 # Framework Tarball Distribution Plan
 
 ## At a Glance
-- Run `framework packages diff` to preview changes, then `framework packages sync && framework packages verify` after modifying `framework/frontend` or `framework/testing`; commit the refreshed tarballs and metadata.
+- Run `framework packages diff` to preview changes, then `framework packages sync && framework packages verify` after modifying `Framework/Frontend` or `Framework/Testing`; commit the refreshed tarballs and metadata.
 - Use `./utilities/format-build.sh` to regenerate tarballs, verify hashes, and ensure the solution builds before pushing.
 - Let `webstir install` (and other workflows) manage `.webstir` tarballs automatically; exports like `WEBSTIR_PACKAGE_SOURCE=registry` are only needed when explicitly testing the registry path.
 - When preparing a release, run `framework packages publish` from CI so the same tarballs reach GitHub Packages.
@@ -39,7 +39,7 @@
 ## Packaging Workflow
 1. `framework packages sync`
    - Runs `npm ci`, `npm run build`, and `npm pack` inside each package directory.
-   - Writes tarballs to a deterministic name (`webstir-test-<version>.tgz`, etc.), stages them for commit, and records metadata (checksum, size, relative path) in `framework/Packaging/framework-packages.json`.
+   - Writes tarballs to a deterministic name (`webstir-test-<version>.tgz`, etc.), stages them for commit, and records metadata (checksum, size, relative path) in `Framework/Packaging/framework-packages.json`.
    - Updates `Engine/Resources/package.json` to keep dependency versions aligned.
    - Exits non-zero if the regenerated checksum differs from the committed metadata or if the tarball directory is dirty after the command finishes, guarding against stale bundles and missing commits.
    - Optional: run `framework packages diff` first to see which tarballs would change without modifying files.

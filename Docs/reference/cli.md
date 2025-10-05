@@ -194,7 +194,7 @@ Options:
 - `Engine/Workflows/` orchestrates `init`, `build`, `watch`, `test`, `publish`, `add-page`, `add-test`.
 - Use `AppWorkspace` and `Engine/Constants.cs` for paths. Avoid manual string manipulation; prefer helpers in `Engine.Extensions`.
 - Keep changes minimal and behavior-preserving. Follow `.codex/style.md` and `.editorconfig` when editing C#.
-- Framework packaging commands live in `framework/Framework.csproj`; run `dotnet run --project framework/Framework.csproj -- packages ...` when rebuilding bundles.
+- Framework packaging commands live in `Framework/Framework.csproj`; run `dotnet run --project Framework/Framework.csproj -- packages ...` when rebuilding bundles.
 
 ## Related Docs
 - High-level solution overview — [solution](../explanations/solution.md)

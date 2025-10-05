@@ -56,7 +56,7 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
 
-        string catalogPath = Path.Combine(repositoryRoot, "framework", "Packaging", "framework-packages.json");
+        string catalogPath = Path.Combine(repositoryRoot, "Framework", "Packaging", "framework-packages.json");
         if (!File.Exists(catalogPath))
         {
             throw new FileNotFoundException($"Framework package catalog not found at {catalogPath}");
@@ -101,7 +101,7 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
 
-        string catalogPath = Path.Combine(repositoryRoot, "framework", "Packaging", "framework-packages.json");
+        string catalogPath = Path.Combine(repositoryRoot, "Framework", "Packaging", "framework-packages.json");
         if (!File.Exists(catalogPath))
         {
             throw new FileNotFoundException($"Framework package catalog not found at {catalogPath}");
@@ -665,7 +665,7 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
         string registrySpecifier,
         FrameworkPackageTarballMetadata tarball)
     {
-        string catalogPath = Path.Combine(repositoryRoot, "framework", "Packaging", "framework-packages.json");
+        string catalogPath = Path.Combine(repositoryRoot, "Framework", "Packaging", "framework-packages.json");
         JsonObject root = File.Exists(catalogPath)
             ? JsonNode.Parse(File.ReadAllText(catalogPath)) as JsonObject ?? new JsonObject()
             : new JsonObject();
@@ -806,7 +806,7 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
             get;
         } = new(
             "@electric-coding-llc/webstir-frontend",
-            Path.Combine("framework", "frontend"),
+            Path.Combine("Framework", "Frontend"),
             "webstir-frontend-",
             "webstir-frontend-*.tgz",
             "WEBSTIR_FRONTEND_REGISTRY_SPEC",
@@ -820,7 +820,7 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
             get;
         } = new(
             "@electric-coding-llc/webstir-test",
-            Path.Combine("framework", "testing"),
+            Path.Combine("Framework", "Testing"),
             "webstir-test-",
             "webstir-test-*.tgz",
             "WEBSTIR_TEST_REGISTRY_SPEC",

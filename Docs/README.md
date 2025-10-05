@@ -21,7 +21,7 @@ This is just a project I'm doing for fun, because I love coding and engineering 
   - [Getting Started](./tutorials/getting-started.md)
   - [Your First App](./tutorials/first-app.md)
 - Workflows — run through the CLI reference after the tutorials: [Workflows](./reference/workflows.md)
-- Packaging — use `dotnet run --project framework/Framework.csproj -- packages sync` and review [Synchronize Framework Packages](./how-to/package-synchronization.md)
+- Packaging — use `dotnet run --project Framework/Framework.csproj -- packages sync` and review [Synchronize Framework Packages](./how-to/package-synchronization.md)
 
 ## Docs Index
 

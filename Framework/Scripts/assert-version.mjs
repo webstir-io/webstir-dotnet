@@ -3,12 +3,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const PACKAGE_PATHS = [
-  'framework/frontend/package.json',
-  'framework/testing/package.json'
+  'Framework/Frontend/package.json',
+  'Framework/Testing/package.json'
 ];
 const LOCK_PATHS = [
-  'framework/frontend/package-lock.json',
-  'framework/testing/package-lock.json'
+  'Framework/Frontend/package-lock.json',
+  'Framework/Testing/package-lock.json'
 ];
 
 function parseArguments() {

@@ -14,13 +14,13 @@ if [ -z "${GH_PACKAGES_TOKEN:-}" ]; then
 fi
 
 echo "[local-ci] Installing frontend dependencies"
-npm ci --silent --prefix framework/frontend
+npm ci --silent --prefix Framework/Frontend
 
 echo "[local-ci] Running frontend package tests"
-npm test --prefix framework/frontend --silent
+npm test --prefix Framework/Frontend --silent
 
 echo "[local-ci] Installing testing package dependencies"
-npm ci --silent --prefix framework/testing
+npm ci --silent --prefix Framework/Testing
 
 echo "[local-ci] Building solution"
 dotnet build Webstir.sln -v minimal
@@ -29,9 +29,9 @@ echo "[local-ci] Running .NET workflow tests"
 dotnet run --project Tests -- --full
 
 echo "[local-ci] Building framework packages"
-dotnet run --project framework/Framework.csproj -- packages sync
+dotnet run --project Framework/Framework.csproj -- packages sync
 
 echo "[local-ci] Verifying framework packages"
-dotnet run --project framework/Framework.csproj -- packages verify
+dotnet run --project Framework/Framework.csproj -- packages verify
 
 echo "[local-ci] Done."

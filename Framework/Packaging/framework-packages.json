@@ -6,7 +6,7 @@
       "registrySpecifier": "@electric-coding-llc/webstir-frontend@0.3.4",
       "tarball": {
         "fileName": "webstir-frontend-0-3-4.tgz",
-        "repositoryPath": "framework/frontend/webstir-frontend-0-3-4.tgz",
+        "repositoryPath": "Framework/Frontend/webstir-frontend-0-3-4.tgz",
         "sha256": "52cefa58c033bb0da00cfc443faf6092caf415c4290fe3a6cf8a490854cee526",
         "size": 29598
       }
@@ -17,7 +17,7 @@
       "registrySpecifier": "@electric-coding-llc/webstir-test@0.3.4",
       "tarball": {
         "fileName": "webstir-test-0-3-4.tgz",
-        "repositoryPath": "framework/testing/webstir-test-0-3-4.tgz",
+        "repositoryPath": "Framework/Testing/webstir-test-0-3-4.tgz",
         "sha256": "9657ae7c27bad57e78e5aaafde95d7739d49743cbc7185acc2305afff87a63d2",
         "size": 7618
       }

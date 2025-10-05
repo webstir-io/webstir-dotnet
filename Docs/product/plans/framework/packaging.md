@@ -1,7 +1,7 @@
 # Framework Packaging Plan
 
 ## Background
-- Historically, `framework packages sync` rebuilt tarballs, copied them into `framework/out` and `Framework/Resources/tools`, and then rewrote `framework/out/manifest.json` (`Framework/Packaging/PackageBuilder.cs`, `Framework/Commands/PackageConsoleCommand.cs`).
+- Historically, `framework packages sync` rebuilt tarballs, copied them into `Framework/out` and `Framework/Resources/tools`, and then rewrote `Framework/out/manifest.json` (`Framework/Packaging/PackageBuilder.cs`, `Framework/Commands/PackageConsoleCommand.cs`).
 - Runtime installers (`Framework/Packaging/FrontendPackageInstaller.cs`, `Framework/Packaging/TestPackageInstaller.cs`) read that manifest, copy tarballs into workspace `.webstir`, and verify hashes via `FrameworkPackageRepository`.
 - CLI helpers (`utilities/format-build.sh`, `utilities/local-ci.sh`) expect `framework packages verify` to confirm the manifest and tarballs match git.
 - This dual-storage model was designed for offline installs but increases maintenance, adds hash drift failure modes, and confuses contributors who expect a registry-first experience.
@@ -19,9 +19,9 @@
 
 ## Target Architecture
 ### Build & Publish
-- `framework packages sync` runs `npm ci`, `npm run build`, and `npm pack` inside each package workspace (e.g., `framework/frontend`, `framework/testing`), returning metadata but leaving the tarball alongside the source.
+- `framework packages sync` runs `npm ci`, `npm run build`, and `npm pack` inside each package workspace (e.g., `Framework/Frontend`, `Framework/Testing`), returning metadata but leaving the tarball alongside the source.
 - `framework packages publish` pushes the built tarball to a configurable registry URL (default: GitHub Packages) and skips if the version already exists.
-- No files are copied into `framework/out` or `Framework/Resources/webstir`; no manifest is generated.
+- No files are copied into `Framework/out` or `Framework/Resources/webstir`; no manifest is generated.
 
 ### Installers & CLI Workflows
 - `FrontendPackageInstaller` and `TestPackageInstaller` always pin the dependency to the registry specifier (falling back to `package.json` versions if none provided).
@@ -35,7 +35,7 @@
 
 ## Workstreams
 1. **Refactor `PackageBuilder` flow**
-   - Remove copies to `framework/out`/`Framework/Resources/webstir` and the manifest writer.
+   - Remove copies to `Framework/out`/`Framework/Resources/webstir` and the manifest writer.
    - Simplify result objects to return build metadata and publish status only.
 2. **Retire manifest consumers**
    - Delete `FrameworkPackageRepository` and related manifest parsing.
@@ -47,10 +47,10 @@
 4. **Tooling & script updates**
    - Edit `utilities/format-build.sh`, `utilities/local-ci.sh`, and any CI jobs to drop `framework packages verify` and manifest checks.
    - Add lightweight publish validation (e.g., `npm view`) when `framework packages publish` runs.
-   - Rework `.github/workflows/release.yml` so releases no longer rely on `framework/out` tarballs—either stop attaching them or generate fresh archives during the job.
+   - Rework `.github/workflows/release.yml` so releases no longer rely on `Framework/out` tarballs—either stop attaching them or generate fresh archives during the job.
 5. **Asset cleanup**
-   - Delete `framework/out/**`, `Framework/Resources/webstir/**`, and embedded resource item groups from `Framework.csproj`.
-   - Remove `framework/out` from `.gitignore` once the directory disappears.
+   - Delete `Framework/out/**`, `Framework/Resources/webstir/**`, and embedded resource item groups from `Framework.csproj`.
+   - Remove `Framework/out` from `.gitignore` once the directory disappears.
 6. **Docs & Dev Onboarding**
    - Update `docs/how-to/package-synchronization.md` and `docs/how-to/framework-packages.md` to describe the registry-first flow and credential requirements.
    - Document how to set `GH_PACKAGES_TOKEN`, how publishing works now, and call out the future switch to the public registry.

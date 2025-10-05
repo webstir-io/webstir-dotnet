@@ -19,15 +19,15 @@ echo "Building solution..."
 dotnet build Webstir.sln -v minimal
 
 echo "Running frontend package tests..."
-pushd "$ROOT_DIR/framework/frontend" > /dev/null
+pushd "$ROOT_DIR/Framework/Frontend" > /dev/null
 npm ci --silent
 npm test
 popd > /dev/null
 
 echo "Building framework packages..."
-dotnet run --project "$ROOT_DIR/framework/Framework.csproj" -- packages sync
+dotnet run --project "$ROOT_DIR/Framework/Framework.csproj" -- packages sync
 
 echo "Verifying framework packages..."
-dotnet run --project "$ROOT_DIR/framework/Framework.csproj" -- packages verify
+dotnet run --project "$ROOT_DIR/Framework/Framework.csproj" -- packages verify
 
 echo "Done."
