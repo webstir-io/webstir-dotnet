@@ -53,8 +53,8 @@ jobs:
           node-version: 20.18.1
           cache: npm
           cache-dependency-path: |
-            framework/frontend/package-lock.json
-            framework/testing/package-lock.json
+            Framework/Frontend/package-lock.json
+            Framework/Testing/package-lock.json
 
       - name: Configure npm auth for GitHub Packages
         run: |
@@ -118,7 +118,7 @@ jobs:
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             BUMP="${{ steps.resolve_bump.outputs.value }}"
-            VERSION=$(node ./framework/Scripts/bump-version.mjs --bump "$BUMP" $([[ "${{ github.event.inputs.dry_run }}" == "true" ]] && echo "--dry-run"))
+            VERSION=$(node ./Framework/Scripts/bump-version.mjs --bump "$BUMP" $([[ "${{ github.event.inputs.dry_run }}" == "true" ]] && echo "--dry-run"))
             echo "release_version=$VERSION" >> "$GITHUB_OUTPUT"
             echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
           else
@@ -137,29 +137,29 @@ jobs:
       - name: Install frontend dependencies
         if: ${{ env.IS_DRY_RUN != 'true' }}
         run: npm ci
-        working-directory: framework/frontend
+        working-directory: Framework/Frontend
 
       - name: Install testing dependencies
         if: ${{ env.IS_DRY_RUN != 'true' }}
         run: npm ci
-        working-directory: framework/testing
+        working-directory: Framework/Testing
 
       - name: Build and publish framework packages
         if: ${{ env.IS_DRY_RUN != 'true' }}
         env:
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
-        run: dotnet run --project framework/Framework.csproj -- packages publish
+        run: dotnet run --project Framework/Framework.csproj -- packages publish
 
       - name: Verify framework packages
         if: ${{ env.IS_DRY_RUN != 'true' }}
-        run: dotnet run --project framework/Framework.csproj -- packages verify
+        run: dotnet run --project Framework/Framework.csproj -- packages verify
 
       - name: Commit release artifacts
         if: ${{ github.event_name == 'workflow_dispatch' && env.IS_DRY_RUN != 'true' }}
         run: |
-          git add framework/frontend/package.json framework/frontend/package-lock.json \
-                  framework/testing/package.json framework/testing/package-lock.json \
-                  framework/Packaging/framework-packages.json Engine/Resources/package.json
+          git add Framework/Frontend/package.json Framework/Frontend/package-lock.json \
+                  Framework/Testing/package.json Framework/Testing/package-lock.json \
+                  Framework/Packaging/framework-packages.json Engine/Resources/package.json
           if git diff --cached --quiet; then
             echo "No changes detected; nothing to commit."
           else

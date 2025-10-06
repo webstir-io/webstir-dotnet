@@ -28,16 +28,16 @@ jobs:
           node-version: 20.18.1
           cache: npm
           cache-dependency-path: |
-            framework/frontend/package-lock.json
-            framework/testing/package-lock.json
+            Framework/Frontend/package-lock.json
+            Framework/Testing/package-lock.json
 
       - name: Install frontend dependencies
         run: npm ci
-        working-directory: framework/frontend
+        working-directory: Framework/Frontend
 
       - name: Install testing dependencies
         run: npm ci
-        working-directory: framework/testing
+        working-directory: Framework/Testing
 
       - name: Build solution
         run: dotnet build Webstir.sln -v minimal
@@ -47,10 +47,10 @@ jobs:
 
       - name: Run frontend package tests
         run: npm test --silent
-        working-directory: framework/frontend
+        working-directory: Framework/Frontend
 
       - name: Build framework packages
-        run: dotnet run --project framework/Framework.csproj -- packages sync
+        run: dotnet run --project Framework/Framework.csproj -- packages sync
 
       - name: Verify framework packages
-        run: dotnet run --project framework/Framework.csproj -- packages verify
+        run: dotnet run --project Framework/Framework.csproj -- packages verify
