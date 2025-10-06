@@ -21,7 +21,7 @@ dotnet build Webstir.sln -v minimal
 echo "Running frontend package tests..."
 pushd "$ROOT_DIR/Framework/Frontend" > /dev/null
 npm ci --silent
-npm test
+npm test --silent
 popd > /dev/null
 
 echo "Building framework packages..."
