@@ -98,3 +98,11 @@ dist/                 # Production output
 - Docs: [docs/how-to/sandbox.md](docs/how-to/sandbox.md)
 - Start: `docker compose -f Sandbox/docker-compose.yml up --build`
 - Mounts: `CLI/out/seed/dist/frontend` (web), `CLI/out/seed` (api)
+
+---
+
+© 2025 Electric Coding LLC and contributors  
+
+Licensed under the [MIT License](./LICENSE).  
+
+Webstir™ is a trademark of Electric Coding LLC.  
