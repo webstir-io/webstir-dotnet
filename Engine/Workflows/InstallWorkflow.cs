@@ -112,8 +112,8 @@ public sealed class InstallWorkflow(
     {
         bool anyChanges = false;
 
-        LogPackage(summary.Frontend?.Metadata.Name ?? "@electric-coding-llc/webstir-frontend", summary.Frontend);
-        LogPackage(summary.Testing?.Metadata.Name ?? "@electric-coding-llc/webstir-test", summary.Testing);
+        LogPackage(summary.Frontend?.Metadata.Name ?? "@webstir-io/webstir-frontend", summary.Frontend);
+        LogPackage(summary.Testing?.Metadata.Name ?? "@webstir-io/webstir-test", summary.Testing);
 
         if (summary.InstallRequiredButSkipped && !anyChanges)
         {

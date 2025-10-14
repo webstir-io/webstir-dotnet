@@ -3,7 +3,7 @@
 This guide explains how maintainers rebuild the frontend and testing packages that ship with Webstir.
 
 ## Overview
-- `Framework/Frontend` and `Framework/Testing` contain the sources for the bundled `@electric-coding-llc/webstir-frontend` and `@electric-coding-llc/webstir-test` packages.
+- `Framework/Frontend` and `Framework/Testing` contain the sources for the bundled `@webstir-io/webstir-frontend` and `@webstir-io/webstir-test` packages.
 - The standalone `framework` console rebuilds those packages, captures tarball metadata in `Framework/Packaging/framework-packages.json`, and copies the generated archives into `Framework/Resources/webstir` so the CLI ships them as embedded resources. `Engine/Resources/package.json` points at the `.webstir` tarballs to keep new workspaces in lockstep.
 - `webstir install` copies the embedded tarballs into `<workspace>/.webstir/` and pins dependencies to `file:` specifiers by default, falling back to the registry only when explicitly requested.
 
@@ -44,6 +44,7 @@ This guide explains how maintainers rebuild the frontend and testing packages th
 - For Sandbox or CI scenarios that need registry access, create a `.npmrc` with the GitHub Packages token (see `Sandbox/README.md`) before executing publish or registry-fallback commands.
 
 ## Verify Changes
-- Run `./utilities/format-build.sh` (or at minimum `dotnet build`, `framework packages sync`, and `framework packages verify`) before handing off a change.
+- Run `./utilities/format-build.sh` to ensure formatting passes, the solution builds, and frontend tests succeed.
+- When package contents change, run `framework packages sync` followed by `framework packages verify` (or use `./Framework/Scripts/publish.sh` which wraps those steps during a publish).
 - In a throwaway workspace, run `webstir install --clean` to confirm the new tarballs resolve correctly and that `npm install` finishes without manual intervention.
 - Optionally run `framework packages publish` in a dry environment to ensure credentials are configured before the release workflow executes.

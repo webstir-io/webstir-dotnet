@@ -35,7 +35,7 @@ Core implementation that powers the CLI. The engine owns workflows, pipelines, s
 Workflows call workers and services; they should not contain low-level file logic.
 
 ## Workers
-- FrontendWorker: Shells out to the `@electric-coding-llc/webstir-frontend` TypeScript CLI for build/publish/add-page while enforcing package pinning.
+- FrontendWorker: Shells out to the `@webstir-io/webstir-frontend` TypeScript CLI for build/publish/add-page while enforcing package pinning.
 - BackendWorker: Compiles backend TS → `build/backend/`, tracks restart state.
 - SharedWorker: Ensures shared types are compiled and available to both sides.
 

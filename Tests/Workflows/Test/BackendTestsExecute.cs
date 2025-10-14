@@ -53,7 +53,7 @@ public sealed class BackendTestsExecute : ITestCase
         Assert.IsTrue(File.Exists(compiledBackendTest), "Compiled backend test output missing.");
     }
 
-    private const string SampleBackendTestContent = "import { test, assert } from '@electric-coding-llc/webstir-test';\n\n" +
+    private const string SampleBackendTestContent = "import { test, assert } from '@webstir-io/webstir-test';\n\n" +
         "test('backend sample passes', () => {\n" +
         "  assert.isTrue(true);\n" +
         "});\n";

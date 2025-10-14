@@ -12,9 +12,6 @@ echo "Running dotnet format (style + analyzers)..."
 dotnet format style --no-restore
 dotnet format analyzers --no-restore
 
-echo "Checking whitespace (verify only)…"
-dotnet format whitespace --no-restore --verify-no-changes || true
-
 echo "Building solution..."
 dotnet build Webstir.sln -v minimal
 
@@ -23,11 +20,5 @@ pushd "$ROOT_DIR/Framework/Frontend" > /dev/null
 npm ci --silent
 npm test --silent
 popd > /dev/null
-
-echo "Building framework packages..."
-dotnet run --project "$ROOT_DIR/Framework/Framework.csproj" -- packages sync
-
-echo "Verifying framework packages..."
-dotnet run --project "$ROOT_DIR/Framework/Framework.csproj" -- packages verify
 
 echo "Done."

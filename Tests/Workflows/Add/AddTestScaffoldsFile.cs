@@ -52,6 +52,6 @@ public sealed class AddTestScaffoldsFile : ITestCase
         Assert.IsTrue(File.Exists(packageJsonPath), $"{Files.PackageJson} not found");
 
         string packageJson = File.ReadAllText(packageJsonPath);
-        Assert.Contains($"\"@electric-coding-llc/webstir-test\": \"{dependencyValue}\"", packageJson);
+        Assert.Contains($"\"@webstir-io/webstir-test\": \"{dependencyValue}\"", packageJson);
     }
 }

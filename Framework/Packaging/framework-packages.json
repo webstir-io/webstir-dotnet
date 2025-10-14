@@ -1,25 +1,25 @@
 {
   "packages": {
-    "@electric-coding-llc/webstir-frontend": {
-      "name": "@electric-coding-llc/webstir-frontend",
-      "version": "0.3.4",
-      "registrySpecifier": "@electric-coding-llc/webstir-frontend@0.3.4",
+    "@webstir-io/webstir-frontend": {
+      "name": "@webstir-io/webstir-frontend",
+      "version": "0.1.0",
+      "registrySpecifier": "@webstir-io/webstir-frontend@0.1.0",
       "tarball": {
-        "fileName": "webstir-frontend-0-3-4.tgz",
-        "repositoryPath": "Framework/Frontend/webstir-frontend-0-3-4.tgz",
-        "sha256": "52cefa58c033bb0da00cfc443faf6092caf415c4290fe3a6cf8a490854cee526",
-        "size": 29598
+        "fileName": "webstir-frontend-0-1-0.tgz",
+        "repositoryPath": "Framework/Frontend/webstir-frontend-0-1-0.tgz",
+        "sha256": "d069e11d3acbe8a27cc77b62b80263d265a88fa73882b124b0928658bceee7f9",
+        "size": 29591
       }
     },
-    "@electric-coding-llc/webstir-test": {
-      "name": "@electric-coding-llc/webstir-test",
-      "version": "0.3.4",
-      "registrySpecifier": "@electric-coding-llc/webstir-test@0.3.4",
+    "@webstir-io/webstir-test": {
+      "name": "@webstir-io/webstir-test",
+      "version": "0.1.0",
+      "registrySpecifier": "@webstir-io/webstir-test@0.1.0",
       "tarball": {
-        "fileName": "webstir-test-0-3-4.tgz",
-        "repositoryPath": "Framework/Testing/webstir-test-0-3-4.tgz",
-        "sha256": "9657ae7c27bad57e78e5aaafde95d7739d49743cbc7185acc2305afff87a63d2",
-        "size": 7618
+        "fileName": "webstir-test-0-1-0.tgz",
+        "repositoryPath": "Framework/Testing/webstir-test-0-1-0.tgz",
+        "sha256": "6dade0ac2e299f656876cf664e48209528424e418b5434ee28f4560b0aabf41e",
+        "size": 7611
       }
     }
   }

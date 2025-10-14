@@ -13,9 +13,9 @@ public static class FrameworkPackageCatalog
 
     private static readonly Lazy<IDictionary<string, FrameworkPackageMetadata>> Packages = new(Load, true);
 
-    public static FrameworkPackageMetadata Frontend => Get("@electric-coding-llc/webstir-frontend");
+    public static FrameworkPackageMetadata Frontend => Get("@webstir-io/webstir-frontend");
 
-    public static FrameworkPackageMetadata Testing => Get("@electric-coding-llc/webstir-test");
+    public static FrameworkPackageMetadata Testing => Get("@webstir-io/webstir-test");
 
     public static FrameworkPackageMetadata Get(string packageName)
     {

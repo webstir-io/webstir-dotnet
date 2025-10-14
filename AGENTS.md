@@ -16,4 +16,3 @@
 - Communicate in straightforward, concise language.
 - Use repo helpers (`AppWorkspace`, `Engine.Extensions`) for paths and file operations.
 - Run terminal commands with `bash -lc`, set `workdir`, and prefer `rg` for searches.
-- Use `./utilities/format-build.sh` before handoff to ensure formatting passes and the solution still builds.

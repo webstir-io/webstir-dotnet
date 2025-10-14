@@ -28,7 +28,7 @@ internal static class TestPackageUtilities
 
         if (summary.InstallPerformed)
         {
-            Console.WriteLine("Reinstalled @electric-coding-llc/webstir-test dependencies.");
+            Console.WriteLine("Reinstalled @webstir-io/webstir-test dependencies.");
         }
 
         if (summary.InstallRequiredButSkipped)
@@ -43,7 +43,7 @@ internal static class TestPackageUtilities
 
         if (result.Value.DependencyUpdated)
         {
-            Console.WriteLine($"Pinned @electric-coding-llc/webstir-test dependency in {Files.PackageJson}");
+            Console.WriteLine($"Pinned @webstir-io/webstir-test dependency in {Files.PackageJson}");
         }
 
         if (result.Value.VersionMismatch)
@@ -51,7 +51,7 @@ internal static class TestPackageUtilities
             string installed = string.IsNullOrWhiteSpace(result.Value.InstalledVersion)
                 ? "not installed"
                 : result.Value.InstalledVersion!;
-            Console.WriteLine($"Warning: @electric-coding-llc/webstir-test {installed} differs from packaged {result.Value.Metadata.Version}. Run '{App.Name} install' to refresh node_modules.");
+            Console.WriteLine($"Warning: @webstir-io/webstir-test {installed} differs from packaged {result.Value.Metadata.Version}. Run '{App.Name} install' to refresh node_modules.");
         }
     }
 
@@ -68,7 +68,7 @@ internal static class TestPackageUtilities
                 ? "missing"
                 : testing.InstalledVersion!;
             throw new InvalidOperationException(
-                $"@electric-coding-llc/webstir-test {installed} detected but {testing.Metadata.Version} is bundled. Run '{App.Name} install' to refresh dependencies.");
+                $"@webstir-io/webstir-test {installed} detected but {testing.Metadata.Version} is bundled. Run '{App.Name} install' to refresh dependencies.");
         }
     }
 }

@@ -51,7 +51,7 @@ function normalizeName(raw: string): string {
   return trimmed.replace(/(\.test\.ts)$/i, '');
 }
 
-const SAMPLE_TEST_TEMPLATE = `import { test, assert } from '@electric-coding-llc/webstir-test';
+const SAMPLE_TEST_TEMPLATE = `import { test, assert } from '@webstir-io/webstir-test';
 
 test('sample passes', () => {
   assert.isTrue(true);

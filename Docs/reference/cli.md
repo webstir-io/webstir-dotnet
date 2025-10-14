@@ -66,7 +66,7 @@ What it does:
 Usage: `webstir test`
 
 What it does:
-- Builds the project, ensures the bundled `@electric-coding-llc/webstir-test` tools are installed, then shells into the `webstir-test` TypeScript CLI.
+- Builds the project, ensures the bundled `@webstir-io/webstir-test` tools are installed, then shells into the `webstir-test` TypeScript CLI.
 - Executes compiled frontend and backend tests, emitting structured events the .NET bridge relays.
 - Prints a pass/fail summary; integrates with CI using standard exit codes.
 - Fails fast if bundled package versions drift and directs you to `webstir install`.
@@ -75,7 +75,7 @@ What it does:
 Usage: `webstir install [--dry-run|--clean]`
 
 What it does:
-- Synchronizes the bundled `@electric-coding-llc/webstir-frontend` and `@electric-coding-llc/webstir-test` tarballs with `node_modules`.
+- Synchronizes the bundled `@webstir-io/webstir-frontend` and `@webstir-io/webstir-test` tarballs with `node_modules`.
 - Copies the embedded archives into `<workspace>/.webstir/` and pins dependencies to `file:./.webstir/<tarball>.tgz`, falling back to the registry only when explicitly requested.
 - Verifies versions against the CLI manifest and exits with guidance if drift remains.
 
@@ -100,7 +100,7 @@ Usage: `webstir add-page <name>`
 What it does:
 - Scaffolds `index.html`, `index.css`, and `index.ts` in `src/frontend/pages/<name>/`.
 - Ready to build and serve without extra configuration.
-- Delegates to the `@electric-coding-llc/webstir-frontend` CLI so the scaffold matches the current framework templates.
+- Delegates to the `@webstir-io/webstir-frontend` CLI so the scaffold matches the current framework templates.
 
 ### add-test
 Usage: `webstir add-test <name-or-path>`
@@ -108,7 +108,7 @@ Usage: `webstir add-test <name-or-path>`
 What it does:
 - Creates a `.test.ts` file under the nearest `tests/` folder relative to the path provided.
 - Works for both frontend and backend test locations.
-- Uses the `@electric-coding-llc/webstir-test` CLI to write the template and keep dependencies pinned.
+- Uses the `@webstir-io/webstir-test` CLI to write the template and keep dependencies pinned.
 
 ## Dev Server & Watch
 - Serves `build/` over ASP.NET Core with an SSE endpoint for live reload.

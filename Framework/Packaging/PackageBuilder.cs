@@ -73,12 +73,12 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
 
         if (includeFrontend)
         {
-            VerifyPackage(repositoryRoot, packagesElement, "@electric-coding-llc/webstir-frontend", tarballs, failures);
+            VerifyPackage(repositoryRoot, packagesElement, "@webstir-io/webstir-frontend", tarballs, failures);
         }
 
         if (includeTesting)
         {
-            VerifyPackage(repositoryRoot, packagesElement, "@electric-coding-llc/webstir-test", tarballs, failures);
+            VerifyPackage(repositoryRoot, packagesElement, "@webstir-io/webstir-test", tarballs, failures);
         }
 
         VerifyTemplateDependencies(repositoryRoot, tarballs, failures);
@@ -805,13 +805,13 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
         {
             get;
         } = new(
-            "@electric-coding-llc/webstir-frontend",
+            "@webstir-io/webstir-frontend",
             Path.Combine("Framework", "Frontend"),
             "webstir-frontend-",
             "webstir-frontend-*.tgz",
             "WEBSTIR_FRONTEND_REGISTRY_SPEC",
             new[] { "node_modules" },
-            "@electric-coding-llc/webstir-frontend@{version}",
+            "@webstir-io/webstir-frontend@{version}",
             "https://npm.pkg.github.com",
             "restricted");
 
@@ -819,13 +819,13 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
         {
             get;
         } = new(
-            "@electric-coding-llc/webstir-test",
+            "@webstir-io/webstir-test",
             Path.Combine("Framework", "Testing"),
             "webstir-test-",
             "webstir-test-*.tgz",
             "WEBSTIR_TEST_REGISTRY_SPEC",
             new[] { "node_modules", "dist" },
-            "@electric-coding-llc/webstir-test@{version}",
+            "@webstir-io/webstir-test@{version}",
             "https://npm.pkg.github.com",
             "restricted");
 

@@ -379,7 +379,7 @@ public sealed class FrontendWorker : IFrontendWorker
     {
         try
         {
-            string scopePath = Path.Combine(_workspace.NodeModulesPath, "@electric-coding-llc");
+            string scopePath = Path.Combine(_workspace.NodeModulesPath, "@webstir-io");
             if (!Directory.Exists(scopePath))
             {
                 return null;

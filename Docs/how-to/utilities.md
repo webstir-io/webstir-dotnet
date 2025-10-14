@@ -12,13 +12,13 @@ Helper scripts to keep the repo tidy, build-ready, and easy to demo. These live 
 - Notes: Passes flags through to `dotnet format`. Use in CI to verify style.
 
 ### format-build.sh
-- Purpose: Fix whitespace, run style/analyzer formatters, verify whitespace, then build the solution.
+- Purpose: Fix whitespace, run style/analyzer formatters, build the solution, and execute frontend package tests.
 - Usage: `./utilities/format-build.sh`
 - Steps:
   - Runs whitespace fixer (see below).
   - `dotnet format style` and `dotnet format analyzers`.
-  - `dotnet format whitespace --verify-no-changes` (non-fatal).
   - `dotnet build Webstir.sln -v minimal`.
+  - Installs frontend npm dependencies (`npm ci`) and runs the package tests.
 - Tip: Use before committing or when CI fails style checks.
 
 ### fix-whitespace.sh

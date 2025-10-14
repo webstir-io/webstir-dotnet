@@ -1,6 +1,6 @@
 {
-  "name": "@electric-coding-llc/webstir-frontend",
-  "version": "0.3.4",
+  "name": "@webstir-io/webstir-frontend",
+  "version": "0.1.0",
   "description": "Frontend build and publish tooling for Webstir workspaces.",
   "type": "module",
   "main": "dist/index.js",

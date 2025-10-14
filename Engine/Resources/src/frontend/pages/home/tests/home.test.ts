@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { test, assert } from '@electric-coding-llc/webstir-test';
+import { test, assert } from '@webstir-io/webstir-test';
 
 // Node runs this test as ESM; derive the directory from the module URL.
 const currentDir = dirname(fileURLToPath(import.meta.url));

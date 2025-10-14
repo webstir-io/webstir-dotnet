@@ -50,7 +50,7 @@ public static class PackageSynchronizer
                         packageLockRemoved = true;
                     }
 
-                    RemoveCachedPackage(workspace, logger, "@electric-coding-llc/webstir-frontend");
+                    RemoveCachedPackage(workspace, logger, "@webstir-io/webstir-frontend");
                 }
 
                 if (NeedsInstall(testResult))
@@ -61,7 +61,7 @@ public static class PackageSynchronizer
                         packageLockRemoved = true;
                     }
 
-                    RemoveCachedPackage(workspace, logger, "@electric-coding-llc/webstir-test");
+                    RemoveCachedPackage(workspace, logger, "@webstir-io/webstir-test");
                 }
 
                 EnsureWorkspaceNpmrc(workspace, logger);
@@ -141,7 +141,7 @@ public static class PackageSynchronizer
                 return; // respect existing project config
             }
 
-            string content = "@electric-coding-llc:registry=https://npm.pkg.github.com\n" +
+            string content = "@webstir-io:registry=https://npm.pkg.github.com\n" +
                              "//npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}\n" +
                              "always-auth=true\n";
             File.WriteAllText(npmrcPath, content);

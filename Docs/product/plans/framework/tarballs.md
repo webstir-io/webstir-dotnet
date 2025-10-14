@@ -2,7 +2,7 @@
 
 ## At a Glance
 - Run `framework packages diff` to preview changes, then `framework packages sync && framework packages verify` after modifying `Framework/Frontend` or `Framework/Testing`; commit the refreshed tarballs and metadata.
-- Use `./utilities/format-build.sh` to regenerate tarballs, verify hashes, and ensure the solution builds before pushing.
+- Regenerate tarballs with `framework packages sync` (and `framework packages verify`) before committing; use `./utilities/format-build.sh` separately to validate formatting, builds, and frontend tests.
 - Let `webstir install` (and other workflows) manage `.webstir` tarballs automatically; exports like `WEBSTIR_PACKAGE_SOURCE=registry` are only needed when explicitly testing the registry path.
 - When preparing a release, run `framework packages publish` from CI so the same tarballs reach GitHub Packages.
 
@@ -12,11 +12,11 @@
 - A refreshed "tarball-first" flow should release friction, stay in sync automatically, and still let us publish to GitHub Packages when needed.
 
 ## Goals
-- Ship reproducible framework packages (`@electric-coding-llc/webstir-frontend`, `@electric-coding-llc/webstir-test`) without requiring npm auth or network access during tests.
+- Ship reproducible framework packages (`@webstir-io/webstir-frontend`, `@webstir-io/webstir-test`) without requiring npm auth or network access during tests.
 - Distribute tarballs with the CLI/runtime so every install has the artifacts it needs on day one.
 - Regenerate tarballs mechanically (`framework packages sync`) and fail fast if the committed archives drift from source.
 - Keep the registry path available behind an opt-in flag so we can smoke-test publishing and eventually migrate back if desired.
-- Guarantee that a fresh checkout + `./utilities/format-build.sh` leaves every workspace ready to run `webstir test` immediately.
+- Guarantee that a fresh checkout plus the framework packaging commands leaves every workspace ready to run `webstir test` immediately.
 
 ## Non-Goals
 - Supporting bespoke per-workspace overrides; the CLI will always favor the bundled tarballs unless explicitly told otherwise.
@@ -61,8 +61,9 @@
 - `release.yml`
   - Keeps the publish step (needs `packages: write`).
   - Commits tarballs + metadata updates automatically as part of the release PR.
-- Local tooling (`./utilities/format-build.sh`)
-  - Already runs `framework packages sync`; extend it to run the verify step so contributors catch drift before sending a PR.
+- Local tooling
+  - `framework packages sync` (and `framework packages verify`) remain the source of truth for rebuilding tarballs.
+  - `./utilities/format-build.sh` focuses on formatting, solution builds, and frontend tests without touching package artifacts.
 
 ## Testing Strategy
 - Extend `Tests/PackageInstallers` to cover:

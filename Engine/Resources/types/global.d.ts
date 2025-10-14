@@ -8,7 +8,7 @@ declare module '*.css' {
   export default css;
 }
 
-declare module '@electric-coding-llc/webstir-test' {
+declare module '@webstir-io/webstir-test' {
   export function test(description: string, callback: () => void | Promise<void>): void;
   export const assert: {
     isTrue(condition: unknown, message?: string): asserts condition;
