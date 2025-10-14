@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using Framework.Commands;
+using Framework.Commands.Packages;
 using Microsoft.Extensions.Logging;
 
 namespace Framework;
@@ -49,7 +49,9 @@ internal sealed class Runner(ILogger<Runner> logger, PackageConsoleCommand packa
         value.Equals("sync", StringComparison.OrdinalIgnoreCase)
         || value.Equals("publish", StringComparison.OrdinalIgnoreCase)
         || value.Equals("verify", StringComparison.OrdinalIgnoreCase)
-        || value.Equals("diff", StringComparison.OrdinalIgnoreCase);
+        || value.Equals("diff", StringComparison.OrdinalIgnoreCase)
+        || value.Equals("bump", StringComparison.OrdinalIgnoreCase)
+        || value.Equals("release", StringComparison.OrdinalIgnoreCase);
 
     private static bool ContainsHelp(string[] args)
     {
@@ -71,27 +73,32 @@ internal sealed class Runner(ILogger<Runner> logger, PackageConsoleCommand packa
 
     private static void ShowUsage()
     {
-        Console.WriteLine("Usage: framework packages [sync|publish|verify|diff] [options]");
+        Console.WriteLine("Usage: framework packages [bump|sync|release|publish|verify|diff] [options]");
         Console.WriteLine("       framework packages --help");
         Console.WriteLine("       framework sync [options] (shorthand)\n");
     }
 
     private int ShowPackagesUsage()
     {
-        Console.WriteLine("framework packages <sync|publish|verify|diff> [options]");
+        Console.WriteLine("framework packages <bump|sync|release|publish|verify|diff> [options]");
         Console.WriteLine();
         Console.WriteLine("Commands:");
-        Console.WriteLine("  sync       Build framework packages (default).");
-        Console.WriteLine("  publish    Build and publish packages to the configured registry.");
+        Console.WriteLine("  bump       Update package versions.");
+        Console.WriteLine("  sync       Rebuild framework package tarballs (default).");
+        Console.WriteLine("  release    Bump and rebuild packages without publishing.");
+        Console.WriteLine("  publish    Bump, rebuild, and publish packages to the configured registry.");
         Console.WriteLine("  verify     Validate tarball metadata and embedded assets.");
-        Console.WriteLine("  diff       Repack tarballs and report checksum/size differences without modifying files.");
+        Console.WriteLine("  diff       Report tarball checksum/size differences without modifying files.");
         Console.WriteLine();
         Console.WriteLine("Options:");
-        Console.WriteLine("  --frontend     Rebuild only the frontend package.");
-        Console.WriteLine("  --test         Rebuild only the testing package.");
-        Console.WriteLine("  --both         Rebuild both packages (default).");
-        Console.WriteLine("  --prune-webstir  Remove cached .webstir tarballs under Tests/out and CLI/out (sync only).");
-        Console.WriteLine("  --help, -h     Show this message.");
+        Console.WriteLine("  --package <name>   Target specific packages (repeatable).");
+        Console.WriteLine("  --all             Target all packages (default).");
+        Console.WriteLine("  --dry-run         Preview actions without writing files or publishing.");
+        Console.WriteLine("  --set-version     Explicitly set the next version (bump/release/publish).");
+        Console.WriteLine("  --bump            Choose version bump (patch|minor|major). Defaults to patch.");
+        Console.WriteLine("  --prune-webstir   Remove cached .webstir tarballs after rebuilding (sync/release).");
+        Console.WriteLine("  --frontend/--test legacy shortcuts remain available.");
+        Console.WriteLine("  --help, -h        Show this message.");
         return 0;
     }
 }

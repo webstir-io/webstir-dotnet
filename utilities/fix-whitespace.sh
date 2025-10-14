@@ -63,8 +63,38 @@ if [[ -f "$EC" ]]; then
   trap 'mv -f "$BAK" "$EC" 2>/dev/null || true' EXIT
 fi
 
-# Apply whitespace fixes; ignore non-fatal exit
-dotnet format whitespace --no-restore || true
+# Apply whitespace fixes; ignore non-fatal exit while logging failures
+format_failed=false
+
+projects_output="$(dotnet sln list 2>/dev/null || true)"
+if [[ "$projects_output" == *"Project(s)"* ]]; then
+  echo "Formatting whitespace for individual projects..."
+  sln_projects=()
+  while IFS= read -r project_path; do
+    sln_projects+=("$project_path")
+  done < <(printf '%s\n' "$projects_output" | tail -n +3)
+
+  for project in "${sln_projects[@]}"; do
+    project="$(echo "$project" | xargs)"
+    if [[ -z "$project" ]]; then
+      continue
+    fi
+
+    echo "  dotnet format whitespace --no-restore ${project}"
+    if ! dotnet format whitespace "$project" --no-restore; then
+      format_failed=true
+    fi
+  done
+else
+  echo "Formatting whitespace for detected workspace..."
+  if ! dotnet format whitespace --no-restore; then
+    format_failed=true
+  fi
+fi
+
+if [[ "$format_failed" == "true" ]]; then
+  echo "dotnet format whitespace encountered errors." >&2
+fi
 
 if [[ -f "$BAK" ]]; then
   mv -f "$BAK" "$EC"

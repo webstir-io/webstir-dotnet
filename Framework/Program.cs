@@ -1,8 +1,9 @@
 using System;
 using System.Globalization;
 using Framework;
-using Framework.Commands;
+using Framework.Commands.Packages;
 using Framework.Packaging;
+using Framework.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -21,6 +22,25 @@ try
     services.AddSingleton<IConfiguration>(configuration);
     services.AddLogging(builder => builder.AddSerilog(logger, dispose: true));
     services.AddSingleton<PackageBuilder>();
+    services.AddSingleton<IProcessRunner, ProcessRunner>();
+    services.AddSingleton<IRepositoryDiffService, RepositoryDiffService>();
+    services.AddSingleton<IConventionalCommitService, ConventionalCommitService>();
+    services.AddSingleton<IPackageMetadataService, PackageMetadataService>();
+
+    services.AddSingleton<PackagesBumpCommand>();
+    services.AddSingleton<PackagesSyncCommand>();
+    services.AddSingleton<PackagesReleaseCommand>();
+    services.AddSingleton<PackagesPublishCommand>();
+    services.AddSingleton<PackagesVerifyCommand>();
+    services.AddSingleton<PackagesDiffCommand>();
+
+    services.AddSingleton<IPackagesSubcommand>(provider => provider.GetRequiredService<PackagesBumpCommand>());
+    services.AddSingleton<IPackagesSubcommand>(provider => provider.GetRequiredService<PackagesSyncCommand>());
+    services.AddSingleton<IPackagesSubcommand>(provider => provider.GetRequiredService<PackagesReleaseCommand>());
+    services.AddSingleton<IPackagesSubcommand>(provider => provider.GetRequiredService<PackagesPublishCommand>());
+    services.AddSingleton<IPackagesSubcommand>(provider => provider.GetRequiredService<PackagesVerifyCommand>());
+    services.AddSingleton<IPackagesSubcommand>(provider => provider.GetRequiredService<PackagesDiffCommand>());
+
     services.AddSingleton<PackageConsoleCommand>();
     services.AddSingleton<Runner>();
 
