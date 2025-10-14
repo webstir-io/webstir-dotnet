@@ -15,19 +15,11 @@ Helper scripts to keep the repo tidy, build-ready, and easy to demo. These live 
 - Purpose: Fix whitespace, run style/analyzer formatters, build the solution, and execute frontend package tests.
 - Usage: `./utilities/format-build.sh`
 - Steps:
-  - Runs whitespace fixer (see below).
+  - Normalizes `.cs` files and runs `dotnet format whitespace`.
   - `dotnet format style` and `dotnet format analyzers`.
   - `dotnet build Webstir.sln -v minimal`.
   - Installs frontend npm dependencies (`npm ci`) and runs the package tests.
 - Tip: Use before committing or when CI fails style checks.
-
-### fix-whitespace.sh
-- Purpose: Normalize C# files and apply Roslyn whitespace rules reliably.
-- What it does:
-  - Normalizes `.cs` files to LF, trims trailing spaces, ensures a final newline.
-  - Temporarily comments out `charset=` rules in `.editorconfig` to avoid known formatter crashes, runs `dotnet format whitespace`, then restores `.editorconfig`.
-- Usage: `./utilities/fix-whitespace.sh`
-- Scope: Only formatting; no semantic changes.
 
 ### deploy-seed.sh
 - Purpose: Create, build, test, and publish a seed project for demos and the Sandbox.
@@ -50,7 +42,7 @@ Helper scripts to keep the repo tidy, build-ready, and easy to demo. These live 
 ## Tips
 - Run from the repo root to ensure relative paths resolve correctly.
 - Add `format.sh --verify-no-changes` to CI to enforce style.
-- If a formatter fails unexpectedly, run `fix-whitespace.sh` then `format.sh`.
+- If a formatter fails unexpectedly, rerun `./utilities/format-build.sh` to normalize whitespace before `format.sh`.
 
 ## Related Docs
 - Solution overview — [solution](../explanations/solution.md)

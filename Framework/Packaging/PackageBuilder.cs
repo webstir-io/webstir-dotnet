@@ -18,39 +18,10 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
     private readonly ILogger<PackageBuilder> _logger = logger;
 
     public async Task<PackageBuildResult> BuildFrontendAsync(string repositoryRoot, bool publish) =>
-        await BuildAsync(repositoryRoot, PackageBuildOptions.Frontend, publish);
+        await BuildAsync(repositoryRoot, FrameworkPackageDescriptor.Frontend, publish);
 
     public async Task<PackageBuildResult> BuildTestingAsync(string repositoryRoot, bool publish) =>
-        await BuildAsync(repositoryRoot, PackageBuildOptions.Testing, publish);
-
-    public async Task ValidatePublishAsync(string repositoryRoot)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
-
-        HashSet<string> registries = new(StringComparer.OrdinalIgnoreCase);
-
-        foreach (PackageBuildOptions options in PackageBuildOptions.All)
-        {
-            if (string.IsNullOrWhiteSpace(options.PublishRegistryUrl))
-            {
-                continue;
-            }
-
-            string registry = options.PublishRegistryUrl!;
-            if (!registries.Add(registry))
-            {
-                continue;
-            }
-
-            _logger.LogInformation("[packages] Verifying access to {Registry}...", registry);
-            await RunCommandAsync("npm", $"ping --registry \"{registry}\"", repositoryRoot, $"npm ping ({registry})");
-        }
-
-        if (registries.Count > 0)
-        {
-            _logger.LogInformation("[packages] Registry validation succeeded.");
-        }
-    }
+        await BuildAsync(repositoryRoot, FrameworkPackageDescriptor.Testing, publish);
 
     public Task VerifyAsync(string repositoryRoot, bool includeFrontend, bool includeTesting)
     {
@@ -117,12 +88,12 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
 
         if (includeFrontend)
         {
-            entries.Add(await DiffPackageAsync(repositoryRoot, packagesElement, PackageBuildOptions.Frontend).ConfigureAwait(false));
+            entries.Add(await DiffPackageAsync(repositoryRoot, packagesElement, FrameworkPackageDescriptor.Frontend).ConfigureAwait(false));
         }
 
         if (includeTesting)
         {
-            entries.Add(await DiffPackageAsync(repositoryRoot, packagesElement, PackageBuildOptions.Testing).ConfigureAwait(false));
+            entries.Add(await DiffPackageAsync(repositoryRoot, packagesElement, FrameworkPackageDescriptor.Testing).ConfigureAwait(false));
         }
 
         return new PackageDiffSummary(entries);
@@ -265,59 +236,59 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
     private async Task<PackageDiffEntry> DiffPackageAsync(
         string repositoryRoot,
         JsonElement packagesElement,
-        PackageBuildOptions options)
+        FrameworkPackageDescriptor descriptor)
     {
-        if (!packagesElement.TryGetProperty(options.PackageName, out JsonElement packageElement) || packageElement.ValueKind != JsonValueKind.Object)
+        if (!packagesElement.TryGetProperty(descriptor.PackageName, out JsonElement packageElement) || packageElement.ValueKind != JsonValueKind.Object)
         {
-            return PackageDiffEntry.Missing(options.PackageName, "Package metadata missing from framework-packages.json.");
+            return PackageDiffEntry.Missing(descriptor.PackageName, "Package metadata missing from framework-packages.json.");
         }
 
         FrameworkPackageTarballMetadata recordedTarball;
         try
         {
-            recordedTarball = ReadTarballMetadata(options.PackageName, packageElement);
+            recordedTarball = ReadTarballMetadata(descriptor.PackageName, packageElement);
         }
         catch (Exception ex)
         {
-            return PackageDiffEntry.Missing(options.PackageName, ex.Message);
+            return PackageDiffEntry.Missing(descriptor.PackageName, ex.Message);
         }
 
         string recordedVersion = packageElement.GetProperty("version").GetString() ?? string.Empty;
 
-        string packageDirectory = Path.Combine(repositoryRoot, options.PackageRelativePath);
+        string packageDirectory = Path.Combine(repositoryRoot, descriptor.PackageRelativePath);
         if (!Directory.Exists(packageDirectory))
         {
-            return PackageDiffEntry.Missing(options.PackageName, $"Package directory not found: {packageDirectory}");
+            return PackageDiffEntry.Missing(descriptor.PackageName, $"Package directory not found: {packageDirectory}");
         }
 
         string packageJsonPath = Path.Combine(packageDirectory, "package.json");
         if (!File.Exists(packageJsonPath))
         {
-            return PackageDiffEntry.Missing(options.PackageName, $"package.json not found for {options.PackageName} at {packageJsonPath}");
+            return PackageDiffEntry.Missing(descriptor.PackageName, $"package.json not found for {descriptor.PackageName} at {packageJsonPath}");
         }
 
-        PackageMetadata metadata = LoadPackageMetadata(packageJsonPath, options);
+        PackageMetadata metadata = LoadPackageMetadata(packageJsonPath, descriptor);
 
         string tempRoot = Path.Combine(Path.GetTempPath(), "webstir-packages-diff", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempRoot);
 
         try
         {
-            await RunCommandAsync("npm", "ci --silent", packageDirectory, $"npm ci ({options.PackageName})").ConfigureAwait(false);
-            await RunCommandAsync("npm", "run build --silent", packageDirectory, $"npm run build ({options.PackageName})").ConfigureAwait(false);
+            await RunCommandAsync("npm", "ci --silent", packageDirectory, $"npm ci ({descriptor.PackageName})").ConfigureAwait(false);
+            await RunCommandAsync("npm", "run build --silent", packageDirectory, $"npm run build ({descriptor.PackageName})").ConfigureAwait(false);
 
-            DeleteMatchingFiles(packageDirectory, options.TarballPattern);
+            DeleteMatchingFiles(packageDirectory, descriptor.TarballPattern);
 
-            string createdTarballName = await RunPackAsync(packageDirectory, options.PackageName).ConfigureAwait(false);
+            string createdTarballName = await RunPackAsync(packageDirectory, descriptor.PackageName).ConfigureAwait(false);
             string createdTarballPath = Path.Combine(packageDirectory, createdTarballName);
 
             string safeVersion = metadata.Version.Replace('.', '-');
-            string targetTarballName = $"{options.TarballPrefix}{safeVersion}.tgz";
+            string targetTarballName = $"{descriptor.TarballPrefix}{safeVersion}.tgz";
             string tempTarballPath = Path.Combine(tempRoot, targetTarballName);
 
             if (!File.Exists(createdTarballPath))
             {
-                return PackageDiffEntry.Missing(options.PackageName, $"npm pack did not produce an expected tarball for {options.PackageName}.");
+                return PackageDiffEntry.Missing(descriptor.PackageName, $"npm pack did not produce an expected tarball for {descriptor.PackageName}.");
             }
 
             if (File.Exists(tempTarballPath))
@@ -336,13 +307,13 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
 
             if (sizeMatches && hashMatches && versionMatches)
             {
-                await CleanupPackageDirectoryAsync(packageDirectory, options.CleanupDirectories, options.TarballPattern).ConfigureAwait(false);
-                return PackageDiffEntry.Unchanged(options.PackageName, recordedTarball.Sha256, recordedTarball.Size);
+                await CleanupPackageDirectoryAsync(packageDirectory, descriptor.CleanupDirectories, descriptor.TarballPattern).ConfigureAwait(false);
+                return PackageDiffEntry.Unchanged(descriptor.PackageName, recordedTarball.Sha256, recordedTarball.Size);
             }
 
             string? message = versionMatches ? null : $"package.json version {metadata.Version} differs from recorded {recordedVersion}";
-            await CleanupPackageDirectoryAsync(packageDirectory, options.CleanupDirectories, options.TarballPattern).ConfigureAwait(false);
-            return PackageDiffEntry.Changed(options.PackageName, recordedTarball.Sha256, recordedTarball.Size, actualSha, actualSize, message);
+            await CleanupPackageDirectoryAsync(packageDirectory, descriptor.CleanupDirectories, descriptor.TarballPattern).ConfigureAwait(false);
+            return PackageDiffEntry.Changed(descriptor.PackageName, recordedTarball.Sha256, recordedTarball.Size, actualSha, actualSize, message);
         }
         finally
         {
@@ -360,11 +331,11 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
         }
     }
 
-    private async Task<PackageBuildResult> BuildAsync(string repositoryRoot, PackageBuildOptions options, bool publishPackages)
+    private async Task<PackageBuildResult> BuildAsync(string repositoryRoot, FrameworkPackageDescriptor descriptor, bool publishPackages)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
 
-        string packageDirectory = Path.Combine(repositoryRoot, options.PackageRelativePath);
+        string packageDirectory = Path.Combine(repositoryRoot, descriptor.PackageRelativePath);
         if (!Directory.Exists(packageDirectory))
         {
             throw new DirectoryNotFoundException($"Package directory not found: {packageDirectory}");
@@ -373,19 +344,19 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
         string packageJsonPath = Path.Combine(packageDirectory, "package.json");
         if (!File.Exists(packageJsonPath))
         {
-            throw new FileNotFoundException($"package.json not found for {options.PackageName} at {packageJsonPath}");
+            throw new FileNotFoundException($"package.json not found for {descriptor.PackageName} at {packageJsonPath}");
         }
 
-        PackageMetadata metadata = LoadPackageMetadata(packageJsonPath, options);
+        PackageMetadata metadata = LoadPackageMetadata(packageJsonPath, descriptor);
 
-        await RunCommandAsync("npm", "ci --silent", packageDirectory, $"npm ci ({options.PackageName})");
-        await RunCommandAsync("npm", "run build --silent", packageDirectory, $"npm run build ({options.PackageName})");
+        await RunCommandAsync("npm", "ci --silent", packageDirectory, $"npm ci ({descriptor.PackageName})");
+        await RunCommandAsync("npm", "run build --silent", packageDirectory, $"npm run build ({descriptor.PackageName})");
 
-        DeleteMatchingFiles(packageDirectory, options.TarballPattern);
+        DeleteMatchingFiles(packageDirectory, descriptor.TarballPattern);
 
-        string createdTarballName = await RunPackAsync(packageDirectory, options.PackageName);
+        string createdTarballName = await RunPackAsync(packageDirectory, descriptor.PackageName);
         string safeVersion = metadata.Version.Replace('.', '-');
-        string targetTarballName = $"{options.TarballPrefix}{safeVersion}.tgz";
+        string targetTarballName = $"{descriptor.TarballPrefix}{safeVersion}.tgz";
         string createdTarballPath = Path.Combine(packageDirectory, createdTarballName);
         string targetTarballPath = Path.Combine(packageDirectory, targetTarballName);
         if (!string.Equals(createdTarballName, targetTarballName, StringComparison.Ordinal))
@@ -408,37 +379,37 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
 
         string resourcesDirectory = Path.Combine(repositoryRoot, "Framework", "Resources", "webstir");
         Directory.CreateDirectory(resourcesDirectory);
-        DeleteMatchingFiles(resourcesDirectory, options.TarballPattern);
+        DeleteMatchingFiles(resourcesDirectory, descriptor.TarballPattern);
         string resourceTarballPath = Path.Combine(resourcesDirectory, targetTarballName);
         File.Copy(targetTarballPath, resourceTarballPath, overwrite: true);
 
         FrameworkPackageTarballMetadata tarballMetadata = new(targetTarballName, repositoryRelativeTarballPath, tarballHash, tarballSize);
 
-        string registrySpecifier = GetRegistrySpecifier(options.RegistrySpecifierEnvironmentVariable)
-            ?? options.GetDefaultRegistrySpecifier(metadata.Version)
-            ?? options.GetPackageSpec(metadata.Version);
+        string registrySpecifier = GetRegistrySpecifier(descriptor.RegistrySpecifierEnvironmentVariable)
+            ?? descriptor.GetDefaultRegistrySpecifier(metadata.Version)
+            ?? descriptor.GetPackageSpec(metadata.Version);
 
         bool published = false;
-        if (publishPackages && options.SupportsPublishing && !string.IsNullOrWhiteSpace(options.PublishRegistryUrl))
+        if (publishPackages && descriptor.SupportsPublishing && !string.IsNullOrWhiteSpace(descriptor.PublishRegistryUrl))
         {
-            string spec = options.GetPackageSpec(metadata.Version);
-            published = await PublishToRegistryAsync(spec, options.PublishRegistryUrl!, targetTarballPath, options.PublishAccess);
+            string spec = descriptor.GetPackageSpec(metadata.Version);
+            published = await PublishToRegistryAsync(spec, descriptor.PublishRegistryUrl!, targetTarballPath, descriptor.PublishAccess);
         }
 
         UpdatePackageCatalog(repositoryRoot, metadata.PackageName, metadata.Version, registrySpecifier, tarballMetadata);
         UpdateEngineResourcesPackageJson(Path.Combine(repositoryRoot, "Engine", "Resources", "package.json"), metadata.PackageName, tarballMetadata.WorkspaceSpecifier);
 
-        await CleanupPackageDirectoryAsync(packageDirectory, options.CleanupDirectories, options.TarballPattern);
+        await CleanupPackageDirectoryAsync(packageDirectory, descriptor.CleanupDirectories, descriptor.TarballPattern);
 
         return new PackageBuildResult(metadata.PackageName, metadata.Version, tarballMetadata, registrySpecifier, published);
     }
 
-    private static PackageMetadata LoadPackageMetadata(string packageJsonPath, PackageBuildOptions options)
+    private static PackageMetadata LoadPackageMetadata(string packageJsonPath, FrameworkPackageDescriptor descriptor)
     {
         using FileStream stream = File.OpenRead(packageJsonPath);
         using JsonDocument document = JsonDocument.Parse(stream);
-        string version = document.RootElement.GetProperty("version").GetString() ?? throw new InvalidOperationException($"Package version missing for {options.PackageName}");
-        string name = document.RootElement.GetProperty("name").GetString() ?? options.PackageName;
+        string version = document.RootElement.GetProperty("version").GetString() ?? throw new InvalidOperationException($"Package version missing for {descriptor.PackageName}");
+        string name = document.RootElement.GetProperty("name").GetString() ?? descriptor.PackageName;
         return new PackageMetadata(name, version);
     }
 
@@ -790,59 +761,6 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
 
     private readonly record struct PackageMetadata(string PackageName, string Version);
 
-    private sealed record PackageBuildOptions(
-        string PackageName,
-        string PackageRelativePath,
-        string TarballPrefix,
-        string TarballPattern,
-        string? RegistrySpecifierEnvironmentVariable,
-        IReadOnlyCollection<string> CleanupDirectories,
-        string? DefaultRegistrySpecifierPattern,
-        string? PublishRegistryUrl,
-        string PublishAccess)
-    {
-        internal static PackageBuildOptions Frontend
-        {
-            get;
-        } = new(
-            "@webstir-io/webstir-frontend",
-            Path.Combine("Framework", "Frontend"),
-            "webstir-frontend-",
-            "webstir-frontend-*.tgz",
-            "WEBSTIR_FRONTEND_REGISTRY_SPEC",
-            new[] { "node_modules" },
-            "@webstir-io/webstir-frontend@{version}",
-            "https://npm.pkg.github.com",
-            "restricted");
-
-        internal static PackageBuildOptions Testing
-        {
-            get;
-        } = new(
-            "@webstir-io/webstir-test",
-            Path.Combine("Framework", "Testing"),
-            "webstir-test-",
-            "webstir-test-*.tgz",
-            "WEBSTIR_TEST_REGISTRY_SPEC",
-            new[] { "node_modules", "dist" },
-            "@webstir-io/webstir-test@{version}",
-            "https://npm.pkg.github.com",
-            "restricted");
-
-        internal static IReadOnlyList<PackageBuildOptions> All
-        {
-            get;
-        } = new[] { Frontend, Testing };
-
-        internal string? GetDefaultRegistrySpecifier(string version) =>
-            string.IsNullOrWhiteSpace(DefaultRegistrySpecifierPattern)
-                ? null
-                : DefaultRegistrySpecifierPattern.Replace("{version}", version, StringComparison.Ordinal);
-
-        internal bool SupportsPublishing => !string.IsNullOrWhiteSpace(PublishRegistryUrl);
-
-        internal string GetPackageSpec(string version) => $"{PackageName}@{version}";
-    }
 }
 
 public readonly record struct PackageBuildResult(

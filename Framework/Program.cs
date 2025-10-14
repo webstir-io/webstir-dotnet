@@ -26,6 +26,8 @@ try
     services.AddSingleton<IRepositoryDiffService, RepositoryDiffService>();
     services.AddSingleton<IConventionalCommitService, ConventionalCommitService>();
     services.AddSingleton<IPackageMetadataService, PackageMetadataService>();
+    services.AddSingleton<IReleaseNotesService, ReleaseNotesService>();
+    services.AddSingleton<IPackagePublishPrecheckService, PackagePublishPrecheckService>();
 
     services.AddSingleton<PackagesBumpCommand>();
     services.AddSingleton<PackagesSyncCommand>();

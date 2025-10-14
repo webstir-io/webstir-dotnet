@@ -10,30 +10,9 @@ run_dotnet_format_scope() {
     local description="$2"
     local format_failed=false
 
-    local projects_output
-    projects_output="$(dotnet sln list 2>/dev/null || true)"
-
-    if [[ "$projects_output" == *"Project(s)"* ]]; then
-        echo "Running dotnet format ${description} across individual projects..."
-        local sln_projects=()
-        while IFS= read -r project_path; do
-            project_path="$(echo "$project_path" | xargs)"
-            if [[ -n "$project_path" ]]; then
-                sln_projects+=("$project_path")
-            fi
-        done < <(printf '%s\n' "$projects_output" | tail -n +3)
-
-        for project in "${sln_projects[@]}"; do
-            echo "  dotnet format ${mode} --no-restore ${project}"
-            if ! dotnet format "$mode" "$project" --no-restore; then
-                format_failed=true
-            fi
-        done
-    else
-        echo "Running dotnet format ${description} across solution..."
-        if ! dotnet format "$mode" --no-restore; then
-            format_failed=true
-        fi
+    echo "Running dotnet format ${description} across solution..."
+    if ! dotnet format "$mode" --no-restore Webstir.sln; then
+        format_failed=true
     fi
 
     if [[ "$format_failed" == "true" ]]; then
@@ -42,8 +21,46 @@ run_dotnet_format_scope() {
 }
 
 echo "Fixing whitespace..."
-"${ROOT_DIR}/utilities/fix-whitespace.sh"
+normalize_cs_file() {
+    local file="$1"
+    local tmp
+    tmp="$(mktemp)" || return 2
 
+    awk '{
+            sub(/\r$/, "");
+            sub(/[ \t]+$/, "");
+            print $0;
+        }' "$file" > "$tmp"
+
+    if ! cmp -s "$file" "$tmp"; then
+        mv "$tmp" "$file"
+        return 0
+    fi
+
+    rm -f "$tmp"
+    return 1
+}
+
+normalized_count=0
+while IFS= read -r -d '' cs_file; do
+    if [[ ! -f "$cs_file" ]]; then
+        continue
+    fi
+
+    if normalize_cs_file "$cs_file"; then
+        normalized_count=$((normalized_count + 1))
+    else
+        result=$?
+        if [[ "$result" -gt 1 ]]; then
+            echo "Failed to normalize $cs_file" >&2
+            exit "$result"
+        fi
+    fi
+done < <(find . -type f -name '*.cs' -print0)
+
+echo "normalized ${normalized_count} files"
+
+run_dotnet_format_scope "whitespace" "(whitespace)"
 run_dotnet_format_scope "style" "(style)"
 run_dotnet_format_scope "analyzers" "(analyzers)"
 
