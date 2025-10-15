@@ -26,7 +26,7 @@ echo "[local-ci] Building solution"
 dotnet build Webstir.sln -v minimal
 
 echo "[local-ci] Running .NET workflow tests"
-dotnet run --project Tests -- --full
+WEBSTIR_TEST_MODE=full dotnet test Tester/Tester.csproj
 
 echo "[local-ci] Building framework packages (changed only)"
 dotnet run --project Framework/Framework.csproj -- packages sync --changed-only

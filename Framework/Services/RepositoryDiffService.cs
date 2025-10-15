@@ -68,10 +68,11 @@ internal sealed class RepositoryDiffService(IProcessRunner processRunner, ILogge
         }
 
         HashSet<string> paths = new(StringComparer.OrdinalIgnoreCase);
-        string[] lines = output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        string[] lines = output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
 
-        foreach (string line in lines)
+        foreach (string rawLine in lines)
         {
+            string line = rawLine;
             if (line.Length == 0)
             {
                 continue;
@@ -88,15 +89,21 @@ internal sealed class RepositoryDiffService(IProcessRunner processRunner, ILogge
                 continue;
             }
 
-            string payload;
+            string payload = line;
             if (line.Length >= 3 && line[2] == ' ')
             {
-                payload = line[3..].Trim();
+                payload = line[3..];
             }
-            else
+            else if (line.Length >= 2 && char.IsWhiteSpace(line[1]))
             {
-                payload = line.Trim();
+                payload = line[2..];
             }
+            else if (line.Length > 0 && char.IsWhiteSpace(line[0]))
+            {
+                payload = line.TrimStart();
+            }
+
+            payload = payload.Trim();
 
             if (string.IsNullOrWhiteSpace(payload))
             {

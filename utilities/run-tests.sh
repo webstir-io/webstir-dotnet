@@ -11,4 +11,7 @@ dotnet build
 
 echo "Running full test suite..."
 
-dotnet run --project Tests -- --full
+WEBSTIR_TEST_MODE=full dotnet test Tester/Tester.csproj \
+  --nologo \
+  --logger "console;verbosity=minimal;summary=true" \
+  | perl -ne 'print unless /\[xUnit\.net .* (Discovering|Discovered|Starting):/'

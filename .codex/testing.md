@@ -18,20 +18,20 @@
 - Won’t test: transient implementation details or private helpers that do not affect user experience.
 
 ## Running Tests
-- Quick run of default suites (`init`, `build`, `publish`):
-  - `dotnet run --project Tests`
-- Full suite (adds `watch`, `help`, `add`):
-  - `dotnet run --project Tests -- --full`
-  - Or set `WEBSTIR_TEST_MODE=full`
-- Run a specific suite:
-  - `dotnet run --project Tests -- test <suite>` where `<suite>` is `init`, `build`, `publish`, `watch`, `help`, or `add`
-- Runner help:
-  - `dotnet run --project Tests -- help`
+- Quick smoke (defaults to `Category=Quick`):  
+  - `dotnet test Tester/Tester.csproj`
+- Full suite (includes watch/help/add/framework packages):  
+  - `WEBSTIR_TEST_MODE=full dotnet test Tester/Tester.csproj`  
+  - or `dotnet test Tester/Tester.csproj --filter "Category=Full"`
+- Targeted category or namespace:  
+  - `dotnet test Tester/Tester.csproj --filter "Category=Quick&FullyQualifiedName~Tester.Workflows.Build"`
+- Collect coverage (optional baseline):  
+  - `dotnet test Tester/Tester.csproj /p:CollectCoverage=true`
 
 ## Requirements
 - .NET 9 SDK installed.
 - Node.js and `tsc` available on `PATH` for tests that emit TypeScript builds.
-- The repo uses a custom runner; `dotnet test` will not execute these suites.
+- Tester executes under the standard `dotnet test` harness; no custom runner required.
 - Run `./utilities/format-build.sh` before or after testing to fix formatting drift, refresh toolchain packages, and catch build failures early.
 
 ## Seed Workspaces & Baselines

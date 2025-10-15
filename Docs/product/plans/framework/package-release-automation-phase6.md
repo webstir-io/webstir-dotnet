@@ -19,7 +19,7 @@
 - **Backend stub detection** – Ensure disabled packages remain untouched during bump/sync/publish while still appearing in summaries.
 
 ## Rollout Plan
-- Run the full suite (`dotnet run --project Tests -- --full`) on every PR touching the release tooling until stability is proven. Require green status before merge.
+- Run the full suite (`WEBSTIR_TEST_MODE=full dotnet test Tester/Tester.csproj`) on every PR touching the release tooling until stability is proven. Require green status before merge.
 - Pilot the CLI release flow on an internal branch: generate tarballs, review release notes, and publish to a staging registry. Gather feedback from maintainers and record issues.
 - Update GitHub Actions to run the CLI in parallel with the legacy scripts for one release. Compare outputs, tarball hashes, and publish logs to confirm parity.
 - After a successful pilot, switch CI to the CLI-only flow and archive script shims. Communicate the cutover via release notes and internal channel updates.

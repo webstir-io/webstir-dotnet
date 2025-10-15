@@ -19,7 +19,7 @@ Hub for the CLI and host tooling. This doc explains what the solution is, how it
    - [Templates](../reference/templates.md): Embedded project template (frontend/backend/shared/types).
   - [Workspace](workspace.md): Centralized paths and workspace utilities.
   - Worker contracts & DI: `IWorkflowWorker` (common) and `IFrontendWorker` (adds `AddPageAsync`). DI registers all workers as `IWorkflowWorker`; workflows inject `IEnumerable<IWorkflowWorker>` and filter by project mode.
-- [Tests](testing.md): .NET test harness validating CLI workflows end-to-end.
+- [Tester](testing.md): xUnit harness validating CLI workflows end-to-end.
  - [Sandbox](../how-to/sandbox.md): Docker Compose setup to run a published frontend (nginx) and the template API server.
 - [Utilities](utilities/utilities.md): Repo helper scripts (format, whitespace, build, seed deploy).
 

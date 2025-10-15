@@ -91,7 +91,7 @@ dist/                 # Production output
 
 ## Testing
 - Philosophy and scope: [docs/explanations/testing.md](docs/explanations/testing.md)
-- Repo harness: `dotnet run --project Tests` (see `Tests/Program.cs`)
+- Repo harness: `dotnet test Tester/Tester.csproj` (set `WEBSTIR_TEST_MODE=full` for the complete suite)
 
 ## Sandbox
 - Purpose: Run a published Webstir client alongside the seed API via Docker Compose.

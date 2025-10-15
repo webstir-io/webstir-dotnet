@@ -66,7 +66,7 @@
   - `./utilities/format-build.sh` focuses on formatting, solution builds, and frontend tests without touching package artifacts.
 
 ## Testing Strategy
-- Extend `Tests/PackageInstallers` to cover:
+- Extend `Tester/PackageInstallers` to cover:
   - Tarball pinning (`file:` spec in `package.json`).
   - Checksum mismatch detection (corrupted `.webstir` file triggers a resync message).
   - Registry fallback path via `WEBSTIR_PACKAGE_SOURCE=registry`.

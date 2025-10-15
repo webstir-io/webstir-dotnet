@@ -52,7 +52,7 @@ The migration will streamline execution by leaning on xUnit primitives while reu
 - Remove corresponding legacy suite classes after each migration.
 
 ### Phase 3: Cleanup & Tooling
-- Remove unused infrastructure (`Tests/Program.cs`, `TestSuite` base, custom output manager`) after the `Tester` migration.
+- Remove unused infrastructure (legacy `Tests` runner entry point and supporting wiring) after the `Tester` migration.
 - Update developer docs (`README`, `.codex/testing.md`, internal runbooks) to reference `Tester` and `dotnet test`.
 - Adjust CI pipelines and `format-build.sh` to run the new test command.
 
@@ -72,7 +72,7 @@ The migration will streamline execution by leaning on xUnit primitives while reu
 - Developers can filter quick/full suites via traits.
 - Legacy harness code is fully removed with no loss of scenario coverage.
 
-## Open Questions
-- Should we publish test result artifacts (TRX, JSON) for downstream analytics?
-- Do we need integration with coverage tooling (Coverlet) once under `dotnet test`?
-- Any upcoming workflows that require additional fixtures or dedicated collections?
+## Resolved Questions
+- **Test result artifacts**: Tester runs in CI will emit both TRX and Markdown summaries (via `dotnet test --logger trx` and a custom Markdown converter) and upload them as pipeline artifacts for downstream analytics.
+- **Coverage integration**: We will wire Coverlet into Tester once the migration is complete, collecting coverage for `CLI` and `Engine` assemblies with an initial soft threshold (warning-only) to keep the signal actionable without blocking commits.
+- **Upcoming workflow fixtures**: Framework package release tests from Phase 6 and future CLI orchestration suites (e.g., backend package smoke tests) will get dedicated collection fixtures to isolate their workspace mutations while allowing lighter suites to run in parallel.

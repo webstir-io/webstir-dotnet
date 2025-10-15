@@ -17,7 +17,7 @@ This guide explains how the bundled frontend and testing packages are built and 
    - Add `--frontend` or `--test` to rebuild a single package when only one changed.
    - The command rebuilds the package sources, regenerates deterministic tarballs, copies them into `Framework/Resources/webstir`, and updates both `Framework/Packaging/framework-packages.json` and `Engine/Resources/package.json`.
    - Set `WEBSTIR_FRONTEND_REGISTRY_SPEC` or `WEBSTIR_TEST_REGISTRY_SPEC` before running if you need an alternate registry specifier (for example, a dist-tag).
-   - Append `--prune-webstir` to delete cached `.webstir/*.tgz` files under `Tests/out/**` and `CLI/out/**` so local sandboxes pick up the fresh tarballs on the next run.
+   - Append `--prune-webstir` to delete cached `.webstir/*.tgz` files under `Tester/out/**` and `CLI/out/**` so local sandboxes pick up the fresh tarballs on the next run.
 4. Run `framework packages verify`.
    - The verifier checks that the tarballs on disk match the recorded checksums, that the embedded copies are in sync, and that `Engine/Resources/package.json` points at the correct `.webstir` archives.
 5. When you are ready to publish the new versions, run `framework packages publish`.

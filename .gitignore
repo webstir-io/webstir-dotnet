@@ -7,7 +7,7 @@
 CLI/out
 
 # Test output files
-Tests/out/
+Tester/out/
 
 # OS-specific files
 .DS_Store

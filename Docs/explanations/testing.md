@@ -27,7 +27,7 @@ How we test the Webstir solution and what we lock down. This expands the high-le
 - Error scenario tests: bad input produces clear messages and non-zero exit codes.
 
 ## Harness & Structure
-- Location: `Tests/` — .NET test harness driving the CLI and validating outputs.
+- Location: `Tester/` — xUnit project that executes the CLI/Engine workflows under `dotnet test`.
 - Isolation: each test runs in a unique temp directory; no global state.
 - Process: spawn CLI via the test harness, capture stdout/stderr, and check exit codes.
 - Filesystem: assert on existence, contents, and structure of `build/` and `dist/`.
@@ -39,7 +39,7 @@ How we test the Webstir solution and what we lock down. This expands the high-le
 - When a legitimate change occurs, review and update the snapshot intentionally.
 
 ## Running Tests
-- Repo tests (engine/CLI): run `dotnet test` at the repo root.
+- Repo tests (engine/CLI): run `dotnet test Tester/Tester.csproj` (set `WEBSTIR_TEST_MODE=full` for the full suite or pass `--filter "Category=..."`).
 - Generated project tests: inside a project created by `webstir init`, run `webstir test` (delegates to the `webstir-test` CLI).
 - CI: relies on standard exit codes; non-zero fails the job.
 
