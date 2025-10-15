@@ -11,7 +11,7 @@ This guide explains how the bundled frontend and testing packages are built and 
 - `webstir install` copies the embedded tarballs into `<workspace>/.webstir/`, pins dependencies to `file:./.webstir/<tarball>.tgz`, and only falls back to the registry when explicitly requested (for example, by setting `WEBSTIR_PACKAGE_SOURCE=registry`).
 
 ## Update The Packages
-1. Bump versions inside `Framework/Frontend/package.json` or `Framework/Testing/package.json` as needed.
+1. Run `framework packages bump` (for example, `framework packages bump --bump minor` or `framework packages bump --set-version 1.2.3`). Add `--dry-run` to preview the next version without touching manifests.
 2. (Optional) Run `framework packages diff` to preview checksum/size differences without touching files.
 3. Run `framework packages sync`.
    - Add `--frontend` or `--test` to rebuild a single package when only one changed.
@@ -38,6 +38,6 @@ This guide explains how the bundled frontend and testing packages are built and 
 
 ## Verify Changes
 - Run `./utilities/format-build.sh` before handing off; it formats code, builds the solution, and executes frontend package tests.
-- Run `framework packages sync` followed by `framework packages verify` (or use `./Framework/Scripts/publish.sh` during releases) whenever the package artifacts change.
+- Run `framework packages sync` followed by `framework packages verify` whenever the package artifacts change. Use `framework packages publish --dry-run` to exercise the end-to-end pipeline without modifying files.
 - Optionally run `framework packages publish` in a dry environment (or CI) to confirm the registry accepts the new version.
 - Exercise `webstir install` (optionally with `--clean`) inside a sample workspace to verify the new packages resolve correctly and upgrade existing installations.

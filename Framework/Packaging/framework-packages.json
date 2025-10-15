@@ -21,6 +21,18 @@
         "sha256": "6dade0ac2e299f656876cf664e48209528424e418b5434ee28f4560b0aabf41e",
         "size": 7611
       }
+    },
+    "@webstir-io/webstir-backend": {
+      "name": "@webstir-io/webstir-backend",
+      "version": "0.0.0",
+      "registrySpecifier": "@webstir-io/webstir-backend@0.0.0",
+      "disabled": true,
+      "tarball": {
+        "fileName": "webstir-backend-0-0-0.tgz",
+        "repositoryPath": "Framework/Backend/webstir-backend-0-0-0.tgz",
+        "sha256": "unset",
+        "size": 0
+      }
     }
   }
 }

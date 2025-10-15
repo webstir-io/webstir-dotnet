@@ -66,11 +66,16 @@ internal sealed class PackageMetadataService(
         CancellationToken cancellationToken)
     {
         IReadOnlyList<PackageManifest> manifests = await GetPackagesAsync(repositoryRoot, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<PackageManifest> enabled = manifests
+            .Where(manifest => manifest.IsEnabled)
+            .OrderBy(manifest => manifest.PackageName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
         return selection.Mode switch
         {
-            PackageSelectionMode.All => manifests,
+            PackageSelectionMode.All => enabled,
             PackageSelectionMode.Explicit => ResolveExplicitSelection(manifests, selection),
-            _ => await ResolveChangedSelectionAsync(manifests, repositoryRoot, sinceReference, cancellationToken).ConfigureAwait(false)
+            _ => await ResolveChangedSelectionAsync(enabled, repositoryRoot, sinceReference, cancellationToken).ConfigureAwait(false)
         };
     }
 
@@ -129,13 +134,15 @@ internal sealed class PackageMetadataService(
             packageJsonPath,
             File.Exists(packageLockPath) ? packageLockPath : null,
             semanticVersion,
-            identifiers.ToImmutable());
+            identifiers.ToImmutable(),
+            definition.IsEnabled);
     }
 
     private static IReadOnlyList<PackageManifest> ResolveExplicitSelection(IReadOnlyList<PackageManifest> manifests, PackageSelection selection)
     {
         List<PackageManifest> resolved = new();
         HashSet<string> missing = new(StringComparer.OrdinalIgnoreCase);
+        HashSet<string> disabled = new(StringComparer.OrdinalIgnoreCase);
 
         foreach (string identifier in selection.Identifiers)
         {
@@ -143,6 +150,12 @@ internal sealed class PackageMetadataService(
             if (match is null)
             {
                 missing.Add(identifier);
+                continue;
+            }
+
+            if (!match.IsEnabled)
+            {
+                disabled.Add(match.PackageName);
                 continue;
             }
 
@@ -155,6 +168,11 @@ internal sealed class PackageMetadataService(
         if (missing.Count > 0)
         {
             throw new InvalidOperationException($"Unknown package identifier(s): {string.Join(", ", missing)}");
+        }
+
+        if (disabled.Count > 0)
+        {
+            throw new InvalidOperationException($"Package(s) disabled and unavailable: {string.Join(", ", disabled)}");
         }
 
         return resolved;
@@ -284,18 +302,25 @@ internal sealed class PackageMetadataService(
         await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private sealed record PackageDefinition(string Key, IReadOnlyCollection<string> Aliases, string RelativePath)
+    private sealed record PackageDefinition(string Key, IReadOnlyCollection<string> Aliases, string RelativePath, bool IsEnabled)
     {
         internal static readonly IReadOnlyList<PackageDefinition> All =
         [
             new PackageDefinition(
                 "frontend",
                 new[] { "frontend", "@webstir-io/webstir-frontend" },
-                Path.Combine("Framework", "Frontend")),
+                Path.Combine("Framework", "Frontend"),
+                IsEnabled: true),
             new PackageDefinition(
                 "testing",
                 new[] { "testing", "test", "@webstir-io/webstir-test" },
-                Path.Combine("Framework", "Testing"))
+                Path.Combine("Framework", "Testing"),
+                IsEnabled: true),
+            new PackageDefinition(
+                "backend",
+                new[] { "backend", "@webstir-io/webstir-backend" },
+                Path.Combine("Framework", "Backend"),
+                IsEnabled: false)
         ];
     }
 }
@@ -307,7 +332,8 @@ internal sealed record PackageManifest(
     string PackageJsonPath,
     string? PackageLockPath,
     SemanticVersion Version,
-    IReadOnlySet<string> Identifiers)
+    IReadOnlySet<string> Identifiers,
+    bool IsEnabled)
 {
     public bool MatchesIdentifier(string identifier) => Identifiers.Contains(identifier, StringComparer.OrdinalIgnoreCase);
 }

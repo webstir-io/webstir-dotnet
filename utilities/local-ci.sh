@@ -28,10 +28,13 @@ dotnet build Webstir.sln -v minimal
 echo "[local-ci] Running .NET workflow tests"
 dotnet run --project Tests -- --full
 
-echo "[local-ci] Building framework packages"
-dotnet run --project Framework/Framework.csproj -- packages sync
+echo "[local-ci] Building framework packages (changed only)"
+dotnet run --project Framework/Framework.csproj -- packages sync --changed-only
 
 echo "[local-ci] Verifying framework packages"
-dotnet run --project Framework/Framework.csproj -- packages verify
+dotnet run --project Framework/Framework.csproj -- packages verify --all
+
+echo "[local-ci] Dry-run publish pipeline"
+dotnet run --project Framework/Framework.csproj -- packages publish --dry-run --changed-only
 
 echo "[local-ci] Done."

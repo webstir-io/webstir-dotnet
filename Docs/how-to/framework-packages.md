@@ -8,7 +8,7 @@ This guide explains how maintainers rebuild the frontend and testing packages th
 - `webstir install` copies the embedded tarballs into `<workspace>/.webstir/` and pins dependencies to `file:` specifiers by default, falling back to the registry only when explicitly requested.
 
 ## Update The Packages
-1. **Bump versions** – The release workflow runs `node ./Framework/Scripts/bump-version.mjs --bump <patch|minor|major>` automatically. If you want to bump manually, run the script directly (add `--dry-run` to preview without touching files).
+1. **Bump versions** – Run `dotnet run --project Framework/Framework.csproj -- packages bump` (append `--bump <patch|minor|major>` or `--set-version <x.y.z>`). Add `--dry-run` to preview the next version without touching manifests. The publish workflow invokes the same command automatically.
 2. **Optional diff** – Run `dotnet run --project Framework/Framework.csproj -- packages diff` to compare freshly packed tarballs with the recorded metadata without modifying files. A non-zero exit code indicates a difference.
 3. **Rebuild packages** – Run `dotnet run --project Framework/Framework.csproj -- packages sync` from the repo root (or invoke the published `framework` binary).
    - Add `--frontend` or `--test` to rebuild a single package.
@@ -16,7 +16,7 @@ This guide explains how maintainers rebuild the frontend and testing packages th
    - Append `--prune-webstir` to delete cached `.webstir/*.tgz` files under `Tests/out/**` and `CLI/out/**` so local sandboxes pick up the fresh tarballs on the next run.
    - Set `WEBSTIR_FRONTEND_REGISTRY_SPEC` or `WEBSTIR_TEST_REGISTRY_SPEC` before running if you need to override the default `<name>@<version>` specifier (for example, to target a dist-tag).
 4. **Verify tarballs** – Run `dotnet run --project Framework/Framework.csproj -- packages verify` to confirm the catalog metadata, repository tarballs, embedded resources, and workspace template dependencies stay in sync.
-5. **Publish packages** – Run `./Framework/Scripts/publish.sh` (optionally add `--bump minor|major`; default is patch) to bump versions and push any missing releases to the configured registry (GitHub Packages by default). Append `--dry-run` to preview the next version without publishing; the helper checks `GH_PACKAGES_TOKEN` and, if present, points `NPM_CONFIG_USERCONFIG` at the repo’s `.npmrc` automatically.
+5. **Publish packages** – Run `dotnet run --project Framework/Framework.csproj -- packages publish` to bump versions, rebuild tarballs, and publish any missing releases. Add `--dry-run` to preview without touching files or hitting the registry, and pass `--bump <patch|minor|major>` (or `--set-version <x.y.z>`) when you need to override the automatic bump detection. Ensure `GH_PACKAGES_TOKEN` is present before attempting to publish; the command will surface actionable errors if auth or `.npmrc` configuration is missing.
 6. **Commit artifacts** – Include the updated package sources, lockfiles, tarballs (`Framework/Frontend/*.tgz`, `Framework/Testing/*.tgz`, `Framework/Resources/webstir/*.tgz`), `Framework/Packaging/framework-packages.json`, and `Engine/Resources/package.json` in your PR.
 
 ## Automate Releases
@@ -31,7 +31,22 @@ This guide explains how maintainers rebuild the frontend and testing packages th
 ## Developer Helpers
 - Run `dotnet run --project Framework/Framework.csproj -- packages diff` to check whether your changes would alter the packaged tarballs before touching tracked files.
 - Before committing frontend/testing changes, run `dotnet run --project Framework/Framework.csproj -- packages sync` (optionally `--prune-webstir`) followed by `dotnet run --project Framework/Framework.csproj -- packages verify` to ensure local artifacts, metadata, and embedded tarballs are in sync.
-- Use `node ./Framework/Scripts/bump-version.mjs --bump patch --dry-run` to preview the next version without touching files.
+- Use `dotnet run --project Framework/Framework.csproj -- packages bump --dry-run --bump patch` to preview the next version without touching files.
+
+## New Package Checklist
+- Create a scoped directory under `Framework/` (for example, `Framework/Backend`) with `package.json`, `package-lock.json`, and a README that describes the package purpose and build expectations.
+- Start from `Docs/how-to/snippets/package-template` to bootstrap the manifest, npm scripts, and documentation boilerplate.
+- Define npm scripts (`build`, `test`, `pack`) that run the same steps as the existing frontend/testing packages so the CLI pipeline can rebuild tarballs without special cases.
+- Register the package in `Framework/Packaging/framework-packages.json` with initial metadata (name, version, registry specifier, tarball placeholders) and add the package key/aliases to `PackageMetadataService.PackageDefinition.All`.
+- Ensure `Framework/Packaging/PackageBuilder` (or successor helpers) knows how to build the package. If the pipeline differs, add a dedicated build method and wire it into `PackagesSyncCommand`.
+- Add any required environment variables or registry overrides to the docs so contributors understand prerequisites.
+- Run `framework packages sync --package <key>` followed by `framework packages verify --package <key>` to validate the new package integrates cleanly with the CLI flow.
+- Update tests to cover the new package scenarios (metadata resolution, build pipeline, release summaries).
+
+## Optional Integrations
+- Document how to inject alternative tooling (for example, third-party testing frameworks) by updating `framework packages configure` once the command becomes available.
+- Capture environment variables that toggle optional integrations (e.g., registry URLs, auth tokens) and provide examples in `Docs/how-to/snippets`.
+- When adding configurable integrations, include a migration note so existing packages can opt in without manual refactors.
 
 ## Install In A Workspace
 - Run `webstir install` (or any workflow that calls it) inside a consuming workspace.
@@ -45,6 +60,6 @@ This guide explains how maintainers rebuild the frontend and testing packages th
 
 ## Verify Changes
 - Run `./utilities/format-build.sh` to ensure formatting passes, the solution builds, and frontend tests succeed.
-- When package contents change, run `framework packages sync` followed by `framework packages verify` (or use `./Framework/Scripts/publish.sh` which wraps those steps during a publish).
+- When package contents change, run `framework packages sync` followed by `framework packages verify`. Run `framework packages publish --dry-run` for an end-to-end preview of the release pipeline without modifying artifacts.
 - In a throwaway workspace, run `webstir install --clean` to confirm the new tarballs resolve correctly and that `npm install` finishes without manual intervention.
 - Optionally run `framework packages publish` in a dry environment to ensure credentials are configured before the release workflow executes.

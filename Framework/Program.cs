@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 using Framework;
-using Framework.Commands.Packages;
+using Framework.Commands;
 using Framework.Packaging;
 using Framework.Services;
 using Microsoft.Extensions.Configuration;
@@ -24,10 +24,10 @@ try
     services.AddSingleton<PackageBuilder>();
     services.AddSingleton<IProcessRunner, ProcessRunner>();
     services.AddSingleton<IRepositoryDiffService, RepositoryDiffService>();
-    services.AddSingleton<IConventionalCommitService, ConventionalCommitService>();
+    services.AddSingleton<IGitCommitAnalyzer, GitCommitAnalyzer>();
     services.AddSingleton<IPackageMetadataService, PackageMetadataService>();
     services.AddSingleton<IReleaseNotesService, ReleaseNotesService>();
-    services.AddSingleton<IPackagePublishPrecheckService, PackagePublishPrecheckService>();
+    services.AddSingleton<IPackagePublishValidator, PackagePublishValidator>();
 
     services.AddSingleton<PackagesBumpCommand>();
     services.AddSingleton<PackagesSyncCommand>();

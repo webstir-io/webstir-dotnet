@@ -44,12 +44,14 @@
    - Provide guidance for adding new packages (manifest structure, naming conventions, build hooks).
    - Stub the backend package entry (directory, manifest, disabled flag) so the new tooling handles future packages from day one.
    - Prune or refactor tests that exercised the legacy scripts; replace them with coverage for the new CLI subcommands.
+   - Detailed workstream: `Docs/product/plans/framework/package-release-automation-phase5.md`.
 
 6. **Testing & rollout**
    - Add unit/integration coverage for the new helper functions and CLI command variants.
    - Run end-to-end smoke tests: single package change, multiple package change, no-op release, missing credentials.
    - Pilot the command internally before switching CI/release workflows.
    - Track remaining migration tasks (script removal PRs, doc updates) to ensure nothing lingers post-cutover.
+   - Detailed workstream: `Docs/product/plans/framework/package-release-automation-phase6.md`.
 
 ## Deliverables
 - Updated `framework` console with per-package release capabilities and automation logic baked into the CLI.

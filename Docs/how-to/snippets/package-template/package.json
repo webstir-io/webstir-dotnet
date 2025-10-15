@@ -1,0 +1,19 @@
+{
+  "name": "@webstir-io/package-template",
+  "version": "0.0.0",
+  "description": "Template manifest for new Webstir framework packages.",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "echo \"TODO: implement build\"",
+    "test": "echo \"TODO: implement tests\"",
+    "pack": "npm pack --silent"
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.18.1"
+  }
+}

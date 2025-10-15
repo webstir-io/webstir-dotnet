@@ -9,19 +9,19 @@ using System.Threading.Tasks;
 using Framework.Packaging;
 using Microsoft.Extensions.Logging;
 
-internal interface IPackagePublishPrecheckService
+internal interface IPackagePublishValidator
 {
     Task ValidateAsync(string repositoryRoot, PackageSelection selection, string? sinceReference, CancellationToken cancellationToken);
 }
 
-internal sealed class PackagePublishPrecheckService(
+internal sealed class PackagePublishValidator(
     IPackageMetadataService metadataService,
     IProcessRunner processRunner,
-    ILogger<PackagePublishPrecheckService> logger) : IPackagePublishPrecheckService
+    ILogger<PackagePublishValidator> logger) : IPackagePublishValidator
 {
     private readonly IPackageMetadataService _metadataService = metadataService;
     private readonly IProcessRunner _processRunner = processRunner;
-    private readonly ILogger<PackagePublishPrecheckService> _logger = logger;
+    private readonly ILogger<PackagePublishValidator> _logger = logger;
 
     public async Task ValidateAsync(string repositoryRoot, PackageSelection selection, string? sinceReference, CancellationToken cancellationToken)
     {

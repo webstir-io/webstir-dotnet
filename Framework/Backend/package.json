@@ -1,0 +1,21 @@
+{
+  "name": "@webstir-io/webstir-backend",
+  "version": "0.0.0",
+  "description": "Reserved manifest for the future Webstir backend tooling package.",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "echo \"Backend package stub: implement build pipeline\"",
+    "test": "echo \"Backend package stub: implement tests\"",
+    "pack": "npm pack --silent"
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.18.1"
+  },
+  "license": "MIT",
+  "private": true
+}

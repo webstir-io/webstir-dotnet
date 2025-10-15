@@ -9,29 +9,29 @@ using System.Threading.Tasks;
 using Framework.Utilities;
 using Microsoft.Extensions.Logging;
 
-internal interface IConventionalCommitService
+internal interface IGitCommitAnalyzer
 {
-    Task<ConventionalCommitAnalysis> AnalyzeAsync(
+    Task<CommitHistoryAnalysis> AnalyzeAsync(
         string repositoryRoot,
         PackageManifest manifest,
         string? sinceReference,
         CancellationToken cancellationToken);
 }
 
-internal sealed record ConventionalCommitAnalysis(
+internal sealed record CommitHistoryAnalysis(
     string PackageName,
     SemanticVersionBump? SuggestedBump,
     IReadOnlyList<string> CommitMessages);
 
-internal sealed class ConventionalCommitService(IProcessRunner processRunner, ILogger<ConventionalCommitService> logger)
-    : IConventionalCommitService
+internal sealed class GitCommitAnalyzer(IProcessRunner processRunner, ILogger<GitCommitAnalyzer> logger)
+    : IGitCommitAnalyzer
 {
     private const int MaxCommitsToInspect = 50;
 
     private readonly IProcessRunner _processRunner = processRunner;
-    private readonly ILogger<ConventionalCommitService> _logger = logger;
+    private readonly ILogger<GitCommitAnalyzer> _logger = logger;
 
-    public async Task<ConventionalCommitAnalysis> AnalyzeAsync(
+    public async Task<CommitHistoryAnalysis> AnalyzeAsync(
         string repositoryRoot,
         PackageManifest manifest,
         string? sinceReference,
@@ -59,7 +59,7 @@ internal sealed class ConventionalCommitService(IProcessRunner processRunner, IL
                 manifest.PackageName);
         }
 
-        return new ConventionalCommitAnalysis(manifest.PackageName, suggestedBump, commits);
+        return new CommitHistoryAnalysis(manifest.PackageName, suggestedBump, commits);
     }
 
     private async Task<IReadOnlyList<string>> GetCommitMessagesAsync(

@@ -11,6 +11,7 @@ using Tests.Pipelines.Html;
 using BuildWorkflowTests = Tests.Workflows.Build.BuildTests;
 using HelpWorkflowTests = Tests.Workflows.Help.HelpTests;
 using InitWorkflowTests = Tests.Workflows.Init.InitTests;
+using FrameworkPackagesWorkflowTests = Tests.Workflows.Packages.PackagesTests;
 using PublishWorkflowTests = Tests.Workflows.Publish.PublishTests;
 using WatchWorkflowTests = Tests.Workflows.Watch.WatchTests;
 using AddWorkflowTests = Tests.Workflows.Add.AddTests;
@@ -151,6 +152,7 @@ public class Program
         Console.WriteLine("  publish              - Tests the publish command");
         Console.WriteLine("  help                 - Tests the help command");
         Console.WriteLine("  add                  - Tests add workflow");
+        Console.WriteLine("  framework-packages   - Tests framework packages CLI automation");
         Console.WriteLine("  packages             - Tests framework package installers");
         Console.WriteLine();
         Console.WriteLine("Examples:");
@@ -178,6 +180,7 @@ public class Program
         services.AddTransient<ITestSuite, PublishWorkflowTests>();
         services.AddTransient<ITestSuite, HelpWorkflowTests>();
         services.AddTransient<ITestSuite, AddWorkflowTests>();
+        services.AddTransient<ITestSuite, FrameworkPackagesWorkflowTests>();
         services.AddTransient<ITestSuite, FrontendManifestTests>();
         services.AddTransient<ITestSuite, TestWorkflowTests>();
         services.AddTransient<ITestSuite, PackageInstallerTests>();

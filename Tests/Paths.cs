@@ -17,13 +17,13 @@ public static class Paths
         }
     }
 
-    public static string OutPath
+    public static string OutPath => EnsurePath(Path.Combine(TestsProjectRoot, OutFolderName));
+
+    public static string RepositoryRoot => TestsProjectRoot;
+
+    private static string EnsurePath(string path)
     {
-        get
-        {
-            string path = Path.Combine(TestsProjectRoot, OutFolderName);
-            Directory.CreateDirectory(path);
-            return path;
-        }
+        Directory.CreateDirectory(path);
+        return path;
     }
 }

@@ -1,10 +1,10 @@
+namespace Framework.Packaging;
+
 using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-
-namespace Framework.Packaging;
 
 public static class TestPackageInstaller
 {

@@ -49,10 +49,26 @@ internal sealed record FrameworkPackageDescriptor(
         "restricted",
         "GH_PACKAGES_TOKEN");
 
+    internal static FrameworkPackageDescriptor Backend
+    {
+        get;
+    } = new(
+        "backend",
+        "@webstir-io/webstir-backend",
+        Path.Combine("Framework", "Backend"),
+        "webstir-backend-",
+        "webstir-backend-*.tgz",
+        null,
+        new[] { "node_modules", "dist" },
+        "@webstir-io/webstir-backend@{version}",
+        null,
+        "restricted",
+        null);
+
     internal static IReadOnlyList<FrameworkPackageDescriptor> All
     {
         get;
-    } = new[] { Frontend, Testing };
+    } = new[] { Frontend, Testing, Backend };
 
     internal bool SupportsPublishing => !string.IsNullOrWhiteSpace(PublishRegistryUrl);
 

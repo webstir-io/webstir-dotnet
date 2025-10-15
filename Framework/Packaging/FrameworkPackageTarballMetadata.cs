@@ -1,8 +1,8 @@
+namespace Framework.Packaging;
+
 using System;
 using System.IO;
 using System.Reflection;
-
-namespace Framework.Packaging;
 
 public readonly record struct FrameworkPackageTarballMetadata(
     string FileName,

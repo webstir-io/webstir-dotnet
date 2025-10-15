@@ -27,8 +27,8 @@ fi
 
 SEED_DIR="CLI/out/seed"
 
-echo "[0/5] Updating local package tarballs ..."
-dotnet run --project Framework/Framework.csproj -- packages sync
+echo "[0/5] Updating local package tarballs (changed only) ..."
+dotnet run --project Framework/Framework.csproj -- packages sync --changed-only
 
 echo "[1/5] Initializing seed at $SEED_DIR ..."
 if [ -d "$SEED_DIR" ]; then
