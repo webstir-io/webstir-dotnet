@@ -1,8 +1,8 @@
-namespace Framework.Commands;
-
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+
+namespace Framework.Commands;
 
 internal interface IPackagesSubcommand
 {

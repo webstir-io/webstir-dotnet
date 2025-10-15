@@ -1,7 +1,7 @@
-namespace Framework.Utilities;
-
 using System;
 using System.Text.RegularExpressions;
+
+namespace Framework.Utilities;
 
 internal readonly partial record struct SemanticVersion(int Major, int Minor, int Patch) : IComparable<SemanticVersion>
 {

@@ -217,7 +217,10 @@ public sealed class PackageAutomationIntegrationTests
                 CreateNoWindow = true
             };
 
-            using System.Diagnostics.Process process = new() { StartInfo = startInfo };
+            using System.Diagnostics.Process process = new()
+            {
+                StartInfo = startInfo
+            };
             process.Start();
             string stdout = process.StandardOutput.ReadToEnd();
             string stderr = process.StandardError.ReadToEnd();

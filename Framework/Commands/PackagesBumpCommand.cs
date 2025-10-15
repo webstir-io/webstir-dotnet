@@ -1,5 +1,3 @@
-namespace Framework.Commands;
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +6,8 @@ using System.Threading.Tasks;
 using Framework.Services;
 using Framework.Utilities;
 using Microsoft.Extensions.Logging;
+
+namespace Framework.Commands;
 
 internal sealed class PackagesBumpCommand(
     IPackageMetadataService metadataService,

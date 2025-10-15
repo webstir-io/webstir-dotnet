@@ -1,8 +1,8 @@
-namespace Framework.Packaging;
-
 using System;
 using System.Collections.Generic;
 using System.IO;
+
+namespace Framework.Packaging;
 
 internal sealed record FrameworkPackageDescriptor(
     string Key,

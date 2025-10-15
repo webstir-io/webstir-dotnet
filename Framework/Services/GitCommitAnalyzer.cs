@@ -1,5 +1,3 @@
-namespace Framework.Services;
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,6 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Framework.Utilities;
 using Microsoft.Extensions.Logging;
+
+namespace Framework.Services;
 
 internal interface IGitCommitAnalyzer
 {

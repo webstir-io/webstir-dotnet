@@ -1,9 +1,9 @@
-namespace Framework;
-
 using System;
 using System.Threading.Tasks;
 using Framework.Commands;
 using Microsoft.Extensions.Logging;
+
+namespace Framework;
 
 internal sealed class Runner(ILogger<Runner> logger, PackageConsoleCommand packages)
 {

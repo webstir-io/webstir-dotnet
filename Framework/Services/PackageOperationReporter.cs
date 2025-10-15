@@ -1,5 +1,3 @@
-namespace Framework.Services;
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,6 +11,8 @@ using Framework.Commands;
 using Framework.Packaging;
 using Framework.Utilities;
 using Microsoft.Extensions.Logging;
+
+namespace Framework.Services;
 
 internal interface IPackageOperationReporter
 {

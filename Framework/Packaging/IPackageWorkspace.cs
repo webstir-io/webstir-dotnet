@@ -1,6 +1,6 @@
-namespace Framework.Packaging;
-
 using System.Threading.Tasks;
+
+namespace Framework.Packaging;
 
 public interface IPackageWorkspace
 {

@@ -1,5 +1,3 @@
-namespace Framework.Commands;
-
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -9,6 +7,8 @@ using System.Threading.Tasks;
 using Framework.Packaging;
 using Framework.Services;
 using Microsoft.Extensions.Logging;
+
+namespace Framework.Commands;
 
 internal sealed class PackagesDiffCommand(PackageBuilder packageBuilder, IPackageMetadataService metadataService, ILogger<PackagesDiffCommand> logger)
     : IPackagesSubcommand

@@ -1,6 +1,6 @@
-namespace Framework.Packaging;
-
 using System;
+
+namespace Framework.Packaging;
 
 public static class PackageSourceSelector
 {

@@ -1,9 +1,9 @@
-namespace Framework.Commands;
-
 using System;
 using System.Collections.Generic;
 using Framework.Services;
 using Framework.Utilities;
+
+namespace Framework.Commands;
 
 internal sealed record PackagesCommandContext(
     string Command,
