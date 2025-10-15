@@ -1,5 +1,6 @@
 namespace Framework.Commands;
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -12,12 +13,14 @@ internal sealed class PackagesReleaseCommand(
     PackagesBumpCommand bumpCommand,
     PackagesSyncCommand syncCommand,
     IReleaseNotesService releaseNotesService,
+    IPackageOperationReporter operationReporter,
     ILogger<PackagesReleaseCommand> logger)
     : IPackagesSubcommand
 {
     private readonly PackagesBumpCommand _bumpCommand = bumpCommand;
     private readonly PackagesSyncCommand _syncCommand = syncCommand;
     private readonly IReleaseNotesService _releaseNotesService = releaseNotesService;
+    private readonly IPackageOperationReporter _operationReporter = operationReporter;
     private readonly ILogger<PackagesReleaseCommand> _logger = logger;
 
     public string Name => "release";
@@ -29,33 +32,81 @@ internal sealed class PackagesReleaseCommand(
         _logger.LogInformation("[packages] Starting release pipeline...");
 
         PackageBumpSummary bumpSummary = await _bumpCommand.RunAsync(context, cancellationToken).ConfigureAwait(false);
-        if (!bumpSummary.HasPackages)
+
+        try
         {
-            _logger.LogInformation("[packages] Release pipeline completed (no matching packages).");
+            if (!bumpSummary.HasPackages)
+            {
+                _logger.LogWarning("[packages] No framework packages matched the selection.");
+                await _operationReporter
+                    .ReportAsync(
+                        context,
+                        bumpSummary,
+                        PackageBuildSummary.None(context.IsDryRun, publish: false),
+                        ReleaseNotesResult.Empty,
+                        failureMessage: null,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                _logger.LogInformation("[packages] Release pipeline completed (no matching packages).");
+                return 0;
+            }
+
+            LogBumpSummary(bumpSummary);
+
+            PackageBuildSummary buildSummary = await _syncCommand.RunAsync(context, publish: false, cancellationToken).ConfigureAwait(false);
+            LogBuildSummary(buildSummary);
+
+            if (buildSummary.DryRun)
+            {
+                await _operationReporter
+                    .ReportAsync(
+                        context,
+                        bumpSummary,
+                        buildSummary,
+                        ReleaseNotesResult.Empty,
+                        failureMessage: null,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                _logger.LogInformation("[packages] (dry run) Release pipeline completed without rebuilding artifacts.");
+                _logger.LogInformation("[packages] (dry run) Skipping release note generation.");
+            }
+            else
+            {
+                ReleaseNotesResult notes = await _releaseNotesService
+                    .WriteAsync(context.RepositoryRoot, bumpSummary, cancellationToken)
+                    .ConfigureAwait(false);
+
+                await _operationReporter
+                    .ReportAsync(
+                        context,
+                        bumpSummary,
+                        buildSummary,
+                        notes,
+                        failureMessage: null,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                LogReleaseNotes(notes);
+                _logger.LogInformation("[packages] Release pipeline completed.");
+            }
+
             return 0;
         }
-
-        LogBumpSummary(bumpSummary);
-
-        PackageBuildSummary buildSummary = await _syncCommand.RunAsync(context, publish: false, cancellationToken).ConfigureAwait(false);
-        LogBuildSummary(buildSummary);
-
-        if (buildSummary.DryRun)
+        catch (Exception ex)
         {
-            _logger.LogInformation("[packages] (dry run) Release pipeline completed without rebuilding artifacts.");
-            _logger.LogInformation("[packages] (dry run) Skipping release note generation.");
-        }
-        else
-        {
-            ReleaseNotesResult notes = await _releaseNotesService
-                .WriteAsync(context.RepositoryRoot, bumpSummary, cancellationToken)
+            await _operationReporter
+                .ReportAsync(
+                    context,
+                    bumpSummary,
+                    PackageBuildSummary.None(context.IsDryRun, publish: false),
+                    ReleaseNotesResult.Empty,
+                    ex.Message,
+                    cancellationToken)
                 .ConfigureAwait(false);
-
-            LogReleaseNotes(notes);
-            _logger.LogInformation("[packages] Release pipeline completed.");
+            throw;
         }
-
-        return 0;
     }
 
     private void LogBumpSummary(PackageBumpSummary summary)

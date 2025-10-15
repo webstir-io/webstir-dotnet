@@ -12,6 +12,17 @@ internal sealed class Runner(ILogger<Runner> logger, PackageConsoleCommand packa
 
     public Task<int> ExecuteAsync(string[] args)
     {
+        // Normalize leading "--" which dotnet may pass through as the first argument
+        if (args.Length > 0 && string.Equals(args[0], "--", StringComparison.Ordinal))
+        {
+            args = args.Length > 1 ? args[1..] : Array.Empty<string>();
+        }
+
+        if (args.Length > 0 && string.Equals(args[0], "--", StringComparison.Ordinal))
+        {
+            args = args.Length > 1 ? args[1..] : Array.Empty<string>();
+        }
+
         if (args.Length == 0)
         {
             ShowUsage();

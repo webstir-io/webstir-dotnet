@@ -50,13 +50,32 @@ internal sealed class PackagePublishValidator(
             return;
         }
 
-        EnsureNpmConfiguration(repositoryRoot);
-        EnsureAuthentication(descriptors);
+        List<string> errors = new();
+
+        string? configError = EnsureNpmConfiguration(repositoryRoot);
+        if (!string.IsNullOrWhiteSpace(configError))
+        {
+            _logger.LogError("[packages] {Message}", configError);
+            errors.Add(configError);
+        }
+
+        IReadOnlyList<string> authErrors = EnsureAuthentication(descriptors);
+        foreach (string error in authErrors)
+        {
+            _logger.LogError("[packages] {Message}", error);
+            errors.Add(error);
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(string.Join(" ", errors));
+        }
+
         await ValidateRegistriesAsync(repositoryRoot, descriptors, cancellationToken).ConfigureAwait(false);
         _logger.LogInformation("[packages] Registry validation succeeded.");
     }
 
-    private void EnsureNpmConfiguration(string repositoryRoot)
+    private string? EnsureNpmConfiguration(string repositoryRoot)
     {
         string defaultConfigPath = Path.Combine(repositoryRoot, ".npmrc");
         string? userConfig = Environment.GetEnvironmentVariable("NPM_CONFIG_USERCONFIG");
@@ -75,12 +94,11 @@ internal sealed class PackagePublishValidator(
                 }
                 else
                 {
-                    throw new InvalidOperationException(
-                        $"NPM_CONFIG_USERCONFIG is set to '{userConfig}' but the file does not exist. Provide a valid npm config or unset the variable.");
+                    return $"NPM_CONFIG_USERCONFIG is set to '{userConfig}' but the file does not exist. Provide a valid npm config or unset the variable.";
                 }
             }
 
-            return;
+            return null;
         }
 
         if (File.Exists(defaultConfigPath))
@@ -88,11 +106,14 @@ internal sealed class PackagePublishValidator(
             _logger.LogInformation("[packages] Using npm config from {Path}.", defaultConfigPath);
             Environment.SetEnvironmentVariable("NPM_CONFIG_USERCONFIG", defaultConfigPath);
         }
+
+        return null;
     }
 
-    private void EnsureAuthentication(IEnumerable<FrameworkPackageDescriptor> descriptors)
+    private IReadOnlyList<string> EnsureAuthentication(IEnumerable<FrameworkPackageDescriptor> descriptors)
     {
         HashSet<string> requiredTokens = new(StringComparer.OrdinalIgnoreCase);
+        List<string> errors = new();
 
         foreach (FrameworkPackageDescriptor descriptor in descriptors)
         {
@@ -110,10 +131,12 @@ internal sealed class PackagePublishValidator(
             if (string.IsNullOrWhiteSpace(token))
             {
                 string registry = descriptor.PublishRegistryUrl ?? "the configured registry";
-                throw new InvalidOperationException(
+                errors.Add(
                     $"{descriptor.PublishAuthTokenEnvironmentVariable} is required to publish packages to {registry}. Set the token or rerun with --dry-run.");
             }
         }
+
+        return errors;
     }
 
     private async Task ValidateRegistriesAsync(

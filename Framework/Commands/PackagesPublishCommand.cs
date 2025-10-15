@@ -1,5 +1,6 @@
 namespace Framework.Commands;
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -13,12 +14,14 @@ internal sealed class PackagesPublishCommand(
     PackagesSyncCommand syncCommand,
     IPackagePublishValidator publishValidator,
     IReleaseNotesService releaseNotesService,
+    IPackageOperationReporter operationReporter,
     ILogger<PackagesPublishCommand> logger) : IPackagesSubcommand
 {
     private readonly PackagesBumpCommand _bumpCommand = bumpCommand;
     private readonly PackagesSyncCommand _syncCommand = syncCommand;
     private readonly IPackagePublishValidator _publishValidator = publishValidator;
     private readonly IReleaseNotesService _releaseNotesService = releaseNotesService;
+    private readonly IPackageOperationReporter _operationReporter = operationReporter;
     private readonly ILogger<PackagesPublishCommand> _logger = logger;
 
     public string Name => "publish";
@@ -30,38 +33,86 @@ internal sealed class PackagesPublishCommand(
         _logger.LogInformation("[packages] Starting publish pipeline...");
 
         PackageBumpSummary bumpSummary = await _bumpCommand.RunAsync(context, cancellationToken).ConfigureAwait(false);
-        if (!bumpSummary.HasPackages)
+
+        try
         {
-            _logger.LogInformation("[packages] Publish pipeline completed (no matching packages).");
+            if (!bumpSummary.HasPackages)
+            {
+                await _operationReporter
+                    .ReportAsync(
+                        context,
+                        bumpSummary,
+                        PackageBuildSummary.None(context.IsDryRun, publish: true),
+                        ReleaseNotesResult.Empty,
+                        failureMessage: null,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                _logger.LogInformation("[packages] Publish pipeline completed (no matching packages).");
+                return 0;
+            }
+
+            LogBumpSummary(bumpSummary);
+
+            if (context.IsDryRun)
+            {
+                _logger.LogInformation("[packages] (dry run) Skipping registry validation and publish.");
+                PackageBuildSummary dryRunSummary = await _syncCommand.RunAsync(context, publish: true, cancellationToken).ConfigureAwait(false);
+                LogBuildSummary(dryRunSummary);
+
+                await _operationReporter
+                    .ReportAsync(
+                        context,
+                        bumpSummary,
+                        dryRunSummary,
+                        ReleaseNotesResult.Empty,
+                        failureMessage: null,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                _logger.LogInformation("[packages] (dry run) Skipping release note generation.");
+                _logger.LogInformation("[packages] (dry run) Publish pipeline completed.");
+                return 0;
+            }
+
+            await _publishValidator
+                .ValidateAsync(context.RepositoryRoot, context.Selection, context.SinceReference, cancellationToken)
+                .ConfigureAwait(false);
+
+            PackageBuildSummary buildSummary = await _syncCommand.RunAsync(context, publish: true, cancellationToken).ConfigureAwait(false);
+            LogBuildSummary(buildSummary);
+
+            ReleaseNotesResult notes = await _releaseNotesService
+                .WriteAsync(context.RepositoryRoot, bumpSummary, cancellationToken)
+                .ConfigureAwait(false);
+
+            await _operationReporter
+                .ReportAsync(
+                    context,
+                    bumpSummary,
+                    buildSummary,
+                    notes,
+                    failureMessage: null,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            LogReleaseNotes(notes);
+            _logger.LogInformation("[packages] Publish pipeline completed.");
             return 0;
         }
-
-        LogBumpSummary(bumpSummary);
-
-        if (context.IsDryRun)
+        catch (Exception ex)
         {
-            _logger.LogInformation("[packages] (dry run) Skipping registry validation and publish.");
-            PackageBuildSummary dryRunSummary = await _syncCommand.RunAsync(context, publish: true, cancellationToken).ConfigureAwait(false);
-            LogBuildSummary(dryRunSummary);
-            _logger.LogInformation("[packages] (dry run) Skipping release note generation.");
-            _logger.LogInformation("[packages] (dry run) Publish pipeline completed.");
-            return 0;
+            await _operationReporter
+                .ReportAsync(
+                    context,
+                    bumpSummary,
+                    PackageBuildSummary.None(context.IsDryRun, publish: true),
+                    ReleaseNotesResult.Empty,
+                    ex.Message,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            throw;
         }
-
-        await _publishValidator
-            .ValidateAsync(context.RepositoryRoot, context.Selection, context.SinceReference, cancellationToken)
-            .ConfigureAwait(false);
-
-        PackageBuildSummary buildSummary = await _syncCommand.RunAsync(context, publish: true, cancellationToken).ConfigureAwait(false);
-        LogBuildSummary(buildSummary);
-
-        ReleaseNotesResult notes = await _releaseNotesService
-            .WriteAsync(context.RepositoryRoot, bumpSummary, cancellationToken)
-            .ConfigureAwait(false);
-        LogReleaseNotes(notes);
-
-        _logger.LogInformation("[packages] Publish pipeline completed.");
-        return 0;
     }
 
     private void LogBumpSummary(PackageBumpSummary summary)

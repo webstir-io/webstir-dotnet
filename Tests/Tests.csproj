@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Engine\Engine.csproj" />
     <ProjectReference Include="..\CLI\CLI.csproj" />
+    <ProjectReference Include="..\Framework\Framework.csproj" />
   </ItemGroup>
 
   <ItemGroup>

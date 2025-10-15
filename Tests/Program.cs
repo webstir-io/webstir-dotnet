@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Tests.Framework;
+using Tests.FrameworkPackages;
 using Tests.Frontend;
 using Tests.Pipelines.Html;
 
@@ -181,6 +182,9 @@ public class Program
         services.AddTransient<ITestSuite, HelpWorkflowTests>();
         services.AddTransient<ITestSuite, AddWorkflowTests>();
         services.AddTransient<ITestSuite, FrameworkPackagesWorkflowTests>();
+        services.AddTransient<ITestSuite, PackageAutomationUnitTests>();
+        services.AddTransient<ITestSuite, PackageAutomationIntegrationTests>();
+        services.AddTransient<ITestSuite, ReleaseNotesSnapshotTests>();
         services.AddTransient<ITestSuite, FrontendManifestTests>();
         services.AddTransient<ITestSuite, TestWorkflowTests>();
         services.AddTransient<ITestSuite, PackageInstallerTests>();

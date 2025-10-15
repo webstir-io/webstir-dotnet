@@ -19,7 +19,14 @@ public static class Paths
 
     public static string OutPath => EnsurePath(Path.Combine(TestsProjectRoot, OutFolderName));
 
-    public static string RepositoryRoot => TestsProjectRoot;
+    public static string RepositoryRoot
+    {
+        get
+        {
+            string repositoryRoot = Path.GetFullPath(Path.Combine(TestsProjectRoot, ".."));
+            return repositoryRoot;
+        }
+    }
 
     private static string EnsurePath(string path)
     {

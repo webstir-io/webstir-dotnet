@@ -1,11 +1,12 @@
 using System;
 using System.IO;
+using Tests;
 
 namespace Tests.Framework;
 
 public sealed class FrameworkConsole
 {
-    private static string FrameworkBinaryPath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Framework.dll");
+    private static string FrameworkProjectPath => Path.Combine(Paths.RepositoryRoot, "Framework", "Framework.csproj");
 
     public ProcessRunner.ProcessResult Run(
         string arguments,
@@ -15,7 +16,7 @@ public sealed class FrameworkConsole
         return ProcessRunner.Run(new ProcessRunOptions
         {
             FileName = "dotnet",
-            Arguments = $"\"{FrameworkBinaryPath}\" {arguments}",
+            Arguments = $"run --project \"{FrameworkProjectPath}\" -- {arguments}",
             WorkingDirectory = workingDirectory ?? Environment.CurrentDirectory,
             ExitTimeoutMs = timeoutMs
         });

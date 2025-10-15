@@ -28,6 +28,7 @@ try
     services.AddSingleton<IPackageMetadataService, PackageMetadataService>();
     services.AddSingleton<IReleaseNotesService, ReleaseNotesService>();
     services.AddSingleton<IPackagePublishValidator, PackagePublishValidator>();
+    services.AddSingleton<IPackageOperationReporter, PackageOperationReporter>();
 
     services.AddSingleton<PackagesBumpCommand>();
     services.AddSingleton<PackagesSyncCommand>();
