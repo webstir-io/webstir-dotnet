@@ -4,11 +4,13 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Engine.Bridge;
 using Engine.Bridge.Module;
 using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Models;
+using Framework.Packaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -21,6 +23,8 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
     private readonly IBackendModuleProviderResolver _moduleProviderResolver = new DefaultBackendModuleProviderResolver();
     private BackendModuleProvider? _resolvedProvider;
     private readonly ILogger<BackendWorker> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly SemaphoreSlim _packageLock = new(1, 1);
+    private bool _packagesVerified;
 
     public int BuildOrder => 2;
 
@@ -34,11 +38,7 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
             return;
         }
 
-        string packageJsonPath = workspace.WorkingPath.Combine(Files.PackageJson);
-        if (File.Exists(packageJsonPath))
-        {
-            NpmHelper.RunNpmInstall(workspace.WorkingPath);
-        }
+        await EnsurePackagesAsync();
 
         BackendModuleProvider provider = await EnsureProviderAsync();
 
@@ -48,11 +48,14 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
             ["WEB_PORT"] = _settings.WebServerPort.ToString(System.Globalization.CultureInfo.InvariantCulture)
         };
 
+        bool incremental = !string.IsNullOrEmpty(changedFilePath);
+
         ModuleBuildExecutionResult result = await ModuleBuildExecutor.ExecuteAsync(
             workspace,
             provider.Id,
             ModuleBuildMode.Build,
             env,
+            incremental,
             _logger,
             CancellationToken.None);
 
@@ -61,6 +64,8 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
 
     public async Task PublishAsync()
     {
+        await EnsurePackagesAsync();
+
         BackendModuleProvider provider = await EnsureProviderAsync();
         Dictionary<string, string?> env = new(StringComparer.Ordinal)
         {
@@ -73,6 +78,7 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
             provider.Id,
             ModuleBuildMode.Publish,
             env,
+            incremental: false,
             _logger,
             CancellationToken.None);
 
@@ -114,6 +120,82 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
         );
 
         return js.Trim();
+    }
+
+    private async Task EnsurePackagesAsync()
+    {
+        await _packageLock.WaitAsync();
+        try
+        {
+            if (_packagesVerified)
+            {
+                return;
+            }
+
+            NodeRuntime.EnsureMinimumVersion();
+
+            PackageWorkspaceAdapter workspaceAdapter = new(workspace);
+            PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
+                workspaceAdapter,
+                _logger,
+                ensureFrontend: null,
+                ensureTesting: null,
+                ensureBackend: preferRegistry => BackendPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
+                includeFrontend: false,
+                includeTesting: false,
+                includeBackend: true,
+                autoInstall: true);
+
+            if (summary.InstallPerformed)
+            {
+                _logger.LogInformation("[backend] Package dependencies refreshed; npm install completed.");
+            }
+            else
+            {
+                _logger.LogDebug("[backend] Packages already up to date.");
+            }
+
+            if (summary.Backend is { DependencyUpdated: true } backend)
+            {
+                _logger.LogInformation("[backend] {Package} dependency updated to match bundled tarball.", backend.Metadata.Name);
+            }
+
+            if (summary.InstallRequiredButSkipped)
+            {
+                throw new InvalidOperationException($"Framework packages require installation. Run '{App.Name} install' to synchronize dependencies.");
+            }
+
+            if (summary.HasVersionMismatch)
+            {
+                ThrowMismatch(summary);
+            }
+
+            _packagesVerified = true;
+        }
+        finally
+        {
+            _packageLock.Release();
+        }
+    }
+
+    private void ThrowMismatch(PackageEnsureSummary summary)
+    {
+        if (summary.Backend is not { VersionMismatch: true } backend)
+        {
+            return;
+        }
+
+        string installed = string.IsNullOrWhiteSpace(backend.InstalledVersion)
+            ? "missing"
+            : backend.InstalledVersion!;
+        _logger.LogWarning(
+            "{Package} {InstalledVersion} detected but {ExpectedVersion} is bundled. Run '{Command} install' to refresh dependencies.",
+            backend.Metadata.Name,
+            installed,
+            backend.Metadata.Version,
+            App.Name);
+        throw new InvalidOperationException(
+            $"Framework packages are out of sync: {backend.Metadata.Name} (found {installed}, expected {backend.Metadata.Version}). Run '{App.Name} install' to synchronize dependencies.");
     }
 
     private async Task<BackendModuleProvider> EnsureProviderAsync()

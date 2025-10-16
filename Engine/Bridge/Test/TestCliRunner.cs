@@ -6,12 +6,18 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Engine.Bridge.Module;
 
 namespace Engine.Bridge.Test;
 
 internal sealed class TestCliRunner
 {
     private const string EventPrefix = "WEBSTIR_TEST ";
+    private const string ModuleEventPrefix = "WEBSTIR_MODULE_EVENT ";
+    private static readonly JsonSerializerOptions ModuleEventSerializerOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     private readonly AppWorkspace _workspace;
 
@@ -64,7 +70,16 @@ internal sealed class TestCliRunner
                 return;
             }
 
-            HandleOutputLine(args.Data, results, ref testsDiscovered, ref passed, ref failed, ref total, ref durationMs, ref hadErrors);
+            HandleProcessLine(
+                args.Data,
+                isError: false,
+                results,
+                ref testsDiscovered,
+                ref passed,
+                ref failed,
+                ref total,
+                ref durationMs,
+                ref hadErrors);
         };
 
         process.ErrorDataReceived += (_, args) =>
@@ -74,8 +89,16 @@ internal sealed class TestCliRunner
                 return;
             }
 
-            hadErrors = true;
-            Console.Error.WriteLine(args.Data);
+            HandleProcessLine(
+                args.Data,
+                isError: true,
+                results,
+                ref testsDiscovered,
+                ref passed,
+                ref failed,
+                ref total,
+                ref durationMs,
+                ref hadErrors);
         };
 
         process.Start();
@@ -87,8 +110,9 @@ internal sealed class TestCliRunner
         return new TestCliRunResult(passed, failed, total, durationMs, results, testsDiscovered, hadErrors, process.ExitCode);
     }
 
-    private void HandleOutputLine(
+    private void HandleProcessLine(
         string line,
+        bool isError,
         List<TestCliTestResult> results,
         ref bool testsDiscovered,
         ref int passed,
@@ -97,6 +121,11 @@ internal sealed class TestCliRunner
         ref long durationMs,
         ref bool hadErrors)
     {
+        if (TryHandleModuleEvent(line, ref hadErrors))
+        {
+            return;
+        }
+
         if (line.StartsWith(EventPrefix, StringComparison.Ordinal))
         {
             string json = line[EventPrefix.Length..];
@@ -141,10 +170,54 @@ internal sealed class TestCliRunner
                 hadErrors = true;
             }
         }
+        else if (isError)
+        {
+            hadErrors = true;
+            Console.Error.WriteLine(line);
+        }
         else
         {
             Console.WriteLine(line);
         }
+    }
+
+    private bool TryHandleModuleEvent(string line, ref bool hadErrors)
+    {
+        if (!line.StartsWith(ModuleEventPrefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        string json = line[ModuleEventPrefix.Length..];
+        try
+        {
+            ModuleLogEvent? moduleEvent = JsonSerializer.Deserialize<ModuleLogEvent>(json, ModuleEventSerializerOptions);
+            if (moduleEvent is null)
+            {
+                return true;
+            }
+
+            if (string.Equals(moduleEvent.Type, "error", StringComparison.OrdinalIgnoreCase))
+            {
+                hadErrors = true;
+                Console.Error.WriteLine($"[test-provider] {moduleEvent.Message}");
+            }
+            else if (string.Equals(moduleEvent.Type, "warn", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.Error.WriteLine($"[test-provider] {moduleEvent.Message}");
+            }
+            else
+            {
+                Console.WriteLine($"[test-provider] {moduleEvent.Message}");
+            }
+        }
+        catch (JsonException ex)
+        {
+            hadErrors = true;
+            Console.Error.WriteLine($"[test] Unable to parse provider event: {ex.Message}");
+        }
+
+        return true;
     }
 
     private int ExtractManifestModuleCount(JsonElement root)

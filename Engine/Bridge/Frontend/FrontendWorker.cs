@@ -96,6 +96,7 @@ public sealed class FrontendWorker : IFrontendWorker
             provider.Id,
             ModuleBuildMode.Build,
             new Dictionary<string, string?>(StringComparer.Ordinal),
+            incremental: false,
             _logger,
             CancellationToken.None);
 
@@ -112,6 +113,7 @@ public sealed class FrontendWorker : IFrontendWorker
             provider.Id,
             ModuleBuildMode.Publish,
             new Dictionary<string, string?>(StringComparer.Ordinal),
+            incremental: false,
             _logger,
             CancellationToken.None);
 
@@ -224,8 +226,10 @@ public sealed class FrontendWorker : IFrontendWorker
                 _logger,
                 ensureFrontend: preferRegistry => FrontendPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
                 ensureTesting: preferRegistry => TestPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
+                ensureBackend: preferRegistry => BackendPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
                 includeFrontend: true,
                 includeTesting: true,
+                includeBackend: true,
                 autoInstall: true);
 
             if (summary.InstallPerformed)
@@ -341,6 +345,11 @@ public sealed class FrontendWorker : IFrontendWorker
         {
             _logger.LogInformation("{Package} dependency updated to {Specifier}.", testing.Metadata.Name, testing.Metadata.RegistrySpecifier);
         }
+
+        if (summary.Backend is { DependencyUpdated: true } backend)
+        {
+            _logger.LogInformation("{Package} dependency updated to {Specifier}.", backend.Metadata.Name, backend.Metadata.RegistrySpecifier);
+        }
     }
 
     private void ThrowMismatch(PackageEnsureSummary summary)
@@ -373,6 +382,20 @@ public sealed class FrontendWorker : IFrontendWorker
                 testing.Metadata.Version,
                 App.Name);
             mismatches.Add($"{testing.Metadata.Name} (found {installed}, expected {testing.Metadata.Version})");
+        }
+
+        if (summary.Backend is { VersionMismatch: true } backend)
+        {
+            string installed = string.IsNullOrWhiteSpace(backend.InstalledVersion)
+                ? "missing"
+                : backend.InstalledVersion!;
+            _logger.LogWarning(
+                "{Package} {InstalledVersion} detected but {ExpectedVersion} is bundled. Run '{Command} install' to refresh dependencies.",
+                backend.Metadata.Name,
+                installed,
+                backend.Metadata.Version,
+                App.Name);
+            mismatches.Add($"{backend.Metadata.Name} (found {installed}, expected {backend.Metadata.Version})");
         }
 
         if (mismatches.Count == 0)

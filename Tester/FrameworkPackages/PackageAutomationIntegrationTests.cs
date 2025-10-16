@@ -21,7 +21,7 @@ public sealed class PackageAutomationIntegrationTests
         using JsonDocument summary = workspace.ReadSummary();
         AssertSummaryStatus(summary, "@webstir-io/webstir-frontend", "planned-build");
         AssertSummaryStatus(summary, "@webstir-io/webstir-test", "unchanged");
-        AssertSummaryStatus(summary, "@webstir-io/webstir-backend", "disabled");
+        AssertSummaryStatus(summary, "@webstir-io/webstir-backend", "unchanged");
         AssertSummaryDryRun(summary, expected: true);
     }
 
@@ -55,7 +55,7 @@ public sealed class PackageAutomationIntegrationTests
         using JsonDocument summary = workspace.ReadSummary();
         AssertSummaryStatus(summary, "@webstir-io/webstir-frontend", "unchanged");
         AssertSummaryStatus(summary, "@webstir-io/webstir-test", "unchanged");
-        AssertSummaryStatus(summary, "@webstir-io/webstir-backend", "disabled");
+        AssertSummaryStatus(summary, "@webstir-io/webstir-backend", "unchanged");
     }
 
     [Fact]

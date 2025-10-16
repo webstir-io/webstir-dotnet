@@ -28,6 +28,7 @@ internal static class ModuleBuildExecutor
         string providerId,
         ModuleBuildMode mode,
         IReadOnlyDictionary<string, string?> environmentOverrides,
+        bool incremental,
         ILogger logger,
         CancellationToken cancellationToken)
     {
@@ -52,7 +53,18 @@ internal static class ModuleBuildExecutor
         startInfo.ArgumentList.Add("--workspace");
         startInfo.ArgumentList.Add(workspace.WorkingPath);
         startInfo.ArgumentList.Add("--mode");
-        startInfo.ArgumentList.Add(mode == ModuleBuildMode.Publish ? "publish" : "build");
+        startInfo.ArgumentList.Add(mode switch
+        {
+            ModuleBuildMode.Publish => "publish",
+            ModuleBuildMode.Test => "test",
+            _ => "build"
+        });
+
+        if (incremental)
+        {
+            startInfo.ArgumentList.Add("--incremental");
+            startInfo.ArgumentList.Add("true");
+        }
 
         foreach (KeyValuePair<string, string?> entry in environmentOverrides)
         {
@@ -197,23 +209,25 @@ internal static class ModuleBuildExecutor
             }
 
             string line = content[..newlineIndex];
+            if (!line.StartsWith(EventPrefix, StringComparison.Ordinal))
+            {
+                return;
+            }
+
             builder.Remove(0, newlineIndex + Environment.NewLine.Length);
 
-            if (line.StartsWith(EventPrefix, StringComparison.Ordinal))
+            try
             {
                 string json = line[EventPrefix.Length..];
-                try
+                ModuleLogEvent? evt = JsonSerializer.Deserialize<ModuleLogEvent>(json, SerializerOptions);
+                if (evt is not null)
                 {
-                    ModuleLogEvent? evt = JsonSerializer.Deserialize<ModuleLogEvent>(json, SerializerOptions);
-                    if (evt is not null)
-                    {
-                        events.Add(evt);
-                    }
+                    events.Add(evt);
                 }
-                catch
-                {
-                    // Ignore malformed events; continue processing.
-                }
+            }
+            catch
+            {
+                // Ignore malformed events; continue processing.
             }
         }
     }
@@ -222,7 +236,8 @@ internal static class ModuleBuildExecutor
 internal enum ModuleBuildMode
 {
     Build,
-    Publish
+    Publish,
+    Test
 }
 
 internal sealed record ModuleBuildExecutionResult(

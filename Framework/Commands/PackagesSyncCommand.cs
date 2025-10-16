@@ -81,6 +81,7 @@ internal sealed class PackagesSyncCommand(PackageBuilder packageBuilder, IPackag
             {
                 "frontend" => await _packageBuilder.BuildFrontendAsync(context.RepositoryRoot, publish).ConfigureAwait(false),
                 "testing" => await _packageBuilder.BuildTestingAsync(context.RepositoryRoot, publish).ConfigureAwait(false),
+                "backend" => await _packageBuilder.BuildBackendAsync(context.RepositoryRoot, publish).ConfigureAwait(false),
                 _ => throw new InvalidOperationException($"Unsupported package key '{manifest.Key}'.")
             };
 

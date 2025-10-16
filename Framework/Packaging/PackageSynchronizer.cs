@@ -12,8 +12,10 @@ public static class PackageSynchronizer
         ILogger? logger,
         Func<bool, Task<FrontendPackageEnsureResult>>? ensureFrontend,
         Func<bool, Task<PackageEnsureResult>>? ensureTesting,
+        Func<bool, Task<PackageEnsureResult>>? ensureBackend = null,
         bool includeFrontend = true,
         bool includeTesting = true,
+        bool includeBackend = false,
         bool autoInstall = true)
     {
         ArgumentNullException.ThrowIfNull(workspace);
@@ -32,7 +34,11 @@ public static class PackageSynchronizer
             ? await ensureTesting(preferRegistry)
             : null;
 
-        bool needsInstall = NeedsInstall(frontendResult) || NeedsInstall(testResult);
+        PackageEnsureResult? backendResult = includeBackend && ensureBackend is not null
+            ? await ensureBackend(preferRegistry)
+            : null;
+
+        bool needsInstall = NeedsInstall(frontendResult) || NeedsInstall(testResult) || NeedsInstall(backendResult);
         bool installPerformed = false;
         bool installRequiredButSkipped = false;
 
@@ -64,6 +70,17 @@ public static class PackageSynchronizer
                     RemoveCachedPackage(workspace, logger, "@webstir-io/webstir-test");
                 }
 
+                if (NeedsInstall(backendResult))
+                {
+                    if (!packageLockRemoved)
+                    {
+                        RemovePackageLockIfPresent(workspace, logger);
+                        packageLockRemoved = true;
+                    }
+
+                    RemoveCachedPackage(workspace, logger, "@webstir-io/webstir-backend");
+                }
+
                 EnsureWorkspaceNpmrc(workspace, logger);
                 logger?.LogInformation("[packages] Installing framework packages...");
                 await workspace.RunNpmInstallAsync();
@@ -79,8 +96,15 @@ public static class PackageSynchronizer
                     testResult = await ensureTesting(preferRegistry);
                 }
 
+                if (includeBackend && ensureBackend is not null)
+                {
+                    backendResult = await ensureBackend(preferRegistry);
+                }
+
                 // Fallback: if packages still mismatch, force explicit install by spec
-                if ((frontendResult?.VersionMismatch ?? false) || (testResult?.VersionMismatch ?? false))
+                if ((frontendResult?.VersionMismatch ?? false) ||
+                    (testResult?.VersionMismatch ?? false) ||
+                    (backendResult?.VersionMismatch ?? false))
                 {
                     System.Collections.Generic.List<string> specs = new();
                     if (frontendResult is { VersionMismatch: true } f)
@@ -90,6 +114,10 @@ public static class PackageSynchronizer
                     if (testResult is { VersionMismatch: true } t)
                     {
                         specs.Add($"{t.Metadata.Name}@{t.Metadata.Version}");
+                    }
+                    if (backendResult is { VersionMismatch: true } b)
+                    {
+                        specs.Add($"{b.Metadata.Name}@{b.Metadata.Version}");
                     }
 
                     if (specs.Count > 0)
@@ -106,6 +134,10 @@ public static class PackageSynchronizer
                         {
                             testResult = await ensureTesting(preferRegistry);
                         }
+                        if (includeBackend && ensureBackend is not null)
+                        {
+                            backendResult = await ensureBackend(preferRegistry);
+                        }
                     }
                 }
             }
@@ -115,7 +147,7 @@ public static class PackageSynchronizer
             }
         }
 
-        return new PackageEnsureSummary(frontendResult, testResult, installPerformed, installRequiredButSkipped);
+        return new PackageEnsureSummary(frontendResult, testResult, backendResult, installPerformed, installRequiredButSkipped);
     }
 
     private static void EnsureWorkspaceNpmrc(IPackageWorkspace workspace, ILogger? logger)
@@ -256,10 +288,12 @@ public static class PackageSynchronizer
 public readonly record struct PackageEnsureSummary(
     FrontendPackageEnsureResult? Frontend,
     PackageEnsureResult? Testing,
+    PackageEnsureResult? Backend,
     bool InstallPerformed,
     bool InstallRequiredButSkipped)
 {
     public bool HasVersionMismatch =>
         (Frontend?.VersionMismatch ?? false) ||
-        (Testing?.VersionMismatch ?? false);
+        (Testing?.VersionMismatch ?? false) ||
+        (Backend?.VersionMismatch ?? false);
 }

@@ -44,8 +44,10 @@ public sealed class InstallWorkflow(
             _logger,
             ensureFrontend: preferRegistry => FrontendPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
             ensureTesting: preferRegistry => TestPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
+            ensureBackend: preferRegistry => BackendPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
             includeFrontend: true,
             includeTesting: true,
+            includeBackend: true,
             autoInstall: !dryRun);
 
         if (dryRun)
@@ -55,7 +57,7 @@ public sealed class InstallWorkflow(
             return;
         }
 
-        LogFrontendMessages(summary);
+        LogPackageMessages(summary);
         TestPackageUtilities.LogEnsureMessages(summary);
 
         if (summary.InstallRequiredButSkipped)
@@ -114,6 +116,7 @@ public sealed class InstallWorkflow(
 
         LogPackage(summary.Frontend?.Metadata.Name ?? "@webstir-io/webstir-frontend", summary.Frontend);
         LogPackage(summary.Testing?.Metadata.Name ?? "@webstir-io/webstir-test", summary.Testing);
+        LogPackage(summary.Backend?.Metadata.Name ?? "@webstir-io/webstir-backend", summary.Backend);
 
         if (summary.InstallRequiredButSkipped && !anyChanges)
         {
@@ -157,17 +160,15 @@ public sealed class InstallWorkflow(
         }
     }
 
-    private void LogFrontendMessages(PackageEnsureSummary summary)
+    private void LogPackageMessages(PackageEnsureSummary summary)
     {
         if (summary.InstallPerformed)
         {
-            _logger.LogInformation("Reinstalled frontend package dependencies.");
+            _logger.LogInformation("Reinstalled framework package dependencies.");
         }
 
-        if (summary.Frontend is { DependencyUpdated: true } frontend)
-        {
-            _logger.LogInformation("{Package} dependency updated to match bundled tarball.", frontend.Metadata.Name);
-        }
+        LogPackageDependency(summary.Frontend);
+        LogPackageDependency(summary.Backend);
     }
 
     private void ThrowMismatch(PackageEnsureSummary summary)
@@ -202,6 +203,20 @@ public sealed class InstallWorkflow(
             mismatches.Add($"{testing.Metadata.Name} (found {installed}, expected {testing.Metadata.Version})");
         }
 
+        if (summary.Backend is { VersionMismatch: true } backend)
+        {
+            string installed = string.IsNullOrWhiteSpace(backend.InstalledVersion)
+                ? "missing"
+                : backend.InstalledVersion!;
+            _logger.LogWarning(
+                "{Package} {InstalledVersion} detected but {ExpectedVersion} is bundled. Run '{Command} install' to refresh dependencies.",
+                backend.Metadata.Name,
+                installed,
+                backend.Metadata.Version,
+                App.Name);
+            mismatches.Add($"{backend.Metadata.Name} (found {installed}, expected {backend.Metadata.Version})");
+        }
+
         if (mismatches.Count == 0)
         {
             return;
@@ -209,5 +224,25 @@ public sealed class InstallWorkflow(
 
         string details = string.Join(", ", mismatches);
         throw new InvalidOperationException($"Framework packages are out of sync: {details}. Run '{App.Name} install' to synchronize dependencies.");
+    }
+
+    private void LogPackageDependency(FrontendPackageEnsureResult? result)
+    {
+        if (result is not { DependencyUpdated: true } dependency)
+        {
+            return;
+        }
+
+        _logger.LogInformation("{Package} dependency updated to match bundled tarball.", dependency.Metadata.Name);
+    }
+
+    private void LogPackageDependency(PackageEnsureResult? result)
+    {
+        if (result is not { DependencyUpdated: true } dependency)
+        {
+            return;
+        }
+
+        _logger.LogInformation("{Package} dependency updated to match bundled tarball.", dependency.Metadata.Name);
     }
 }

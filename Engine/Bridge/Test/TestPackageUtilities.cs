@@ -15,8 +15,10 @@ internal static class TestPackageUtilities
             logger: null,
             ensureFrontend: null,
             ensureTesting: preferRegistry => TestPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
+            ensureBackend: preferRegistry => BackendPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
             includeFrontend: false,
             includeTesting: true,
+            includeBackend: true,
             autoInstall: true);
         ValidateSummary(summary);
         return summary;
@@ -25,10 +27,11 @@ internal static class TestPackageUtilities
     internal static void LogEnsureMessages(PackageEnsureSummary summary)
     {
         PackageEnsureResult? result = summary.Testing;
+        PackageEnsureResult? backend = summary.Backend;
 
         if (summary.InstallPerformed)
         {
-            Console.WriteLine("Reinstalled @webstir-io/webstir-test dependencies.");
+            Console.WriteLine("Reinstalled framework package dependencies.");
         }
 
         if (summary.InstallRequiredButSkipped)
@@ -38,20 +41,35 @@ internal static class TestPackageUtilities
 
         if (result is null)
         {
-            return;
+            // Continue to report backend details if present.
+        }
+        else
+        {
+            if (result.Value.DependencyUpdated)
+            {
+                Console.WriteLine($"Pinned @webstir-io/webstir-test dependency in {Files.PackageJson}");
+            }
+
+            if (result.Value.VersionMismatch)
+            {
+                string installed = string.IsNullOrWhiteSpace(result.Value.InstalledVersion)
+                    ? "not installed"
+                    : result.Value.InstalledVersion!;
+                Console.WriteLine($"Warning: @webstir-io/webstir-test {installed} differs from packaged {result.Value.Metadata.Version}. Run '{App.Name} install' to refresh node_modules.");
+            }
         }
 
-        if (result.Value.DependencyUpdated)
+        if (backend is { DependencyUpdated: true })
         {
-            Console.WriteLine($"Pinned @webstir-io/webstir-test dependency in {Files.PackageJson}");
+            Console.WriteLine($"Pinned @webstir-io/webstir-backend dependency in {Files.PackageJson}");
         }
 
-        if (result.Value.VersionMismatch)
+        if (backend is { VersionMismatch: true } backendResult)
         {
-            string installed = string.IsNullOrWhiteSpace(result.Value.InstalledVersion)
+            string installed = string.IsNullOrWhiteSpace(backendResult.InstalledVersion)
                 ? "not installed"
-                : result.Value.InstalledVersion!;
-            Console.WriteLine($"Warning: @webstir-io/webstir-test {installed} differs from packaged {result.Value.Metadata.Version}. Run '{App.Name} install' to refresh node_modules.");
+                : backendResult.InstalledVersion!;
+            Console.WriteLine($"Warning: @webstir-io/webstir-backend {installed} differs from packaged {backendResult.Metadata.Version}. Run '{App.Name} install' to refresh node_modules.");
         }
     }
 
@@ -69,6 +87,15 @@ internal static class TestPackageUtilities
                 : testing.InstalledVersion!;
             throw new InvalidOperationException(
                 $"@webstir-io/webstir-test {installed} detected but {testing.Metadata.Version} is bundled. Run '{App.Name} install' to refresh dependencies.");
+        }
+
+        if (summary.Backend is { VersionMismatch: true } backend)
+        {
+            string installed = string.IsNullOrWhiteSpace(backend.InstalledVersion)
+                ? "missing"
+                : backend.InstalledVersion!;
+            throw new InvalidOperationException(
+                $"@webstir-io/webstir-backend {installed} detected but {backend.Metadata.Version} is bundled. Run '{App.Name} install' to refresh dependencies.");
         }
     }
 }

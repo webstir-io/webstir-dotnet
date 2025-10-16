@@ -14,6 +14,11 @@
 ## Work Breakdown
 
 ### 1. Repository Bootstrapping
+- **Immediate next actions**
+  - ✅ Inventory source directories and shared assets per package (`Framework/Frontend`, `Framework/Backend`, `Framework/Testing`, `Framework/Contracts/**`). Captured in `Docs/product/plans/architecture/modular-refactor-phase2-inventory.md`.
+  - ✅ Draft history-extraction commands (`git subtree split` instructions, filter paths) for each package so migration can be scripted. Stored alongside the inventory.
+  - Sketch the baseline repo template (CI workflows, CODEOWNERS, lint/test scripts) to keep new repos consistent.
+  - ✅ Repositories created under `github.com/webstir-io/` with migrated history (`webstir-frontend`, `webstir-backend`, `webstir-test`, `testing-contract`, `module-contract`).
 - **Create new Git repositories** for each package (frontend, backend, testing, contracts). Include:
   - MIT license, README, CHANGELOG template, CONTRIBUTING.
   - .editorconfig, lint rules, TypeScript configuration, build scripts mirroring current setup.
@@ -22,6 +27,9 @@
 - **Set up publishing credentials** (GitHub Packages PAT, later npmjs token) via repository secrets. Document environment variables and required roles.
 
 ### 2. Package Build & Publish Automation
+- **Immediate next actions**
+  - Enumerate required checks per package (lint, tests, schema validation) and map them to npm scripts.
+  - Choose provenance/SBOM tooling (GitHub provenance, cosign, etc.) and document secrets needed.
 - Author `release.yml` workflow for each repo:
   - Validate `npm run build`, run contract validation (`npm run validate:contracts` for testing-contract).
   - Run unit/integration tests (existing Node suites).
@@ -31,12 +39,18 @@
 - Add prepublish checks (lint, test, schema validation) to package scripts to guard manual publishes.
 
 ### 3. Mono-Repo Integration
+- **Immediate next actions**
+  - Search for `file:.webstir` references to understand where tarball specs live.
+  - List installer call sites and scripts (`FrontendPackageInstaller`, `BackendPackageInstaller`, `TestPackageInstaller`, `PackageSynchronizer`) that assume tarballs.
 - Update Webstir’s `package.json` dependencies to use semver ranges (e.g., `"@webstir-io/webstir-test": "^0.1.0"`), removing `file:` references.
 - Add tooling to pin versions during CI: extend `framework packages sync` to read a lock manifest (e.g., `Framework/Packaging/framework-packages.json`) and write dependency updates automatically.
 - Enhance `utilities/format-build.sh` (already validating contracts) to also run `npm run build:contracts` when working against unpublished workspaces (script now available at repo root).
 - Provide scripts to link local packages during development (`npm install <tarball>` or `npm link`). Document the workflow in `Docs/how-to/framework-packages.md`.
 
 ### 4. Installer & CLI Adjustments
+- **Immediate next actions**
+  - Audit installer classes and `Framework/Packaging` helpers for tarball-specific logic.
+  - Define desired configuration surface (e.g., version lock manifest) before refactoring installers.
 - Refactor installers (`FrontendPackageInstaller`, `BackendPackageInstaller`, `TestPackageInstaller`) to:
   - Read desired package spec from configuration (default to pinned version).
   - Execute `npm install` directly against registry specifiers.
@@ -45,11 +59,17 @@
 - Extend diagnostic messages to explain registry failures (missing token, 404, etc.).
 
 ### 5. Workflow & Script Cleanup
+- **Immediate next actions**
+  - Catalogue scripts and workflows that generate or copy tarballs (`Framework/Packaging`, `utilities/format-build.sh`, `publish.sh`, `.github/workflows`).
+  - Identify build outputs (`Framework/out/**`, `.webstir/*.tgz`) that can be deleted once registry flow is live.
 - Remove tarball generation, manifest writers, and `Framework/out/**` artifacts from the repo and build steps.
 - Update CI scripts (`utilities/local-ci.sh`, `.github/workflows/release.yml`) to rely on published packages. For release, fetch versions from registry instead of packaging tarballs.
 - Add schema validation (already available) and version checks to the release workflow (`framework packages publish` should confirm new versions are staged before triggering external repos).
 
 ### 6. Documentation & Enablement
+- **Immediate next actions**
+  - Draft outlines for updated docs (`Docs/how-to/framework-packages.md`, `Docs/how-to/package-synchronization.md`) covering registry workflows.
+  - Collect FAQs and known issues from Phase 0/1 migration to seed troubleshooting guidance.
 - Refresh:
   - `Docs/how-to/framework-packages.md`
   - `Docs/how-to/package-synchronization.md`

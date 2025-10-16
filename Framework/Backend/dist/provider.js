@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
+import { performance } from 'node:perf_hooks';
 import { glob } from 'glob';
 import packageJson from '../package.json' with { type: 'json' };
 const pkg = packageJson;
@@ -28,7 +29,9 @@ export const backendProvider = {
         const paths = resolveWorkspacePaths(options.workspaceRoot);
         const tsconfigPath = path.join(paths.sourceRoot, 'tsconfig.json');
         const diagnostics = [];
-        await runTsc(tsconfigPath, options.env, diagnostics);
+        const incremental = options.incremental === true;
+        const mode = normalizeMode(options.env?.WEBSTIR_MODULE_MODE);
+        await runTsc(tsconfigPath, options.env, diagnostics, incremental, mode);
         const artifacts = await collectArtifacts(paths.buildRoot);
         const manifest = createManifest(paths.buildRoot, artifacts, diagnostics);
         return {
@@ -37,6 +40,16 @@ export const backendProvider = {
         };
     }
 };
+function normalizeMode(rawMode) {
+    if (typeof rawMode !== 'string') {
+        return 'build';
+    }
+    const normalized = rawMode.toLowerCase();
+    if (normalized === 'publish' || normalized === 'test') {
+        return normalized;
+    }
+    return 'build';
+}
 async function collectArtifacts(buildRoot) {
     const matches = await glob('**/*.js', {
         cwd: buildRoot,
@@ -74,7 +87,7 @@ function createManifest(buildRoot, artifacts, diagnostics) {
         diagnostics
     };
 }
-async function runTsc(tsconfigPath, env, diagnostics) {
+async function runTsc(tsconfigPath, env, diagnostics, incremental, mode) {
     if (!existsSync(tsconfigPath)) {
         diagnostics.push({
             severity: 'warn',
@@ -83,15 +96,21 @@ async function runTsc(tsconfigPath, env, diagnostics) {
         return;
     }
     await new Promise((resolve, reject) => {
-        const child = spawn('tsc', ['-p', tsconfigPath], {
+        const args = ['-p', tsconfigPath];
+        if (incremental) {
+            args.push('--incremental');
+        }
+        const child = spawn('tsc', args, {
             stdio: 'pipe',
             env: {
                 ...process.env,
-                ...env
+                ...env,
+                NODE_ENV: env?.NODE_ENV ?? (mode === 'publish' ? 'production' : 'development')
             }
         });
         let stdout = '';
         let stderr = '';
+        const start = performance.now();
         child.stdout?.on('data', (chunk) => {
             stdout += chunk.toString();
         });
@@ -101,6 +120,8 @@ async function runTsc(tsconfigPath, env, diagnostics) {
         child.on('error', reject);
         child.on('close', (code) => {
             if (code === 0) {
+                const end = performance.now();
+                console.info(`[webstir-backend] ${mode}:tsc completed in ${(end - start).toFixed(1)}ms`);
                 resolve();
             }
             else {

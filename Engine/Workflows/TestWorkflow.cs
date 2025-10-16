@@ -153,8 +153,9 @@ public sealed class TestWorkflow(
         ModuleBuildExecutionResult result = await ModuleBuildExecutor.ExecuteAsync(
             Context,
             providerId,
-            ModuleBuildMode.Build,
+            ModuleBuildMode.Test,
             env,
+            incremental: false,
             _logger,
             CancellationToken.None);
 

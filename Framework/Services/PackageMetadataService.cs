@@ -320,7 +320,7 @@ internal sealed class PackageMetadataService(
                 "backend",
                 new[] { "backend", "@webstir-io/webstir-backend" },
                 Path.Combine("Framework", "Backend"),
-                IsEnabled: false)
+                IsEnabled: true)
         ];
     }
 }

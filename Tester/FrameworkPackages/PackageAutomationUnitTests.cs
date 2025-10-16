@@ -22,7 +22,7 @@ public sealed class PackageAutomationUnitTests
     [Fact]
     public async Task PackageMetadataServiceLoadsEnabledManifestsAsync()
     {
-        using TestWorkspace workspace = TestWorkspace.WithPackages(frontendEnabled: true, testingEnabled: true);
+        using TestWorkspace workspace = TestWorkspace.WithPackages(frontendEnabled: true, testingEnabled: true, includeBackend: true);
 
         StubRepositoryDiffService diff = new();
         PackageMetadataService service = new(diff, NullLogger<PackageMetadataService>.Instance);
@@ -30,18 +30,21 @@ public sealed class PackageAutomationUnitTests
         IReadOnlyList<PackageManifest> manifests = await service
             .GetPackagesAsync(workspace.RepositoryRoot, CancellationToken.None);
 
-        Assert.Equal(2, manifests.Count);
+        Assert.Equal(3, manifests.Count);
         PackageManifest frontend = manifests.First(manifest => manifest.Key == "frontend");
         PackageManifest testing = manifests.First(manifest => manifest.Key == "testing");
+        PackageManifest backend = manifests.First(manifest => manifest.Key == "backend");
 
         Assert.Equal("@webstir-io/webstir-frontend", frontend.PackageName);
         Assert.Equal("@webstir-io/webstir-test", testing.PackageName);
+        Assert.Equal("@webstir-io/webstir-backend", backend.PackageName);
         Assert.True(frontend.IsEnabled);
         Assert.True(testing.IsEnabled);
+        Assert.True(backend.IsEnabled);
     }
 
     [Fact]
-    public async Task PackageMetadataServiceExplicitSelectionRejectsDisabledAsync()
+    public async Task PackageMetadataServiceExplicitSelectionIncludesBackendAsync()
     {
         using TestWorkspace workspace = TestWorkspace.WithPackages(frontendEnabled: true, testingEnabled: true, includeBackend: true);
 
@@ -58,12 +61,15 @@ public sealed class PackageAutomationUnitTests
         Assert.Single(manifests);
         Assert.Equal("frontend", manifests[0].Key);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await service.ResolveAsync(
+        manifests = await service
+            .ResolveAsync(
                 workspace.RepositoryRoot,
                 PackageSelection.Explicit(new[] { "backend" }),
                 sinceReference: null,
-                CancellationToken.None));
+                CancellationToken.None);
+
+        Assert.Single(manifests);
+        Assert.Equal("backend", manifests[0].Key);
     }
 
     [Fact]
@@ -417,7 +423,7 @@ public sealed class PackageAutomationUnitTests
             get;
         }
 
-        public static TestWorkspace WithPackages(bool frontendEnabled, bool testingEnabled, bool includeBackend = false)
+        public static TestWorkspace WithPackages(bool frontendEnabled, bool testingEnabled, bool includeBackend = false, bool backendEnabled = true)
         {
             string root = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "webstir-tests", "package-automation", Guid.NewGuid().ToString("N"))).FullName;
             string frameworkRoot = Path.Combine(root, "Framework");
@@ -430,7 +436,7 @@ public sealed class PackageAutomationUnitTests
                 ? CreateManifest(frameworkRoot, "Testing", "@webstir-io/webstir-test", version: "1.0.0", enabled: true)
                 : null;
             PackageManifest? backend = includeBackend
-                ? CreateManifest(frameworkRoot, "Backend", "@webstir-io/webstir-backend", version: "1.0.0", enabled: false)
+                ? CreateManifest(frameworkRoot, "Backend", "@webstir-io/webstir-backend", version: "1.0.0", enabled: backendEnabled)
                 : null;
 
             return new TestWorkspace(root, frontend, testing, backend);

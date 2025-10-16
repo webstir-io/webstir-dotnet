@@ -23,6 +23,9 @@ public sealed class PackageBuilder(ILogger<PackageBuilder> logger)
     public async Task<PackageBuildResult> BuildTestingAsync(string repositoryRoot, bool publish) =>
         await BuildAsync(repositoryRoot, FrameworkPackageDescriptor.Testing, publish);
 
+    public async Task<PackageBuildResult> BuildBackendAsync(string repositoryRoot, bool publish) =>
+        await BuildAsync(repositoryRoot, FrameworkPackageDescriptor.Backend, publish);
+
     public Task VerifyAsync(string repositoryRoot, bool includeFrontend, bool includeTesting)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);

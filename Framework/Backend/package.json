@@ -1,6 +1,6 @@
 {
   "name": "@webstir-io/webstir-backend",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Reserved manifest for the future Webstir backend tooling package.",
   "type": "module",
   "main": "dist/index.js",
@@ -26,7 +26,7 @@
     "dist"
   ],
   "engines": {
-    "node": ">=20.18.1"
+    "node": "\u003E=20.18.1"
   },
   "license": "MIT",
   "dependencies": {
@@ -34,6 +34,7 @@
     "glob": "^10.4.1"
   },
   "devDependencies": {
+    "@types/node": "^20.11.25",
     "typescript": "^5.4.0"
   },
   "publishConfig": {

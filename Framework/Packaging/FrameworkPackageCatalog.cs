@@ -17,6 +17,8 @@ public static class FrameworkPackageCatalog
 
     public static FrameworkPackageMetadata Testing => Get("@webstir-io/webstir-test");
 
+    public static FrameworkPackageMetadata Backend => Get("@webstir-io/webstir-backend");
+
     public static FrameworkPackageMetadata Get(string packageName)
     {
         if (!Packages.Value.TryGetValue(packageName, out FrameworkPackageMetadata metadata))
