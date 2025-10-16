@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://webstir.dev/schema/testing-contract/RunnerEvent.json",
+  "title": "RunnerEvent",
+  "oneOf": [
+    { "$ref": "#/$defs/RunnerStartEvent" },
+    { "$ref": "#/$defs/RunnerResultEvent" },
+    { "$ref": "#/$defs/RunnerSummaryEvent" },
+    { "$ref": "#/$defs/RunnerLogEvent" },
+    { "$ref": "#/$defs/RunnerErrorEvent" },
+    { "$ref": "#/$defs/RunnerWatchIterationEvent" }
+  ],
+  "$defs": {
+    "TestManifest": {
+      "$ref": "https://webstir.dev/schema/testing-contract/TestManifest.json"
+    },
+    "TestRunResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "file",
+        "passed",
+        "message",
+        "durationMs"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string",
+          "description": "Absolute path to the compiled test file."
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "message": {
+          "description": "Failure information or null when the test passed.",
+          "oneOf": [
+            { "type": "string" },
+            { "type": "null" }
+          ]
+        },
+        "durationMs": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "RunnerSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "failed",
+        "total",
+        "durationMs",
+        "results"
+      ],
+      "properties": {
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "durationMs": {
+          "type": "number",
+          "minimum": 0
+        },
+        "results": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TestRunResult" }
+        }
+      }
+    },
+    "LogLevel": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warn",
+        "error"
+      ]
+    },
+    "RunnerStartEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "runId",
+        "manifest"
+      ],
+      "properties": {
+        "type": { "const": "start" },
+        "runId": { "type": "string" },
+        "manifest": { "$ref": "#/$defs/TestManifest" }
+      }
+    },
+    "RunnerResultEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "runId",
+        "runtime",
+        "moduleId",
+        "result"
+      ],
+      "properties": {
+        "type": { "const": "result" },
+        "runId": { "type": "string" },
+        "runtime": {
+          "type": "string",
+          "enum": [
+            "frontend",
+            "backend"
+          ]
+        },
+        "moduleId": { "type": "string" },
+        "result": { "$ref": "#/$defs/TestRunResult" }
+      }
+    },
+    "RunnerSummaryEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "runId",
+        "runtime",
+        "summary"
+      ],
+      "properties": {
+        "type": { "const": "summary" },
+        "runId": { "type": "string" },
+        "runtime": {
+          "type": "string",
+          "enum": [
+            "frontend",
+            "backend",
+            "all"
+          ]
+        },
+        "summary": { "$ref": "#/$defs/RunnerSummary" }
+      }
+    },
+    "RunnerLogEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "runId",
+        "level",
+        "message"
+      ],
+      "properties": {
+        "type": { "const": "log" },
+        "runId": { "type": "string" },
+        "level": { "$ref": "#/$defs/LogLevel" },
+        "message": { "type": "string" }
+      }
+    },
+    "RunnerErrorEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "runId",
+        "message"
+      ],
+      "properties": {
+        "type": { "const": "error" },
+        "runId": { "type": "string" },
+        "message": { "type": "string" },
+        "stack": { "type": "string" }
+      }
+    },
+    "RunnerWatchIterationEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "runId",
+        "iteration",
+        "phase",
+        "changedFiles"
+      ],
+      "properties": {
+        "type": { "const": "watch-iteration" },
+        "runId": { "type": "string" },
+        "iteration": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "start",
+            "complete"
+          ]
+        },
+        "changedFiles": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "summary": { "$ref": "#/$defs/RunnerSummary" }
+      }
+    }
+  }
+}

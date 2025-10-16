@@ -147,4 +147,71 @@ public sealed class BuildWorkflowTests
         string legacyDist = Path.Combine(seedRoot, Folders.Dist, Folders.Frontend);
         return legacyDist;
     }
+
+    [Fact]
+    [Trait(TestTraits.Category, TestTraits.Full)]
+    public void BuildWithViteProviderProducesArtifacts()
+    {
+        if (!TestCategoryGuards.ShouldRun(TestCategory.Full))
+        {
+            return;
+        }
+
+        TestCaseContext context = _fixture.Context;
+        string testDir = context.OutPath;
+        Directory.CreateDirectory(testDir);
+
+        string projectName = "seed-vite-provider";
+        string seedDir = WorkspaceManager.CreateSeedWorkspace(context, projectName);
+
+        string providerPath = Path.Combine(Paths.RepositoryRoot, "Framework", "ViteFrontend");
+        ProcessRunner.ProcessResult installProvider = ProcessRunner.Run(new ProcessRunOptions
+        {
+            FileName = "npm",
+            Arguments = $"install --no-save \"{providerPath}\"",
+            WorkingDirectory = seedDir,
+            ExitTimeoutMs = 60000
+        });
+        Assert.Equal(0, installProvider.ExitCode);
+
+        string configurationPath = Path.Combine(seedDir, "webstir.providers.json");
+        File.WriteAllText(configurationPath, """
+{
+  "frontend": "@webstir-io/webstir-frontend-vite"
+}
+""");
+
+        string viteConfigPath = Path.Combine(seedDir, "vite.config.ts");
+        File.WriteAllText(viteConfigPath, """
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  root: 'src/frontend',
+  build: {
+    outDir: '../../build/frontend',
+    emptyOutDir: true,
+    lib: {
+      entry: 'app/app.ts',
+      name: 'WebstirApp',
+      formats: ['es']
+    }
+  }
+});
+""");
+        ProcessRunner.ProcessResult result = context.Run(
+            $"{Commands.Build} {ProjectOptions.ProjectName} {projectName}",
+            testDir,
+            timeoutMs: 40000);
+
+        Assert.False(result.TimedOut, "Build command timed out while using Vite provider.");
+        Assert.Equal(0, result.ExitCode);
+        context.AssertNoCompilationErrors(result);
+        Assert.Contains("@webstir-io/webstir-frontend-vite", result.Output, StringComparison.OrdinalIgnoreCase);
+
+        string buildRoot = Path.Combine(seedDir, Folders.Build, Folders.Frontend);
+        Assert.True(Directory.Exists(buildRoot), "Vite build output directory missing.");
+
+        bool hasBundles = Directory.GetFiles(buildRoot, "*.js", SearchOption.AllDirectories).Length > 0;
+        Assert.True(hasBundles, "Vite provider did not emit any JS bundles.");
+    }
 }

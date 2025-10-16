@@ -1,0 +1,53 @@
+{
+  "name": "@webstir-io/webstir-frontend-vite",
+  "version": "0.1.0",
+  "description": "Vite-powered frontend module provider for Webstir workspaces.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./provider": {
+      "types": "./dist/provider.d.ts",
+      "import": "./dist/provider.js",
+      "default": "./dist/provider.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "dev": "vite dev",
+    "test": "npm run build && npm run validate",
+    "validate": "npm run build:contract",
+    "build:contract": "npm run build --workspace Framework/Contracts/module-contract"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.18.1"
+  },
+  "license": "MIT",
+  "author": "Webstir",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/electric/webstir"
+  },
+  "dependencies": {
+    "@webstir-io/module-contract": "file:../Contracts/module-contract",
+    "glob": "^10.4.1",
+    "vite": "^7.1.10"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  }
+}

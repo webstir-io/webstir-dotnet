@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://webstir.dev/schema/testing-contract/TestManifest.json",
+  "title": "TestManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "workspaceRoot",
+    "generatedAt",
+    "modules"
+  ],
+  "properties": {
+    "workspaceRoot": {
+      "type": "string",
+      "description": "Absolute path to the workspace root."
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp representing when the manifest was created."
+    },
+    "modules": {
+      "type": "array",
+      "description": "Discovered test modules sorted lexicographically by id.",
+      "items": {
+        "$ref": "#/$defs/TestModule"
+      }
+    }
+  },
+  "$defs": {
+    "TestModule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "runtime",
+        "sourcePath",
+        "compiledPath"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Forward-slash relative module identifier (without extension)."
+        },
+        "runtime": {
+          "type": "string",
+          "enum": [
+            "frontend",
+            "backend"
+          ]
+        },
+        "sourcePath": {
+          "type": "string",
+          "description": "Absolute path to the source test file."
+        },
+        "compiledPath": {
+          "description": "Absolute path to the compiled JavaScript test file or null when missing.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

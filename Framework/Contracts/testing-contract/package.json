@@ -1,0 +1,38 @@
+{
+  "name": "@webstir-io/testing-contract",
+  "version": "0.1.0",
+  "description": "Public contract definitions for Webstir test manifests and runner events.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "schema"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist schema"
+  },
+  "keywords": [
+    "webstir",
+    "contract",
+    "testing"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/electric/webstir"
+  },
+  "author": "Webstir",
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

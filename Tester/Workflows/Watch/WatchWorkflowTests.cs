@@ -44,6 +44,13 @@ public sealed class WatchWorkflowTests
             }
         }
 
+        string configurationPath = Path.Combine(seedDir, "webstir.providers.json");
+        File.WriteAllText(configurationPath, """
+{
+  "frontend": "@webstir-io/webstir-frontend-vite"
+}
+""");
+
         ProcessRunner.ProcessResult result = context.Run(
             $"{Commands.Watch} {ProjectOptions.ProjectName} {projectName}",
             testDir,
@@ -53,5 +60,9 @@ public sealed class WatchWorkflowTests
         Assert.True(result.ReceivedReadySignal, "Watch mode did not start - readiness message not received");
         context.AssertNoCompilationErrors(result);
         Assert.True(result.Output.Length + result.Error.Length > 0, "watch command produced no output");
+
+        string combinedOutput = $"{result.Output}{Environment.NewLine}{result.Error}";
+        Assert.Contains("@webstir-io/webstir-frontend-vite", combinedOutput, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("entry point(s)", combinedOutput, StringComparison.OrdinalIgnoreCase);
     }
 }

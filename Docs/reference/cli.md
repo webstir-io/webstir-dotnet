@@ -75,7 +75,7 @@ What it does:
 Usage: `webstir install [--dry-run|--clean]`
 
 What it does:
-- Synchronizes the bundled `@webstir-io/webstir-frontend` and `@webstir-io/webstir-test` tarballs with `node_modules`.
+- Synchronizes the bundled `@webstir-io/webstir-frontend` and `@webstir-io/webstir-test` tarballs with `node_modules`. Set `WEBSTIR_FRONTEND_PROVIDER`/`WEBSTIR_BACKEND_PROVIDER` to override providers during the pilot (see `Docs/how-to/provider-selection.md`).
 - Copies the embedded archives into `<workspace>/.webstir/` and pins dependencies to `file:./.webstir/<tarball>.tgz`, falling back to the registry only when explicitly requested.
 - Verifies versions against the CLI manifest and exits with guidance if drift remains.
 

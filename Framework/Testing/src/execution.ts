@@ -1,7 +1,8 @@
 import path from 'node:path';
 
 import { emitEvent } from './events.js';
-import { run as runFrontendRuntime } from './runtime.js';
+import { createDefaultProviderRegistry } from './providers.js';
+import type { ProviderRegistry, TestProvider } from './providers.js';
 import type {
   RunnerLogEvent,
   RunnerResultEvent,
@@ -13,24 +14,29 @@ import type {
   TestRuntime,
 } from './types.js';
 
-export async function executeRun(runId: string, manifest: TestManifest): Promise<RunnerSummary> {
+export async function executeRun(
+  runId: string,
+  manifest: TestManifest,
+  providers: ProviderRegistry = createDefaultProviderRegistry(),
+): Promise<RunnerSummary> {
   let accumulator = createEmptySummary();
   const byRuntime = groupModulesByRuntime(manifest.modules);
 
   for (const [runtime, modules] of byRuntime) {
-    if (runtime === 'frontend' || runtime === 'backend') {
-      const summary = await runNodeModules(runId, runtime, modules);
-      accumulator = mergeSummaries(accumulator, summary);
+    const provider = providers.get(runtime);
+    if (!provider) {
+      const skipped: RunnerLogEvent = {
+        type: 'log',
+        runId,
+        level: 'warn',
+        message: `Skipping ${modules.length} test${modules.length === 1 ? '' : 's'} for unsupported runtime '${runtime}'.`,
+      };
+      emitEvent(skipped);
       continue;
     }
 
-    const skipped: RunnerLogEvent = {
-      type: 'log',
-      runId,
-      level: 'warn',
-      message: `Skipping ${modules.length} test${modules.length === 1 ? '' : 's'} for unsupported runtime '${runtime}'.`,
-    };
-    emitEvent(skipped);
+    const summary = await runWithProvider(runId, runtime, modules, provider);
+    accumulator = mergeSummaries(accumulator, summary);
   }
 
   return accumulator;
@@ -50,7 +56,12 @@ function groupModulesByRuntime(modules: readonly TestModule[]): Map<TestRuntime,
   return result;
 }
 
-async function runNodeModules(runId: string, runtime: TestRuntime, modules: readonly TestModule[]): Promise<RunnerSummary> {
+async function runWithProvider(
+  runId: string,
+  runtime: TestRuntime,
+  modules: readonly TestModule[],
+  provider: TestProvider,
+): Promise<RunnerSummary> {
   const files: string[] = [];
   const moduleByPath = new Map<string, TestModule>();
 
@@ -76,7 +87,7 @@ async function runNodeModules(runId: string, runtime: TestRuntime, modules: read
     return emptySummary;
   }
 
-  const summary = await runFrontendRuntime(files);
+  const summary = await provider.runTests(files);
   for (const result of summary.results) {
     const absolute = path.resolve(result.file);
     const module = moduleByPath.get(absolute);

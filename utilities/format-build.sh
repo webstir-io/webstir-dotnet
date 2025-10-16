@@ -64,6 +64,12 @@ run_dotnet_format_scope "whitespace" "(whitespace)"
 run_dotnet_format_scope "style" "(style)"
 run_dotnet_format_scope "analyzers" "(analyzers)"
 
+echo "Validating contract schemas..."
+if ! npm run validate:contracts --silent; then
+    echo "Contract schema validation failed." >&2
+    exit 1
+fi
+
 echo "Building solution..."
 dotnet build Webstir.sln -v minimal
 

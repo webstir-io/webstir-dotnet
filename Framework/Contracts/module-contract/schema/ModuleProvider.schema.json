@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://webstir.dev/schema/module-contract/ModuleProvider.json",
+  "title": "ModuleProvider",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "metadata",
+    "resolveWorkspace",
+    "build"
+  ],
+  "properties": {
+    "metadata": {
+      "$ref": "#/$defs/ModuleProviderMetadata"
+    }
+  },
+  "$defs": {
+    "ModuleProviderMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "compatibility"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique module identifier (npm package name)."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "frontend",
+            "backend"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "description": "Semver version of the provider."
+        },
+        "compatibility": {
+          "$ref": "#/$defs/ModuleCompatibility"
+        }
+      }
+    },
+    "ModuleCompatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minCliVersion",
+        "nodeRange"
+      ],
+      "properties": {
+        "minCliVersion": {
+          "type": "string"
+        },
+        "maxCliVersion": {
+          "type": "string"
+        },
+        "nodeRange": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "description": "ModuleProvider instances are JavaScript objects that implement the contract at runtime; schema captures metadata structure."
+}

@@ -4,24 +4,31 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Engine.Bridge.Module;
 using Engine.Bridge.Test;
-using Engine.Interfaces;
 using Engine.Extensions;
+using Engine.Interfaces;
 using Framework.Packaging;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Engine.Workflows;
 
 public sealed class TestWorkflow(
     AppWorkspace context,
-    IEnumerable<IWorkflowWorker> workers) : BaseWorkflow(context, workers)
+    IEnumerable<IWorkflowWorker> workers,
+    IOptions<AppSettings> options,
+    ILogger<TestWorkflow> logger) : BaseWorkflow(context, workers)
 {
+    private readonly AppSettings _settings = options.Value;
+    private readonly ILogger<TestWorkflow> _logger = logger;
     public override string WorkflowName => Commands.Test;
 
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         await ExecuteBuildAsync();
         await CompileTypeScriptAsync();
+        await CompileBackendAsync();
 
         PackageEnsureSummary ensureSummary = await TestPackageUtilities.EnsurePackageAsync(Context);
         TestPackageUtilities.LogEnsureMessages(ensureSummary);
@@ -131,6 +138,83 @@ public sealed class TestWorkflow(
         if (process.ExitCode != 0)
         {
             throw new InvalidOperationException($"TypeScript compilation failed with exit code {process.ExitCode}.");
+        }
+    }
+
+    private async Task CompileBackendAsync()
+    {
+        Dictionary<string, string?> env = new(StringComparer.Ordinal)
+        {
+            ["API_PORT"] = _settings.ApiServerPort.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["WEB_PORT"] = _settings.WebServerPort.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        };
+
+        string providerId = ResolveBackendProvider();
+        ModuleBuildExecutionResult result = await ModuleBuildExecutor.ExecuteAsync(
+            Context,
+            providerId,
+            ModuleBuildMode.Build,
+            env,
+            _logger,
+            CancellationToken.None);
+
+        LogBackendModuleResult(result);
+    }
+
+    private string ResolveBackendProvider()
+    {
+        string? overrideId = Environment.GetEnvironmentVariable("WEBSTIR_BACKEND_PROVIDER");
+        if (!string.IsNullOrWhiteSpace(overrideId))
+        {
+            return overrideId;
+        }
+
+        string? configured = ProviderConfigurationLoader.TryGetBackendProvider(Context);
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured;
+        }
+
+        return "@webstir-io/webstir-backend";
+    }
+
+    private void LogBackendModuleResult(ModuleBuildExecutionResult result)
+    {
+        _logger.LogInformation(
+            "[backend] Provider {ProviderId} produced {EntryCount} entry point(s) during tests.",
+            result.Provider.Id,
+            result.Manifest.EntryPoints.Count);
+
+        foreach (ModuleDiagnostic diagnostic in result.Manifest.Diagnostics)
+        {
+            if (string.Equals(diagnostic.Severity, "error", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogError("[backend] {Message}", diagnostic.Message);
+            }
+            else if (string.Equals(diagnostic.Severity, "warn", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("[backend] {Message}", diagnostic.Message);
+            }
+            else
+            {
+                _logger.LogInformation("[backend] {Message}", diagnostic.Message);
+            }
+        }
+
+        foreach (ModuleLogEvent evt in result.Events)
+        {
+            if (string.Equals(evt.Type, "error", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogError("[backend] {Message}", evt.Message);
+            }
+            else if (string.Equals(evt.Type, "warn", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("[backend] {Message}", evt.Message);
+            }
+            else
+            {
+                _logger.LogInformation("[backend] {Message}", evt.Message);
+            }
         }
     }
 }

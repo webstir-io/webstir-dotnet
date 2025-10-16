@@ -3,7 +3,20 @@
   "version": "1.0.0",
   "private": true,
   "description": "TypeScript type definitions for webstir project",
+  "workspaces": [
+    "Framework/Contracts/testing-contract",
+    "Framework/Contracts/module-contract",
+    "Framework/Frontend",
+    "Framework/Backend",
+    "Framework/ViteFrontend",
+    "Framework/Testing"
+  ],
+  "scripts": {
+    "build:contracts": "npm run build --workspace Framework/Contracts/testing-contract && npm run build --workspace Framework/Contracts/module-contract",
+    "validate:contracts": "node ./utilities/validate-contracts.mjs"
+  },
   "devDependencies": {
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "jsonschema": "^1.5.0"
   }
 }

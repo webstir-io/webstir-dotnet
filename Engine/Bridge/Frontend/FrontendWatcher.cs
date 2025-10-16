@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Engine.Models;
 using Microsoft.Extensions.Logging;
+using Engine.Bridge.Module;
 
 namespace Engine.Bridge.Frontend;
 
@@ -33,6 +34,8 @@ internal sealed class FrontendWatcher(
     private readonly bool _verbose = verboseLogging;
     private readonly bool _hmrVerbose = hmrVerboseLogging;
 
+    private const string ModuleEventPrefix = "WEBSTIR_MODULE_EVENT ";
+
     private readonly Queue<TaskCompletionSource<FrontendCliDiagnostic>> _pendingCommands = new();
     private readonly object _pendingCommandsLock = new();
     private readonly SemaphoreSlim _writeLock = new(1, 1);
@@ -42,6 +45,7 @@ internal sealed class FrontendWatcher(
     private StreamWriter? _input;
     private bool _ready;
     private bool _stopping;
+    private string? _providerId;
 
     public async Task StartAsync()
     {
@@ -127,6 +131,16 @@ internal sealed class FrontendWatcher(
         }
     }
 
+    public void SetProviderId(string providerId)
+    {
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            return;
+        }
+
+        _providerId = providerId;
+    }
+
     private Task EnsureProcessAsync()
     {
         if (_process is { HasExited: false })
@@ -163,6 +177,11 @@ internal sealed class FrontendWatcher(
         if (_hmrVerbose)
         {
             psi.ArgumentList.Add("--hmr-verbose");
+        }
+
+        if (!string.IsNullOrWhiteSpace(_providerId))
+        {
+            psi.Environment["WEBSTIR_FRONTEND_PROVIDER"] = _providerId;
         }
 
         Process process = new()
@@ -247,6 +266,12 @@ internal sealed class FrontendWatcher(
             return;
         }
 
+        if (TryParseModuleEvent(line, out ModuleLogEvent? moduleEvent))
+        {
+            HandleModuleEvent(moduleEvent!);
+            return;
+        }
+
         if (TryParseDiagnostic(line, out FrontendCliDiagnostic? diagnostic))
         {
             _diagnosticHandler(diagnostic!);
@@ -281,6 +306,43 @@ internal sealed class FrontendWatcher(
         {
             diagnostic = null;
             return false;
+        }
+    }
+
+    private bool TryParseModuleEvent(string line, out ModuleLogEvent? moduleEvent)
+    {
+        if (!line.StartsWith(ModuleEventPrefix, StringComparison.Ordinal))
+        {
+            moduleEvent = null;
+            return false;
+        }
+
+        string json = line[ModuleEventPrefix.Length..];
+        try
+        {
+            moduleEvent = JsonSerializer.Deserialize<ModuleLogEvent>(json, _diagnosticSerializerOptions);
+            return moduleEvent is not null;
+        }
+        catch (JsonException)
+        {
+            moduleEvent = null;
+            return false;
+        }
+    }
+
+    private void HandleModuleEvent(ModuleLogEvent moduleEvent)
+    {
+        if (string.Equals(moduleEvent.Type, "error", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogError("[frontend] {Message}", moduleEvent.Message);
+        }
+        else if (string.Equals(moduleEvent.Type, "warn", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("[frontend] {Message}", moduleEvent.Message);
+        }
+        else
+        {
+            _logger.LogInformation("[frontend] {Message}", moduleEvent.Message);
         }
     }
 

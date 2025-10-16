@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
+using Engine.Bridge.Module;
 using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Models;
@@ -31,6 +32,8 @@ public sealed class FrontendWorker : IFrontendWorker
     private bool _watchModeEnabled;
     private readonly SemaphoreSlim _packageLock = new(1, 1);
     private bool _packagesVerified;
+    private readonly IFrontendModuleProviderResolver _moduleProviderResolver;
+    private FrontendModuleProvider? _resolvedProvider;
 
     public FrontendWorker(AppWorkspace workspace, ILogger<FrontendWorker> logger)
     {
@@ -38,7 +41,7 @@ public sealed class FrontendWorker : IFrontendWorker
         _logger = logger;
         bool verboseLogging = IsVerboseWatchLoggingEnabled();
         bool hmrVerboseLogging = IsHmrVerboseLoggingEnabled();
-
+        _moduleProviderResolver = new DefaultFrontendModuleProviderResolver();
         _watcher = new FrontendWatcher(
             _workspace,
             _logger,
@@ -86,18 +89,42 @@ public sealed class FrontendWorker : IFrontendWorker
         }
 
         await EnsurePackagesAsync();
-        string command = string.IsNullOrWhiteSpace(changedFilePath) ? "build" : "rebuild";
-        await RunFrontendCliAsync(command, changedFilePath);
+        FrontendModuleProvider provider = await EnsureProviderAsync();
+
+        ModuleBuildExecutionResult buildResult = await ModuleBuildExecutor.ExecuteAsync(
+            _workspace,
+            provider.Id,
+            ModuleBuildMode.Build,
+            new Dictionary<string, string?>(StringComparer.Ordinal),
+            _logger,
+            CancellationToken.None);
+
+        LogModuleBuildResult("Build", buildResult);
     }
 
     public async Task PublishAsync()
     {
         await EnsurePackagesAsync();
-        await RunFrontendCliAsync("publish", null);
+        FrontendModuleProvider provider = await EnsureProviderAsync();
+
+        ModuleBuildExecutionResult buildResult = await ModuleBuildExecutor.ExecuteAsync(
+            _workspace,
+            provider.Id,
+            ModuleBuildMode.Publish,
+            new Dictionary<string, string?>(StringComparer.Ordinal),
+            _logger,
+            CancellationToken.None);
+
+        LogModuleBuildResult("Publish", buildResult);
         await LogPublishManifestAsync();
     }
 
-    public async Task AddPageAsync(string pageName) => await RunFrontendCliAsync("add-page", null, pageName);
+    public async Task AddPageAsync(string pageName)
+    {
+        await EnsurePackagesAsync();
+        await EnsureProviderAsync();
+        await RunFrontendCliAsync("add-page", null, pageName);
+    }
 
     public async Task StartWatchAsync()
     {
@@ -111,6 +138,8 @@ public sealed class FrontendWorker : IFrontendWorker
         try
         {
             await EnsurePackagesAsync();
+            FrontendModuleProvider provider = await EnsureProviderAsync();
+            _watcher.SetProviderId(provider.Id);
             await _watcher.StartAsync();
         }
         catch
@@ -226,6 +255,78 @@ public sealed class FrontendWorker : IFrontendWorker
         finally
         {
             _packageLock.Release();
+        }
+    }
+
+    private async Task<FrontendModuleProvider> EnsureProviderAsync()
+    {
+        if (_resolvedProvider is not null)
+        {
+            return _resolvedProvider;
+        }
+
+        _resolvedProvider = await _moduleProviderResolver.ResolveAsync(_workspace, CancellationToken.None);
+        _logger.LogDebug("[frontend] Using module provider {ProviderId}.", _resolvedProvider.Id);
+        return _resolvedProvider;
+    }
+
+    private void LogModuleBuildResult(string stage, ModuleBuildExecutionResult result)
+    {
+        _logger.LogInformation(
+            "[frontend] {Stage} provider {ProviderId} produced {EntryCount} entry point(s).",
+            stage,
+            result.Provider.Id,
+            result.Manifest.EntryPoints.Count);
+
+        if (result.Manifest.EntryPoints.Count > 0)
+        {
+            _logger.LogDebug(
+                "[frontend] Entry points: {EntryPoints}",
+                string.Join(", ", result.Manifest.EntryPoints));
+        }
+
+        if (result.Manifest.StaticAssets.Count > 0)
+        {
+            _logger.LogDebug(
+                "[frontend] Static assets: {Assets}",
+                string.Join(", ", result.Manifest.StaticAssets));
+        }
+
+        foreach (ModuleDiagnostic diagnostic in result.Manifest.Diagnostics)
+        {
+            if (string.Equals(diagnostic.Severity, "error", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogError("[frontend] {Message}", diagnostic.Message);
+            }
+            else if (string.Equals(diagnostic.Severity, "warn", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("[frontend] {Message}", diagnostic.Message);
+            }
+            else
+            {
+                _logger.LogInformation("[frontend] {Message}", diagnostic.Message);
+            }
+        }
+
+        foreach (ModuleLogEvent evt in result.Events)
+        {
+            LogModuleEvent(evt);
+        }
+    }
+
+    private void LogModuleEvent(ModuleLogEvent evt)
+    {
+        if (string.Equals(evt.Type, "error", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogError("[frontend] {Message}", evt.Message);
+        }
+        else if (string.Equals(evt.Type, "warn", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("[frontend] {Message}", evt.Message);
+        }
+        else
+        {
+            _logger.LogInformation("[frontend] {Message}", evt.Message);
         }
     }
 
