@@ -43,7 +43,7 @@ jobs:
         run: dotnet build Webstir.sln -v minimal
 
       - name: Run .NET workflow tests
-        run: dotnet run --project Tests -- --full
+        run: WEBSTIR_TEST_MODE=full dotnet test Tester/Tester.csproj --nologo --logger "console;verbosity=minimal;summary=true"
 
       - name: Run frontend package tests
         run: npm test --silent

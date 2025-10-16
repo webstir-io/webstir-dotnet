@@ -73,16 +73,14 @@ jobs:
           script: |
             const eventName = context.eventName;
             if (eventName !== 'workflow_dispatch') {
-              core.setOutput('value', 'patch');
               core.info('Non-dispatch release; defaulting bump to patch.');
-              return;
+              return 'patch';
             }
 
             const input = context.payload.inputs?.bump ?? 'auto';
             if (input !== 'auto') {
-              core.setOutput('value', input);
               core.info(`Using bump type '${input}' from workflow input.`);
-              return;
+              return input;
             }
 
             const commitSha = process.env.GITHUB_SHA;
@@ -103,21 +101,23 @@ jobs:
                 Array.isArray(pr.labels) && pr.labels.some(item => item.name === label)
               );
               if (hasLabel) {
-                core.setOutput('value', bump);
                 core.info(`Derived bump '${bump}' from PR label '${label}'.`);
-                return;
+                return bump;
               }
             }
 
-            core.setOutput('value', 'patch');
             core.info('No release labels found on associated PRs; defaulting bump to patch.');
+            return 'patch';
+          result-encoding: string
 
       - name: Determine release version
         id: release_version
         shell: bash
+        env:
+          RESOLVED_BUMP: ${{ steps.resolve_bump.outputs.result }}
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            BUMP="${{ steps.resolve_bump.outputs.value }}"
+            BUMP="${RESOLVED_BUMP:-patch}"
             VERSION=$(node ./Framework/Scripts/bump-version.mjs --bump "$BUMP" $([[ "${{ github.event.inputs.dry_run }}" == "true" ]] && echo "--dry-run"))
             echo "release_version=$VERSION" >> "$GITHUB_OUTPUT"
             echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
@@ -144,10 +144,14 @@ jobs:
         run: npm ci
         working-directory: Framework/Testing
 
+      - name: Run .NET workflow tests
+        if: ${{ env.IS_DRY_RUN != 'true' }}
+        run: WEBSTIR_TEST_MODE=full dotnet test Tester/Tester.csproj --nologo --logger "console;verbosity=minimal;summary=true"
+
       - name: Build and publish framework packages
         if: ${{ env.IS_DRY_RUN != 'true' }}
         env:
-          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
+          RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
         run: dotnet run --project Framework/Framework.csproj -- packages publish
 
       - name: Verify framework packages
@@ -177,5 +181,5 @@ jobs:
         if: ${{ env.IS_DRY_RUN != 'true' }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ env.RELEASE_VERSION }}
-          name: Webstir v${{ env.RELEASE_VERSION }}
+          tag_name: v${{ steps.release_version.outputs.release_version }}
+          name: Webstir v${{ steps.release_version.outputs.release_version }}
