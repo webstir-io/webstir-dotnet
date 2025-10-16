@@ -59,6 +59,7 @@ Each new repository should include:
   - `release.yml` — version bump detection, tests, publish to GitHub Packages, provenance/SBOM.
 - `.npmrc` guidance for maintainers (document required tokens).
 - CODEOWNERS mirroring current package owners.
+- README drafts live under `Docs/product/plans/architecture/package-readmes/` (`webstir-frontend.md`, `webstir-backend.md`, `webstir-test.md`, `module-contract.md`, `testing-contract.md` ready). Copy each into its matching repository README before publishing.
 
 ## Outstanding Questions
 
