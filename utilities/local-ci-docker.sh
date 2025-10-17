@@ -12,6 +12,8 @@ docker build -f "$ROOT_DIR/utilities/docker/ci.Dockerfile" -t "$IMAGE_NAME" "$RO
 echo "[docker-ci] Running local CI inside container..."
 docker run --rm \
   -e GH_PACKAGES_TOKEN="${GH_PACKAGES_TOKEN:-}" \
+  -e NODE_AUTH_TOKEN="${GH_PACKAGES_TOKEN:-}" \
+  -v "$ROOT_DIR/.npmrc":/root/.npmrc:ro \
   -v "$PARENT_DIR":/workspaces \
   -w "/workspaces/$ROOT_NAME" \
   "$IMAGE_NAME"
