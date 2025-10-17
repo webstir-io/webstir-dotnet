@@ -62,14 +62,14 @@
     "access": "restricted"
   },
   "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.11.25",
-    "typescript": "^5.4.0",
-    "@types/fs-extra": "^11.0.4"
+    "typescript": "^5.4.0"
   },
   "dependencies": {
-    "@webstir-io/testing-contract": "file:../Contracts/testing-contract",
-    "fs-extra": "^11.2.0",
+    "@webstir-io/testing-contract": "^0.1.1",
     "chokidar": "^3.6.0",
-    "commander": "^11.1.0"
+    "commander": "^11.1.0",
+    "fs-extra": "^11.2.0"
   }
 }
