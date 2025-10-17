@@ -60,6 +60,7 @@ Each new repository should include:
 - `.npmrc` guidance for maintainers (document required tokens).
 - CODEOWNERS mirroring current package owners.
 - README drafts live under `Docs/product/plans/architecture/package-readmes/` (`webstir-frontend.md`, `webstir-backend.md`, `webstir-test.md`, `module-contract.md`, `testing-contract.md` ready). Copy each into its matching repository README before publishing.
+- `utilities/local-ci-docker.sh` now mounts sibling package repositories; place the split repos alongside the mono-repo (`../webstir-frontend`, etc.) to run their CI workflows locally against GitHub Packages.
 
 ## Outstanding Questions
 
