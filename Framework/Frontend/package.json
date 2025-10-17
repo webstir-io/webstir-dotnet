@@ -58,6 +58,7 @@
   },
   "dependencies": {
     "@webstir-io/module-contract": "^0.1.4",
+    "@webstir-io/webstir-frontend": "^0.1.2",
     "autoprefixer": "^10.4.18",
     "cheerio": "^1.0.0-rc.12",
     "commander": "^12.1.0",

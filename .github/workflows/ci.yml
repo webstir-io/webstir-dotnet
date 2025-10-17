@@ -11,8 +11,8 @@ jobs:
     permissions:
       contents: read
     env:
+      NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
       GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
-      NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,23 +44,6 @@ jobs:
 
       - name: Run .NET workflow tests
         run: WEBSTIR_TEST_MODE=full dotnet test Tester/Tester.csproj --nologo --logger "console;verbosity=minimal;summary=true"
-
-      - name: Dump Webstir logs on failure
-        if: ${{ failure() }}
-        run: |
-          LOG_DIR="$HOME/.webstir/logs"
-          if [ -d "$LOG_DIR" ]; then
-            echo "---- webstir logs ----"
-            ls -lah "$LOG_DIR"
-            echo
-            for file in "$LOG_DIR"/*.log; do
-              echo "----- $file -----"
-              cat "$file"
-              echo
-            done
-          else
-            echo "No log directory at $LOG_DIR"
-          fi
 
       - name: Run frontend package tests
         run: npm test --silent

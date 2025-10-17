@@ -68,6 +68,7 @@
   },
   "dependencies": {
     "@webstir-io/testing-contract": "^0.1.1",
+    "@webstir-io/webstir-test": "^0.1.1",
     "chokidar": "^3.6.0",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0"

@@ -26,9 +26,8 @@ jobs:
       contents: write
       packages: write
     env:
+      NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
       GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
-      NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
-      # define once so IDEs stop warning about env.IS_DRY_RUN being undefined
       IS_DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run) && 'true' || 'false' }}
     steps:
       - name: Checkout repository
