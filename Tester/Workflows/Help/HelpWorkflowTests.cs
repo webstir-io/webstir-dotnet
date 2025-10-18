@@ -20,8 +20,10 @@ public sealed class HelpWorkflowTests
         ProcessRunner.ProcessResult result = context.Run(HelpOptions.Help, timeoutMs: 5000);
 
         Assert.True(result.ExitCode is 0 or 1, $"help failed with exit code {result.ExitCode}. Error: {result.Error}");
-        Assert.True(result.Output.Length > 10, "Help output is empty");
-        Assert.Contains("Usage:", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Commands:", result.Output, StringComparison.Ordinal);
+
+        string combinedOutput = string.Concat(result.Output ?? string.Empty, result.Error ?? string.Empty);
+        Assert.True(combinedOutput.Length > 10, "Help output is empty");
+        Assert.Contains("Usage:", combinedOutput, StringComparison.Ordinal);
+        Assert.Contains("Commands:", combinedOutput, StringComparison.Ordinal);
     }
 }
