@@ -89,7 +89,7 @@ public sealed class PublishWorkflowTests
             .ToLowerInvariant();
 
         Assert.NotEqual(0, publish.ExitCode);
-        Assert.Contains("build failed with exit code 1", combinedLower);
+        Assert.Contains("module provider '@webstir-io/webstir-frontend' failed with exit code 1", combinedLower);
         Assert.Contains("unexpected \"", combinedLower);
     }
 }

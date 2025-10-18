@@ -177,7 +177,7 @@ public sealed class BuildWorkflowTests
         string configurationPath = Path.Combine(seedDir, "webstir.providers.json");
         File.WriteAllText(configurationPath, """
 {
-  "frontend": "@webstir-io/webstir-frontend-vite"
+  "frontend": "@webstir-io/webstir-frontend"
 }
 """);
 
@@ -206,7 +206,7 @@ export default defineConfig({
         Assert.False(result.TimedOut, "Build command timed out while using Vite provider.");
         Assert.Equal(0, result.ExitCode);
         context.AssertNoCompilationErrors(result);
-        Assert.Contains("@webstir-io/webstir-frontend-vite", result.Output, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("@webstir-io/webstir-frontend", result.Output, StringComparison.OrdinalIgnoreCase);
 
         string buildRoot = Path.Combine(seedDir, Folders.Build, Folders.Frontend);
         Assert.True(Directory.Exists(buildRoot), "Vite build output directory missing.");

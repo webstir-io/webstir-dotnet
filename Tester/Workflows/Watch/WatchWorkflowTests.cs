@@ -47,7 +47,7 @@ public sealed class WatchWorkflowTests
         string configurationPath = Path.Combine(seedDir, "webstir.providers.json");
         File.WriteAllText(configurationPath, """
 {
-  "frontend": "@webstir-io/webstir-frontend-vite"
+  "frontend": "@webstir-io/webstir-frontend"
 }
 """);
 
@@ -62,7 +62,7 @@ public sealed class WatchWorkflowTests
         Assert.True(result.Output.Length + result.Error.Length > 0, "watch command produced no output");
 
         string combinedOutput = $"{result.Output}{Environment.NewLine}{result.Error}";
-        Assert.Contains("@webstir-io/webstir-frontend-vite", combinedOutput, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("@webstir-io/webstir-frontend", combinedOutput, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("entry point(s)", combinedOutput, StringComparison.OrdinalIgnoreCase);
     }
 }
