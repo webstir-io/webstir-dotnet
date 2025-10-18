@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Engine;
 using Engine.Models;
@@ -161,10 +162,7 @@ public static class Help
 
         foreach (CommandHelp cmd in AppCommands.Values.OrderBy(c => c.Name))
         {
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.Write($"  {cmd.Name,-12}");
-            Console.ResetColor();
-            Console.WriteLine($"  {cmd.Description}");
+            WriteCommandEntry(cmd);
         }
 
         Console.WriteLine();
@@ -177,11 +175,9 @@ public static class Help
         Console.WriteLine("  Workers are injected (IWorkflowWorker); 'add-page' targets the frontend worker.");
         Console.WriteLine();
         Console.WriteLine("Examples:");
-        Console.ForegroundColor = ConsoleColor.Gray;
-        Console.WriteLine($"  {App.Name} build ./my-project         # Build project in ./my-project directory");
-        Console.WriteLine($"  {App.Name} watch /path/to/project     # Watch project at absolute path");
-        Console.WriteLine($"  {App.Name} init new-app               # Initialize new project in new-app directory");
-        Console.ResetColor();
+        WriteExampleLine($"{App.Name} build ./my-project         # Build project in ./my-project directory");
+        WriteExampleLine($"{App.Name} watch /path/to/project     # Watch project at absolute path");
+        WriteExampleLine($"{App.Name} init new-app               # Initialize new project in new-app directory");
     }
 
     public static void ShowCommandHelp(string commandName)
@@ -206,10 +202,7 @@ public static class Help
             Console.WriteLine("Options:");
             foreach (CommandOption option in command.Options)
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.Write($"  {option.Name,-18}");
-                Console.ResetColor();
-                Console.WriteLine($"{option.Description}");
+                WriteOptionEntry(option);
             }
         }
 
@@ -219,10 +212,65 @@ public static class Help
             Console.WriteLine("Examples:");
             foreach (string example in command.Examples)
             {
-                Console.ForegroundColor = ConsoleColor.Gray;
-                Console.WriteLine($"  {example}");
-                Console.ResetColor();
+                WriteExampleLine(example);
             }
+        }
+    }
+
+    private static bool TryWriteWithColor(ConsoleColor color, Action action)
+    {
+        if (Console.IsOutputRedirected || Console.IsErrorRedirected)
+        {
+            return false;
+        }
+
+        try
+        {
+            ConsoleColor previous = Console.ForegroundColor;
+            Console.ForegroundColor = color;
+            action();
+            Console.ForegroundColor = previous;
+            return true;
+        }
+        catch (IOException)
+        {
+        }
+        catch (PlatformNotSupportedException)
+        {
+        }
+
+        return false;
+    }
+
+    private static void WriteCommandEntry(CommandHelp cmd)
+    {
+        if (TryWriteWithColor(ConsoleColor.Cyan, () => Console.Write($"  {cmd.Name,-12}")))
+        {
+            Console.WriteLine($"  {cmd.Description}");
+        }
+        else
+        {
+            Console.WriteLine($"  {cmd.Name,-12}  {cmd.Description}");
+        }
+    }
+
+    private static void WriteOptionEntry(CommandOption option)
+    {
+        if (TryWriteWithColor(ConsoleColor.Yellow, () => Console.Write($"  {option.Name,-18}")))
+        {
+            Console.WriteLine($"{option.Description}");
+        }
+        else
+        {
+            Console.WriteLine($"  {option.Name,-18}  {option.Description}");
+        }
+    }
+
+    private static void WriteExampleLine(string text)
+    {
+        if (!TryWriteWithColor(ConsoleColor.Gray, () => Console.WriteLine($"  {text}")))
+        {
+            Console.WriteLine($"  {text}");
         }
     }
 }
