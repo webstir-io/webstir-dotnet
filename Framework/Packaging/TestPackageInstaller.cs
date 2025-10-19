@@ -8,40 +8,19 @@ namespace Framework.Packaging;
 
 public static class TestPackageInstaller
 {
-    public static async Task<PackageEnsureResult> EnsureAsync(IPackageWorkspace workspace, bool preferRegistry)
+    public static async Task<PackageEnsureResult> EnsureAsync(IPackageWorkspace workspace)
     {
         ArgumentNullException.ThrowIfNull(workspace);
 
         FrameworkPackageMetadata metadata = FrameworkPackageCatalog.Testing;
         string packageJsonPath = Path.Combine(workspace.WorkingPath, "package.json");
 
-        string dependencySpecifier = await ResolveDependencySpecifierAsync(workspace, metadata, preferRegistry);
+        string dependencySpecifier = RegistrySpecifierResolver.Resolve(metadata);
 
         bool dependencyUpdated = await EnsureDependencyAsync(packageJsonPath, metadata, dependencySpecifier);
         PackageInstallState installState = await DetectInstalledVersionMismatchAsync(workspace, metadata);
 
         return new PackageEnsureResult(dependencyUpdated, installState.VersionMismatch, installState.InstalledVersion, metadata);
-    }
-
-    private static async Task<string> ResolveDependencySpecifierAsync(IPackageWorkspace workspace, FrameworkPackageMetadata metadata, bool preferRegistry)
-    {
-        if (!preferRegistry)
-        {
-            try
-            {
-                await PackageTarballManager.EnsureTarballAsync(workspace, metadata);
-                string specifier = metadata.GetWorkspaceDependencySpecifier();
-                WriteTestingPackageManifest(workspace, metadata, specifier);
-                return specifier;
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"Warning: Falling back to registry for {metadata.Name}: {ex.Message}");
-            }
-        }
-
-        DeleteTestingPackageManifest(workspace);
-        return metadata.RegistrySpecifier;
     }
 
     private static async Task<bool> EnsureDependencyAsync(string packageJsonPath, FrameworkPackageMetadata metadata, string desiredSpecifier)
@@ -108,48 +87,6 @@ public static class TestPackageInstaller
         {
             Console.Error.WriteLine($"Warning: Unable to read installed {metadata.Name} version: {ex.Message}");
             return new PackageInstallState(true, null);
-        }
-    }
-
-    private static void WriteTestingPackageManifest(IPackageWorkspace workspace, FrameworkPackageMetadata metadata, string dependencySpecifier)
-    {
-        try
-        {
-            Directory.CreateDirectory(workspace.WebstirPath);
-            string manifestPath = Path.Combine(workspace.WebstirPath, "testing-package.json");
-
-            JsonObject manifest = new()
-            {
-                ["fileName"] = metadata.Tarball.FileName,
-                ["dependency"] = dependencySpecifier
-            };
-
-            JsonSerializerOptions options = new()
-            {
-                WriteIndented = true
-            };
-
-            File.WriteAllText(manifestPath, manifest.ToJsonString(options) + Environment.NewLine);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            Console.Error.WriteLine($"Warning: Unable to write testing-package.json: {ex.Message}");
-        }
-    }
-
-    private static void DeleteTestingPackageManifest(IPackageWorkspace workspace)
-    {
-        try
-        {
-            string manifestPath = Path.Combine(workspace.WebstirPath, "testing-package.json");
-            if (File.Exists(manifestPath))
-            {
-                File.Delete(manifestPath);
-            }
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            Console.Error.WriteLine($"Warning: Unable to delete testing-package.json: {ex.Message}");
         }
     }
 }

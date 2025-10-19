@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using Engine;
+using Framework.Packaging;
 using Tester.Infrastructure;
 using Xunit;
 
@@ -70,22 +71,14 @@ public sealed class AddWorkflowTests
         string expectedTest = Path.Combine(seedDir, Folders.Src, Folders.Frontend, Folders.Pages, Folders.Home, Folders.Tests, "home.test.ts");
         Assert.True(File.Exists(expectedTest), $"Test file not created at {expectedTest}");
 
-        string manifestPath = Path.Combine(seedDir, Folders.Webstir, "testing-package.json");
-        Assert.True(File.Exists(manifestPath), $"Test package manifest missing at {manifestPath}");
-
-        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
-        string archiveName = manifest.RootElement.GetProperty("fileName").GetString()
-            ?? throw new InvalidOperationException("Manifest missing fileName.");
-        string dependencyValue = manifest.RootElement.GetProperty("dependency").GetString()
-            ?? throw new InvalidOperationException("Manifest missing dependency string.");
-
-        string toolsArchive = Path.Combine(seedDir, Folders.Webstir, archiveName);
-        Assert.True(File.Exists(toolsArchive), $"Testing package archive not found at {toolsArchive}");
-
         string packageJsonPath = Path.Combine(seedDir, Files.PackageJson);
         Assert.True(File.Exists(packageJsonPath), $"{Files.PackageJson} not found");
 
-        string packageJson = File.ReadAllText(packageJsonPath);
-        Assert.Contains($"\"@webstir-io/webstir-test\": \"{dependencyValue}\"", packageJson);
+        using JsonDocument packageManifest = JsonDocument.Parse(File.ReadAllText(packageJsonPath));
+        JsonElement dependencies = packageManifest.RootElement.GetProperty("dependencies");
+        string expectedSpecifier = Environment.GetEnvironmentVariable("WEBSTIR_TEST_REGISTRY_SPEC")?.Trim()
+            ?? FrameworkPackageCatalog.Testing.RegistrySpecifier;
+        string actualSpecifier = dependencies.GetProperty("@webstir-io/webstir-test").GetString() ?? string.Empty;
+        Assert.Equal(expectedSpecifier, actualSpecifier);
     }
 }

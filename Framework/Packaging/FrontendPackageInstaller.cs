@@ -8,37 +8,19 @@ namespace Framework.Packaging;
 
 public static class FrontendPackageInstaller
 {
-    public static async Task<FrontendPackageEnsureResult> EnsureAsync(IPackageWorkspace workspace, bool preferRegistry)
+    public static async Task<FrontendPackageEnsureResult> EnsureAsync(IPackageWorkspace workspace)
     {
         ArgumentNullException.ThrowIfNull(workspace);
 
         FrameworkPackageMetadata metadata = FrameworkPackageCatalog.Frontend;
         string packageJsonPath = Path.Combine(workspace.WorkingPath, "package.json");
 
-        string dependencySpecifier = await ResolveDependencySpecifierAsync(workspace, metadata, preferRegistry);
+        string dependencySpecifier = RegistrySpecifierResolver.Resolve(metadata);
 
         bool dependencyUpdated = await EnsureDependencyAsync(packageJsonPath, metadata, dependencySpecifier);
         FrontendPackageInstallState installState = await DetectInstalledVersionMismatchAsync(workspace, metadata);
 
         return new FrontendPackageEnsureResult(dependencyUpdated, installState.VersionMismatch, installState.InstalledVersion, metadata);
-    }
-
-    private static async Task<string> ResolveDependencySpecifierAsync(IPackageWorkspace workspace, FrameworkPackageMetadata metadata, bool preferRegistry)
-    {
-        if (!preferRegistry)
-        {
-            try
-            {
-                await PackageTarballManager.EnsureTarballAsync(workspace, metadata);
-                return metadata.GetWorkspaceDependencySpecifier();
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"Warning: Falling back to registry for {metadata.Name}: {ex.Message}");
-            }
-        }
-
-        return metadata.RegistrySpecifier;
     }
 
     private static async Task<bool> EnsureDependencyAsync(string packageJsonPath, FrameworkPackageMetadata metadata, string desiredSpecifier)

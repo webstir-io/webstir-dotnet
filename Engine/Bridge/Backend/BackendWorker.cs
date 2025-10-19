@@ -140,7 +140,7 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
                 _logger,
                 ensureFrontend: null,
                 ensureTesting: null,
-                ensureBackend: preferRegistry => BackendPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
+                ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter),
                 includeFrontend: false,
                 includeTesting: false,
                 includeBackend: true,
@@ -157,7 +157,7 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
 
             if (summary.Backend is { DependencyUpdated: true } backend)
             {
-                _logger.LogInformation("[backend] {Package} dependency updated to match bundled tarball.", backend.Metadata.Name);
+                _logger.LogInformation("[backend] {Package} dependency updated to match bundled version.", backend.Metadata.Name);
             }
 
             if (summary.InstallRequiredButSkipped)

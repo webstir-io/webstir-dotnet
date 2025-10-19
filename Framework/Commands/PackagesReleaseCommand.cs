@@ -172,11 +172,11 @@ internal sealed class PackagesReleaseCommand(
         {
             _logger.LogInformation(
                 summary.Publish
-                    ? "[packages]  {Package}@{Version} (tarball: {Tarball}) [{PublishStatus}]."
-                    : "[packages]  {Package}@{Version} (tarball: {Tarball}).",
+                    ? "[packages]  {Package}@{Version} [{PublishStatus}] (registry specifier: {Registry})."
+                    : "[packages]  {Package}@{Version} (registry specifier: {Registry}).",
                 result.PackageName,
                 result.Version,
-                result.Tarball.RepositoryPath,
+                result.RegistrySpecifier,
                 result.Published ? "published" : "skipped");
         }
     }

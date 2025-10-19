@@ -54,7 +54,6 @@ internal sealed class PackageConsoleCommand
                 result.Bump,
                 result.BumpExplicit,
                 result.ExplicitVersion,
-                result.PruneWebstir,
                 result.Interactive,
                 result.SinceReference,
                 result.AdditionalArguments);
@@ -106,7 +105,6 @@ internal sealed class PackageConsoleCommand
                 Bump: SemanticVersionBump.Patch,
                 BumpExplicit: false,
                 ExplicitVersion: null,
-                PruneWebstir: false,
                 Interactive: false,
                 SinceReference: null,
                 AdditionalArguments: Array.Empty<string>());
@@ -125,7 +123,6 @@ internal sealed class PackageConsoleCommand
         bool allPackages = false;
         bool changedOnly = false;
         bool dryRun = false;
-        bool pruneWebstir = false;
         bool interactive = false;
         bool bumpExplicit = false;
         string? sinceReference = null;
@@ -150,13 +147,12 @@ internal sealed class PackageConsoleCommand
                     repositoryRoot,
                     PackageSelection.ChangedPackages,
                     dryRun,
-                    bump,
-                    bumpExplicit,
-                    explicitVersion,
-                    pruneWebstir,
-                    interactive,
-                    sinceReference,
-                    additionalArguments);
+                bump,
+                bumpExplicit,
+                explicitVersion,
+                interactive,
+                sinceReference,
+                additionalArguments);
             }
 
             switch (token)
@@ -189,9 +185,6 @@ internal sealed class PackageConsoleCommand
                     break;
                 case "--dry-run":
                     dryRun = true;
-                    break;
-                case "--prune-webstir":
-                    pruneWebstir = true;
                     break;
                 case "--interactive":
                     interactive = true;
@@ -233,7 +226,6 @@ internal sealed class PackageConsoleCommand
             bump,
             bumpExplicit,
             explicitVersion,
-            pruneWebstir,
             interactive,
             sinceReference,
             additionalArguments);
@@ -337,11 +329,11 @@ internal sealed class PackageConsoleCommand
         Console.WriteLine();
         Console.WriteLine("Commands:");
         Console.WriteLine("  bump       Bump package versions using conventional commit heuristics or manual flags.");
-        Console.WriteLine("  sync       Rebuild framework package tarballs.");
+        Console.WriteLine("  sync       Rebuild framework packages and refresh registry metadata.");
         Console.WriteLine("  release    Bump and rebuild packages without publishing.");
         Console.WriteLine("  publish    Bump, rebuild, and publish packages to the configured registry.");
-        Console.WriteLine("  verify     Validate tarball metadata and embedded assets.");
-        Console.WriteLine("  diff       Report tarball size/hash differences without modifying files.");
+        Console.WriteLine("  verify     Validate registry metadata and template dependencies.");
+        Console.WriteLine("  diff       Report registry metadata differences without modifying files.");
         Console.WriteLine();
         Console.WriteLine("Shared Options:");
         Console.WriteLine("  --package <name>    Target a specific package (repeatable, accepts aliases).");
@@ -350,7 +342,6 @@ internal sealed class PackageConsoleCommand
         Console.WriteLine("  --dry-run           Preview actions without writing files or publishing.");
         Console.WriteLine("  --set-version <x.y.z>  Explicitly set the next version.");
         Console.WriteLine("  --bump <patch|minor|major>  Version bump increment (defaults to patch).");
-        Console.WriteLine("  --prune-webstir     Remove cached .webstir tarballs after rebuilding (sync/release).");
         Console.WriteLine("  --interactive       Prompt before executing critical steps (future use).");
         Console.WriteLine("  --since <ref>       Detect changes relative to the provided git reference.");
         Console.WriteLine();

@@ -13,7 +13,6 @@ internal sealed record PackagesCommandContext(
     SemanticVersionBump Bump,
     bool BumpExplicit,
     SemanticVersion? ExplicitVersion,
-    bool PruneWebstir,
     bool Interactive,
     string? SinceReference,
     IReadOnlyList<string> AdditionalArguments)
@@ -42,7 +41,6 @@ internal sealed record PackagesCommandContext(
             Bump: SemanticVersionBump.Patch,
             BumpExplicit: false,
             ExplicitVersion: null,
-            PruneWebstir: false,
             Interactive: false,
             SinceReference: null,
             AdditionalArguments: Array.Empty<string>());

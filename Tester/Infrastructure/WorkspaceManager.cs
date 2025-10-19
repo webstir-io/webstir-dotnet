@@ -10,6 +10,7 @@ public static class WorkspaceManager
     private static readonly object SeedLock = new();
     private static readonly object SeedNodeModulesLock = new();
     private static bool _seedBaselineReady;
+    private static bool _localPackagesPrepared;
 
     private static string CacheRoot => Path.Combine(Paths.OutPath, ".baselines");
     private static string SeedBaselinePath => Path.Combine(CacheRoot, Folders.Seed);
@@ -38,6 +39,8 @@ public static class WorkspaceManager
 
     private static void EnsureSeedBaseline(TestCaseContext context)
     {
+        SetLocalRegistryOverrides();
+
         if (_seedBaselineReady && Directory.Exists(SeedBaselinePath))
         {
             return;
@@ -209,5 +212,64 @@ public static class WorkspaceManager
         {
             return false;
         }
+    }
+
+    private static void SetLocalRegistryOverrides()
+    {
+        string repositoryRoot = Paths.RepositoryRoot;
+        Environment.SetEnvironmentVariable("WEBSTIR_FRONTEND_REGISTRY_SPEC", $"file:{Path.Combine(repositoryRoot, "Framework", "Frontend")}");
+        Environment.SetEnvironmentVariable("WEBSTIR_TEST_REGISTRY_SPEC", $"file:{Path.Combine(repositoryRoot, "Framework", "Testing")}");
+        Environment.SetEnvironmentVariable("WEBSTIR_BACKEND_REGISTRY_SPEC", $"file:{Path.Combine(repositoryRoot, "Framework", "Backend")}");
+
+        if (_localPackagesPrepared)
+        {
+            return;
+        }
+
+        lock (SeedLock)
+        {
+            if (_localPackagesPrepared)
+            {
+                return;
+            }
+
+            PrepareLocalPackage(Path.Combine(repositoryRoot, "Framework", "Frontend"));
+            PrepareLocalPackage(Path.Combine(repositoryRoot, "Framework", "Testing"));
+            PrepareLocalPackage(Path.Combine(repositoryRoot, "Framework", "Backend"));
+
+            _localPackagesPrepared = true;
+        }
+    }
+
+    private static void PrepareLocalPackage(string packageDirectory)
+    {
+        if (!Directory.Exists(packageDirectory))
+        {
+            return;
+        }
+
+        string nodeModules = Path.Combine(packageDirectory, "node_modules");
+        if (!Directory.Exists(nodeModules))
+        {
+            ProcessRunner.ProcessResult install = ProcessRunner.Run(new ProcessRunOptions
+            {
+                FileName = "npm",
+                Arguments = "install --silent",
+                WorkingDirectory = packageDirectory,
+                ExitTimeoutMs = 120000
+            });
+
+            Assert.Equal(0, install.ExitCode);
+        }
+
+        ProcessRunner.ProcessResult build = ProcessRunner.Run(new ProcessRunOptions
+        {
+            FileName = "npm",
+            Arguments = "run build",
+            WorkingDirectory = packageDirectory,
+            ExitTimeoutMs = 120000
+        });
+
+        Assert.Equal(0, build.ExitCode);
     }
 }

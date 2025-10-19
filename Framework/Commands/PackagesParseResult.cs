@@ -14,7 +14,6 @@ internal sealed record PackagesParseResult(
     SemanticVersionBump Bump,
     bool BumpExplicit,
     SemanticVersion? ExplicitVersion,
-    bool PruneWebstir,
     bool Interactive,
     string? SinceReference,
     IReadOnlyList<string> AdditionalArguments);

@@ -50,10 +50,9 @@ public class InitWorkflow(
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.TypesPath, Context.WorkingPath.Combine(Folders.Types));
         TrimTypeScriptReferences(mode);
 
-        bool preferRegistry = PackageSourceSelector.ShouldPreferRegistry();
         PackageWorkspaceAdapter workspaceAdapter = new(Context);
-        await FrontendPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry);
-        await TestPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry);
+        await FrontendPackageInstaller.EnsureAsync(workspaceAdapter);
+        await TestPackageInstaller.EnsureAsync(workspaceAdapter);
         await ExecuteWorkersAsync(async worker => await worker.InitAsync(mode), mode);
     }
 

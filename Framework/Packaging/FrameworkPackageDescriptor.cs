@@ -8,8 +8,8 @@ internal sealed record FrameworkPackageDescriptor(
     string Key,
     string PackageName,
     string PackageRelativePath,
-    string TarballPrefix,
-    string TarballPattern,
+    string? WorkspaceSpecifierEnvironmentVariable,
+    string? DefaultWorkspaceSpecifierPattern,
     string? RegistrySpecifierEnvironmentVariable,
     IReadOnlyCollection<string> CleanupDirectories,
     string? DefaultRegistrySpecifierPattern,
@@ -24,8 +24,8 @@ internal sealed record FrameworkPackageDescriptor(
         "frontend",
         "@webstir-io/webstir-frontend",
         Path.Combine("Framework", "Frontend"),
-        "webstir-frontend-",
-        "webstir-frontend-*.tgz",
+        "WEBSTIR_FRONTEND_WORKSPACE_SPEC",
+        "^{version}",
         "WEBSTIR_FRONTEND_REGISTRY_SPEC",
         new[] { "node_modules" },
         "@webstir-io/webstir-frontend@{version}",
@@ -40,8 +40,8 @@ internal sealed record FrameworkPackageDescriptor(
         "testing",
         "@webstir-io/webstir-test",
         Path.Combine("Framework", "Testing"),
-        "webstir-test-",
-        "webstir-test-*.tgz",
+        "WEBSTIR_TEST_WORKSPACE_SPEC",
+        "^{version}",
         "WEBSTIR_TEST_REGISTRY_SPEC",
         new[] { "node_modules", "dist" },
         "@webstir-io/webstir-test@{version}",
@@ -56,8 +56,8 @@ internal sealed record FrameworkPackageDescriptor(
         "backend",
         "@webstir-io/webstir-backend",
         Path.Combine("Framework", "Backend"),
-        "webstir-backend-",
-        "webstir-backend-*.tgz",
+        "WEBSTIR_BACKEND_WORKSPACE_SPEC",
+        "^{version}",
         null,
         new[] { "node_modules", "dist" },
         "@webstir-io/webstir-backend@{version}",
@@ -72,10 +72,29 @@ internal sealed record FrameworkPackageDescriptor(
 
     internal bool SupportsPublishing => !string.IsNullOrWhiteSpace(PublishRegistryUrl);
 
+    internal string? GetWorkspaceSpecifierOverride() =>
+        GetWorkspaceSpecifier(WorkspaceSpecifierEnvironmentVariable);
+
+    internal string? GetDefaultWorkspaceSpecifier(string version) =>
+        string.IsNullOrWhiteSpace(DefaultWorkspaceSpecifierPattern)
+            ? null
+            : DefaultWorkspaceSpecifierPattern.Replace("{version}", version, StringComparison.Ordinal);
+
     internal string? GetDefaultRegistrySpecifier(string version) =>
         string.IsNullOrWhiteSpace(DefaultRegistrySpecifierPattern)
             ? null
             : DefaultRegistrySpecifierPattern.Replace("{version}", version, StringComparison.Ordinal);
 
     internal string GetPackageSpec(string version) => $"{PackageName}@{version}";
+
+    private static string? GetWorkspaceSpecifier(string? environmentVariable)
+    {
+        if (string.IsNullOrWhiteSpace(environmentVariable))
+        {
+            return null;
+        }
+
+        string? value = Environment.GetEnvironmentVariable(environmentVariable);
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
 }

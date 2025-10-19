@@ -50,14 +50,6 @@ internal sealed class PackagesSyncCommand(PackageBuilder packageBuilder, IPackag
             publish ? "[packages] Publishing {Count} package(s)..." : "[packages] Building {Count} package(s)...",
             manifests.Count);
 
-        if (publish)
-        {
-            if (context.PruneWebstir)
-            {
-                _logger.LogWarning("[packages] --prune-webstir is ignored during publish.");
-            }
-        }
-
         if (context.IsDryRun)
         {
             List<string> planned = new(manifests.Count);
@@ -89,11 +81,6 @@ internal sealed class PackagesSyncCommand(PackageBuilder packageBuilder, IPackag
             LogResult(result, publish);
         }
 
-        if (!publish && context.PruneWebstir)
-        {
-            PruneWebstirDirectories(context.RepositoryRoot);
-        }
-
         _logger.LogInformation("[packages] Done.");
         return PackageBuildSummary.FromResults(results, publish);
     }
@@ -101,10 +88,10 @@ internal sealed class PackagesSyncCommand(PackageBuilder packageBuilder, IPackag
     private void LogResult(PackageBuildResult result, bool publish)
     {
         _logger.LogInformation(
-            "[packages] Built {Package} {Version}. Tarball: {Tarball}.",
+            "[packages] Built {Package} {Version}. Registry specifier: {Registry}.",
             result.PackageName,
             result.Version,
-            result.Tarball.RepositoryPath);
+            result.RegistrySpecifier);
 
         if (publish)
         {
@@ -122,57 +109,6 @@ internal sealed class PackagesSyncCommand(PackageBuilder packageBuilder, IPackag
                     result.PackageName,
                     result.Version);
             }
-        }
-    }
-
-    private void PruneWebstirDirectories(string repositoryRoot)
-    {
-        string[] roots =
-        {
-            Path.Combine(repositoryRoot, "Tests", "out"),
-            Path.Combine(repositoryRoot, "CLI", "out")
-        };
-
-        int totalRemoved = 0;
-
-        foreach (string root in roots)
-        {
-            if (!Directory.Exists(root))
-            {
-                continue;
-            }
-
-            foreach (string directory in Directory.EnumerateDirectories(root, ".webstir", SearchOption.AllDirectories))
-            {
-                int removed = 0;
-                foreach (string file in Directory.EnumerateFiles(directory, "*.tgz", SearchOption.AllDirectories))
-                {
-                    try
-                    {
-                        File.Delete(file);
-                        removed++;
-                    }
-                    catch (IOException ex)
-                    {
-                        _logger.LogWarning(ex, "[packages] Unable to delete tarball {File}.", file);
-                    }
-                    catch (UnauthorizedAccessException ex)
-                    {
-                        _logger.LogWarning(ex, "[packages] Insufficient permissions to delete tarball {File}.", file);
-                    }
-                }
-
-                if (removed > 0)
-                {
-                    _logger.LogInformation("[packages] Pruned {Count} cached tarball(s) from {Directory}.", removed, directory);
-                    totalRemoved += removed;
-                }
-            }
-        }
-
-        if (totalRemoved == 0)
-        {
-            _logger.LogInformation("[packages] No cached .webstir tarballs found to prune.");
         }
     }
 }

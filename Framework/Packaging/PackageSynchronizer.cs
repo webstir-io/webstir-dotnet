@@ -10,9 +10,9 @@ public static class PackageSynchronizer
     public static async Task<PackageEnsureSummary> EnsureAsync(
         IPackageWorkspace workspace,
         ILogger? logger,
-        Func<bool, Task<FrontendPackageEnsureResult>>? ensureFrontend,
-        Func<bool, Task<PackageEnsureResult>>? ensureTesting,
-        Func<bool, Task<PackageEnsureResult>>? ensureBackend = null,
+        Func<Task<FrontendPackageEnsureResult>>? ensureFrontend,
+        Func<Task<PackageEnsureResult>>? ensureTesting,
+        Func<Task<PackageEnsureResult>>? ensureBackend = null,
         bool includeFrontend = true,
         bool includeTesting = true,
         bool includeBackend = false,
@@ -20,22 +20,16 @@ public static class PackageSynchronizer
     {
         ArgumentNullException.ThrowIfNull(workspace);
 
-        bool preferRegistry = PackageSourceSelector.ShouldPreferRegistry();
-        if (preferRegistry)
-        {
-            logger?.LogInformation("[packages] Prefer registry packages (WEBSTIR_PACKAGE_SOURCE=registry).");
-        }
-
         FrontendPackageEnsureResult? frontendResult = includeFrontend && ensureFrontend is not null
-            ? await ensureFrontend(preferRegistry)
+            ? await ensureFrontend().ConfigureAwait(false)
             : null;
 
         PackageEnsureResult? testResult = includeTesting && ensureTesting is not null
-            ? await ensureTesting(preferRegistry)
+            ? await ensureTesting().ConfigureAwait(false)
             : null;
 
         PackageEnsureResult? backendResult = includeBackend && ensureBackend is not null
-            ? await ensureBackend(preferRegistry)
+            ? await ensureBackend().ConfigureAwait(false)
             : null;
 
         bool needsInstall = NeedsInstall(frontendResult) || NeedsInstall(testResult) || NeedsInstall(backendResult);
@@ -83,22 +77,22 @@ public static class PackageSynchronizer
 
                 EnsureWorkspaceNpmrc(workspace, logger);
                 logger?.LogInformation("[packages] Installing framework packages...");
-                await workspace.RunNpmInstallAsync();
+                await workspace.RunNpmInstallAsync().ConfigureAwait(false);
                 installPerformed = true;
 
                 if (includeFrontend && ensureFrontend is not null)
                 {
-                    frontendResult = await ensureFrontend(preferRegistry);
+                    frontendResult = await ensureFrontend().ConfigureAwait(false);
                 }
 
                 if (includeTesting && ensureTesting is not null)
                 {
-                    testResult = await ensureTesting(preferRegistry);
+                    testResult = await ensureTesting().ConfigureAwait(false);
                 }
 
                 if (includeBackend && ensureBackend is not null)
                 {
-                    backendResult = await ensureBackend(preferRegistry);
+                    backendResult = await ensureBackend().ConfigureAwait(false);
                 }
 
                 // Fallback: if packages still mismatch, force explicit install by spec
@@ -109,15 +103,15 @@ public static class PackageSynchronizer
                     System.Collections.Generic.List<string> specs = new();
                     if (frontendResult is { VersionMismatch: true } f)
                     {
-                        specs.Add($"{f.Metadata.Name}@{f.Metadata.Version}");
+                        specs.Add(RegistrySpecifierResolver.Resolve(f.Metadata));
                     }
                     if (testResult is { VersionMismatch: true } t)
                     {
-                        specs.Add($"{t.Metadata.Name}@{t.Metadata.Version}");
+                        specs.Add(RegistrySpecifierResolver.Resolve(t.Metadata));
                     }
                     if (backendResult is { VersionMismatch: true } b)
                     {
-                        specs.Add($"{b.Metadata.Name}@{b.Metadata.Version}");
+                        specs.Add(RegistrySpecifierResolver.Resolve(b.Metadata));
                     }
 
                     if (specs.Count > 0)
@@ -128,15 +122,15 @@ public static class PackageSynchronizer
                         // Re-evaluate after explicit install
                         if (includeFrontend && ensureFrontend is not null)
                         {
-                            frontendResult = await ensureFrontend(preferRegistry);
+                            frontendResult = await ensureFrontend().ConfigureAwait(false);
                         }
                         if (includeTesting && ensureTesting is not null)
                         {
-                            testResult = await ensureTesting(preferRegistry);
+                            testResult = await ensureTesting().ConfigureAwait(false);
                         }
                         if (includeBackend && ensureBackend is not null)
                         {
-                            backendResult = await ensureBackend(preferRegistry);
+                            backendResult = await ensureBackend().ConfigureAwait(false);
                         }
                     }
                 }

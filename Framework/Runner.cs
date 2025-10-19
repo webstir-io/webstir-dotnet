@@ -95,11 +95,11 @@ internal sealed class Runner(ILogger<Runner> logger, PackageConsoleCommand packa
         Console.WriteLine();
         Console.WriteLine("Commands:");
         Console.WriteLine("  bump       Update package versions.");
-        Console.WriteLine("  sync       Rebuild framework package tarballs (default).");
+        Console.WriteLine("  sync       Rebuild framework packages and refresh registry metadata (default).");
         Console.WriteLine("  release    Bump and rebuild packages without publishing.");
         Console.WriteLine("  publish    Bump, rebuild, and publish packages to the configured registry.");
-        Console.WriteLine("  verify     Validate tarball metadata and embedded assets.");
-        Console.WriteLine("  diff       Report tarball checksum/size differences without modifying files.");
+        Console.WriteLine("  verify     Validate registry metadata and template dependencies.");
+        Console.WriteLine("  diff       Report registry metadata differences without modifying files.");
         Console.WriteLine();
         Console.WriteLine("Options:");
         Console.WriteLine("  --package <name>   Target specific packages (repeatable).");
@@ -107,7 +107,6 @@ internal sealed class Runner(ILogger<Runner> logger, PackageConsoleCommand packa
         Console.WriteLine("  --dry-run         Preview actions without writing files or publishing.");
         Console.WriteLine("  --set-version     Explicitly set the next version (bump/release/publish).");
         Console.WriteLine("  --bump            Choose version bump (patch|minor|major). Defaults to patch.");
-        Console.WriteLine("  --prune-webstir   Remove cached .webstir tarballs after rebuilding (sync/release).");
         Console.WriteLine("  --frontend/--test legacy shortcuts remain available.");
         Console.WriteLine("  --help, -h        Show this message.");
         return 0;

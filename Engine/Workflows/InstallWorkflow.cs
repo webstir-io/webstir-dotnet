@@ -31,20 +31,20 @@ public sealed class InstallWorkflow(
         }
 
         NodeRuntime.EnsureMinimumVersion();
-        _logger.LogInformation(dryRun ? "Inspecting framework packages (dry run)..." : clean ? "Cleaning cached tarballs and synchronizing framework packages..." : "Synchronizing framework packages...");
+        _logger.LogInformation(dryRun ? "Inspecting framework packages (dry run)..." : clean ? "Clearing workspace cache and synchronizing framework packages..." : "Synchronizing framework packages...");
 
         if (clean)
         {
-            CleanWorkspaceTarballs();
+            CleanWorkspaceCache();
         }
 
         PackageWorkspaceAdapter workspaceAdapter = new(Context);
         PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
             workspaceAdapter,
             _logger,
-            ensureFrontend: preferRegistry => FrontendPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
-            ensureTesting: preferRegistry => TestPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
-            ensureBackend: preferRegistry => BackendPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
+            ensureFrontend: () => FrontendPackageInstaller.EnsureAsync(workspaceAdapter),
+            ensureTesting: () => TestPackageInstaller.EnsureAsync(workspaceAdapter),
+            ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter),
             includeFrontend: true,
             includeTesting: true,
             includeBackend: true,
@@ -73,40 +73,27 @@ public sealed class InstallWorkflow(
         _logger.LogInformation("Framework packages are synchronized.");
     }
 
-    private void CleanWorkspaceTarballs()
+    private void CleanWorkspaceCache()
     {
         string webstirPath = Context.WebstirPath;
         if (!Directory.Exists(webstirPath))
         {
-            _logger.LogInformation("No cached tarballs found under {Path}.", webstirPath);
+            _logger.LogInformation("No workspace cache found under {Path}.", webstirPath);
             return;
         }
 
-        int deleted = 0;
-        foreach (string file in Directory.EnumerateFiles(webstirPath, "*.tgz", SearchOption.AllDirectories))
+        try
         {
-            try
-            {
-                File.Delete(file);
-                deleted++;
-            }
-            catch (IOException ex)
-            {
-                _logger.LogWarning(ex, "Failed to delete tarball {File}.", file);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                _logger.LogWarning(ex, "Insufficient permissions to delete tarball {File}.", file);
-            }
+            Directory.Delete(webstirPath, recursive: true);
+            _logger.LogInformation("Removed workspace cache at {Path}.", webstirPath);
         }
-
-        if (deleted == 0)
+        catch (IOException ex)
         {
-            _logger.LogInformation("No cached tarballs found under {Path}.", webstirPath);
+            _logger.LogWarning(ex, "Failed to clear workspace cache at {Path}.", webstirPath);
         }
-        else
+        catch (UnauthorizedAccessException ex)
         {
-            _logger.LogInformation("Removed {Count} cached tarball(s) from {Path}.", deleted, webstirPath);
+            _logger.LogWarning(ex, "Insufficient permissions to clear workspace cache at {Path}.", webstirPath);
         }
     }
 
@@ -233,7 +220,7 @@ public sealed class InstallWorkflow(
             return;
         }
 
-        _logger.LogInformation("{Package} dependency updated to match bundled tarball.", dependency.Metadata.Name);
+        _logger.LogInformation("{Package} dependency updated to match bundled registry metadata.", dependency.Metadata.Name);
     }
 
     private void LogPackageDependency(PackageEnsureResult? result)
@@ -243,6 +230,6 @@ public sealed class InstallWorkflow(
             return;
         }
 
-        _logger.LogInformation("{Package} dependency updated to match bundled tarball.", dependency.Metadata.Name);
+        _logger.LogInformation("{Package} dependency updated to match bundled registry metadata.", dependency.Metadata.Name);
     }
 }

@@ -177,11 +177,11 @@ internal sealed class PackagesPublishCommand(
         {
             _logger.LogInformation(
                 result.Published
-                    ? "[packages]  Published {Package}@{Version} (tarball: {Tarball})."
-                    : "[packages]  Skipped publishing {Package}@{Version}; tarball: {Tarball}.",
+                    ? "[packages]  Published {Package}@{Version} (registry specifier: {Registry})."
+                    : "[packages]  Skipped publishing {Package}@{Version}; registry specifier: {Registry}.",
                 result.PackageName,
                 result.Version,
-                result.Tarball.RepositoryPath);
+                result.RegistrySpecifier);
         }
     }
 

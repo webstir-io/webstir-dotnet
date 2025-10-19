@@ -101,7 +101,8 @@ internal sealed class PackageOperationReporter(
             PackageBumpEntry? bumpEntry = targeted ? bumped[manifest.PackageName] : null;
             string previousVersion = bumpEntry?.CurrentVersion.ToString() ?? manifest.Version.ToString();
 
-            string? tarballPath = buildResult.HasValue ? buildResult.Value.Tarball.RepositoryPath : null;
+            string? workspaceSpecifier = buildResult.HasValue ? buildResult.Value.WorkspaceSpecifier : null;
+            string? registrySpecifier = buildResult.HasValue ? buildResult.Value.RegistrySpecifier : null;
             bool? published = buildResult.HasValue ? buildResult.Value.Published : null;
 
             PackageOperationPackage packageTelemetry = new(
@@ -111,7 +112,8 @@ internal sealed class PackageOperationReporter(
                 previousVersion,
                 targetVersionText,
                 manifest.Version.ToString(),
-                tarballPath,
+                workspaceSpecifier,
+                registrySpecifier,
                 published,
                 bumpEntry?.CommitMessages ?? Array.Empty<string>(),
                 releaseDocument?.FilePath,
@@ -209,7 +211,8 @@ internal sealed class PackageOperationReporter(
         string PreviousVersion,
         string? TargetVersion,
         string CurrentVersion,
-        string? Tarball,
+        string? WorkspaceSpecifier,
+        string? RegistrySpecifier,
         bool? Published,
         IReadOnlyList<string> CommitMessages,
         string? ReleaseNotesPath,

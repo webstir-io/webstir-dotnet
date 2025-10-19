@@ -2,36 +2,21 @@
   "packages": {
     "@webstir-io/webstir-backend": {
       "name": "@webstir-io/webstir-backend",
-      "version": "0.0.0",
-      "registrySpecifier": "@webstir-io/webstir-backend@0.0.0",
-      "tarball": {
-        "fileName": "webstir-backend-0-0-0.tgz",
-        "repositoryPath": "Framework/Backend/webstir-backend-0-0-0.tgz",
-        "sha256": "4fe532c10bb9b9d796074b86cf0a1cb2bf66e36a9052177741a42639c14fc70a",
-        "size": 2511
-      }
+      "version": "0.0.1",
+      "workspaceSpecifier": "^0.0.1",
+      "registrySpecifier": "@webstir-io/webstir-backend@0.0.1"
     },
     "@webstir-io/webstir-frontend": {
       "name": "@webstir-io/webstir-frontend",
       "version": "0.1.0",
-      "registrySpecifier": "@webstir-io/webstir-frontend@0.1.0",
-      "tarball": {
-        "fileName": "webstir-frontend-0-1-0.tgz",
-        "repositoryPath": "Framework/Frontend/webstir-frontend-0-1-0.tgz",
-        "sha256": "9b4d332f42fc731ec6e8a990831b0b7c8f5705d5c99d99475e3a5fadf642cf19",
-        "size": 30464
-      }
+      "workspaceSpecifier": "^0.1.0",
+      "registrySpecifier": "@webstir-io/webstir-frontend@0.1.0"
     },
     "@webstir-io/webstir-test": {
       "name": "@webstir-io/webstir-test",
       "version": "0.1.0",
-      "registrySpecifier": "@webstir-io/webstir-test@0.1.0",
-      "tarball": {
-        "fileName": "webstir-test-0-1-0.tgz",
-        "repositoryPath": "Framework/Testing/webstir-test-0-1-0.tgz",
-        "sha256": "6dade0ac2e299f656876cf664e48209528424e418b5434ee28f4560b0aabf41e",
-        "size": 7611
-      }
+      "workspaceSpecifier": "^0.1.0",
+      "registrySpecifier": "@webstir-io/webstir-test@0.1.0"
     }
   }
 }

@@ -13,7 +13,7 @@ public sealed class PackageInstallerUnitTests
 {
     [Fact]
     [Trait(TestTraits.Category, TestTraits.Quick)]
-    public async Task TarballDependencyUpdateAsync()
+    public async Task DependencyUpdateAsync()
     {
         string workspaceRoot = Path.Combine(Paths.OutPath, "packages", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(workspaceRoot);
@@ -29,7 +29,7 @@ public sealed class PackageInstallerUnitTests
             PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
                 workspace,
                 logger: null,
-                ensureFrontend: preferRegistry => FrontendPackageInstaller.EnsureAsync(workspace, preferRegistry),
+                ensureFrontend: () => FrontendPackageInstaller.EnsureAsync(workspace),
                 ensureTesting: null,
                 includeFrontend: true,
                 includeTesting: false,
@@ -40,11 +40,10 @@ public sealed class PackageInstallerUnitTests
 
             FrontendPackageEnsureResult frontend = summary.Frontend!.Value;
             Assert.True(frontend.DependencyUpdated, "DependencyUpdated should be true when specifier changes.");
-            string expectedSpecifier = $"file:./.webstir/{metadata.Tarball.FileName}";
+            string expectedSpecifier = Environment.GetEnvironmentVariable("WEBSTIR_FRONTEND_REGISTRY_SPEC")?.Trim()
+                ?? metadata.RegistrySpecifier;
             Assert.Equal(expectedSpecifier, ReadDependencySpecifier(packageJsonPath, metadata.Name));
-
-            string tarballPath = Path.Combine(workspaceRoot, ".webstir", metadata.Tarball.FileName);
-            Assert.True(File.Exists(tarballPath), $"Tarball not copied to workspace at {tarballPath}.");
+            Assert.False(Directory.Exists(Path.Combine(workspaceRoot, ".webstir")), ".webstir directory should not be created for registry installs.");
         }
         finally
         {

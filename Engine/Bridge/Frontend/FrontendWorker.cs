@@ -224,9 +224,9 @@ public sealed class FrontendWorker : IFrontendWorker
             PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
                 workspaceAdapter,
                 _logger,
-                ensureFrontend: preferRegistry => FrontendPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
-                ensureTesting: preferRegistry => TestPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
-                ensureBackend: preferRegistry => BackendPackageInstaller.EnsureAsync(workspaceAdapter, preferRegistry),
+                ensureFrontend: () => FrontendPackageInstaller.EnsureAsync(workspaceAdapter),
+                ensureTesting: () => TestPackageInstaller.EnsureAsync(workspaceAdapter),
+                ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter),
                 includeFrontend: true,
                 includeTesting: true,
                 includeBackend: true,

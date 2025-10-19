@@ -99,11 +99,11 @@ public static class Help
                 Example($"{App.Name} {Commands.Install}", "Install bundled frontend/test packages"),
                 Example($"{App.Name} {Commands.Install} ./my-app", "Synchronize packages for ./my-app"),
                 Example($"{App.Name} {Commands.Install} {InstallOptions.DryRun}", "Preview actions without running npm install"),
-                Example($"{App.Name} {Commands.Install} {InstallOptions.Clean}", "Delete cached .webstir tarballs before installing")
+                Example($"{App.Name} {Commands.Install} {InstallOptions.Clean}", "Clear cached workspace packages before installing")
             ],
             [
                 Option(InstallOptions.DryRun, "Report pending changes without running npm install"),
-                Option(InstallOptions.Clean, "Remove .webstir tarballs before reinstalling packages")
+                Option(InstallOptions.Clean, "Remove cached workspace packages before reinstalling")
             ]);
 
     private static CommandHelp GetTestCommand() =>

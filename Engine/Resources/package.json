@@ -5,9 +5,9 @@
   "type": "module",
   "description": "Webstir frontend defaults and tooling",
   "dependencies": {
-    "@webstir-io/webstir-test": "file:./.webstir/webstir-test-0-1-0.tgz",
-    "@webstir-io/webstir-frontend": "file:./.webstir/webstir-frontend-0-1-0.tgz",
-    "@webstir-io/webstir-backend": "file:./.webstir/webstir-backend-0-0-0.tgz"
+    "@webstir-io/webstir-test": "^0.1.0",
+    "@webstir-io/webstir-frontend": "^0.1.0",
+    "@webstir-io/webstir-backend": "^0.0.1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

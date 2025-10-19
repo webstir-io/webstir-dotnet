@@ -75,16 +75,16 @@ What it does:
 Usage: `webstir install [--dry-run|--clean]`
 
 What it does:
-- Synchronizes the bundled `@webstir-io/webstir-frontend` and `@webstir-io/webstir-test` tarballs with `node_modules`. Set `WEBSTIR_FRONTEND_PROVIDER`/`WEBSTIR_BACKEND_PROVIDER` to override providers during the pilot (see `Docs/how-to/provider-selection.md`).
-- Copies the embedded archives into `<workspace>/.webstir/` and pins dependencies to `file:./.webstir/<tarball>.tgz`, falling back to the registry only when explicitly requested.
-- Verifies versions against the CLI manifest and exits with guidance if drift remains.
+- Ensures the bundled `@webstir-io/webstir-frontend`, `@webstir-io/webstir-test`, and `@webstir-io/webstir-backend` packages are pinned to the recorded registry versions and present in `node_modules`.
+- Updates the workspace `package.json` entries to align with `framework-packages.json` and runs `npm install` when drift is detected.
+- Verifies installed versions against the embedded manifest and exits with guidance if mismatches remain.
 
 Notes:
 - Run after upgrading the CLI or whenever `npm install` has modified pinned dependencies.
 - Safe to run repeatedly; skips work when packages are already in sync.
 - Use `--dry-run` to preview which packages would be installed or updated without running `npm install` (non-zero exit code means action is required).
-- Use `--clean` to delete cached tarballs under `.webstir/` before reinstalling from the embedded archives (cannot be combined with `--dry-run`).
-- If you opt into the registry path (`WEBSTIR_PACKAGE_SOURCE=registry`), configure `.npmrc` with the appropriate credentials (currently `GH_PACKAGES_TOKEN` for GitHub Packages).
+- Use `--clean` to remove the cached `.webstir/` workspace directory before reinstalling (cannot be combined with `--dry-run`).
+- Ensure `.npmrc` is configured with credentials (for GitHub Packages, export `GH_PACKAGES_TOKEN`).
 
 ### publish
 Usage: `webstir publish`
@@ -154,7 +154,7 @@ Outputs:
 - Clean build: `webstir build --clean`
 - Add a page: `webstir add-page about && webstir watch`
 - Publish for production: `webstir publish`
-- Refresh framework tarballs: `webstir install --clean`
+- Refresh framework packages: `webstir install --clean`
 
 ## Help Output (Sample)
 ```
