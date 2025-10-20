@@ -1,5 +1,7 @@
 # Framework Packaging Plan
 
+> Status: completed. This document is retained for historical context; the registry-first approach described here is now the default.
+
 ## Background
 - Historically, `framework packages sync` rebuilt tarballs, copied them into `Framework/out` and `Framework/Resources/tools`, and then rewrote `Framework/out/manifest.json` (`Framework/Packaging/PackageBuilder.cs`, `Framework/Commands/PackageConsoleCommand.cs`).
 - Runtime installers (`Framework/Packaging/FrontendPackageInstaller.cs`, `Framework/Packaging/TestPackageInstaller.cs`) read that manifest, copy tarballs into workspace `.webstir`, and verify hashes via `FrameworkPackageRepository`.

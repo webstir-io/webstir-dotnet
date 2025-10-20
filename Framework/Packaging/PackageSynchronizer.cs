@@ -76,7 +76,7 @@ public static class PackageSynchronizer
                 }
 
                 EnsureWorkspaceNpmrc(workspace, logger);
-                logger?.LogInformation("[packages] Installing framework packages...");
+                logger?.LogInformation("[packages] Installing framework packages from registry (requires GH_PACKAGES_TOKEN for GitHub Packages)...");
                 await workspace.RunNpmInstallAsync().ConfigureAwait(false);
                 installPerformed = true;
 

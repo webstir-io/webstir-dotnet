@@ -116,6 +116,26 @@ public static class NpmHelper
         {
             errorMessage += $"\nOutput:\n{output}";
         }
+
+        if (ContainsRegistryAuthHint(errors) || ContainsRegistryAuthHint(output))
+        {
+            errorMessage += "\nHint: Ensure GH_PACKAGES_TOKEN is set and .npmrc permits access to https://npm.pkg.github.com/@webstir-io.";
+        }
+
         return new Exception(errorMessage);
+    }
+
+    private static bool ContainsRegistryAuthHint(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return false;
+        }
+
+        return content.Contains("npm.pkg.github.com", StringComparison.OrdinalIgnoreCase) ||
+            content.Contains("E401", StringComparison.OrdinalIgnoreCase) ||
+            content.Contains("E402", StringComparison.OrdinalIgnoreCase) ||
+            content.Contains("E403", StringComparison.OrdinalIgnoreCase) ||
+            content.Contains("E404", StringComparison.OrdinalIgnoreCase);
     }
 }

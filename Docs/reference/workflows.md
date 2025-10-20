@@ -69,6 +69,7 @@ See also: Engine internals — [engine](../explanations/engine.md)
 
 ### test
 - Build (if needed) and execute compiled tests in Node.
+- Resolve the testing provider from `webstir.providers.json` or `WEBSTIR_TESTING_PROVIDER`, installing overrides when required.
 - Produce a pass/fail summary with CI-friendly exit codes.
 
 ### publish

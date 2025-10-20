@@ -1,5 +1,7 @@
 # Framework Package Release Automation Plan
 
+> Status: historical reference. The automation has since moved to the registry-first workflow; details below describe the original migration plan.
+
 ## Objectives
 - Ship a single, intuitive CLI command that bumps versions, rebuilds tarballs, and publishes only the packages that changed—no extra shell/Node scripts required.
 - Eliminate redundant metadata files/scripts so `package.json` becomes the lone source of truth for package versions and registry specifiers.

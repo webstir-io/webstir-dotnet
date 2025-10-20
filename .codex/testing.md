@@ -37,7 +37,7 @@
 ## Seed Workspaces & Baselines
 - Prefer `WorkspaceManager.CreateSeedWorkspace(context, <scenario>)` inside tests instead of invoking CLI scaffolding commands. Scenario names (e.g., `seed-build`, `seed-tree`, `html-perf`) ensure each test gets an isolated copy while reusing the shared baseline content.
 - Scenario-specific tweaks (injecting perf CSS/HTML, feature-flag configs, etc.) live in helper utilities such as `HtmlPublishScenarios`. Keep those manipulations deterministic so repeated publishes remain stable.
-- We intentionally do **not** check in additional fixture directories under `Tests/.baselines`; the runtime mutations keep seed copies aligned with the embedded tarballs. If you add a new scenario, document the tweak in the helper and keep the mutation minimal.
+- We intentionally do **not** check in additional fixture directories under `Tests/.baselines`; the runtime mutations keep seed copies aligned with the embedded resources. If you add a new scenario, document the tweak in the helper and keep the mutation minimal.
 
 ## In One Line
 > Test the experience, not the implementation.

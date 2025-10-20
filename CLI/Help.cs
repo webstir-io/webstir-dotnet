@@ -94,12 +94,13 @@ public static class Help
 
     private static CommandHelp GetInstallCommand() =>
         CreateCommand(Commands.Install,
-            "Synchronize framework package dependencies",
+            "Synchronize framework package dependencies from the registry",
             [
-                Example($"{App.Name} {Commands.Install}", "Install bundled frontend/test packages"),
+                Example($"{App.Name} {Commands.Install}", "Install pinned frontend/testing/backend packages"),
                 Example($"{App.Name} {Commands.Install} ./my-app", "Synchronize packages for ./my-app"),
                 Example($"{App.Name} {Commands.Install} {InstallOptions.DryRun}", "Preview actions without running npm install"),
-                Example($"{App.Name} {Commands.Install} {InstallOptions.Clean}", "Clear cached workspace packages before installing")
+                Example($"{App.Name} {Commands.Install} {InstallOptions.Clean}", "Clear cached workspace packages before installing"),
+                Example($"{App.Name} {Commands.Install}", "Ensure providers referenced by webstir.providers.json are installed")
             ],
             [
                 Option(InstallOptions.DryRun, "Report pending changes without running npm install"),
@@ -112,7 +113,8 @@ public static class Help
             [
                 Example($"{App.Name} {Commands.Test}", "Build (incremental) and run tests"),
                 Example($"{App.Name} {Commands.Test} ./my-app", "Run in ./my-app"),
-                Example($"WEBSTIR_TESTING_PROVIDER=@webstir-io/vitest-testing {App.Name} {Commands.Test}", "Execute through the Vitest provider")
+                Example($"WEBSTIR_TESTING_PROVIDER=@webstir-io/vitest-testing {App.Name} {Commands.Test}", "Execute through the Vitest provider"),
+                Example($"WEBSTIR_TESTING_PROVIDER_SPEC=../vitest-testing {App.Name} {Commands.Test}", "Install and run against a local provider build")
             ]);
 
     private static CommandHelp GetWatchCommand() =>
@@ -180,6 +182,8 @@ public static class Help
         WriteExampleLine($"{App.Name} watch /path/to/project     # Watch project at absolute path");
         WriteExampleLine($"{App.Name} init new-app               # Initialize new project in new-app directory");
         WriteExampleLine($"WEBSTIR_TESTING_PROVIDER=@webstir-io/vitest-testing {App.Name} test   # Run tests with the Vitest provider");
+        WriteExampleLine($"{App.Name} install                    # Sync registry packages and providers");
+        WriteExampleLine($"{App.Name} test --help               # See provider override guidance");
     }
 
     public static void ShowCommandHelp(string commandName)

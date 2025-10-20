@@ -1,4 +1,5 @@
 // Basic Home page test: verifies merged HTML has expected parts
+// The default provider is configured via WEBSTIR_TESTING_PROVIDER or webstir.providers.json.
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';

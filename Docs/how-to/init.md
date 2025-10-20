@@ -22,13 +22,14 @@ Create a new project from embedded templates. Produces a ready-to-run layout wit
 1. Validate or create the target directory.
 2. Copy templates: frontend, backend, shared, types.
 3. Normalize names and placeholders (project name, defaults).
-4. Write minimal config files used by the engine and templates.
+4. Write minimal config files used by the engine and templates (including `webstir.providers.json`).
 
 ## Outputs
 - Source tree under `src/**` and `types/`.
 - Base HTML at `src/frontend/app/app.html` (must contain `<main>`).
 - Backend entry at `src/backend/index.ts`.
 - Shared modules under `src/shared/**`.
+- Provider map at `webstir.providers.json` (defaults to Webstir-managed providers; edit to swap providers).
 
 ## Errors & Exit Codes
 - Non-zero on invalid directory, name normalization failure, or IO errors.

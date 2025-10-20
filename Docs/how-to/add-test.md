@@ -18,7 +18,7 @@ Scaffold a new `.test.ts` in the nearest `tests/` folder so it runs with the `te
 ## Steps
 1. Resolve target `tests/` folder.
 2. Delegate to the `@webstir-io/webstir-testing` TypeScript CLI (`webstir-testing-add`) which writes the template if it does not already exist.
-3. Ensure the local `@webstir-io/webstir-testing` package archive and dependency entry exist so the Node test runner can execute.
+3. Ensure the workspace depends on the configured testing provider (default `@webstir-io/webstir-testing`) so the Node test runner can execute—`webstir install` reconciles dependencies based on `webstir.providers.json`.
 
 ## Outputs
 - New test file: `<resolved-tests-folder>/<name>.test.ts`.

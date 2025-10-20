@@ -30,21 +30,24 @@
 
 ### 2. Harden Runtime & Automation
 - Wrap up TODOs in the VM runtime (e.g., snapshot support, parallelism toggles) or document intentional gaps.
-- Extend CI to run host + provider suites (matrix covering VM + Vitest/Vite).
-- Confirm `framework packages sync/publish` relies solely on registry installs, adding clear logging for auth or registry failures.
+- Confirm `framework packages sync/publish` relies solely on registry installs, adding clear logging for auth or registry failures.  
+  - ✅ Default registry install path now logs GH_PACKAGES_TOKEN guidance on failure.
+- (Deferred) Extend CI to run host + provider suites (matrix covering VM + Vitest/Vite) once alternate providers are back in scope.
 
 ### 3. Repository Hygiene
-- Delete leftover scripts/configuration from the tarball workflow and prune redundant assets.
-- Update `CONTRIBUTING.md` to explain the simplified dev/publish flow.
-- Keep docs aligned with the new package layout (no references to retired ADRs or sub-phase files).
+- Delete leftover scripts/configuration from the tarball workflow and prune redundant assets.  
+  - ✅ Removed legacy backend tarball asset (`Framework/Backend/webstir-backend-0-0-0.tgz`) and archived the tarball-era plan.
+- Update `CONTRIBUTING.md` to explain the simplified dev/publish flow.  
+  - ✅ Contributing guide now documents registry auth, local workflows, and release steps.
+- Keep docs aligned with the new package layout (no references to retired ADRs or sub-phase files).  
+  - ✅ Installation plan updated for registry installs; tarball plans marked as historical context-only.
+- ✅ Default testing doc now captures the remaining VM runtime limitations (snapshots/parallelism) so the TODOs are documented until features land.
 
 ## Validation Checklist
 - `dotnet test Tester/Tester.csproj` succeeds with default and Vitest providers.
-- `webstir test` on a clean workspace installs packages from the registry only.
+- `webstir test` on a clean workspace installs packages from the registry only (requires `GH_PACKAGES_TOKEN`; CLI now surfaces auth guidance when creds are missing).
 - CLI help and docs reference the host/provider setup and point to live packages.
-- GitHub Actions execute the host/provider matrix on every push.
+- GitHub Actions execute the default provider suite on every push (alternate provider matrix deferred).
 
 ## Immediate Next Actions
-1. Refresh CLI/docs and scaffolding to highlight provider selection and document optional providers.
-2. Add provider-matrix coverage to CI and ensure registry-only install flows are logged clearly.
-3. Sweep repo hygiene tasks (tarball remnants, CONTRIBUTING, doc alignment) before the next release.
+Plan complete — defer alternate provider matrix until those providers re-enter scope.

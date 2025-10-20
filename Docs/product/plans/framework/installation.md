@@ -48,8 +48,7 @@ Guidance for packaging and distributing the Webstir CLI so developers can instal
 
 ## Post-Install Workflow
 Regardless of how the CLI is installed:
-- Encourage users to run `webstir install` inside each workspace to synchronize the embedded framework tarballs with `node_modules` (`--dry-run` to audit, `--clean` to refresh caches).
-- Document how to opt into registry installs via `WEBSTIR_PACKAGE_SOURCE=registry` when credentials are available.
+- Encourage users to run `webstir install` inside each workspace to synchronize the pinned framework packages from the registry (`--dry-run` to audit, `--clean` to refresh caches). Mention that GitHub Packages credentials (`GH_PACKAGES_TOKEN`) are required until the packages move to npm.
 - Remind users that the CLI remains self-contained; no additional .NET runtime is required after installation.
 
 ## Maintainer Checklist

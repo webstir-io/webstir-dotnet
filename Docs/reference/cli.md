@@ -65,22 +65,22 @@ What it does:
 ### test
 Usage: `webstir test`
 
-What it does:
-- Builds the project, ensures the selected test provider is installed (default `@webstir-io/webstir-testing`, or the package specified by `WEBSTIR_TESTING_PROVIDER`), then invokes the Webstir test host.
+- Builds the project, ensures the configured test provider is installed (defaults to `@webstir-io/webstir-testing`, overridable via `WEBSTIR_TESTING_PROVIDER` or `webstir.providers.json`), then invokes the Webstir test host.
 - Executes compiled frontend and backend tests, emitting structured events the .NET bridge relays.
 - Prints a pass/fail summary; integrates with CI using standard exit codes.
-- Fails fast if bundled package versions drift and directs you to `webstir install`.
+- Fails fast if recorded package versions drift and directs you to `webstir install`.
 
 Notes:
-- Override the provider with `WEBSTIR_TESTING_PROVIDER=<package>`; set `WEBSTIR_TESTING_PROVIDER_SPEC` if you are testing an unpublished build.
+- Override the provider with `WEBSTIR_TESTING_PROVIDER=<package>`; set `WEBSTIR_TESTING_PROVIDER_SPEC` if you are testing an unpublished build or local checkout.
+- Add or edit `webstir.providers.json` in the workspace root to persist provider choices alongside your code.
 - Provider overrides apply across the manifest run; mixed providers per module are not supported.
 
 ### install
 Usage: `webstir install [--dry-run|--clean]`
 
 What it does:
-- Ensures the bundled `@webstir-io/webstir-frontend`, `@webstir-io/webstir-testing`, and `@webstir-io/webstir-backend` packages are pinned to the recorded registry versions and present in `node_modules`.
-- Updates the workspace `package.json` entries to align with `framework-packages.json` and runs `npm install` when drift is detected.
+- Ensures the pinned `@webstir-io/webstir-frontend`, `@webstir-io/webstir-testing`, and `@webstir-io/webstir-backend` packages recorded in `framework-packages.json` are installed from the registry and present in `node_modules`.
+- Updates the workspace `package.json` entries to align with `framework-packages.json`, installs providers referenced in `webstir.providers.json`, and runs `npm install` when drift is detected.
 - Verifies installed versions against the embedded manifest and exits with guidance if mismatches remain.
 
 Notes:
@@ -88,7 +88,7 @@ Notes:
 - Safe to run repeatedly; skips work when packages are already in sync.
 - Use `--dry-run` to preview which packages would be installed or updated without running `npm install` (non-zero exit code means action is required).
 - Use `--clean` to remove the cached `.webstir/` workspace directory before reinstalling (cannot be combined with `--dry-run`).
-- Ensure `.npmrc` is configured with credentials (for GitHub Packages, export `GH_PACKAGES_TOKEN`).
+- Ensure `.npmrc` is configured with credentials (for GitHub Packages, export `GH_PACKAGES_TOKEN`) so registry installs succeed.
 
 ### publish
 Usage: `webstir publish`
@@ -159,6 +159,7 @@ Outputs:
 - Add a page: `webstir add-page about && webstir watch`
 - Publish for production: `webstir publish`
 - Refresh framework packages: `webstir install --clean`
+- Run tests with Vitest: `WEBSTIR_TESTING_PROVIDER=@webstir-io/vitest-testing webstir test`
 
 ## Help Output (Sample)
 ```

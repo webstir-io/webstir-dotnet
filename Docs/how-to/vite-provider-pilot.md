@@ -1,14 +1,20 @@
-# Pilot: Vite Frontend Provider
+# Vite Frontend Provider
 
-This guide shows how to exercise the Vite-based frontend module provider during the pilot.
+This guide shows how to use the Vite-powered frontend module provider with Webstir.
 
 ## Prerequisites
 - Workspace created with `webstir init` (fullstack or frontend).
 - Dependencies restored (`npm install`).
-- Provider package available: `@webstir-io/vite-frontend` (bundled with the repo during the pilot).
+- Provider package available: `@webstir-io/vite-frontend` (install from the registry).
 
 ## Quick Start
-1. Add `webstir.providers.json` to the workspace root:
+1. Install the provider (once per workspace):
+
+    ```bash
+    npm install --save-dev @webstir-io/vite-frontend
+    ```
+
+2. Update `webstir.providers.json` in the workspace root:
 
     ```json
     {
@@ -16,7 +22,13 @@ This guide shows how to exercise the Vite-based frontend module provider during 
     }
     ```
 
-2. Run build/publish:
+3. Synchronize dependencies:
+
+    ```bash
+    webstir install
+    ```
+
+4. Run build/publish:
 
     ```bash
     webstir build
@@ -36,6 +48,6 @@ Hot-update diagnostics flow through the same provider manifest; tail the CLI out
 
 ## Notes
 - Provider selection also affects `webstir test` when it triggers frontend builds.
-- Future phases will expose provider selection via `webstir.config.ts`.
+- Provider selection also affects `webstir install`; keep `webstir.providers.json` in sync with the dependencies committed to the workspace.
 - Backend swaps use `WEBSTIR_BACKEND_PROVIDER` (see `Docs/how-to/provider-selection.md`).
 - Regression coverage: `Tester.Workflows.Build.BuildWorkflowTests.BuildWithViteProviderProducesArtifacts` exercises the provider end-to-end.

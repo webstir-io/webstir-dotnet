@@ -3,7 +3,7 @@
 This guide explains how maintainers rebuild the frontend, backend, and testing packages that ship with Webstir.
 
 ## Overview
-- `Framework/Frontend`, `Framework/Backend`, and `Framework/Testing` contain the sources for the bundled `@webstir-io/*` packages.
+- `Framework/Frontend`, `Framework/Backend`, and `Framework/Testing` contain the sources for the published `@webstir-io/*` packages.
 - The standalone `framework` console rebuilds those packages, records registry metadata in `Framework/Packaging/framework-packages.json`, and updates `Engine/Resources/package.json` so workspace templates stay in sync.
 - `webstir install` keeps consuming workspaces aligned with the recorded registry versions by updating `package.json` specifiers and running `npm install` when drift is detected.
 

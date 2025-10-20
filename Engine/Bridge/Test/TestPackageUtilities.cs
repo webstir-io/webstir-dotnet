@@ -53,7 +53,7 @@ internal static class TestPackageUtilities
         {
             if (result.Value.DependencyUpdated)
             {
-                Console.WriteLine($"Pinned @webstir-io/webstir-testing dependency in {Files.PackageJson}");
+                Console.WriteLine($"Pinned {result.Value.Metadata.Name} dependency in {Files.PackageJson}");
             }
 
             if (result.Value.VersionMismatch)
@@ -61,13 +61,13 @@ internal static class TestPackageUtilities
                 string installed = string.IsNullOrWhiteSpace(result.Value.InstalledVersion)
                     ? "not installed"
                     : result.Value.InstalledVersion!;
-                Console.WriteLine($"Warning: @webstir-io/webstir-testing {installed} differs from packaged {result.Value.Metadata.Version}. Run '{App.Name} install' to refresh node_modules.");
+                Console.WriteLine($"Warning: {result.Value.Metadata.Name} {installed} differs from recorded {result.Value.Metadata.Version}. Run '{App.Name} install' to refresh node_modules.");
             }
         }
 
-        if (backend is { DependencyUpdated: true })
+        if (backend is { DependencyUpdated: true } backendUpdated)
         {
-            Console.WriteLine($"Pinned @webstir-io/webstir-backend dependency in {Files.PackageJson}");
+            Console.WriteLine($"Pinned {backendUpdated.Metadata.Name} dependency in {Files.PackageJson}");
         }
 
         if (backend is { VersionMismatch: true } backendResult)
@@ -75,7 +75,7 @@ internal static class TestPackageUtilities
             string installed = string.IsNullOrWhiteSpace(backendResult.InstalledVersion)
                 ? "not installed"
                 : backendResult.InstalledVersion!;
-            Console.WriteLine($"Warning: @webstir-io/webstir-backend {installed} differs from packaged {backendResult.Metadata.Version}. Run '{App.Name} install' to refresh node_modules.");
+            Console.WriteLine($"Warning: {backendResult.Metadata.Name} {installed} differs from recorded {backendResult.Metadata.Version}. Run '{App.Name} install' to refresh node_modules.");
         }
     }
 
@@ -92,7 +92,7 @@ internal static class TestPackageUtilities
                 ? "missing"
                 : testing.InstalledVersion!;
             throw new InvalidOperationException(
-                $"@webstir-io/webstir-testing {installed} detected but {testing.Metadata.Version} is bundled. Run '{App.Name} install' to refresh dependencies.");
+                $"{testing.Metadata.Name} {installed} detected but {testing.Metadata.Version} is recorded. Run '{App.Name} install' to refresh dependencies.");
         }
 
         if (summary.Backend is { VersionMismatch: true } backend)
@@ -101,7 +101,7 @@ internal static class TestPackageUtilities
                 ? "missing"
                 : backend.InstalledVersion!;
             throw new InvalidOperationException(
-                $"@webstir-io/webstir-backend {installed} detected but {backend.Metadata.Version} is bundled. Run '{App.Name} install' to refresh dependencies.");
+                $"{backend.Metadata.Name} {installed} detected but {backend.Metadata.Version} is recorded. Run '{App.Name} install' to refresh dependencies.");
         }
     }
 

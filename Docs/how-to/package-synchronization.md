@@ -5,7 +5,7 @@ This guide covers the end-to-end workflow for rebuilding and publishing the fram
 ## Overview
 
 - Run commands via `dotnet run --project Framework/Framework.csproj -- packages …` from the repo root (or use a built `framework` binary).
-- `Framework/Frontend`, `Framework/Backend`, and `Framework/Testing` contain the sources for the bundled packages.
+- `Framework/Frontend`, `Framework/Backend`, and `Framework/Testing` contain the sources for the published packages.
 - `framework packages sync` rebuilds those packages, updates `Framework/Packaging/framework-packages.json`, and refreshes `Engine/Resources/package.json` with caret specifiers.
 - `webstir install` keeps consuming workspaces aligned with the recorded registry versions by updating `package.json` specifiers and running `npm install` when drift is detected.
 
