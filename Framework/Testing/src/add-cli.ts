@@ -13,7 +13,7 @@ async function main(): Promise<void> {
   const nameArg = args.find((arg, index) => index !== workspaceIndex && index !== workspaceIndex + 1 && !arg.startsWith('-'));
 
   if (!nameArg) {
-    throw new Error('Missing test name. Usage: webstir-test-add <name> --workspace <path>');
+    throw new Error('Missing test name. Usage: webstir-testing-add <name> --workspace <path>');
   }
 
   const normalized = normalizeName(nameArg);
@@ -51,7 +51,7 @@ function normalizeName(raw: string): string {
   return trimmed.replace(/(\.test\.ts)$/i, '');
 }
 
-const SAMPLE_TEST_TEMPLATE = `import { test, assert } from '@webstir-io/webstir-test';
+const SAMPLE_TEST_TEMPLATE = `import { test, assert } from '@webstir-io/webstir-testing';
 
 test('sample passes', () => {
   assert.isTrue(true);

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +13,7 @@ internal sealed class TestCliRunner
 {
     private const string EventPrefix = "WEBSTIR_TEST ";
     private const string ModuleEventPrefix = "WEBSTIR_MODULE_EVENT ";
+    private const string DefaultProviderId = "@webstir-io/webstir-testing";
     private static readonly JsonSerializerOptions ModuleEventSerializerOptions = new()
     {
         PropertyNameCaseInsensitive = true
@@ -30,15 +30,12 @@ internal sealed class TestCliRunner
     {
         NodeRuntime.EnsureMinimumVersion();
 
-        string executable = GetExecutablePath();
-        if (!File.Exists(executable))
-        {
-            throw new InvalidOperationException($"webstir-test executable not found at {executable}. Run npm install to restore dependencies.");
-        }
+        string providerId = ResolveProviderId();
+        string scriptPath = await TestHostScript.EnsureAsync(_workspace, cancellationToken).ConfigureAwait(false);
 
         ProcessStartInfo startInfo = new()
         {
-            FileName = executable,
+            FileName = "node",
             RedirectStandardError = true,
             RedirectStandardOutput = true,
             UseShellExecute = false,
@@ -46,7 +43,9 @@ internal sealed class TestCliRunner
             WorkingDirectory = _workspace.WorkingPath
         };
 
-        startInfo.ArgumentList.Add("test");
+        startInfo.ArgumentList.Add(scriptPath);
+        startInfo.ArgumentList.Add("--provider");
+        startInfo.ArgumentList.Add(providerId);
         startInfo.ArgumentList.Add("--workspace");
         startInfo.ArgumentList.Add(_workspace.WorkingPath);
 
@@ -108,6 +107,23 @@ internal sealed class TestCliRunner
         await process.WaitForExitAsync(cancellationToken);
 
         return new TestCliRunResult(passed, failed, total, durationMs, results, testsDiscovered, hadErrors, process.ExitCode);
+    }
+
+    private string ResolveProviderId()
+    {
+        string? overrideId = Environment.GetEnvironmentVariable("WEBSTIR_TESTING_PROVIDER");
+        if (!string.IsNullOrWhiteSpace(overrideId))
+        {
+            return overrideId;
+        }
+
+        string? configured = ProviderConfigurationLoader.TryGetTestingProvider(_workspace);
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured;
+        }
+
+        return DefaultProviderId;
     }
 
     private void HandleProcessLine(
@@ -370,14 +386,5 @@ internal sealed class TestCliRunner
         {
             return path;
         }
-    }
-
-    private string GetExecutablePath()
-    {
-        string binDirectory = Path.Combine(_workspace.NodeModulesPath, ".bin");
-        string executable = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? "webstir-test.cmd"
-            : "webstir-test";
-        return Path.Combine(binDirectory, executable);
     }
 }

@@ -164,7 +164,7 @@ public sealed class BuildWorkflowTests
         string projectName = "seed-vite-provider";
         string seedDir = WorkspaceManager.CreateSeedWorkspace(context, projectName);
 
-        string providerPath = Path.Combine(Paths.RepositoryRoot, "Framework", "ViteFrontend");
+        string providerPath = Path.Combine(Paths.RepositoryRoot, "Framework", "Providers", "ViteFrontend");
         ProcessRunner.ProcessResult installProvider = ProcessRunner.Run(new ProcessRunOptions
         {
             FileName = "npm",

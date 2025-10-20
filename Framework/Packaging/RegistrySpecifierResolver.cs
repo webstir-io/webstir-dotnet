@@ -9,7 +9,7 @@ internal static class RegistrySpecifierResolver
         string? overrideValue = metadata.Name switch
         {
             "@webstir-io/webstir-frontend" => Environment.GetEnvironmentVariable("WEBSTIR_FRONTEND_REGISTRY_SPEC"),
-            "@webstir-io/webstir-test" => Environment.GetEnvironmentVariable("WEBSTIR_TEST_REGISTRY_SPEC"),
+            "@webstir-io/webstir-testing" => Environment.GetEnvironmentVariable("WEBSTIR_TEST_REGISTRY_SPEC"),
             "@webstir-io/webstir-backend" => Environment.GetEnvironmentVariable("WEBSTIR_BACKEND_REGISTRY_SPEC"),
             _ => null
         };

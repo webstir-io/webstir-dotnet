@@ -25,6 +25,12 @@ internal static class ProviderConfigurationLoader
         return configuration?.Backend;
     }
 
+    public static string? TryGetTestingProvider(AppWorkspace workspace)
+    {
+        ProviderConfiguration? configuration = LoadConfiguration(workspace);
+        return configuration?.Testing;
+    }
+
     private static ProviderConfiguration? LoadConfiguration(AppWorkspace workspace)
     {
         string configPath = Path.Combine(workspace.WorkingPath, ConfigurationFileName);
@@ -53,6 +59,11 @@ internal static class ProviderConfigurationLoader
         }
 
         public string? Backend
+        {
+            get; set;
+        }
+
+        public string? Testing
         {
             get; set;
         }

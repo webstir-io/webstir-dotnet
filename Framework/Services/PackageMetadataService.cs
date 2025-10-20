@@ -313,7 +313,7 @@ internal sealed class PackageMetadataService(
                 IsEnabled: true),
             new PackageDefinition(
                 "testing",
-                new[] { "testing", "test", "@webstir-io/webstir-test" },
+                new[] { "testing", "test", "@webstir-io/webstir-testing" },
                 Path.Combine("Framework", "Testing"),
                 IsEnabled: true),
             new PackageDefinition(

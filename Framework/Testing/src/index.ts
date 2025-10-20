@@ -10,5 +10,5 @@ export type {
   TestRuntime,
 } from './types.js';
 export { discoverTestManifest } from './discovery.js';
-export { createDefaultProviderRegistry } from './providers.js';
+export { createDefaultProviderRegistry, createProviderRegistry } from './providers.js';
 export type { ProviderRegistry, TestProvider } from './providers.js';

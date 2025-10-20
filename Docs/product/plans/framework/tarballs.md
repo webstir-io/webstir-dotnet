@@ -12,7 +12,7 @@
 - A refreshed "tarball-first" flow should release friction, stay in sync automatically, and still let us publish to GitHub Packages when needed.
 
 ## Goals
-- Ship reproducible framework packages (`@webstir-io/webstir-frontend`, `@webstir-io/webstir-test`) without requiring npm auth or network access during tests.
+- Ship reproducible framework packages (`@webstir-io/webstir-frontend`, `@webstir-io/webstir-testing`) without requiring npm auth or network access during tests.
 - Distribute tarballs with the CLI/runtime so every install has the artifacts it needs on day one.
 - Regenerate tarballs mechanically (`framework packages sync`) and fail fast if the committed archives drift from source.
 - Keep the registry path available behind an opt-in flag so we can smoke-test publishing and eventually migrate back if desired.

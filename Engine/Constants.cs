@@ -89,4 +89,5 @@ public static class Resources
     public const string TypesPath = $"{Path}.types";
     public const string WebstirPath = $"{Path}.webstir";
     public const string ModuleHostPath = $"{Path}.modulehost";
+    public const string TestHostPath = $"{Path}.testhost";
 }

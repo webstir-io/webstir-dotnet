@@ -20,7 +20,7 @@ public sealed class PackageAutomationIntegrationTests
 
         using JsonDocument summary = workspace.ReadSummary();
         AssertSummaryStatus(summary, "@webstir-io/webstir-frontend", "planned-build");
-        AssertSummaryStatus(summary, "@webstir-io/webstir-test", "unchanged");
+        AssertSummaryStatus(summary, "@webstir-io/webstir-testing", "unchanged");
         AssertSummaryStatus(summary, "@webstir-io/webstir-backend", "unchanged");
         AssertSummaryDryRun(summary, expected: true);
     }
@@ -37,7 +37,7 @@ public sealed class PackageAutomationIntegrationTests
 
         using JsonDocument summary = workspace.ReadSummary();
         AssertSummaryStatus(summary, "@webstir-io/webstir-frontend", "planned-build");
-        AssertSummaryStatus(summary, "@webstir-io/webstir-test", "planned-build");
+        AssertSummaryStatus(summary, "@webstir-io/webstir-testing", "planned-build");
         AssertSummaryDryRun(summary, expected: true);
     }
 
@@ -54,7 +54,7 @@ public sealed class PackageAutomationIntegrationTests
 
         using JsonDocument summary = workspace.ReadSummary();
         AssertSummaryStatus(summary, "@webstir-io/webstir-frontend", "unchanged");
-        AssertSummaryStatus(summary, "@webstir-io/webstir-test", "unchanged");
+        AssertSummaryStatus(summary, "@webstir-io/webstir-testing", "unchanged");
         AssertSummaryStatus(summary, "@webstir-io/webstir-backend", "unchanged");
     }
 
@@ -69,7 +69,7 @@ public sealed class PackageAutomationIntegrationTests
         using JsonDocument summary = workspace.ReadSummary();
         AssertSummaryDryRun(summary, expected: true);
         AssertSummaryStatus(summary, "@webstir-io/webstir-frontend", "planned-publish");
-        AssertSummaryStatus(summary, "@webstir-io/webstir-test", "planned-publish");
+        AssertSummaryStatus(summary, "@webstir-io/webstir-testing", "planned-publish");
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public sealed class PackageAutomationIntegrationTests
             using JsonDocument summary = workspace.ReadSummary();
             AssertSummaryFailure(summary);
             AssertSummaryStatus(summary, "@webstir-io/webstir-frontend", "publish-skipped");
-            AssertSummaryStatus(summary, "@webstir-io/webstir-test", "publish-skipped");
+            AssertSummaryStatus(summary, "@webstir-io/webstir-testing", "publish-skipped");
         }
         finally
         {

@@ -7,7 +7,7 @@ import { runWatchCommand } from './commands/watch.js';
 const program = new Command();
 
 program
-  .name('webstir-test')
+  .name('webstir-testing')
   .description('Unified test runner for Webstir workspaces');
 
 program

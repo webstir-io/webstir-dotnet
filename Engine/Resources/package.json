@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Webstir frontend defaults and tooling",
   "dependencies": {
-    "@webstir-io/webstir-test": "^0.1.0",
+    "@webstir-io/webstir-testing": "^0.1.2",
     "@webstir-io/webstir-frontend": "^0.1.0",
     "@webstir-io/webstir-backend": "^0.0.1"
   },

@@ -57,7 +57,7 @@ Created by `webstir init` unless you choose client-only or server-only:
 
 ### add-test
 - Command: `webstir add-test <name-or-path>`
-- Delegates to `webstir-test-add` (TypeScript CLI) to create `<name>.test.ts` under the nearest `tests/` directory.
+- Delegates to `webstir-testing-add` (TypeScript CLI) to create `<name>.test.ts` under the nearest `tests/` directory.
 - Works for both frontend and backend tests.
 
 ## Backend Template

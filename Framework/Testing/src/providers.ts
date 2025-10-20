@@ -12,7 +12,7 @@ export interface ProviderRegistry {
 
 export function createDefaultProviderRegistry(): ProviderRegistry {
   const defaultProvider: TestProvider = {
-    id: '@webstir-io/webstir-test/default',
+    id: '@webstir-io/webstir-testing/default',
     runTests: runVmRuntime,
   };
 
@@ -26,4 +26,8 @@ export function createDefaultProviderRegistry(): ProviderRegistry {
       return providers.get(runtime) ?? null;
     },
   };
+}
+
+export function createProviderRegistry(): ProviderRegistry {
+  return createDefaultProviderRegistry();
 }

@@ -1,6 +1,6 @@
 {
-  "name": "@webstir-io/webstir-test",
-  "version": "0.1.0",
+  "name": "@webstir-io/webstir-testing",
+  "version": "0.1.2",
   "description": "Testing runtime and CLI for Webstir TypeScript projects.",
   "type": "module",
   "main": "dist/index.js",
@@ -32,12 +32,13 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "webstir-test": "dist/cli.js",
-    "webstir-test-runner": "dist/cli.js",
-    "webstir-test-add": "dist/add-cli.js"
+    "webstir-testing": "dist/cli.js",
+    "webstir-testing-runner": "dist/cli.js",
+    "webstir-testing-add": "dist/add-cli.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "test": "npm run build",
     "clean": "rm -rf dist"
   },
   "files": [
@@ -63,12 +64,11 @@
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^20.11.25",
-    "typescript": "^5.4.0"
+    "@types/node": "^20.19.21",
+    "typescript": "^5.7.2"
   },
   "dependencies": {
     "@webstir-io/testing-contract": "^0.1.1",
-    "@webstir-io/webstir-test": "^0.1.1",
     "chokidar": "^3.6.0",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0"

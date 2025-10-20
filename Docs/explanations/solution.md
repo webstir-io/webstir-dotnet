@@ -44,7 +44,7 @@ Hub for the CLI and host tooling. This doc explains what the solution is, how it
     - Runs an initial build and tests, starts the web server and Node API server, then watches `src/**`.
     - On change: incrementally rebuilds the affected area, restarts Node for backend changes, and signals browsers to reload via SSE.
 4. Test (`webstir test`)
-   - Builds, ensures the bundled `@webstir-io/webstir-test` tools are installed, then runs the `webstir-test` CLI to execute compiled frontend and backend suites; reports pass/fail summary.
+  - Builds, ensures the bundled `@webstir-io/webstir-testing` provider is installed, then executes the Webstir test host to run compiled frontend and backend suites; reports pass/fail summary.
 5. Publish (`webstir publish`)
    - Produces optimized assets in `dist/` per page: timestamped `index.<ts>.css/js` written alongside `manifest.json`.
    - HTML is minified and references are rewritten using the per-page manifest; source maps and comments are removed.

@@ -56,7 +56,7 @@ Notes:
 Usage: `webstir watch`
 
 What it does:
-- Runs an initial `build` and `test` (delegating test execution to `webstir-test`).
+- Runs an initial `build` and `test` (delegating test execution to the Webstir test host).
 - Starts the dev web server (serves `build/frontend/**`) and the Node API server (runs `build/backend/index.js`).
 - Watches `src/**` for changes and performs targeted, incremental rebuilds.
 - Restarts the Node server on backend changes; notifies browsers via SSE to reload on frontend changes.
@@ -66,16 +66,20 @@ What it does:
 Usage: `webstir test`
 
 What it does:
-- Builds the project, ensures the bundled `@webstir-io/webstir-test` tools are installed, then shells into the `webstir-test` TypeScript CLI.
+- Builds the project, ensures the selected test provider is installed (default `@webstir-io/webstir-testing`, or the package specified by `WEBSTIR_TESTING_PROVIDER`), then invokes the Webstir test host.
 - Executes compiled frontend and backend tests, emitting structured events the .NET bridge relays.
 - Prints a pass/fail summary; integrates with CI using standard exit codes.
 - Fails fast if bundled package versions drift and directs you to `webstir install`.
+
+Notes:
+- Override the provider with `WEBSTIR_TESTING_PROVIDER=<package>`; set `WEBSTIR_TESTING_PROVIDER_SPEC` if you are testing an unpublished build.
+- Provider overrides apply across the manifest run; mixed providers per module are not supported.
 
 ### install
 Usage: `webstir install [--dry-run|--clean]`
 
 What it does:
-- Ensures the bundled `@webstir-io/webstir-frontend`, `@webstir-io/webstir-test`, and `@webstir-io/webstir-backend` packages are pinned to the recorded registry versions and present in `node_modules`.
+- Ensures the bundled `@webstir-io/webstir-frontend`, `@webstir-io/webstir-testing`, and `@webstir-io/webstir-backend` packages are pinned to the recorded registry versions and present in `node_modules`.
 - Updates the workspace `package.json` entries to align with `framework-packages.json` and runs `npm install` when drift is detected.
 - Verifies installed versions against the embedded manifest and exits with guidance if mismatches remain.
 
@@ -108,7 +112,7 @@ Usage: `webstir add-test <name-or-path>`
 What it does:
 - Creates a `.test.ts` file under the nearest `tests/` folder relative to the path provided.
 - Works for both frontend and backend test locations.
-- Uses the `@webstir-io/webstir-test` CLI to write the template and keep dependencies pinned.
+- Uses the `@webstir-io/webstir-testing` CLI to write the template and keep dependencies pinned.
 
 ## Dev Server & Watch
 - Serves `build/` over ASP.NET Core with an SSE endpoint for live reload.

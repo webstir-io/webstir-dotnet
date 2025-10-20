@@ -42,7 +42,7 @@ public sealed class AddTestWorkflow(AppWorkspace context,
         string executable = GetExecutablePath();
         if (!File.Exists(executable))
         {
-            throw new InvalidOperationException($"webstir-test-add executable not found at {executable}. Run npm install to restore dependencies.");
+            throw new InvalidOperationException($"webstir-testing-add executable not found at {executable}. Run npm install to restore dependencies.");
         }
 
         ProcessStartInfo psi = new()
@@ -85,15 +85,15 @@ public sealed class AddTestWorkflow(AppWorkspace context,
 
         if (process.ExitCode != 0)
         {
-            throw new InvalidOperationException($"webstir-test-add failed with exit code {process.ExitCode}.");
+            throw new InvalidOperationException($"webstir-testing-add failed with exit code {process.ExitCode}.");
         }
     }
 
-    private string GetExecutablePath()
-    {
-        string executable = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? "webstir-test-add.cmd"
-            : "webstir-test-add";
-        return Path.Combine(Context.NodeModulesPath, ".bin", executable);
-    }
+    private string GetExecutablePath() =>
+        Path.Combine(
+            Context.NodeModulesPath,
+            ".bin",
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? "webstir-testing-add.cmd"
+                : "webstir-testing-add");
 }

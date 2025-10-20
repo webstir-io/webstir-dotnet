@@ -38,7 +38,18 @@ export function ensureRegistryFor(file: string): RegisteredTest[] {
 }
 
 export function test(name: string, callback?: TestCallback): void {
-  const currentFile = runnerGlobal.__currentFile;
+  const previousFile = runnerGlobal.__currentFile;
+  let currentFile = previousFile;
+  let shouldRestoreCurrentFile = false;
+
+  if (!currentFile) {
+    currentFile = inferCurrentFileFromVitest();
+    if (currentFile) {
+      runnerGlobal.__currentFile = currentFile;
+      shouldRestoreCurrentFile = true;
+    }
+  }
+
   if (!currentFile) {
     throw new Error('No current file set');
   }
@@ -48,16 +59,31 @@ export function test(name: string, callback?: TestCallback): void {
     name: String(name),
     fn: safeCallback,
   });
+
+  registerWithVitest(String(name), safeCallback);
+
+  if (shouldRestoreCurrentFile) {
+    if (previousFile) {
+      runnerGlobal.__currentFile = previousFile;
+    } else {
+      delete runnerGlobal.__currentFile;
+    }
+  }
 }
 
-runnerGlobal.test = test;
-runnerGlobal.assert = assert;
+if (typeof runnerGlobal.test !== 'function') {
+  runnerGlobal.test = test;
+}
+
+if (typeof runnerGlobal.assert !== 'object') {
+  runnerGlobal.assert = assert;
+}
 
 export function createRuntimeRequire(file: string): RequireFn {
   const baseRequire = Module.createRequire(file);
 
   const runtimeRequire = ((specifier: string) => {
-    if (specifier === '@webstir-io/webstir-test') {
+    if (specifier === '@webstir-io/webstir-testing') {
       return moduleExports;
     }
 
@@ -65,7 +91,7 @@ export function createRuntimeRequire(file: string): RequireFn {
   }) as RequireFn;
 
   const resolve = ((specifier: string, options?: Parameters<typeof baseRequire.resolve>[1]) => {
-    if (specifier === '@webstir-io/webstir-test') {
+    if (specifier === '@webstir-io/webstir-testing') {
       return specifier;
     }
 
@@ -81,6 +107,46 @@ export function createRuntimeRequire(file: string): RequireFn {
   runtimeRequire.extensions = baseRequire.extensions;
 
   return runtimeRequire;
+}
+
+function shouldUseVitestIntegration(): boolean {
+  if (process.env.WEBSTIR_TEST_PROVIDER === 'vitest') {
+    return true;
+  }
+
+  if (process.env.WEBSTIR_TESTING_PROVIDER === '@webstir-io/vitest-testing') {
+    return true;
+  }
+
+  return typeof (globalThis as Record<string, unknown>).__vitest_worker__ !== 'undefined';
+}
+
+function registerWithVitest(name: string, callback: TestCallback) {
+  if (!shouldUseVitestIntegration()) {
+    return;
+  }
+
+  const globalTest = (globalThis as Record<string, unknown>).test;
+  if (typeof globalTest !== 'function' || globalTest === test) {
+    return;
+  }
+
+  try {
+    globalTest(name, async () => {
+      await callback();
+    });
+  } catch {
+    // If Vitest registration fails, fall back to the default registry-runner behaviour.
+  }
+}
+
+function inferCurrentFileFromVitest(): string | undefined {
+  const worker = (globalThis as Record<string, unknown>).__vitest_worker__ as { filepath?: unknown } | undefined;
+  if (worker && typeof worker.filepath === 'string') {
+    return worker.filepath;
+  }
+
+  return undefined;
 }
 
 const esmFallback = Symbol('esm-fallback');

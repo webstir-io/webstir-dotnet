@@ -61,7 +61,7 @@ public static class PackageSynchronizer
                         packageLockRemoved = true;
                     }
 
-                    RemoveCachedPackage(workspace, logger, "@webstir-io/webstir-test");
+                    RemoveCachedPackage(workspace, logger, "@webstir-io/webstir-testing");
                 }
 
                 if (NeedsInstall(backendResult))

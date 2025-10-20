@@ -1,4 +1,4 @@
-# @webstir-io/webstir-test
+# @webstir-io/webstir-testing
 
 Unified test runner, runtime helpers, and CLI for Webstir TypeScript workspaces. Provides the binaries used by the Webstir CLI and the `test` API consumed inside generated specs.
 
@@ -12,11 +12,11 @@ Unified test runner, runtime helpers, and CLI for Webstir TypeScript workspaces.
    ```
 2. **Install**
    ```bash
-   npm install --save-dev @webstir-io/webstir-test
+   npm install --save-dev @webstir-io/webstir-testing
    ```
 3. **Run tests**
    ```bash
-   npx webstir-test --workspace /absolute/path/to/workspace
+   npx webstir-testing --workspace /absolute/path/to/workspace
    ```
 
 Requires Node.js **20.18.x** or newer and assumes TypeScript has already produced compiled output in `build/**/tests/`.
@@ -37,13 +37,13 @@ Compile with `tsc` (or the workspace build) before invoking the runner; the CLI 
 
 ## CLI Commands
 
-Binary aliases: `webstir-test`, `webstir-test-runner`, `webstir-test-add`.
+Binary aliases: `webstir-testing`, `webstir-testing-runner`, `webstir-testing-add`.
 
 | Command | Description | Notable options |
 |---------|-------------|-----------------|
-| `webstir-test` / `webstir-test test` | Discovers and runs the suite once. | `--workspace <absolute path>` (defaults to `cwd`). |
-| `webstir-test watch` | Watches `src/` and reruns on change. | `--workspace`, `--debounce <ms>` (default 150). |
-| `webstir-test-add <name>` | Scaffolds a sample test file. | `--workspace` to control destination. |
+| `webstir-testing` / `webstir-testing test` | Discovers and runs the suite once. | `--workspace <absolute path>` (defaults to `cwd`). |
+| `webstir-testing watch` | Watches `src/` and reruns on change. | `--workspace`, `--debounce <ms>` (default 150). |
+| `webstir-testing-add <name>` | Scaffolds a sample test file. | `--workspace` to control destination. |
 
 ### Event Stream
 
@@ -52,7 +52,7 @@ Runner events emit to `stdout` prefixed with `WEBSTIR_TEST ` followed by JSON. E
 ## Runtime & APIs
 
 ```ts
-import { test, assert } from '@webstir-io/webstir-test';
+import { test, assert } from '@webstir-io/webstir-testing';
 
 test('adds numbers', () => {
   assert.equal(42, add(40, 2));

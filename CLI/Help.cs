@@ -108,10 +108,11 @@ public static class Help
 
     private static CommandHelp GetTestCommand() =>
         CreateCommand(Commands.Test,
-            "Run tests and print a summary",
+            "Run tests through the configured provider (defaults to @webstir-io/webstir-testing)",
             [
                 Example($"{App.Name} {Commands.Test}", "Build (incremental) and run tests"),
-                Example($"{App.Name} {Commands.Test} ./my-app", "Run in ./my-app")
+                Example($"{App.Name} {Commands.Test} ./my-app", "Run in ./my-app"),
+                Example($"WEBSTIR_TESTING_PROVIDER=@webstir-io/vitest-testing {App.Name} {Commands.Test}", "Execute through the Vitest provider")
             ]);
 
     private static CommandHelp GetWatchCommand() =>
@@ -178,6 +179,7 @@ public static class Help
         WriteExampleLine($"{App.Name} build ./my-project         # Build project in ./my-project directory");
         WriteExampleLine($"{App.Name} watch /path/to/project     # Watch project at absolute path");
         WriteExampleLine($"{App.Name} init new-app               # Initialize new project in new-app directory");
+        WriteExampleLine($"WEBSTIR_TESTING_PROVIDER=@webstir-io/vitest-testing {App.Name} test   # Run tests with the Vitest provider");
     }
 
     public static void ShowCommandHelp(string commandName)

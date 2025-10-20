@@ -36,7 +36,7 @@ import type {
 ```
 
 - `TestManifest` documents discovered tests (workspace root, timestamp, modules).
-- `RunnerEvent` unions all structured events emitted by `@webstir-io/webstir-test`.
+- `RunnerEvent` unions all structured events emitted by `@webstir-io/webstir-testing`.
 - `RunnerSummary` aggregates totals and individual `TestRunResult`s.
 
 Schema artifacts are published under `schema/`:

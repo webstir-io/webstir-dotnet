@@ -5,14 +5,14 @@ This guide shows how to exercise the Vite-based frontend module provider during 
 ## Prerequisites
 - Workspace created with `webstir init` (fullstack or frontend).
 - Dependencies restored (`npm install`).
-- Provider package available: `@webstir-io/webstir-frontend-vite` (bundled with the repo during the pilot).
+- Provider package available: `@webstir-io/vite-frontend` (bundled with the repo during the pilot).
 
 ## Quick Start
 1. Add `webstir.providers.json` to the workspace root:
 
     ```json
     {
-      "frontend": "@webstir-io/webstir-frontend-vite"
+      "frontend": "@webstir-io/vite-frontend"
     }
     ```
 
@@ -27,10 +27,12 @@ Use `WEBSTIR_FRONTEND_PROVIDER` for ad-hoc overrides. Logs include provider id, 
 
 ## Watch Mode
 ```bash
-WEBSTIR_FRONTEND_PROVIDER=@webstir-io/webstir-frontend-vite webstir watch
+WEBSTIR_FRONTEND_PROVIDER=@webstir-io/vite-frontend webstir watch
 ```
 
 Hot-update diagnostics flow through the same provider manifest; tail the CLI output to validate HMR behaviour.
+
+> Tip: For unpublished builds from the standalone repository, set `WEBSTIR_FRONTEND_PROVIDER_SPEC=<path-to-local-vite-frontend>` (for example `../vite-frontend`) so the host installs your local checkout.
 
 ## Notes
 - Provider selection also affects `webstir test` when it triggers frontend builds.

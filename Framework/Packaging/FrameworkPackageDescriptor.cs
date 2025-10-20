@@ -38,13 +38,13 @@ internal sealed record FrameworkPackageDescriptor(
         get;
     } = new(
         "testing",
-        "@webstir-io/webstir-test",
+        "@webstir-io/webstir-testing",
         Path.Combine("Framework", "Testing"),
         "WEBSTIR_TEST_WORKSPACE_SPEC",
         "^{version}",
         "WEBSTIR_TEST_REGISTRY_SPEC",
         new[] { "node_modules", "dist" },
-        "@webstir-io/webstir-test@{version}",
+        "@webstir-io/webstir-testing@{version}",
         "https://npm.pkg.github.com",
         "restricted",
         "GH_PACKAGES_TOKEN");

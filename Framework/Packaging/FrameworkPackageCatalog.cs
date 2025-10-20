@@ -15,7 +15,7 @@ public static class FrameworkPackageCatalog
 
     public static FrameworkPackageMetadata Frontend => Get("@webstir-io/webstir-frontend");
 
-    public static FrameworkPackageMetadata Testing => Get("@webstir-io/webstir-test");
+    public static FrameworkPackageMetadata Testing => Get("@webstir-io/webstir-testing");
 
     public static FrameworkPackageMetadata Backend => Get("@webstir-io/webstir-backend");
 

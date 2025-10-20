@@ -78,7 +78,7 @@ public sealed class AddWorkflowTests
         JsonElement dependencies = packageManifest.RootElement.GetProperty("dependencies");
         string expectedSpecifier = Environment.GetEnvironmentVariable("WEBSTIR_TEST_REGISTRY_SPEC")?.Trim()
             ?? FrameworkPackageCatalog.Testing.RegistrySpecifier;
-        string actualSpecifier = dependencies.GetProperty("@webstir-io/webstir-test").GetString() ?? string.Empty;
+        string actualSpecifier = dependencies.GetProperty("@webstir-io/webstir-testing").GetString() ?? string.Empty;
         Assert.Equal(expectedSpecifier, actualSpecifier);
     }
 }

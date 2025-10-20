@@ -36,7 +36,7 @@ public sealed class PackageAutomationUnitTests
         PackageManifest backend = manifests.First(manifest => manifest.Key == "backend");
 
         Assert.Equal("@webstir-io/webstir-frontend", frontend.PackageName);
-        Assert.Equal("@webstir-io/webstir-test", testing.PackageName);
+        Assert.Equal("@webstir-io/webstir-testing", testing.PackageName);
         Assert.Equal("@webstir-io/webstir-backend", backend.PackageName);
         Assert.True(frontend.IsEnabled);
         Assert.True(testing.IsEnabled);
@@ -433,7 +433,7 @@ public sealed class PackageAutomationUnitTests
                 ? CreateManifest(frameworkRoot, "Frontend", "@webstir-io/webstir-frontend", version: "1.0.0", enabled: true)
                 : null;
             PackageManifest? testing = testingEnabled
-                ? CreateManifest(frameworkRoot, "Testing", "@webstir-io/webstir-test", version: "1.0.0", enabled: true)
+                ? CreateManifest(frameworkRoot, "Testing", "@webstir-io/webstir-testing", version: "1.0.0", enabled: true)
                 : null;
             PackageManifest? backend = includeBackend
                 ? CreateManifest(frameworkRoot, "Backend", "@webstir-io/webstir-backend", version: "1.0.0", enabled: backendEnabled)

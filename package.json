@@ -8,7 +8,6 @@
     "Framework/Contracts/module-contract",
     "Framework/Frontend",
     "Framework/Backend",
-    "Framework/ViteFrontend",
     "Framework/Testing"
   ],
   "scripts": {
