@@ -98,6 +98,11 @@ public static class ProcessRunner
             KillProcessTree(process);
             process.WaitForExit();
         }
+        else
+        {
+            // Ensure async output handlers flush fully even for very short-lived processes
+            try { process.WaitForExit(); } catch { /* no-op */ }
+        }
 
         return new ProcessResult
         {
