@@ -20,6 +20,11 @@ public sealed class PublishWorkflowTests
     [Trait(TestTraits.Category, TestTraits.Quick)]
     public void PublishRunsWithoutErrors()
     {
+        if (!WorkspaceManager.EnsureLocalPackagesReady())
+        {
+            throw new ConditionalSkipException("Skipping publish tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+        }
+
         TestCaseContext context = _fixture.Context;
         string testDir = context.OutPath;
         Directory.CreateDirectory(testDir);

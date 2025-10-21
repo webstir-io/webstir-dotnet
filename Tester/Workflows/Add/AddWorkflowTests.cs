@@ -76,8 +76,10 @@ public sealed class AddWorkflowTests
 
         using JsonDocument packageManifest = JsonDocument.Parse(File.ReadAllText(packageJsonPath));
         JsonElement dependencies = packageManifest.RootElement.GetProperty("dependencies");
-        string expectedSpecifier = Environment.GetEnvironmentVariable("WEBSTIR_TEST_REGISTRY_SPEC")?.Trim()
-            ?? FrameworkPackageCatalog.Testing.RegistrySpecifier;
+        string? envSpecifier = Environment.GetEnvironmentVariable("WEBSTIR_TEST_REGISTRY_SPEC");
+        string expectedSpecifier = string.IsNullOrWhiteSpace(envSpecifier)
+            ? FrameworkPackageCatalog.Testing.RegistrySpecifier
+            : envSpecifier.Trim();
         string actualSpecifier = dependencies.GetProperty("@webstir-io/webstir-testing").GetString() ?? string.Empty;
         Assert.Equal(expectedSpecifier, actualSpecifier);
     }

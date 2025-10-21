@@ -27,21 +27,20 @@ jobs:
         with:
           node-version: 20.18.1
           cache: npm
-          cache-dependency-path: |
-            Framework/Frontend/package-lock.json
-            Framework/Testing/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install frontend dependencies
-        run: npm ci
-        working-directory: Framework/Frontend
+      - name: Configure npm auth for GitHub Packages
+        if: ${{ env.GH_PACKAGES_TOKEN != '' }}
+        run: |
+          npm config set @webstir-io:registry https://npm.pkg.github.com --location=user
+          npm config set //npm.pkg.github.com/:_authToken "$GH_PACKAGES_TOKEN" --location=user
+          npm config set //npm.pkg.github.com/:always-auth true --location=user
 
-      - name: Install testing dependencies
-        run: npm ci
-        working-directory: Framework/Testing
+      - name: Install workspace dependencies
+        run: npm ci --workspaces
 
       - name: Build testing package
-        run: npm run build
-        working-directory: Framework/Testing
+        run: npm --workspace Framework/Testing run build
 
       - name: Build solution
         run: dotnet build Webstir.sln -v minimal
@@ -50,8 +49,7 @@ jobs:
         run: WEBSTIR_TEST_MODE=full dotnet test Tester/Tester.csproj --nologo --logger "console;verbosity=minimal;summary=true"
 
       - name: Run frontend package tests
-        run: npm test --silent
-        working-directory: Framework/Frontend
+        run: npm --workspace Framework/Frontend test --silent
 
       - name: Build framework packages
         run: dotnet run --project Framework/Framework.csproj -- packages sync

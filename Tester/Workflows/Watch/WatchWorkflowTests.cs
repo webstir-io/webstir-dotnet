@@ -3,6 +3,7 @@ using System.IO;
 using Engine;
 using Tester.Infrastructure;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Tester.Workflows.Watch;
 
@@ -20,6 +21,11 @@ public sealed class WatchWorkflowTests
     [Trait(TestTraits.Category, TestTraits.Full)]
     public void WatchStartsAndSignalsReady()
     {
+        if (!WorkspaceManager.EnsureLocalPackagesReady())
+        {
+            throw new ConditionalSkipException("Skipping watch workflow: framework packages not available (set GH_PACKAGES_TOKEN).");
+        }
+
         if (!TestCategoryGuards.ShouldRun(TestCategory.Full))
         {
             return;

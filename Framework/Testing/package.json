@@ -68,7 +68,7 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
-    "@webstir-io/testing-contract": "^0.1.1",
+    "@webstir-io/testing-contract": "file:../Contracts/testing-contract",
     "chokidar": "^3.6.0",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0"

@@ -79,8 +79,10 @@ public sealed class PackageAutomationIntegrationTests
 
         string? originalToken = Environment.GetEnvironmentVariable("GH_PACKAGES_TOKEN");
         string? originalConfig = Environment.GetEnvironmentVariable("NPM_CONFIG_USERCONFIG");
+        string? originalSkip = Environment.GetEnvironmentVariable("WEBSTIR_SKIP_NPM_AUTH");
         Environment.SetEnvironmentVariable("GH_PACKAGES_TOKEN", null);
         Environment.SetEnvironmentVariable("NPM_CONFIG_USERCONFIG", Path.Combine(workspace.RepositoryRoot, "nonexistent", "npmrc"));
+        Environment.SetEnvironmentVariable("WEBSTIR_SKIP_NPM_AUTH", "1");
 
         try
         {
@@ -100,6 +102,7 @@ public sealed class PackageAutomationIntegrationTests
         {
             Environment.SetEnvironmentVariable("GH_PACKAGES_TOKEN", originalToken);
             Environment.SetEnvironmentVariable("NPM_CONFIG_USERCONFIG", originalConfig);
+            Environment.SetEnvironmentVariable("WEBSTIR_SKIP_NPM_AUTH", originalSkip);
         }
     }
 

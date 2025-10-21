@@ -40,8 +40,10 @@ public sealed class PackageInstallerUnitTests
 
             FrontendPackageEnsureResult frontend = summary.Frontend!.Value;
             Assert.True(frontend.DependencyUpdated, "DependencyUpdated should be true when specifier changes.");
-            string expectedSpecifier = Environment.GetEnvironmentVariable("WEBSTIR_FRONTEND_REGISTRY_SPEC")?.Trim()
-                ?? metadata.RegistrySpecifier;
+            string? envSpecifier = Environment.GetEnvironmentVariable("WEBSTIR_FRONTEND_REGISTRY_SPEC");
+            string expectedSpecifier = string.IsNullOrWhiteSpace(envSpecifier)
+                ? metadata.RegistrySpecifier
+                : envSpecifier.Trim();
             Assert.Equal(expectedSpecifier, ReadDependencySpecifier(packageJsonPath, metadata.Name));
             Assert.False(Directory.Exists(Path.Combine(workspaceRoot, ".webstir")), ".webstir directory should not be created for registry installs.");
         }

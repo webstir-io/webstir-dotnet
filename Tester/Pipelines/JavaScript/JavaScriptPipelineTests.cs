@@ -3,6 +3,7 @@ using System.IO;
 using Tester.Helpers;
 using Tester.Infrastructure;
 using Xunit;
+using Xunit.Sdk;
 using Engine;
 
 namespace Tester.Pipelines.JavaScript;
@@ -21,6 +22,11 @@ public sealed class JavaScriptPipelineTests
     [Trait(TestTraits.Category, TestTraits.Quick)]
     public void JsIsMinified()
     {
+        if (!WorkspaceManager.EnsureLocalPackagesReady())
+        {
+            throw new ConditionalSkipException("Skipping JavaScript pipeline tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+        }
+
         HtmlPublishScenarioResult scenario = HtmlPublishScenarios.HeadCombined(_fixture.Context);
         HtmlPageResult homePage = scenario.GetPage(Folders.Home);
         PageAssetManifest manifest = homePage.Manifest;

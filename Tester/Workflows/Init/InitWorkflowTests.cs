@@ -3,6 +3,7 @@ using System.IO;
 using Engine;
 using Tester.Infrastructure;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Tester.Workflows.Init;
 
@@ -20,6 +21,11 @@ public sealed class InitWorkflowTests
     [Trait(TestTraits.Category, TestTraits.Quick)]
     public void InitCommandCreatesDefaultProject()
     {
+        if (!WorkspaceManager.EnsureLocalPackagesReady())
+        {
+            throw new ConditionalSkipException("Skipping init workflow: framework packages not available (set GH_PACKAGES_TOKEN).");
+        }
+
         TestCaseContext context = _fixture.Context;
         string testDir = context.OutPath;
         Directory.CreateDirectory(testDir);
@@ -52,6 +58,11 @@ public sealed class InitWorkflowTests
         if (!TestCategoryGuards.ShouldRun(TestCategory.Full))
         {
             return;
+        }
+
+        if (!WorkspaceManager.EnsureLocalPackagesReady())
+        {
+            throw new ConditionalSkipException("Skipping init workflow: framework packages not available (set GH_PACKAGES_TOKEN).");
         }
 
         TestCaseContext context = _fixture.Context;

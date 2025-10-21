@@ -3,6 +3,7 @@ using System.IO;
 using Tester.Helpers;
 using Tester.Infrastructure;
 using Xunit;
+using Xunit.Sdk;
 using Engine;
 
 namespace Tester.Pipelines.Html;
@@ -89,6 +90,11 @@ public sealed class HtmlPipelineTests
     [Trait(TestTraits.Category, TestTraits.Quick)]
     public void HtmlPublishIncludesMetaDescription()
     {
+        if (!WorkspaceManager.EnsureLocalPackagesReady())
+        {
+            throw new ConditionalSkipException("Skipping HTML pipeline tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+        }
+
         HtmlPublishScenarioResult scenario = HtmlPublishScenarios.Default(_fixture.Context);
         HtmlPageResult homePage = scenario.GetPage(Folders.Home);
         _fixture.Context.AssertNoCompilationErrors(scenario.PublishResult);
@@ -103,6 +109,11 @@ public sealed class HtmlPipelineTests
     [Trait(TestTraits.Category, TestTraits.Quick)]
     public void HtmlDevelopmentIncludesRuntimeScripts()
     {
+        if (!WorkspaceManager.EnsureLocalPackagesReady())
+        {
+            throw new ConditionalSkipException("Skipping HTML pipeline tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+        }
+
         HtmlPublishScenarioResult scenario = HtmlPublishScenarios.Default(_fixture.Context);
         HtmlPageResult homePage = scenario.GetPage(Folders.Home);
 

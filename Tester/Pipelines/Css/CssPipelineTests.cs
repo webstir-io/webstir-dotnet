@@ -4,6 +4,7 @@ using Tester.Helpers;
 using Engine;
 using Tester.Infrastructure;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Tester.Pipelines.Css;
 
@@ -21,6 +22,11 @@ public sealed class CssPipelineTests
     [Trait(TestTraits.Category, TestTraits.Quick)]
     public void CssIsMinified()
     {
+        if (!WorkspaceManager.EnsureLocalPackagesReady())
+        {
+            throw new ConditionalSkipException("Skipping CSS pipeline tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+        }
+
         HtmlPublishScenarioResult scenario = HtmlPublishScenarios.HeadCombined(_fixture.Context);
         HtmlPageResult homePage = scenario.GetPage(Folders.Home);
         string expectedCssPath = ResolveCssPath(homePage);
@@ -50,6 +56,11 @@ public sealed class CssPipelineTests
     [Trait(TestTraits.Category, TestTraits.Quick)]
     public void CssPrecompressedAreSmaller()
     {
+        if (!WorkspaceManager.EnsureLocalPackagesReady())
+        {
+            throw new ConditionalSkipException("Skipping CSS pipeline tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+        }
+
         HtmlPublishScenarioResult scenario = HtmlPublishScenarios.PrecompressionEnabled(_fixture.Context);
         HtmlPageResult homePage = scenario.GetPage(Folders.Home);
         string expectedCssPath = ResolveCssPath(homePage);

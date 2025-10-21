@@ -51,17 +51,14 @@ jobs:
         with:
           node-version: 20.18.1
           cache: npm
-          cache-dependency-path: |
-            Framework/Frontend/package-lock.json
-            Framework/Testing/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Configure npm auth for GitHub Packages
+        if: ${{ env.GH_PACKAGES_TOKEN != '' }}
         run: |
-          cat <<'RC' > "$NPM_CONFIG_USERCONFIG"
-          @webstir-io:registry=https://npm.pkg.github.com
-          //npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}
-          always-auth=true
-          RC
+          npm config set @webstir-io:registry https://npm.pkg.github.com --location=user
+          npm config set //npm.pkg.github.com/:_authToken "$GH_PACKAGES_TOKEN" --location=user
+          npm config set //npm.pkg.github.com/:always-auth true --location=user
 
       # IS_DRY_RUN is computed in the job env above; no step needed
 
@@ -133,15 +130,9 @@ jobs:
           echo "Dry run requested. Versions bumped locally but no artifacts were published." \
             && exit 0
 
-      - name: Install frontend dependencies
+      - name: Install workspace dependencies
         if: ${{ env.IS_DRY_RUN != 'true' }}
-        run: npm ci
-        working-directory: Framework/Frontend
-
-      - name: Install testing dependencies
-        if: ${{ env.IS_DRY_RUN != 'true' }}
-        run: npm ci
-        working-directory: Framework/Testing
+        run: npm ci --workspaces
 
       - name: Run .NET workflow tests
         if: ${{ env.IS_DRY_RUN != 'true' }}

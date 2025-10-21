@@ -29,7 +29,7 @@ and may be incorporated into the project owned by **Electric Coding LLC**.
 | Format & build sanity check | `./utilities/format-build.sh` |
 | Rebuild & verify framework packages | `dotnet run --project Framework/Framework.csproj -- packages sync`<br>`dotnet run --project Framework/Framework.csproj -- packages verify` |
 
-> Tip: `./utilities/local-ci.sh` runs the full battery (contracts, package builds, .NET tests, package verification, dry-run publish) using your local registry credentials.
+> Tip: `./utilities/local-ci.sh` builds the Docker image used by CI and runs the same workflow (npm installs, dotnet build/test, framework package sync/verify) against your checkout.
 
 ## Tests & Linting
 - Favor the end-to-end workflow tests in `Tester/` when changing CLI behavior.  

@@ -2,9 +2,9 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0-bookworm-slim
 
 # Install Node.js 20.x
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ca-certificates gnupg git procps \
+    && apt-get install -y --no-install-recommends curl ca-certificates gnupg git procps build-essential python3 \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs \
+    && apt-get install -y --no-install-recommends nodejs libvips libvips-dev pkg-config \
     && npm install -g typescript \
     && rm -rf /var/lib/apt/lists/*
 

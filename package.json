@@ -8,14 +8,19 @@
     "Framework/Contracts/module-contract",
     "Framework/Frontend",
     "Framework/Backend",
-    "Framework/Testing"
+    "Framework/Testing",
+    "Orchestrator"
   ],
   "scripts": {
     "build:contracts": "npm run build --workspace Framework/Contracts/testing-contract && npm run build --workspace Framework/Contracts/module-contract",
-    "validate:contracts": "node ./utilities/validate-contracts.mjs"
+    "validate:contracts": "node ./utilities/validate-contracts.mjs",
+    "dev:js-cli": "npm run dev --workspace Orchestrator"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "jsonschema": "^1.5.0"
+  },
+  "dependencies": {
+    "@webstir-io/webstir-backend": "^0.0.1"
   }
 }

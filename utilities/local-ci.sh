@@ -2,71 +2,134 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT_DIR"
+PARENT_DIR="$(dirname "$ROOT_DIR")"
+ROOT_NAME="$(basename "$ROOT_DIR")"
+IMAGE_NAME="${LOCAL_CI_IMAGE_NAME:-webstir-local-ci:latest}"
 
-if [ -f .env.local ]; then
-  # shellcheck disable=SC1091
-  source .env.local
-fi
-
-if [ -z "${GH_PACKAGES_TOKEN:-}" ]; then
-  echo "warning: GH_PACKAGES_TOKEN is not set; npm auth against GitHub Packages may fail" >&2
-fi
-
-export NODE_AUTH_TOKEN="${GH_PACKAGES_TOKEN:-}"
-
-run_package_repo() {
-  local repo="$1"
-  local path="../$repo"
-
-  if [ ! -d "$path" ]; then
-    echo "[local-ci] Skipping $repo (directory not found at $path)"
-    return
+configure_npm_auth() {
+  if [[ "${WEBSTIR_SKIP_NPM_AUTH:-}" = "1" ]]; then
+    return 0
   fi
 
-  echo "[local-ci][$repo] npm ci"
-  (cd "$path" && npm ci --silent)
+  if [[ -z "${GH_PACKAGES_TOKEN:-${NODE_AUTH_TOKEN:-}}" ]]; then
+    return 0
+  fi
 
-  echo "[local-ci][$repo] npm run build"
-  (cd "$path" && npm run build --silent)
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "[local-ci] warning: npm is not available to configure GitHub Packages auth." >&2
+    return 1
+  fi
 
-  if (cd "$path" && node -e "const pkg=require('./package.json'); process.exit(pkg?.scripts?.test ? 0 : 1);"); then
-    echo "[local-ci][$repo] npm test"
-    (cd "$path" && npm test --silent)
+  local token="${GH_PACKAGES_TOKEN:-${NODE_AUTH_TOKEN:-}}"
+  npm config set @webstir-io:registry https://npm.pkg.github.com --location=user >/dev/null 2>&1
+  npm config set //npm.pkg.github.com/:_authToken "$token" --location=user >/dev/null 2>&1
+  npm config set //npm.pkg.github.com/:always-auth true --location=user >/dev/null 2>&1
+}
+
+# Try to load credentials from .env.local when running on the host.
+if [[ -z "${GH_PACKAGES_TOKEN:-}" && -f "$ROOT_DIR/.env.local" ]]; then
+  # shellcheck disable=SC1091
+  source "$ROOT_DIR/.env.local"
+fi
+
+configure_npm_auth >/dev/null 2>&1 || true
+
+if [[ -z "${LOCAL_CI_IN_CONTAINER:-}" ]]; then
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "[local-ci] error: docker is required to mirror the GitHub Actions environment." >&2
+    exit 1
+  fi
+
+  echo "[local-ci] Building container image ($IMAGE_NAME)..."
+  docker build -f "$ROOT_DIR/utilities/docker/ci.Dockerfile" -t "$IMAGE_NAME" "$ROOT_DIR"
+
+  echo "[local-ci] Running CI workflow inside container..."
+  docker_args=(
+    run
+    --rm
+    -e LOCAL_CI_IN_CONTAINER=1
+    -e GH_PACKAGES_TOKEN="${GH_PACKAGES_TOKEN:-}"
+    -e NODE_AUTH_TOKEN="${NODE_AUTH_TOKEN:-${GH_PACKAGES_TOKEN:-}}"
+    -e WEBSTIR_FRONTEND_REGISTRY_SPEC="${WEBSTIR_FRONTEND_REGISTRY_SPEC:-}"
+    -e WEBSTIR_TEST_REGISTRY_SPEC="${WEBSTIR_TEST_REGISTRY_SPEC:-}"
+    -e WEBSTIR_BACKEND_REGISTRY_SPEC="${WEBSTIR_BACKEND_REGISTRY_SPEC:-}"
+    -e WEBSTIR_WRITE_WORKSPACE_NPMRC="${WEBSTIR_WRITE_WORKSPACE_NPMRC:-}"
+    -v "$PARENT_DIR":/workspaces
+    -w "/workspaces/$ROOT_NAME"
+  )
+
+  docker_args+=(
+    "$IMAGE_NAME"
+    bash
+    -lc
+    "./utilities/local-ci.sh"
+  )
+
+  docker "${docker_args[@]}"
+  exit 0
+fi
+
+# From this point onward we are inside the container (Debian-based like GitHub Actions)
+
+step() {
+  echo "[local-ci] $*"
+}
+
+configure_npm_auth >/dev/null 2>&1 || true
+
+run_in() {
+  local dir="$1"
+  shift
+  (
+    cd "$dir"
+    "$@"
+  )
+}
+
+run() {
+  if ! "$@"; then
+    echo "[local-ci] command failed: $*" >&2
+    exit 1
   fi
 }
 
-echo "[local-ci] Running contract package checks"
-run_package_repo "module-contract"
-run_package_repo "testing-contract"
+# Ensure npm has the GitHub Packages token when provided.
+if [[ -n "${GH_PACKAGES_TOKEN:-}" ]]; then
+  step "Configure npm auth for GitHub Packages"
+  configure_npm_auth >/dev/null 2>&1 || {
+    echo "[local-ci] warning: failed to configure npm auth; continuing" >&2
+  }
+fi
 
-echo "[local-ci] Running package repository checks"
-run_package_repo "webstir-frontend"
-run_package_repo "webstir-backend"
-run_package_repo "webstir-testing"
+step "Install workspace dependencies (npm ci --workspaces)"
+run rm -rf node_modules Framework/*/node_modules || true
+run env npm_config_platform=linux npm_config_arch=arm64 npm ci --workspaces
 
-echo "[local-ci] Installing frontend dependencies"
-npm ci --silent --prefix Framework/Frontend
+step "Install platform-specific sharp binding (@img/sharp-linux-arm64)"
+run env npm_config_platform=linux npm_config_arch=arm64 npm install --no-save --foreground-scripts @img/sharp-linux-arm64 || true
 
-echo "[local-ci] Running frontend package tests"
-npm test --prefix Framework/Frontend --silent
+step "Rebuild sharp for linux-arm64 (npm rebuild sharp with platform/arch)"
+run env npm_config_platform=linux npm_config_arch=arm64 npm rebuild sharp --foreground-scripts --unsafe-perm --verbose || true
 
-echo "[local-ci] Installing testing package dependencies"
-npm ci --silent --prefix Framework/Testing
+step "Build testing package (npm --workspace Framework/Testing run build)"
+run npm --workspace Framework/Testing run build
 
-echo "[local-ci] Building solution"
-dotnet build Webstir.sln -v minimal
+step "Clear NuGet caches"
+run dotnet nuget locals all --clear >/dev/null
 
-echo "[local-ci] Running .NET workflow tests"
-WEBSTIR_TEST_MODE=full dotnet test Tester/Tester.csproj
+step "dotnet build Webstir.sln"
+run dotnet build Webstir.sln -v minimal
 
-echo "[local-ci] Building framework packages (changed only)"
-dotnet run --project Framework/Framework.csproj -- packages sync --changed-only
+step "Run .NET workflow tests (WEBSTIR_TEST_MODE=full dotnet test)"
+WEBSTIR_TEST_MODE=full run dotnet test Tester/Tester.csproj --nologo --logger "console;verbosity=minimal;summary=true"
 
-echo "[local-ci] Verifying framework packages"
-dotnet run --project Framework/Framework.csproj -- packages verify --all
+step "Run frontend package tests (npm --workspace Framework/Frontend test --silent)"
+run npm --workspace Framework/Frontend test --silent
 
-echo "[local-ci] Dry-run publish pipeline"
-dotnet run --project Framework/Framework.csproj -- packages publish --dry-run --changed-only
+step "Build framework packages (dotnet run -- packages sync)"
+run dotnet run --project Framework/Framework.csproj -- packages sync
 
-echo "[local-ci] Done."
+step "Verify framework packages (dotnet run -- packages verify)"
+run dotnet run --project Framework/Framework.csproj -- packages verify
+
+step "Completed GitHub CI equivalent workflow."

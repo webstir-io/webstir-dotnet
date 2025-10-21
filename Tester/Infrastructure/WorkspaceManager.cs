@@ -9,8 +9,16 @@ public static class WorkspaceManager
 {
     private static readonly object SeedLock = new();
     private static readonly object SeedNodeModulesLock = new();
+    private static readonly object RegistryCheckLock = new();
     private static bool _seedBaselineReady;
-    private static bool _localPackagesPrepared;
+
+    public static bool EnsureLocalPackagesReady()
+    {
+        // Registry overrides are disabled; rely on user-level npm config.
+        ClearRegistryOverrides();
+        // Always return true; authentication is handled via user ~/.npmrc or env tokens.
+        return true;
+    }
 
     private static string CacheRoot => Path.Combine(Paths.OutPath, ".baselines");
     private static string SeedBaselinePath => Path.Combine(CacheRoot, Folders.Seed);
@@ -39,7 +47,7 @@ public static class WorkspaceManager
 
     private static void EnsureSeedBaseline(TestCaseContext context)
     {
-        SetLocalRegistryOverrides();
+        ClearRegistryOverrides();
 
         if (_seedBaselineReady && Directory.Exists(SeedBaselinePath))
         {
@@ -65,11 +73,26 @@ public static class WorkspaceManager
                 timeoutMs: 20000);
             Assert.Equal(0, init.ExitCode);
 
-            ProcessRunner.ProcessResult install = context.Run(
-                $"{Commands.Install} {ProjectOptions.ProjectName} {Folders.Seed} {InstallOptions.Clean}",
-                CacheRoot,
-                timeoutMs: 60000);
-            Assert.Equal(0, install.ExitCode);
+            // Seed workspace now exists; write auth if available before install
+            EnsureWorkspaceNpmAuth(SeedBaselinePath);
+
+        ProcessRunner.ProcessResult install = context.Run(
+            $"{Commands.Install} {ProjectOptions.ProjectName} {Folders.Seed} {InstallOptions.Clean}",
+            CacheRoot,
+            timeoutMs: 60000);
+        if (install.ExitCode != 0)
+        {
+            Console.WriteLine($"[seed] webstir install failed (exit {install.ExitCode})");
+            if (!string.IsNullOrEmpty(install.Output))
+            {
+                Console.WriteLine(install.Output);
+            }
+            if (!string.IsNullOrEmpty(install.Error))
+            {
+                Console.WriteLine(install.Error);
+            }
+        }
+        Assert.Equal(0, install.ExitCode);
 
             string nodeModulesRoot = Path.Combine(SeedBaselinePath, "node_modules");
             if (!Directory.Exists(nodeModulesRoot) || Directory.GetFileSystemEntries(nodeModulesRoot).Length == 0)
@@ -214,62 +237,71 @@ public static class WorkspaceManager
         }
     }
 
-    private static void SetLocalRegistryOverrides()
+    private static void ClearRegistryOverrides()
     {
-        string repositoryRoot = Paths.RepositoryRoot;
-        Environment.SetEnvironmentVariable("WEBSTIR_FRONTEND_REGISTRY_SPEC", $"file:{Path.Combine(repositoryRoot, "Framework", "Frontend")}");
-        Environment.SetEnvironmentVariable("WEBSTIR_TEST_REGISTRY_SPEC", $"file:{Path.Combine(repositoryRoot, "Framework", "Testing")}");
-        Environment.SetEnvironmentVariable("WEBSTIR_BACKEND_REGISTRY_SPEC", $"file:{Path.Combine(repositoryRoot, "Framework", "Backend")}");
+        Environment.SetEnvironmentVariable("WEBSTIR_FRONTEND_REGISTRY_SPEC", null);
+        Environment.SetEnvironmentVariable("WEBSTIR_TEST_REGISTRY_SPEC", null);
+        Environment.SetEnvironmentVariable("WEBSTIR_BACKEND_REGISTRY_SPEC", null);
+    }
 
-        if (_localPackagesPrepared)
-        {
-            return;
-        }
+    // No-op: authentication is expected to come from user-level ~/.npmrc or env tokens.
+    private static bool EnsureRegistryCredentials() => true;
 
-        lock (SeedLock)
+    private static bool IsRegistryAuthFailure(ProcessRunner.ProcessResult result)
+    {
+        string output = $"{result.Output}{Environment.NewLine}{result.Error}".ToLowerInvariant();
+        return output.Contains("npm.pkg.github.com") ||
+            output.Contains("e401") ||
+            output.Contains("authentication token not provided") ||
+            output.Contains("unable to authenticate");
+    }
+
+    private static void EnsureWorkspaceNpmAuth(string workspacePath)
+    {
+        try
         {
-            if (_localPackagesPrepared)
+            // If a workspace .npmrc already exists, leave it alone.
+            string npmrcPath = Path.Combine(workspacePath, ".npmrc");
+            if (File.Exists(npmrcPath))
             {
                 return;
             }
 
-            PrepareLocalPackage(Path.Combine(repositoryRoot, "Framework", "Frontend"));
-            PrepareLocalPackage(Path.Combine(repositoryRoot, "Framework", "Testing"));
-            PrepareLocalPackage(Path.Combine(repositoryRoot, "Framework", "Backend"));
+            // Try environment tokens first.
+            string? token = Environment.GetEnvironmentVariable("GH_PACKAGES_TOKEN");
+            token ??= Environment.GetEnvironmentVariable("NODE_AUTH_TOKEN");
 
-            _localPackagesPrepared = true;
-        }
-    }
-
-    private static void PrepareLocalPackage(string packageDirectory)
-    {
-        if (!Directory.Exists(packageDirectory))
-        {
-            return;
-        }
-
-        string nodeModules = Path.Combine(packageDirectory, "node_modules");
-        if (!Directory.Exists(nodeModules))
-        {
-            ProcessRunner.ProcessResult install = ProcessRunner.Run(new ProcessRunOptions
+            // If missing, attempt to extract from user ~/.npmrc
+            if (string.IsNullOrWhiteSpace(token))
             {
-                FileName = "npm",
-                Arguments = "install --silent",
-                WorkingDirectory = packageDirectory,
-                ExitTimeoutMs = 120000
-            });
+                string userHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                string userNpmrc = Path.Combine(userHome, ".npmrc");
+                if (File.Exists(userNpmrc))
+                {
+                    foreach (string line in File.ReadAllLines(userNpmrc))
+                    {
+                        const string key = "//npm.pkg.github.com/:_authToken=";
+                        if (line.StartsWith(key, StringComparison.OrdinalIgnoreCase))
+                        {
+                            token = line[key.Length..].Trim();
+                            break;
+                        }
+                    }
+                }
+            }
 
-            Assert.Equal(0, install.ExitCode);
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return; // fall back to user config only
+            }
+
+            string content = "@webstir-io:registry=https://npm.pkg.github.com\n" +
+                             $"//npm.pkg.github.com/:_authToken={token}\n";
+            File.WriteAllText(npmrcPath, content);
         }
-
-        ProcessRunner.ProcessResult build = ProcessRunner.Run(new ProcessRunOptions
+        catch
         {
-            FileName = "npm",
-            Arguments = "run build",
-            WorkingDirectory = packageDirectory,
-            ExitTimeoutMs = 120000
-        });
-
-        Assert.Equal(0, build.ExitCode);
+            // Best-effort only; rely on user-level config if writing fails.
+        }
     }
 }
