@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Tester.FrameworkPackages;
 
+[Collection("PackageAutomationNonParallel")]
 public sealed class PackageAutomationIntegrationTests
 {
     [Fact]

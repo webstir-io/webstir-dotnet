@@ -17,6 +17,7 @@ using FrameworkProcessRunner = Framework.Services.ProcessRunner;
 
 namespace Tester.FrameworkPackages;
 
+[Collection("PackageAutomationNonParallel")]
 public sealed class PackageAutomationUnitTests
 {
     [Fact]
