@@ -36,4 +36,8 @@
     <EmbeddedResource Include="Packaging\framework-packages.json" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Utilities\Utilities.csproj" />
+  </ItemGroup>
+
 </Project>

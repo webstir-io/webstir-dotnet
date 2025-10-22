@@ -9,7 +9,7 @@ Requirements
 
 Quick Start
 1) Produce a published client from the seed:
-   - `./scripts/deploy-seed.sh` (init → build → publish)
+   - `./utilities/scripts/deploy-seed.sh` (init → build → publish)
 
 2) Up the stack:
    - From repo root: `docker compose -f Sandbox/docker-compose.yml up --build`

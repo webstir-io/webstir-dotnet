@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Framework.Utilities;
 using Microsoft.Extensions.Logging;
+using Utilities.ProcessRunner;
 
 namespace Framework.Services;
 
@@ -82,11 +83,18 @@ internal sealed class GitCommitAnalyzer(IProcessRunner processRunner, ILogger<Gi
 
         string arguments = $"log {rangeArgument} --pretty=%s -- {QuotePath(relativePath)}";
 
+        ProcessSpec spec = new()
+        {
+            FileName = "git",
+            Arguments = arguments,
+            WorkingDirectory = repositoryRoot
+        };
+
         ProcessResult result = await _processRunner
-            .RunAsync(new ProcessRequest("git", arguments, repositoryRoot, DisplayName: $"git {arguments}"), cancellationToken)
+            .RunAsync(spec, cancellationToken)
             .ConfigureAwait(false);
 
-        if (!result.Succeeded)
+        if (!result.CompletedSuccessfully)
         {
             _logger.LogWarning(
                 "[packages] Unable to inspect git history for {Package}. git {Arguments} returned {ExitCode}: {Error}",

@@ -8,13 +8,11 @@
     "Framework/Contracts/module-contract",
     "Framework/Frontend",
     "Framework/Backend",
-    "Framework/Testing",
-    "Orchestrator"
+    "Framework/Testing"
   ],
   "scripts": {
     "build:contracts": "npm run build --workspace Framework/Contracts/testing-contract && npm run build --workspace Framework/Contracts/module-contract",
-    "validate:contracts": "node ./utilities/validate-contracts.mjs",
-    "dev:js-cli": "npm run dev --workspace Orchestrator"
+    "validate:contracts": "node ./utilities/scripts/validate-contracts.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

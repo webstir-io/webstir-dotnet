@@ -1,87 +1,90 @@
 using System;
-using System.Diagnostics;
 using System.IO;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Engine.Extensions;
+using Utilities.ProcessRunner;
 
 namespace Engine.Bridge;
 
 public static class NpmHelper
 {
-    public static void RunNpmInstall(string workingPath)
+    public static async Task RunNpmInstallAsync(string workingPath, CancellationToken cancellationToken = default)
     {
         string packageLockPath = workingPath.Combine(Files.PackageLockJson);
         string npmCommand = packageLockPath.Exists() ? "ci" : "install";
 
-        ProcessStartInfo processInfo = new()
-        {
-            FileName = "npm",
-            Arguments = npmCommand,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WorkingDirectory = workingPath
-        };
+        ProcessRunner runner = new();
+        ProcessSpec spec = CreateInstallSpec(workingPath, npmCommand);
 
-        using Process process = Process.Start(processInfo)
-            ?? throw new Exception("Failed to start npm install process.");
+        ProcessResult result = await runner.RunAsync(spec, cancellationToken).ConfigureAwait(false);
 
-        process.WaitForExit();
-
-        if (process.ExitCode != 0 && npmCommand == "ci")
+        if (!result.CompletedSuccessfully && npmCommand == "ci")
         {
             DeleteIfExists(packageLockPath);
-            processInfo.Arguments = "install";
-            using Process retryProcess = Process.Start(processInfo)
-                ?? throw new Exception("Failed to start npm install process.");
-            retryProcess.WaitForExit();
-            if (retryProcess.ExitCode != 0)
+            spec = CreateInstallSpec(workingPath, "install");
+            result = await runner.RunAsync(spec, cancellationToken).ConfigureAwait(false);
+            if (!result.CompletedSuccessfully)
             {
-                throw CreateInstallException(retryProcess);
+                throw CreateInstallException(result, "npm install");
             }
             return;
         }
 
-        if (process.ExitCode != 0)
+        if (!result.CompletedSuccessfully)
         {
-            throw CreateInstallException(process);
+            throw CreateInstallException(result, $"npm {npmCommand}");
         }
     }
 
-    public static void RunNpmInstallPackages(string workingPath, params string[] packageSpecs)
+    public static async Task RunNpmInstallPackagesAsync(string workingPath, params string[] packageSpecs)
     {
         ArgumentNullException.ThrowIfNull(workingPath);
         ArgumentNullException.ThrowIfNull(packageSpecs);
 
-        ProcessStartInfo processInfo = new()
+        ProcessRunner runner = new();
+        ProcessSpec spec = new()
         {
             FileName = "npm",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WorkingDirectory = workingPath
+            Arguments = BuildInstallArguments(packageSpecs),
+            WorkingDirectory = workingPath,
+            ExitTimeout = TimeSpan.FromMinutes(10)
         };
 
-        processInfo.ArgumentList.Add("install");
-        processInfo.ArgumentList.Add("--no-save");
+        ProcessResult result = await runner.RunAsync(spec).ConfigureAwait(false);
+
+        if (!result.CompletedSuccessfully)
+        {
+            throw CreateInstallException(result, "npm install (explicit packages)");
+        }
+    }
+
+    private static ProcessSpec CreateInstallSpec(string workingPath, string command)
+    {
+        ProcessSpec spec = new()
+        {
+            FileName = "npm",
+            Arguments = command,
+            WorkingDirectory = workingPath,
+            ExitTimeout = TimeSpan.FromMinutes(10)
+        };
+
+        return spec;
+    }
+
+    private static string BuildInstallArguments(string[] packageSpecs)
+    {
+        System.Text.StringBuilder builder = new();
+        builder.Append("install --no-save");
+
         foreach (string spec in packageSpecs)
         {
-            processInfo.ArgumentList.Add(spec);
+            builder.Append(' ');
+            builder.Append(spec);
         }
 
-        using Process? process = Process.Start(processInfo);
-        if (process is null)
-        {
-            throw new Exception("Failed to start npm install (explicit packages) process.");
-        }
-
-        process.WaitForExit();
-
-        if (process.ExitCode != 0)
-        {
-            throw CreateInstallException(process);
-        }
+        return builder.ToString();
     }
 
     private static void DeleteIfExists(string filePath)
@@ -103,11 +106,11 @@ public static class NpmHelper
         }
     }
 
-    private static Exception CreateInstallException(Process process)
+    private static Exception CreateInstallException(ProcessResult result, string description)
     {
-        string errors = process.StandardError.ReadToEnd();
-        string output = process.StandardOutput.ReadToEnd();
-        string errorMessage = $"npm install failed (Exit Code: {process.ExitCode})";
+        string errors = result.StandardError;
+        string output = result.StandardOutput;
+        string errorMessage = $"{description} failed (Exit Code: {result.ExitCode})";
         if (!string.IsNullOrWhiteSpace(errors))
         {
             errorMessage += $"\nErrors:\n{errors}";

@@ -76,23 +76,23 @@ public static class WorkspaceManager
             // Seed workspace now exists; write auth if available before install
             EnsureWorkspaceNpmAuth(SeedBaselinePath);
 
-        ProcessRunner.ProcessResult install = context.Run(
-            $"{Commands.Install} {ProjectOptions.ProjectName} {Folders.Seed} {InstallOptions.Clean}",
-            CacheRoot,
-            timeoutMs: 60000);
-        if (install.ExitCode != 0)
-        {
-            Console.WriteLine($"[seed] webstir install failed (exit {install.ExitCode})");
-            if (!string.IsNullOrEmpty(install.Output))
+            ProcessRunner.ProcessResult install = context.Run(
+                $"{Commands.Install} {ProjectOptions.ProjectName} {Folders.Seed} {InstallOptions.Clean}",
+                CacheRoot,
+                timeoutMs: 60000);
+            if (install.ExitCode != 0)
             {
-                Console.WriteLine(install.Output);
+                Console.WriteLine($"[seed] webstir install failed (exit {install.ExitCode})");
+                if (!string.IsNullOrEmpty(install.Output))
+                {
+                    Console.WriteLine(install.Output);
+                }
+                if (!string.IsNullOrEmpty(install.Error))
+                {
+                    Console.WriteLine(install.Error);
+                }
             }
-            if (!string.IsNullOrEmpty(install.Error))
-            {
-                Console.WriteLine(install.Error);
-            }
-        }
-        Assert.Equal(0, install.ExitCode);
+            Assert.Equal(0, install.ExitCode);
 
             string nodeModulesRoot = Path.Combine(SeedBaselinePath, "node_modules");
             if (!Directory.Exists(nodeModulesRoot) || Directory.GetFileSystemEntries(nodeModulesRoot).Length == 0)

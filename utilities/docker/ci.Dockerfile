@@ -14,4 +14,4 @@ RUN dotnet --info && node -v && npm -v
 WORKDIR /workspace
 
 # Default command mirrors CI steps; can be overridden at runtime
-CMD ["bash", "-lc", "./utilities/local-ci.sh"]
+CMD ["bash", "-lc", "./utilities/scripts/local-ci.sh"]

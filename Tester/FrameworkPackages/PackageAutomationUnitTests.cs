@@ -10,10 +10,7 @@ using Framework.Utilities;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tester.Infrastructure;
 using Xunit;
-using FrameworkIProcessRunner = Framework.Services.IProcessRunner;
-using FrameworkProcessRequest = Framework.Services.ProcessRequest;
-using FrameworkProcessResult = Framework.Services.ProcessResult;
-using FrameworkProcessRunner = Framework.Services.ProcessRunner;
+using Utilities.ProcessRunner;
 
 namespace Tester.FrameworkPackages;
 
@@ -186,10 +183,14 @@ public sealed class PackageAutomationUnitTests
             {
                 Assert.Equal("git", request.FileName);
                 Assert.Contains("status --porcelain=1 --untracked-files=all", request.Arguments, StringComparison.Ordinal);
-                return new ProcessResult(
-                    0,
-                    " M Framework/Frontend/package.json\nA  Framework/Testing/new.ts\nR  Framework/Frontend/old.ts -> Framework/Frontend/new.ts\n?? Framework/Testing/untracked.js\n",
-                    string.Empty);
+                return new ProcessResult
+                {
+                    ExitCode = 0,
+                    StandardOutput = " M Framework/Frontend/package.json\nA  Framework/Testing/new.ts\nR  Framework/Frontend/old.ts -> Framework/Frontend/new.ts\n?? Framework/Testing/untracked.js\n",
+                    StandardError = string.Empty,
+                    Duration = TimeSpan.Zero,
+                    IsExitCodeAccepted = true
+                };
             }
         };
 
@@ -212,42 +213,20 @@ public sealed class PackageAutomationUnitTests
 
         FakeProcessRunner runner = new()
         {
-            OnRun = _ => new ProcessResult(1, string.Empty, "fatal: not a git repository")
+            OnRun = _ => new ProcessResult
+            {
+                ExitCode = 1,
+                StandardOutput = string.Empty,
+                StandardError = "fatal: not a git repository",
+                Duration = TimeSpan.Zero,
+                IsExitCodeAccepted = false
+            }
         };
 
         RepositoryDiffService service = new(runner, NullLogger<RepositoryDiffService>.Instance);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await service.GetStatusAsync(repositoryRoot, new RepositoryDiffOptions(), CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task ProcessRunnerRunsCommandAsync()
-    {
-        FrameworkProcessRunner runner = new(NullLogger<FrameworkProcessRunner>.Instance);
-        FrameworkProcessRequest request = new(
-            "dotnet",
-            "--version",
-            RepositoryRootLocator.Resolve());
-
-        FrameworkProcessResult result = await runner.RunAsync(request, CancellationToken.None);
-
-        Assert.Equal(0, result.ExitCode);
-        Assert.False(string.IsNullOrWhiteSpace(result.StandardOutput));
-        Assert.Equal(string.Empty, result.StandardError);
-    }
-
-    [Fact]
-    public async Task ProcessRunnerThrowsWhenProcessMissingAsync()
-    {
-        FrameworkProcessRunner runner = new(NullLogger<FrameworkProcessRunner>.Instance);
-        FrameworkProcessRequest request = new(
-            "webstir-nonexistent-command",
-            string.Empty,
-            RepositoryRootLocator.Resolve());
-
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await runner.RunAsync(request, CancellationToken.None));
     }
 
     [Fact]
@@ -292,7 +271,14 @@ public sealed class PackageAutomationUnitTests
                 Assert.Equal("npm", request.FileName);
                 Assert.Contains("ping", request.Arguments, StringComparison.Ordinal);
                 Assert.Contains("https://npm.pkg.github.com", request.Arguments, StringComparison.Ordinal);
-                return new ProcessResult(0, "pong", string.Empty);
+                return new ProcessResult
+                {
+                    ExitCode = 0,
+                    StandardOutput = "pong",
+                    StandardError = string.Empty,
+                    Duration = TimeSpan.Zero,
+                    IsExitCodeAccepted = true
+                };
             }
         };
 
@@ -357,24 +343,33 @@ public sealed class PackageAutomationUnitTests
         }
     }
 
-    private sealed class FakeProcessRunner : FrameworkIProcessRunner
+    private sealed class FakeProcessRunner : IProcessRunner
     {
-        public List<FrameworkProcessRequest> Requests { get; } = new();
+        public List<ProcessSpec> Requests { get; } = new();
 
-        public Func<FrameworkProcessRequest, FrameworkProcessResult>? OnRun
+        public Func<ProcessSpec, ProcessResult>? OnRun
         {
             get; set;
         }
 
-        public Task<FrameworkProcessResult> RunAsync(FrameworkProcessRequest request, CancellationToken cancellationToken)
+        public Task<ProcessResult> RunAsync(ProcessSpec spec, CancellationToken cancellationToken)
         {
-            Requests.Add(request);
-            FrameworkProcessResult result = OnRun is null
-                ? new FrameworkProcessResult(0, string.Empty, string.Empty)
-                : OnRun(request);
+            Requests.Add(spec);
+            ProcessResult result = OnRun is null
+                ? new ProcessResult
+                {
+                    ExitCode = 0,
+                    StandardOutput = string.Empty,
+                    StandardError = string.Empty,
+                    Duration = TimeSpan.Zero,
+                    IsExitCodeAccepted = true
+                }
+                : OnRun(spec);
 
             return Task.FromResult(result);
         }
+
+        public Task<IProcessHandle> StartAsync(ProcessSpec spec, CancellationToken cancellationToken = default) => throw new NotImplementedException();
     }
 
     private sealed class FakePackageMetadataService(IReadOnlyList<PackageManifest> manifests) : IPackageMetadataService

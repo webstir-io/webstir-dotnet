@@ -153,6 +153,7 @@ public sealed class PackageAutomationIntegrationTests
 
             string sourceRoot = RepositoryRootLocator.Resolve();
             CopyDirectory(Path.Combine(sourceRoot, "Framework"), Path.Combine(root, "Framework"));
+            CopyDirectory(Path.Combine(sourceRoot, "Utilities"), Path.Combine(root, "Utilities"));
             InitializeGit(root);
 
             return new PackageCliWorkspace(root);

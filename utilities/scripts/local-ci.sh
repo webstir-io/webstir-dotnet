@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PARENT_DIR="$(dirname "$ROOT_DIR")"
 ROOT_NAME="$(basename "$ROOT_DIR")"
 IMAGE_NAME="${LOCAL_CI_IMAGE_NAME:-webstir-local-ci:latest}"
@@ -62,7 +62,7 @@ if [[ -z "${LOCAL_CI_IN_CONTAINER:-}" ]]; then
     "$IMAGE_NAME"
     bash
     -lc
-    "./utilities/local-ci.sh"
+    "./utilities/scripts/local-ci.sh"
   )
 
   docker "${docker_args[@]}"

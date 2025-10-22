@@ -1,27 +1,26 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Engine.Extensions;
-
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Utilities.ProcessRunner;
 
 namespace Engine.Servers;
 
-public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logger)
+public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logger, IProcessRunner processRunner)
 {
     private readonly AppSettings _settings = options.Value;
     private readonly ILogger<NodeServer> _logger = logger;
-    private Process? _process;
+    private readonly IProcessRunner _processRunner = processRunner;
+    private IProcessHandle? _processHandle;
 
     public async Task StartAsync(AppWorkspace workspace, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(workspace);
-        await KillProcessOnPort(_settings.ApiServerPort, cancellationToken);
+        await KillProcessOnPortAsync(_settings.ApiServerPort, cancellationToken).ConfigureAwait(false);
 
         string serverIndexPath = workspace.BackendBuildPath.Combine("index.js");
         if (!File.Exists(serverIndexPath))
@@ -30,72 +29,80 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
             return;
         }
 
-        TaskCompletionSource<bool> startupComplete = new();
-
-        _process = new()
+        ProcessSpec spec = new()
         {
-            StartInfo = new()
+            FileName = "node",
+            Arguments = serverIndexPath,
+            WorkingDirectory = workspace.WorkingPath,
+            ReadySignal = "API server running",
+            ReadySignalTimeout = TimeSpan.FromSeconds(30),
+            TerminationMethod = TerminationMethod.Kill,
+            OutputObserver = output =>
             {
-                FileName = "node",
-                Arguments = serverIndexPath,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                WorkingDirectory = workspace.WorkingPath
-            }
-        };
-
-        _process.StartInfo.Environment["NODE_ENV"] = "development";
-        _process.StartInfo.Environment["PORT"] = _settings.ApiServerPort.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        _process.StartInfo.Environment["WEB_SERVER_URL"] = _settings.WebServerUrl;
-        _process.StartInfo.Environment["API_SERVER_URL"] = _settings.ApiServerUrl;
-
-        _process.OutputDataReceived += (_, e) =>
-        {
-            if (!string.IsNullOrEmpty(e.Data))
-            {
-                if (!e.Data.Contains("SIGINT received", StringComparison.Ordinal))
+                if (output.Stream == ProcessOutputStream.StandardError)
                 {
-                    _logger.LogInformation("{NodeOutput}", e.Data);
+                    if (!string.IsNullOrEmpty(output.Data))
+                    {
+                        _logger.LogError("Node server error: {ErrorData}", output.Data);
+                    }
                 }
-
-                if (e.Data.Contains("API server running", StringComparison.Ordinal))
+                else
                 {
-                    startupComplete.TrySetResult(true);
+                    if (!string.IsNullOrEmpty(output.Data) && !output.Data.Contains("SIGINT received", StringComparison.Ordinal))
+                    {
+                        _logger.LogInformation("{NodeOutput}", output.Data);
+                    }
                 }
             }
         };
 
-        _process.ErrorDataReceived += (_, e) =>
+        spec.WithEnvironmentVariable("NODE_ENV", "development");
+        spec.WithEnvironmentVariable("PORT", _settings.ApiServerPort.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        spec.WithEnvironmentVariable("WEB_SERVER_URL", _settings.WebServerUrl);
+        spec.WithEnvironmentVariable("API_SERVER_URL", _settings.ApiServerUrl);
+
+        try
         {
-            if (!string.IsNullOrEmpty(e.Data))
-                _logger.LogError("Node server error: {ErrorData}", e.Data);
-        };
-
-        _process.Start();
-        _process.BeginOutputReadLine();
-        _process.BeginErrorReadLine();
-
-        await startupComplete.Task.WaitAsync(cancellationToken);
+            _processHandle = await _processRunner.StartAsync(spec, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogError(ex, "Node server failed to report readiness within {Timeout} seconds.", spec.ReadySignalTimeout.TotalSeconds);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to start Node.js server.");
+            throw;
+        }
     }
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        if (_process != null && !_process.HasExited)
+        if (_processHandle is not null)
         {
-            _process.Kill(entireProcessTree: true);
-            await _process.WaitForExitAsync(cancellationToken);
-            _process.Dispose();
-            _process = null;
+            try
+            {
+                await _processHandle.StopAsync(TerminationMethod.Kill, cancellationToken).ConfigureAwait(false);
+                await _processHandle.WaitForExitAsync(TimeSpan.FromSeconds(15), cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Error stopping Node.js server; attempting final disposal.");
+            }
+            finally
+            {
+                await _processHandle.DisposeAsync().ConfigureAwait(false);
+                _processHandle = null;
+            }
         }
     }
 
-    private async Task KillProcessOnPort(int port, CancellationToken cancellationToken = default)
+    private async Task KillProcessOnPortAsync(int port, CancellationToken cancellationToken = default)
     {
         try
         {
-            string? pid = await GetProcessIdOnPort(port, cancellationToken);
+            string? pid = await GetProcessIdOnPortAsync(port, cancellationToken).ConfigureAwait(false);
             if (pid == null)
             {
                 return;
@@ -115,20 +122,23 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
                 arguments = $"-9 {pid}";
             }
 
-            using Process? killProcess = Process.Start(new ProcessStartInfo
+            ProcessSpec spec = new()
             {
                 FileName = command,
                 Arguments = arguments,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            });
+                ExitTimeout = TimeSpan.FromSeconds(5)
+            };
 
-            if (killProcess != null)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                await killProcess.WaitForExitAsync(cancellationToken);
+                spec.AllowExitCode(128); // process not found
             }
+            else
+            {
+                spec.AllowExitCode(1); // process not found
+            }
+
+            await _processRunner.RunAsync(spec, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -136,7 +146,7 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
         }
     }
 
-    private static async Task<string?> GetProcessIdOnPort(int port, CancellationToken cancellationToken)
+    private async Task<string?> GetProcessIdOnPortAsync(int port, CancellationToken cancellationToken)
     {
         try
         {
@@ -154,24 +164,14 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
                 arguments = $"-ti:{port}";
             }
 
-            ProcessStartInfo psi = new()
+            ProcessSpec spec = new()
             {
                 FileName = command,
                 Arguments = arguments,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
+                ExitTimeout = TimeSpan.FromSeconds(5)
             };
-            using Process? process = Process.Start(psi);
-
-            if (process == null)
-            {
-                return null;
-            }
-
-            string output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
+            ProcessResult result = await _processRunner.RunAsync(spec, cancellationToken).ConfigureAwait(false);
+            string output = result.StandardOutput;
 
             if (string.IsNullOrWhiteSpace(output))
             {

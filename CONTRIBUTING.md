@@ -26,10 +26,10 @@ and may be incorporated into the project owned by **Electric Coding LLC**.
 | Restore solution & packages | `dotnet build Webstir.sln -v minimal` |
 | Run workflow tests (quick) | `dotnet test Tester/Tester.csproj` |
 | Run full workflow tests | `WEBSTIR_TEST_MODE=full dotnet test Tester/Tester.csproj` |
-| Format & build sanity check | `./utilities/format-build.sh` |
+| Format & build sanity check | `./utilities/scripts/format-build.sh` |
 | Rebuild & verify framework packages | `dotnet run --project Framework/Framework.csproj -- packages sync`<br>`dotnet run --project Framework/Framework.csproj -- packages verify` |
 
-> Tip: `./utilities/local-ci.sh` builds the Docker image used by CI and runs the same workflow (npm installs, dotnet build/test, framework package sync/verify) against your checkout.
+> Tip: `./utilities/scripts/local-ci.sh` builds the Docker image used by CI and runs the same workflow (npm installs, dotnet build/test, framework package sync/verify) against your checkout.
 
 ## Tests & Linting
 - Favor the end-to-end workflow tests in `Tester/` when changing CLI behavior.  

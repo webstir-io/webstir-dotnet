@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -9,16 +8,19 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Utilities.ProcessRunner;
 
 namespace Framework.Packaging;
 
 public sealed class PackageBuilder
 {
     private readonly ILogger<PackageBuilder> _logger;
+    private readonly IProcessRunner _processRunner;
 
-    public PackageBuilder(ILogger<PackageBuilder> logger)
+    public PackageBuilder(ILogger<PackageBuilder> logger, IProcessRunner processRunner)
     {
         _logger = logger;
+        _processRunner = processRunner;
     }
 
     public async Task<PackageBuildResult> BuildFrontendAsync(string repositoryRoot, bool publish) =>
@@ -135,42 +137,31 @@ public sealed class PackageBuilder
         return new PackageMetadata(name, version);
     }
 
-    private static async Task RunCommandAsync(string fileName, string arguments, string workingDirectory, string description)
+    private async Task RunCommandAsync(string fileName, string arguments, string workingDirectory, string description)
     {
-        ProcessStartInfo startInfo = new()
+        ProcessSpec spec = new()
         {
             FileName = fileName,
             Arguments = arguments,
             WorkingDirectory = workingDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
+            ExitTimeout = TimeSpan.FromMinutes(10)
         };
 
         try
         {
-            using Process? process = Process.Start(startInfo);
-            if (process is null)
-            {
-                throw new InvalidOperationException($"Failed to start process for {description}.");
-            }
+            ProcessResult result = await _processRunner.RunAsync(spec).ConfigureAwait(false);
 
-            string output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-            string error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
-            await process.WaitForExitAsync().ConfigureAwait(false);
-
-            if (process.ExitCode != 0)
+            if (!result.CompletedSuccessfully)
             {
                 StringBuilder builder = new();
-                builder.AppendLine(FormattableString.Invariant($"Command '{description}' failed with exit code {process.ExitCode}."));
-                if (!string.IsNullOrWhiteSpace(error))
+                builder.AppendLine(FormattableString.Invariant($"Command '{description}' failed with exit code {result.ExitCode}."));
+                if (!string.IsNullOrWhiteSpace(result.StandardError))
                 {
-                    builder.AppendLine(error.Trim());
+                    builder.AppendLine(result.StandardError.Trim());
                 }
-                if (!string.IsNullOrWhiteSpace(output))
+                if (!string.IsNullOrWhiteSpace(result.StandardOutput))
                 {
-                    builder.AppendLine(output.Trim());
+                    builder.AppendLine(result.StandardOutput.Trim());
                 }
 
                 throw new InvalidOperationException(builder.ToString().Trim());
@@ -205,44 +196,33 @@ public sealed class PackageBuilder
             return false;
         }
 
-        ProcessStartInfo startInfo = new()
+        ProcessSpec specPublish = new()
         {
             FileName = "npm",
             Arguments = $"publish --registry \"{registryUrl}\" --access {publishAccess}",
             WorkingDirectory = packageDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
+            ExitTimeout = TimeSpan.FromMinutes(10)
         };
 
-        using Process? process = Process.Start(startInfo);
-        if (process is null)
-        {
-            throw new InvalidOperationException($"Failed to start npm publish for {spec}.");
-        }
+        ProcessResult publishResult = await _processRunner.RunAsync(specPublish).ConfigureAwait(false);
 
-        string output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-        string error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
-        await process.WaitForExitAsync().ConfigureAwait(false);
-
-        if (process.ExitCode != 0)
+        if (!publishResult.CompletedSuccessfully)
         {
-            if (!string.IsNullOrWhiteSpace(error) && error.IndexOf("EPUBLISHCONFLICT", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (!string.IsNullOrWhiteSpace(publishResult.StandardError) && publishResult.StandardError.IndexOf("EPUBLISHCONFLICT", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 _logger.LogInformation("[packages] {Spec} already exists in {Registry}.", spec, registryUrl);
                 return false;
             }
 
             StringBuilder builder = new();
-            builder.AppendLine(FormattableString.Invariant($"npm publish failed for {spec} (exit {process.ExitCode})."));
-            if (!string.IsNullOrWhiteSpace(error))
+            builder.AppendLine(FormattableString.Invariant($"npm publish failed for {spec} (exit {publishResult.ExitCode})."));
+            if (!string.IsNullOrWhiteSpace(publishResult.StandardError))
             {
-                builder.AppendLine(error.Trim());
+                builder.AppendLine(publishResult.StandardError.Trim());
             }
-            if (!string.IsNullOrWhiteSpace(output))
+            if (!string.IsNullOrWhiteSpace(publishResult.StandardOutput))
             {
-                builder.AppendLine(output.Trim());
+                builder.AppendLine(publishResult.StandardOutput.Trim());
             }
 
             throw new InvalidOperationException(builder.ToString().Trim());
@@ -252,27 +232,18 @@ public sealed class PackageBuilder
         return true;
     }
 
-    private static async Task<bool> PackageExistsAsync(string spec, string registryUrl, string workingDirectory)
+    private async Task<bool> PackageExistsAsync(string spec, string registryUrl, string workingDirectory)
     {
-        ProcessStartInfo startInfo = new()
+        ProcessSpec specView = new()
         {
             FileName = "npm",
             Arguments = $"view {spec} version --registry \"{registryUrl}\"",
             WorkingDirectory = workingDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
+            ExitTimeout = TimeSpan.FromSeconds(30)
         };
 
-        using Process? process = Process.Start(startInfo);
-        if (process is null)
-        {
-            return false;
-        }
-
-        await process.WaitForExitAsync().ConfigureAwait(false);
-        return process.ExitCode == 0;
+        ProcessResult result = await _processRunner.RunAsync(specView).ConfigureAwait(false);
+        return result.CompletedSuccessfully;
     }
 
     private static void UpdatePackageCatalog(

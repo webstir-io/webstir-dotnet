@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { Validator } from 'jsonschema';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repositoryRoot = path.resolve(__dirname, '..');
+const repositoryRoot = path.resolve(__dirname, '..', '..');
 
 function loadJson(relativePath) {
   const absolutePath = path.join(repositoryRoot, relativePath);

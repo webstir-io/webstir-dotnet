@@ -16,4 +16,4 @@
 - Communicate in straightforward, concise language.
 - Use repo helpers (`AppWorkspace`, `Engine.Extensions`) for paths and file operations.
 - Run terminal commands with `bash -lc`, set `workdir`, and prefer `rg` for searches.
-- Use `./utilities/format-build.sh` before handoff; it now runs project-by-project to avoid the earlier `dotnet format` timeouts.
+- Use `./utilities/scripts/format-build.sh` before handoff; it now runs project-by-project to avoid the earlier `dotnet format` timeouts.

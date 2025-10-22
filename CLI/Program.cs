@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Core;
+using Utilities.ProcessRunner;
 
 Logger logger = new LoggerConfiguration()
     .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
@@ -59,6 +60,7 @@ try
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true
     });
+    services.AddSingleton<IProcessRunner, ProcessRunner>();
 
     services.AddScoped<AppWorkspace>();
     services.AddScoped<IWorkflowFactory, WorkflowFactory>();

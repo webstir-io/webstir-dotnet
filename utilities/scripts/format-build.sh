@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Format and then build the solution from repo root.
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
 run_dotnet_format_scope() {

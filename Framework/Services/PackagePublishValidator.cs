@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Framework.Packaging;
 using Microsoft.Extensions.Logging;
+using Utilities.ProcessRunner;
 
 namespace Framework.Services;
 
@@ -160,14 +161,15 @@ internal sealed class PackagePublishValidator(
 
             _logger.LogInformation("[packages] Verifying access to {Registry}...", descriptor.PublishRegistryUrl);
 
-            ProcessRequest request = new(
-                "npm",
-                $"ping --registry \"{descriptor.PublishRegistryUrl}\"",
-                repositoryRoot,
-                DisplayName: $"npm ping ({descriptor.PublishRegistryUrl})");
+            ProcessSpec spec = new()
+            {
+                FileName = "npm",
+                Arguments = $"ping --registry \"{descriptor.PublishRegistryUrl}\"",
+                WorkingDirectory = repositoryRoot
+            };
 
-            ProcessResult result = await _processRunner.RunAsync(request, cancellationToken).ConfigureAwait(false);
-            if (result.Succeeded)
+            ProcessResult result = await _processRunner.RunAsync(spec, cancellationToken).ConfigureAwait(false);
+            if (result.CompletedSuccessfully)
             {
                 continue;
             }

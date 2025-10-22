@@ -7,7 +7,7 @@ set -euo pipefail
 # - Build artifacts: CLI/out/seed/build
 # - Dist artifacts:  CLI/out/seed/dist
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
 DEFAULT_NPMRC="$ROOT_DIR/.npmrc"

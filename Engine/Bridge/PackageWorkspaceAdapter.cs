@@ -13,15 +13,9 @@ internal sealed class PackageWorkspaceAdapter(AppWorkspace workspace) : IPackage
 
     public string WebstirPath => _workspace.WebstirPath;
 
-    public Task RunNpmInstallAsync()
-    {
-        NpmHelper.RunNpmInstall(_workspace.WorkingPath);
-        return Task.CompletedTask;
-    }
+    public async Task RunNpmInstallAsync() =>
+        await NpmHelper.RunNpmInstallAsync(_workspace.WorkingPath).ConfigureAwait(false);
 
-    public Task InstallPackagesAsync(params string[] packageSpecs)
-    {
-        NpmHelper.RunNpmInstallPackages(_workspace.WorkingPath, packageSpecs);
-        return Task.CompletedTask;
-    }
+    public async Task InstallPackagesAsync(params string[] packageSpecs) =>
+        await NpmHelper.RunNpmInstallPackagesAsync(_workspace.WorkingPath, packageSpecs).ConfigureAwait(false);
 }

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Core;
+using SharedProcessRunner = Utilities.ProcessRunner;
 
 Logger logger = CreateBootstrapLogger();
 
@@ -21,8 +22,8 @@ try
     ServiceCollection services = new();
     services.AddSingleton<IConfiguration>(configuration);
     services.AddLogging(builder => builder.AddSerilog(logger, dispose: true));
+    services.AddSingleton<SharedProcessRunner.IProcessRunner, SharedProcessRunner.ProcessRunner>();
     services.AddSingleton<PackageBuilder>();
-    services.AddSingleton<IProcessRunner, ProcessRunner>();
     services.AddSingleton<IRepositoryDiffService, RepositoryDiffService>();
     services.AddSingleton<IGitCommitAnalyzer, GitCommitAnalyzer>();
     services.AddSingleton<IPackageMetadataService, PackageMetadataService>();

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Utilities.ProcessRunner;
 
 namespace Framework.Services;
 
@@ -34,11 +35,18 @@ internal sealed class RepositoryDiffService(IProcessRunner processRunner, ILogge
         }
 
         string arguments = BuildArguments(options);
+        ProcessSpec spec = new()
+        {
+            FileName = "git",
+            Arguments = arguments,
+            WorkingDirectory = repositoryRoot
+        };
+
         ProcessResult result = await _processRunner.RunAsync(
-            new ProcessRequest("git", arguments, repositoryRoot, DisplayName: $"git {arguments}"),
+            spec,
             cancellationToken).ConfigureAwait(false);
 
-        if (!result.Succeeded)
+        if (!result.CompletedSuccessfully)
         {
             _logger.LogWarning("git {Arguments} exited with code {ExitCode}. stderr: {StdErr}", arguments, result.ExitCode, result.StandardError);
             throw new InvalidOperationException($"Failed to query git status. Command 'git {arguments}' exited with {result.ExitCode}.");

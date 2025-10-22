@@ -1,5 +1,5 @@
 using System;
-using System.Diagnostics;
+using Utilities.ProcessRunner;
 
 namespace Engine.Bridge;
 
@@ -22,36 +22,34 @@ internal static class NodeRuntime
 
     private static Version GetNodeVersion()
     {
-        ProcessStartInfo processInfo = new()
+        ProcessRunner runner = new();
+        ProcessSpec spec = new()
         {
             FileName = "node",
             Arguments = "--version",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
+            ExitTimeout = TimeSpan.FromSeconds(10)
         };
 
-        using Process? process = Process.Start(processInfo);
-        if (process is null)
+        ProcessResult result;
+
+        try
         {
-            throw new InvalidOperationException("Unable to execute 'node --version'. Verify that Node.js is installed and available on PATH.");
+            result = runner.RunAsync(spec).GetAwaiter().GetResult();
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new InvalidOperationException("Unable to execute 'node --version'. Verify that Node.js is installed and available on PATH.", ex);
         }
 
-        string standardOutput = process.StandardOutput.ReadToEnd();
-        string standardError = process.StandardError.ReadToEnd();
-
-        process.WaitForExit();
-
-        if (process.ExitCode != 0)
+        if (!result.CompletedSuccessfully)
         {
-            string message = string.IsNullOrWhiteSpace(standardError)
-                ? $"'node --version' exited with code {process.ExitCode}."
-                : standardError.Trim();
+            string message = string.IsNullOrWhiteSpace(result.StandardError)
+                ? $"'node --version' exited with code {result.ExitCode}."
+                : result.StandardError.Trim();
             throw new InvalidOperationException($"Unable to determine Node.js version: {message}");
         }
 
-        string output = standardOutput.Trim();
+        string output = result.StandardOutput.Trim();
         if (string.IsNullOrWhiteSpace(output))
         {
             throw new InvalidOperationException("Unable to determine Node.js version: 'node --version' produced no output.");
