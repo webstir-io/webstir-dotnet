@@ -42,6 +42,14 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci --workspaces
 
+      - name: Ensure sharp linux-x64 vendor binding
+        run: |
+          env npm_config_platform=linux npm_config_arch=x64 \
+            npm install --no-save @img/sharp-linux-x64 @img/sharp-libvips-linux-x64
+          SHARP_IGNORE_GLOBAL_LIBVIPS=1 \
+            env npm_config_platform=linux npm_config_arch=x64 \
+            npm rebuild sharp --foreground-scripts --verbose || true
+
       - name: Build testing package
         run: npm --workspace Framework/Testing run build
 
@@ -53,6 +61,12 @@ jobs:
 
       - name: Run frontend package tests
         run: npm --workspace Framework/Frontend test --silent
+
+      - name: Build framework packages
+        run: dotnet run --project Framework/Framework.csproj -- packages sync
+
+      - name: Verify framework packages
+        run: dotnet run --project Framework/Framework.csproj -- packages verify
 
   full:
     name: Full
