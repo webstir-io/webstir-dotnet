@@ -135,6 +135,7 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
             NodeRuntime.EnsureMinimumVersion();
 
             PackageWorkspaceAdapter workspaceAdapter = new(workspace);
+            PackageManagerDescriptor packageManager = workspaceAdapter.PackageManager;
             PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
                 workspaceAdapter,
                 _logger,
@@ -148,7 +149,7 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
 
             if (summary.InstallPerformed)
             {
-                _logger.LogInformation("[backend] Package dependencies refreshed; npm install completed.");
+                _logger.LogInformation("[backend] Package dependencies refreshed; {Manager} install completed.", packageManager.DisplayName);
             }
             else
             {

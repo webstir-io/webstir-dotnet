@@ -1,6 +1,8 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Engine;
+using Engine.Bridge;
 using Xunit;
 
 namespace Tester.Infrastructure;
@@ -97,14 +99,9 @@ public static class WorkspaceManager
             string nodeModulesRoot = Path.Combine(SeedBaselinePath, "node_modules");
             if (!Directory.Exists(nodeModulesRoot) || Directory.GetFileSystemEntries(nodeModulesRoot).Length == 0)
             {
-                ProcessRunner.ProcessResult npmInstall = ProcessRunner.Run(new ProcessRunOptions
-                {
-                    FileName = "npm",
-                    Arguments = "install",
-                    WorkingDirectory = SeedBaselinePath,
-                    ExitTimeoutMs = 60000
-                });
-                Assert.Equal(0, npmInstall.ExitCode);
+                PackageManagerRunner runner = PackageManagerRunner.Create(SeedBaselinePath);
+                Task installTask = runner.InstallDependenciesAsync();
+                installTask.GetAwaiter().GetResult();
             }
 
             CopyWorkspaceFromBaseline(Path.Combine(Paths.OutPath, Folders.Seed));
@@ -296,7 +293,8 @@ public static class WorkspaceManager
             }
 
             string content = "@webstir-io:registry=https://npm.pkg.github.com\n" +
-                             $"//npm.pkg.github.com/:_authToken={token}\n";
+                             $"//npm.pkg.github.com/:_authToken={token}\n" +
+                             "always-auth=true\n";
             File.WriteAllText(npmrcPath, content);
         }
         catch

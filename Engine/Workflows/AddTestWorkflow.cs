@@ -42,7 +42,8 @@ public sealed class AddTestWorkflow(AppWorkspace context,
         string executable = GetExecutablePath();
         if (!File.Exists(executable))
         {
-            throw new InvalidOperationException($"webstir-testing-add executable not found at {executable}. Run npm install to restore dependencies.");
+            PackageManagerDescriptor manager = PackageManagerRunner.Create(Context.WorkingPath).Descriptor;
+            throw new InvalidOperationException($"webstir-testing-add executable not found at {executable}. Run {manager.DisplayName} install to restore dependencies.");
         }
 
         ProcessStartInfo psi = new()

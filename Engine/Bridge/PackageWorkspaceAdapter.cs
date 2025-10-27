@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using Framework.Packaging;
 
@@ -13,9 +14,13 @@ internal sealed class PackageWorkspaceAdapter(AppWorkspace workspace) : IPackage
 
     public string WebstirPath => _workspace.WebstirPath;
 
-    public async Task RunNpmInstallAsync() =>
-        await NpmHelper.RunNpmInstallAsync(_workspace.WorkingPath).ConfigureAwait(false);
+    public PackageManagerDescriptor PackageManager => CreateRunner().Descriptor;
 
-    public async Task InstallPackagesAsync(params string[] packageSpecs) =>
-        await NpmHelper.RunNpmInstallPackagesAsync(_workspace.WorkingPath, packageSpecs).ConfigureAwait(false);
+    public Task InstallDependenciesAsync(CancellationToken cancellationToken = default) =>
+        CreateRunner().InstallDependenciesAsync(cancellationToken);
+
+    public Task InstallPackagesAsync(string[] packageSpecs, CancellationToken cancellationToken = default) =>
+        CreateRunner().InstallPackagesAsync(packageSpecs, cancellationToken);
+
+    private PackageManagerRunner CreateRunner() => PackageManagerRunner.Create(_workspace.WorkingPath);
 }

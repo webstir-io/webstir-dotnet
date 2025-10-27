@@ -98,14 +98,16 @@ public static class Help
             [
                 Example($"{App.Name} {Commands.Install}", "Install pinned frontend/testing/backend packages"),
                 Example($"{App.Name} {Commands.Install} ./my-app", "Synchronize packages for ./my-app"),
-                Example($"{App.Name} {Commands.Install} {InstallOptions.DryRun}", "Preview actions without running npm install"),
+                Example($"{App.Name} {Commands.Install} {InstallOptions.DryRun}", "Preview actions without running a package install"),
                 Example($"{App.Name} {Commands.Install} {InstallOptions.Clean}", "Clear cached workspace packages before installing"),
-                Example($"{App.Name} {Commands.Install}", "Ensure providers referenced by webstir.providers.json are installed")
+                Example($"{App.Name} {Commands.Install} {InstallOptions.PackageManager}=pnpm@8", "Run installs with a specific package manager version via Corepack")
             ],
             [
-                Option(InstallOptions.DryRun, "Report pending changes without running npm install"),
-                Option(InstallOptions.Clean, "Remove cached workspace packages before reinstalling")
-            ]);
+                Option(InstallOptions.DryRun, "Report pending changes without running a package install"),
+                Option(InstallOptions.Clean, "Remove cached workspace packages before reinstalling"),
+                Option($"{InstallOptions.PackageManager} | {InstallOptions.PackageManagerShort}", "Override the package manager for this run (npm, pnpm, yarn, optional @version)")
+            ],
+            "[options]");
 
     private static CommandHelp GetTestCommand() =>
         CreateCommand(Commands.Test,

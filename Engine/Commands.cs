@@ -40,4 +40,6 @@ public static class InstallOptions
 {
     public const string DryRun = "--dry-run";
     public const string Clean = "--clean";
+    public const string PackageManager = "--package-manager";
+    public const string PackageManagerShort = "-m";
 }

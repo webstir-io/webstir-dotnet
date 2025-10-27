@@ -51,7 +51,15 @@ public static class FrameworkPackageCatalog
             string name = value.GetProperty("name").GetString() ?? property.Name;
             string version = value.GetProperty("version").GetString() ?? throw new InvalidOperationException($"Package '{property.Name}' missing version metadata.");
             string registrySpecifier = value.GetProperty("registrySpecifier").GetString() ?? throw new InvalidOperationException($"Package '{property.Name}' missing registry specifier metadata.");
-            result[property.Name] = new FrameworkPackageMetadata(name, version, registrySpecifier);
+            string workspaceSpecifier = value.TryGetProperty("workspaceSpecifier", out JsonElement workspaceElement) && workspaceElement.ValueKind == JsonValueKind.String
+                ? workspaceElement.GetString() ?? string.Empty
+                : string.Empty;
+            if (string.IsNullOrWhiteSpace(workspaceSpecifier))
+            {
+                workspaceSpecifier = $"^{version}";
+            }
+
+            result[property.Name] = new FrameworkPackageMetadata(name, version, registrySpecifier, workspaceSpecifier);
         }
 
         return result;
@@ -61,7 +69,8 @@ public static class FrameworkPackageCatalog
 public readonly record struct FrameworkPackageMetadata(
     string Name,
     string Version,
-    string RegistrySpecifier)
+    string RegistrySpecifier,
+    string WorkspaceSpecifier)
 {
     internal string VersionSafe => Version.Replace('.', '-');
 

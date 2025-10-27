@@ -5,9 +5,11 @@ using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Engine.Models;
-using Microsoft.Extensions.Logging;
+using Engine.Bridge;
 using Engine.Bridge.Module;
+using Engine.Models;
+using Framework.Packaging;
+using Microsoft.Extensions.Logging;
 
 namespace Engine.Bridge.Frontend;
 
@@ -152,7 +154,8 @@ internal sealed class FrontendWatcher(
         string executable = _resolveExecutablePath();
         if (!File.Exists(executable))
         {
-            throw new InvalidOperationException($"webstir-frontend executable not found at {executable}. Run npm install to restore dependencies.");
+            PackageManagerDescriptor manager = PackageManagerRunner.Create(_workspace.WorkingPath).Descriptor;
+            throw new InvalidOperationException($"webstir-frontend executable not found at {executable}. Run {manager.DisplayName} install to restore dependencies.");
         }
 
         ProcessStartInfo psi = new()

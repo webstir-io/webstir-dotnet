@@ -221,6 +221,7 @@ public sealed class FrontendWorker : IFrontendWorker
             _logger.LogInformation("[frontend] Verifying framework packages...");
 
             PackageWorkspaceAdapter workspaceAdapter = new(_workspace);
+            PackageManagerDescriptor packageManager = workspaceAdapter.PackageManager;
             PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
                 workspaceAdapter,
                 _logger,
@@ -234,7 +235,7 @@ public sealed class FrontendWorker : IFrontendWorker
 
             if (summary.InstallPerformed)
             {
-                _logger.LogInformation("[frontend] Package dependencies refreshed; npm install completed.");
+                _logger.LogInformation("[frontend] Package dependencies refreshed; {Manager} install completed.", packageManager.DisplayName);
             }
             else
             {

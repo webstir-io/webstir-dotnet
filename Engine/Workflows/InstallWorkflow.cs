@@ -24,10 +24,20 @@ public sealed class InstallWorkflow(
     {
         bool dryRun = Array.Exists(args, arg => string.Equals(arg, InstallOptions.DryRun, StringComparison.OrdinalIgnoreCase));
         bool clean = Array.Exists(args, arg => string.Equals(arg, InstallOptions.Clean, StringComparison.OrdinalIgnoreCase));
+        string? packageManagerOverride = ParsePackageManagerOverride(args);
+        string? previousPackageManager = null;
+        bool overrideApplied = false;
 
         if (dryRun && clean)
         {
             throw new InvalidOperationException("--clean cannot be combined with --dry-run.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(packageManagerOverride))
+        {
+            previousPackageManager = Environment.GetEnvironmentVariable(PackageManagerRunner.EnvironmentVariableName);
+            Environment.SetEnvironmentVariable(PackageManagerRunner.EnvironmentVariableName, packageManagerOverride);
+            overrideApplied = true;
         }
 
         NodeRuntime.EnsureMinimumVersion();
@@ -38,39 +48,50 @@ public sealed class InstallWorkflow(
             CleanWorkspaceCache();
         }
 
-        PackageWorkspaceAdapter workspaceAdapter = new(Context);
-        PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
-            workspaceAdapter,
-            _logger,
-            ensureFrontend: () => FrontendPackageInstaller.EnsureAsync(workspaceAdapter),
-            ensureTesting: () => TestPackageInstaller.EnsureAsync(workspaceAdapter),
-            ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter),
-            includeFrontend: true,
-            includeTesting: true,
-            includeBackend: true,
-            autoInstall: !dryRun);
-
-        if (dryRun)
+        try
         {
-            LogDryRunSummary(summary);
-            Environment.ExitCode = summary.InstallRequiredButSkipped || summary.HasVersionMismatch ? 1 : 0;
-            return;
+            PackageWorkspaceAdapter workspaceAdapter = new(Context);
+            PackageManagerDescriptor packageManager = workspaceAdapter.PackageManager;
+            PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
+                workspaceAdapter,
+                _logger,
+                ensureFrontend: () => FrontendPackageInstaller.EnsureAsync(workspaceAdapter),
+                ensureTesting: () => TestPackageInstaller.EnsureAsync(workspaceAdapter),
+                ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter),
+                includeFrontend: true,
+                includeTesting: true,
+                includeBackend: true,
+                autoInstall: !dryRun);
+
+            if (dryRun)
+            {
+                LogDryRunSummary(summary, packageManager);
+                Environment.ExitCode = summary.InstallRequiredButSkipped || summary.HasVersionMismatch ? 1 : 0;
+                return;
+            }
+
+            LogPackageMessages(summary);
+            TestPackageUtilities.LogEnsureMessages(summary);
+
+            if (summary.InstallRequiredButSkipped)
+            {
+                throw new InvalidOperationException($"Framework packages require installation. Run '{App.Name} install' to synchronize dependencies.");
+            }
+
+            if (summary.HasVersionMismatch)
+            {
+                ThrowMismatch(summary);
+            }
+
+            _logger.LogInformation("Framework packages are synchronized.");
         }
-
-        LogPackageMessages(summary);
-        TestPackageUtilities.LogEnsureMessages(summary);
-
-        if (summary.InstallRequiredButSkipped)
+        finally
         {
-            throw new InvalidOperationException($"Framework packages require installation. Run '{App.Name} install' to synchronize dependencies.");
+            if (overrideApplied)
+            {
+                Environment.SetEnvironmentVariable(PackageManagerRunner.EnvironmentVariableName, previousPackageManager);
+            }
         }
-
-        if (summary.HasVersionMismatch)
-        {
-            ThrowMismatch(summary);
-        }
-
-        _logger.LogInformation("Framework packages are synchronized.");
     }
 
     private void CleanWorkspaceCache()
@@ -97,7 +118,50 @@ public sealed class InstallWorkflow(
         }
     }
 
-    private void LogDryRunSummary(PackageEnsureSummary summary)
+    private static string? ParsePackageManagerOverride(string[] args)
+    {
+        for (int i = 0; i < args.Length; i++)
+        {
+            string arg = args[i];
+            if (TryGetOptionValue(arg, InstallOptions.PackageManager, out string? inlineValue) ||
+                TryGetOptionValue(arg, InstallOptions.PackageManagerShort, out inlineValue))
+            {
+                if (!string.IsNullOrWhiteSpace(inlineValue))
+                {
+                    return inlineValue;
+                }
+
+                if (i + 1 >= args.Length)
+                {
+                    throw new InvalidOperationException($"{InstallOptions.PackageManager} requires a value (npm, pnpm, yarn, optionally with @version).");
+                }
+
+                return args[i + 1];
+            }
+        }
+
+        return null;
+    }
+
+    private static bool TryGetOptionValue(string argument, string option, out string? value)
+    {
+        if (string.Equals(argument, option, StringComparison.OrdinalIgnoreCase))
+        {
+            value = null;
+            return true;
+        }
+
+        if (argument.StartsWith(option + "=", StringComparison.OrdinalIgnoreCase))
+        {
+            value = argument[(option.Length + 1)..];
+            return true;
+        }
+
+        value = null;
+        return false;
+    }
+
+    private void LogDryRunSummary(PackageEnsureSummary summary, PackageManagerDescriptor manager)
     {
         bool anyChanges = false;
 
@@ -108,7 +172,7 @@ public sealed class InstallWorkflow(
         if (summary.InstallRequiredButSkipped && !anyChanges)
         {
             anyChanges = true;
-            _logger.LogInformation("[dry-run] npm install would run due to prior package drift.");
+            _logger.LogInformation("[dry-run] {Manager} install would run due to prior package drift.", manager.DisplayName);
         }
 
         if (!anyChanges)
@@ -143,7 +207,7 @@ public sealed class InstallWorkflow(
                 reasons.Add($"installed {installed}");
             }
 
-            _logger.LogInformation("[dry-run] {Package} requires npm install ({Reasons}).", packageName, string.Join(", ", reasons));
+            _logger.LogInformation("[dry-run] {Package} requires {Manager} install ({Reasons}).", packageName, manager.DisplayName, string.Join(", ", reasons));
         }
     }
 

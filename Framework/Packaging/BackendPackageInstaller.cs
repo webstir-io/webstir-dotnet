@@ -15,7 +15,7 @@ public static class BackendPackageInstaller
         FrameworkPackageMetadata metadata = FrameworkPackageCatalog.Backend;
         string packageJsonPath = Path.Combine(workspace.WorkingPath, "package.json");
 
-        string dependencySpecifier = RegistrySpecifierResolver.Resolve(metadata);
+        string dependencySpecifier = metadata.WorkspaceSpecifier;
 
         bool dependencyUpdated = await EnsureDependencyAsync(packageJsonPath, metadata, dependencySpecifier);
         PackageInstallState installState = await DetectInstalledVersionMismatchAsync(workspace, metadata);

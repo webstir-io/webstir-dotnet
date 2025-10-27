@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Threading;
 using System.Threading.Tasks;
 using Framework.Packaging;
 using Tester.Infrastructure;
@@ -40,10 +41,7 @@ public sealed class PackageInstallerUnitTests
 
             FrontendPackageEnsureResult frontend = summary.Frontend!.Value;
             Assert.True(frontend.DependencyUpdated, "DependencyUpdated should be true when specifier changes.");
-            string? envSpecifier = Environment.GetEnvironmentVariable("WEBSTIR_FRONTEND_REGISTRY_SPEC");
-            string expectedSpecifier = string.IsNullOrWhiteSpace(envSpecifier)
-                ? metadata.RegistrySpecifier
-                : envSpecifier.Trim();
+            string expectedSpecifier = metadata.WorkspaceSpecifier;
             Assert.Equal(expectedSpecifier, ReadDependencySpecifier(packageJsonPath, metadata.Name));
             Assert.False(Directory.Exists(Path.Combine(workspaceRoot, ".webstir")), ".webstir directory should not be created for registry installs.");
         }
@@ -94,7 +92,8 @@ public sealed class PackageInstallerUnitTests
         public string WorkingPath => root;
         public string NodeModulesPath => Path.Combine(root, "node_modules");
         public string WebstirPath => Path.Combine(root, ".webstir");
-        public Task RunNpmInstallAsync() => Task.CompletedTask;
-        public Task InstallPackagesAsync(params string[] packageSpecs) => Task.CompletedTask;
+        public PackageManagerDescriptor PackageManager => PackageManagerDescriptor.Create(PackageManagerKind.Npm, "npm", null);
+        public Task InstallDependenciesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task InstallPackagesAsync(string[] packageSpecs, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }

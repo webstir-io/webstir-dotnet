@@ -122,7 +122,7 @@ internal static class TestPackageUtilities
         string installSpec = string.IsNullOrWhiteSpace(overrideSpec) ? overrideId : overrideSpec;
 
         Console.WriteLine($"[packages] Installing testing provider override '{installSpec}'.");
-        await workspace.InstallPackagesAsync(installSpec).ConfigureAwait(false);
+        await workspace.InstallPackagesAsync(new[] { installSpec }).ConfigureAwait(false);
     }
 
     private static bool IsPackagePresent(IPackageWorkspace workspace, string packageName)

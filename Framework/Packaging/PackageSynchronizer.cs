@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -20,6 +21,8 @@ public static class PackageSynchronizer
     {
         ArgumentNullException.ThrowIfNull(workspace);
 
+        PackageManagerDescriptor manager = workspace.PackageManager;
+
         FrontendPackageEnsureResult? frontendResult = includeFrontend && ensureFrontend is not null
             ? await ensureFrontend().ConfigureAwait(false)
             : null;
@@ -40,14 +43,14 @@ public static class PackageSynchronizer
         {
             if (autoInstall)
             {
-                bool packageLockRemoved = false;
+                bool lockFilesRemoved = false;
 
                 if (NeedsInstall(frontendResult))
                 {
-                    if (!packageLockRemoved)
+                    if (!lockFilesRemoved)
                     {
-                        RemovePackageLockIfPresent(workspace, logger);
-                        packageLockRemoved = true;
+                        RemoveLockFiles(workspace, manager, logger);
+                        lockFilesRemoved = true;
                     }
 
                     RemoveCachedPackage(workspace, logger, "@webstir-io/webstir-frontend");
@@ -55,10 +58,10 @@ public static class PackageSynchronizer
 
                 if (NeedsInstall(testResult))
                 {
-                    if (!packageLockRemoved)
+                    if (!lockFilesRemoved)
                     {
-                        RemovePackageLockIfPresent(workspace, logger);
-                        packageLockRemoved = true;
+                        RemoveLockFiles(workspace, manager, logger);
+                        lockFilesRemoved = true;
                     }
 
                     RemoveCachedPackage(workspace, logger, "@webstir-io/webstir-testing");
@@ -66,18 +69,20 @@ public static class PackageSynchronizer
 
                 if (NeedsInstall(backendResult))
                 {
-                    if (!packageLockRemoved)
+                    if (!lockFilesRemoved)
                     {
-                        RemovePackageLockIfPresent(workspace, logger);
-                        packageLockRemoved = true;
+                        RemoveLockFiles(workspace, manager, logger);
+                        lockFilesRemoved = true;
                     }
 
                     RemoveCachedPackage(workspace, logger, "@webstir-io/webstir-backend");
                 }
 
-                EnsureWorkspaceNpmrc(workspace, logger);
-                logger?.LogInformation("[packages] Installing framework packages from registry (requires GH_PACKAGES_TOKEN for GitHub Packages)...");
-                await workspace.RunNpmInstallAsync().ConfigureAwait(false);
+                EnsureWorkspaceRegistryConfig(workspace, logger);
+                logger?.LogInformation(
+                    "[packages] Installing framework packages with {Manager} (requires GH_PACKAGES_TOKEN for GitHub Packages)...",
+                    manager.DisplayName);
+                await workspace.InstallDependenciesAsync().ConfigureAwait(false);
                 installPerformed = true;
 
                 if (includeFrontend && ensureFrontend is not null)
@@ -95,12 +100,11 @@ public static class PackageSynchronizer
                     backendResult = await ensureBackend().ConfigureAwait(false);
                 }
 
-                // Fallback: if packages still mismatch, force explicit install by spec
                 if ((frontendResult?.VersionMismatch ?? false) ||
                     (testResult?.VersionMismatch ?? false) ||
                     (backendResult?.VersionMismatch ?? false))
                 {
-                    System.Collections.Generic.List<string> specs = new();
+                    List<string> specs = new();
                     if (frontendResult is { VersionMismatch: true } f)
                     {
                         specs.Add(RegistrySpecifierResolver.Resolve(f.Metadata));
@@ -116,10 +120,12 @@ public static class PackageSynchronizer
 
                     if (specs.Count > 0)
                     {
-                        logger?.LogInformation("[packages] Retrying install with explicit specs: {Specs}", string.Join(", ", specs));
-                        await workspace.InstallPackagesAsync(specs.ToArray());
+                        logger?.LogInformation(
+                            "[packages] Retrying install with explicit specs using {Manager}: {Specs}",
+                            manager.DisplayName,
+                            string.Join(", ", specs));
+                        await workspace.InstallPackagesAsync(specs.ToArray()).ConfigureAwait(false);
 
-                        // Re-evaluate after explicit install
                         if (includeFrontend && ensureFrontend is not null)
                         {
                             frontendResult = await ensureFrontend().ConfigureAwait(false);
@@ -144,11 +150,8 @@ public static class PackageSynchronizer
         return new PackageEnsureSummary(frontendResult, testResult, backendResult, installPerformed, installRequiredButSkipped);
     }
 
-    private static void EnsureWorkspaceNpmrc(IPackageWorkspace workspace, ILogger? logger)
+    private static void EnsureWorkspaceRegistryConfig(IPackageWorkspace workspace, ILogger? logger)
     {
-        // Opt-in only: by default we rely on user/repo npm config rather than
-        // writing a per-workspace .npmrc beside the app. Set
-        // WEBSTIR_WRITE_WORKSPACE_NPMRC=1 to enable this behavior.
         string? flag = Environment.GetEnvironmentVariable("WEBSTIR_WRITE_WORKSPACE_NPMRC");
         bool enabled = !string.IsNullOrWhiteSpace(flag) &&
             (flag.Equals("1", StringComparison.OrdinalIgnoreCase) ||
@@ -164,7 +167,7 @@ public static class PackageSynchronizer
             string npmrcPath = Path.Combine(workspace.WorkingPath, ".npmrc");
             if (File.Exists(npmrcPath))
             {
-                return; // respect existing project config
+                return;
             }
 
             string content = "@webstir-io:registry=https://npm.pkg.github.com\n" +
@@ -183,37 +186,48 @@ public static class PackageSynchronizer
         where TEnsure : struct, IPackageEnsureResult =>
         result is { DependencyUpdated: true } or { VersionMismatch: true };
 
-    private static void RemovePackageLockIfPresent(IPackageWorkspace workspace, ILogger? logger)
+    private static void RemoveLockFiles(IPackageWorkspace workspace, PackageManagerDescriptor manager, ILogger? logger)
     {
         try
         {
-            string packageLockPath = Path.Combine(workspace.WorkingPath, "package-lock.json");
-            if (File.Exists(packageLockPath))
+            foreach (string path in EnumerateLockFiles(workspace, manager))
             {
-                File.Delete(packageLockPath);
-            }
-
-            // npm may also honor a shrinkwrap file at the root
-            string shrinkwrapPath = Path.Combine(workspace.WorkingPath, "npm-shrinkwrap.json");
-            if (File.Exists(shrinkwrapPath))
-            {
-                File.Delete(shrinkwrapPath);
-            }
-
-            // npm v7+ can leave a sublock under node_modules which affects reify
-            string subLockPath = Path.Combine(workspace.NodeModulesPath, ".package-lock.json");
-            if (File.Exists(subLockPath))
-            {
-                File.Delete(subLockPath);
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
             }
         }
         catch (IOException ex)
         {
-            logger?.LogDebug(ex, "Failed to remove package-lock.json while refreshing the packages.");
+            logger?.LogDebug(ex, "Failed to remove lock files while refreshing packages for {Manager}.", manager.DisplayName);
         }
         catch (UnauthorizedAccessException ex)
         {
-            logger?.LogDebug(ex, "Insufficient permissions to remove package-lock.json while refreshing the packages.");
+            logger?.LogDebug(ex, "Insufficient permissions to remove lock files while refreshing packages for {Manager}.", manager.DisplayName);
+        }
+    }
+
+    private static IEnumerable<string> EnumerateLockFiles(IPackageWorkspace workspace, PackageManagerDescriptor manager)
+    {
+        string root = workspace.WorkingPath;
+        switch (manager.Kind)
+        {
+            case PackageManagerKind.Npm:
+                yield return Path.Combine(root, "package-lock.json");
+                yield return Path.Combine(root, "npm-shrinkwrap.json");
+                yield return Path.Combine(workspace.NodeModulesPath, ".package-lock.json");
+                break;
+            case PackageManagerKind.Pnpm:
+                yield return Path.Combine(root, "pnpm-lock.yaml");
+                break;
+            case PackageManagerKind.Yarn:
+                yield return Path.Combine(root, "yarn.lock");
+                yield return Path.Combine(root, ".pnp.cjs");
+                yield return Path.Combine(root, ".pnp.loader.mjs");
+                break;
+            default:
+                yield break;
         }
     }
 
@@ -227,8 +241,6 @@ public static class PackageSynchronizer
                 Directory.Delete(packagePath, recursive: true);
             }
 
-            // Also remove npm's alternative layouts for the same package
-            // 1) version-suffixed directories under the scope (pkg@x.y.z)
             string scope = packageName.Contains('/') ? packageName.Split('/')[0] : string.Empty;
             string name = packageName.Contains('/') ? packageName.Split('/')[1] : packageName;
             if (!string.IsNullOrWhiteSpace(scope))
@@ -241,7 +253,6 @@ public static class PackageSynchronizer
                         TryDeleteDirectory(candidate, logger);
                     }
 
-                    // 2) hidden directories used during reify (.pkg-<random>)
                     foreach (string candidate in Directory.GetDirectories(scopePath, "." + name + "-*", SearchOption.TopDirectoryOnly))
                     {
                         TryDeleteDirectory(candidate, logger);
@@ -251,7 +262,6 @@ public static class PackageSynchronizer
         }
         catch (DirectoryNotFoundException)
         {
-            // Nothing to remove.
         }
         catch (IOException ex)
         {
