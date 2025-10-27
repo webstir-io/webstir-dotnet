@@ -31,6 +31,12 @@ and may be incorporated into the project owned by **Electric Coding LLC**.
 
 > Tip: `./utilities/scripts/local-ci.sh` builds the Docker image used by CI and runs the same workflow (npm installs, dotnet build/test, framework package sync/verify) against your checkout.
 
+### CI Lanes (Quick vs Full)
+- PRs run the Quick lane by default (fast unit/integration set).
+- Full runs on `main` and on PRs labeled `ci:full`.
+  - Add the `ci:full` label to your PR to trigger the Full lane.
+  - Full includes native image tooling setup (sharp) and package sync/verify.
+
 ## Tests & Linting
 - Favor the end-to-end workflow tests in `Tester/` when changing CLI behavior.  
 - Frontend package tests run via `npm test --prefix Framework/Frontend`.  

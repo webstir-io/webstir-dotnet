@@ -293,8 +293,7 @@ public static class WorkspaceManager
             }
 
             string content = "@webstir-io:registry=https://npm.pkg.github.com\n" +
-                             $"//npm.pkg.github.com/:_authToken={token}\n" +
-                             "always-auth=true\n";
+                             $"//npm.pkg.github.com/:_authToken={token}\n";
             File.WriteAllText(npmrcPath, content);
         }
         catch
