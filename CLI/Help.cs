@@ -19,6 +19,7 @@ public static class Help
         [Commands.Watch] = GetWatchCommand(),
         [Commands.Install] = GetInstallCommand(),
         [Commands.Publish] = GetPublishCommand(),
+        [Commands.Smoke] = GetSmokeCommand(),
         [Commands.Help] = GetHelpCommand()
     };
 
@@ -135,6 +136,16 @@ public static class Help
                 Example($"{App.Name} {Commands.Publish}", "Create optimized production build")
             ]);
 
+    private static CommandHelp GetSmokeCommand() =>
+        CreateCommand(Commands.Smoke,
+            "Run the accounts example through the CLI and report backend manifest routes",
+            [
+                Example($"{App.Name} {Commands.Smoke}", "Copy the accounts example and verify manifest ingestion"),
+                Example($"{App.Name} {Commands.Smoke} ./workspaces/accounts", "Use an existing workspace instead of copying the example")
+            ],
+            null,
+            "[workspace]");
+
     private static CommandHelp GetAddTestCommand() =>
         CreateCommand(Commands.AddTest,
             "Scaffold a starter test",
@@ -186,6 +197,7 @@ public static class Help
         WriteExampleLine($"WEBSTIR_TESTING_PROVIDER=@webstir-io/vitest-testing {App.Name} test   # Run tests with the Vitest provider");
         WriteExampleLine($"{App.Name} install                    # Sync registry packages and providers");
         WriteExampleLine($"{App.Name} test --help               # See provider override guidance");
+        WriteExampleLine($"{App.Name} smoke                    # Run the accounts smoke check and report manifest routes");
     }
 
     public static void ShowCommandHelp(string commandName)

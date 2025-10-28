@@ -1,6 +1,10 @@
 using System;
-using System.Threading.Tasks;
+using System.IO;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using Engine.Bridge.Backend;
+using Engine.Bridge.Module;
 using Engine.Models;
 using Engine.Servers;
 
@@ -31,6 +35,7 @@ public class DevService(
             await _webServer.StartAsync(workspace, cancellationToken);
             await _nodeServer.StartAsync(workspace, cancellationToken);
             await _changeService.Initialize(workspace, onChangeAction, RestartNodeServerAsync, NotifyClientsAsync, PublishHotUpdateAsync);
+            await InspectBackendManifestAsync(workspace, cancellationToken);
             await _changeService.StartAsync();
             await _watchService.Watch(workspace);
 
@@ -76,6 +81,7 @@ public class DevService(
         _logger.LogInformation("Restarting Node server...");
         await _nodeServer.StopAsync();
         await _nodeServer.StartAsync(workspace);
+        await InspectBackendManifestAsync(workspace, CancellationToken.None);
     }
 
     public async Task NotifyClientsAsync(ClientNotificationType type)
@@ -158,6 +164,55 @@ public class DevService(
         catch (OperationCanceledException)
         {
             // cancelled
+        }
+    }
+
+    private async Task InspectBackendManifestAsync(AppWorkspace workspace, CancellationToken cancellationToken)
+    {
+        try
+        {
+            ModuleBuildManifest manifest = await BackendManifestLoader.LoadAsync(workspace, cancellationToken);
+            if (manifest.Module is not { } module)
+            {
+                _logger.LogInformation("Backend manifest loaded without module metadata.");
+                return;
+            }
+
+            if (module.Capabilities is { Count: > 0 } capabilities)
+            {
+                _logger.LogInformation(
+                    "Backend capabilities: {Capabilities}.",
+                    string.Join(", ", capabilities));
+            }
+
+            if (module.Routes is { Count: > 0 } routes)
+            {
+                string routeList = string.Join(
+                    ", ",
+                    routes.Select(route => $"{route.Method.ToUpperInvariant()} {route.Path}"));
+
+                _logger.LogInformation(
+                    "Backend routes available ({RouteCount}): {Routes}.",
+                    routes.Count,
+                    routeList);
+            }
+            else
+            {
+                _logger.LogInformation("Backend manifest loaded; no route entries defined.");
+            }
+        }
+        catch (FileNotFoundException)
+        {
+            _logger.LogDebug(
+                "Backend manifest not found at {ManifestPath}; skipping route inspection.",
+                workspace.BackendManifestPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed to inspect backend manifest at {ManifestPath}.",
+                workspace.BackendManifestPath);
         }
     }
 }

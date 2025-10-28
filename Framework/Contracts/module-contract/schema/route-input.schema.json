@@ -1,0 +1,45 @@
+{
+  "$ref": "#/definitions/route-input",
+  "definitions": {
+    "route-input": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "zod",
+                "json-schema",
+                "ts-rest"
+              ],
+              "default": "zod"
+            },
+            "name": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        "query": {
+          "$ref": "#/definitions/route-input/properties/params"
+        },
+        "body": {
+          "$ref": "#/definitions/route-input/properties/params"
+        },
+        "headers": {
+          "$ref": "#/definitions/route-input/properties/params"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

@@ -186,6 +186,14 @@ public sealed class TestWorkflow(
             result.Provider.Id,
             result.Manifest.EntryPoints.Count);
 
+        if (result.Manifest.Module?.Routes is { } routes)
+        {
+            _logger.LogInformation(
+                "[backend] Provider {ProviderId} reported {RouteCount} route(s) in manifest.",
+                result.Provider.Id,
+                routes.Count);
+        }
+
         foreach (ModuleDiagnostic diagnostic in result.Manifest.Diagnostics)
         {
             if (string.Equals(diagnostic.Severity, "error", StringComparison.OrdinalIgnoreCase))

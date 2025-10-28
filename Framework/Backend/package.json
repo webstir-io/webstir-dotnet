@@ -1,6 +1,6 @@
 {
   "name": "@webstir-io/webstir-backend",
-  "version": "0.0.1",
+  "version": "0.1.5",
   "description": "Reserved manifest for the future Webstir backend tooling package.",
   "type": "module",
   "main": "dist/index.js",
@@ -31,6 +31,7 @@
   "license": "MIT",
   "dependencies": {
     "@webstir-io/module-contract": "file:../Contracts/module-contract",
+    "esbuild": "^0.25.10",
     "glob": "^10.4.1"
   },
   "devDependencies": {

@@ -6,10 +6,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
+using Engine.Bridge.Backend;
 using Engine.Bridge.Frontend;
+using Engine.Bridge.Module;
 using Engine.Extensions;
 using Engine.Middleware;
 using Engine.Models;
@@ -37,6 +39,13 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
+    private static readonly JsonSerializerOptions BackendManifestSerializerOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        WriteIndented = true
     };
 
     private const string NoCache = "no-cache, no-store, must-revalidate";
@@ -97,7 +106,7 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
         ConfigureServices(builder.Services);
 
         _app = builder.Build();
-        ConfigureMiddleware(_app, frontendRoot, resolution.Manifest);
+        ConfigureMiddleware(_app, frontendRoot, resolution.Manifest, workspace);
 
         await _app.StartAsync(cancellationToken);
         logger.LogInformation("Web server running at {WebServerUrl}", options.Value.WebServerUrl);
@@ -239,8 +248,9 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
         });
     }
 
-    private void ConfigureMiddleware(WebApplication app, string webRootPath, FrontendManifest? manifest)
+    private void ConfigureMiddleware(WebApplication app, string webRootPath, FrontendManifest? manifest, AppWorkspace workspace)
     {
+        MapBackendManifestEndpoint(app, workspace);
         app.UseMiddleware<CorrelationIdMiddleware>();
         app.UseMiddleware<ErrorHandlingMiddleware>();
         app.UseMiddleware<ClientErrorMiddleware>();
@@ -271,6 +281,65 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
             FileProvider = new PhysicalFileProvider(webRootPath),
             EnableDirectoryBrowsing = false
         });
+    }
+
+    private void MapBackendManifestEndpoint(WebApplication app, AppWorkspace workspace)
+    {
+        app.MapGet("/__webstir/backend/manifest", async context =>
+        {
+            try
+            {
+                ModuleBuildManifest manifest = await BackendManifestLoader.LoadAsync(workspace, context.RequestAborted);
+                ModuleRuntimeManifest? module = manifest.Module;
+
+                object payload = module is null
+                    ? new
+                    {
+                        module = (object?)null,
+                        manifest.EntryPoints,
+                        manifest.StaticAssets,
+                        manifest.Diagnostics
+                    }
+                    : new
+                    {
+                        Module = new
+                        {
+                            module.Name,
+                            module.Version,
+                            module.Kind,
+                            module.Capabilities,
+                            Routes = module.Routes ?? Array.Empty<RouteDefinition>(),
+                            Views = module.Views ?? Array.Empty<ViewDefinition>()
+                        },
+                        manifest.EntryPoints,
+                        manifest.StaticAssets,
+                        manifest.Diagnostics
+                    };
+
+                context.Response.StatusCode = StatusCodes.Status200OK;
+                context.Response.ContentType = "application/json";
+                await JsonSerializer.SerializeAsync(
+                    context.Response.Body,
+                    payload,
+                    BackendManifestSerializerOptions,
+                    context.RequestAborted);
+            }
+            catch (FileNotFoundException)
+            {
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to load backend manifest for inspection.");
+                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                context.Response.ContentType = "application/json";
+                await JsonSerializer.SerializeAsync(
+                    context.Response.Body,
+                    new { error = "backend manifest unavailable" },
+                    BackendManifestSerializerOptions,
+                    context.RequestAborted);
+            }
+        }).WithDisplayName("Webstir Backend Manifest");
     }
 
     private async Task SendReloadAfterDelayAsync(CancellationTokenSource cts)
@@ -408,6 +477,12 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
 
         if (!string.IsNullOrEmpty(path))
         {
+            if (path.StartsWith("/__webstir", StringComparison.Ordinal))
+            {
+                await next();
+                return;
+            }
+
             if (path == "/")
                 path = HomeRoute;
 

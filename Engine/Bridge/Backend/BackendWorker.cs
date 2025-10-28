@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Engine.Bridge;
@@ -25,6 +27,11 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
     private readonly ILogger<BackendWorker> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly SemaphoreSlim _packageLock = new(1, 1);
     private bool _packagesVerified;
+    private static readonly JsonSerializerOptions ManifestSerializerOptions = new()
+    {
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 
     public int BuildOrder => 2;
 
@@ -218,6 +225,21 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
             result.Provider.Id,
             result.Manifest.EntryPoints.Count);
 
+        if (result.Manifest.Module is { Routes: { } routes })
+        {
+            _logger.LogInformation(
+                "[backend] {Stage} manifest includes {RouteCount} route(s) and {CapabilityCount} capability flag(s).",
+                stage,
+                routes.Count,
+                result.Manifest.Module.Capabilities?.Count ?? 0);
+        }
+        else
+        {
+            _logger.LogDebug("[backend] {Stage} manifest did not include route definitions.", stage);
+        }
+
+        PersistBackendManifest(result.Manifest);
+
         foreach (ModuleDiagnostic diagnostic in result.Manifest.Diagnostics)
         {
             if (string.Equals(diagnostic.Severity, "error", StringComparison.OrdinalIgnoreCase))
@@ -237,6 +259,22 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
         foreach (ModuleLogEvent evt in result.Events)
         {
             LogModuleEvent(evt);
+        }
+    }
+
+    private void PersistBackendManifest(ModuleBuildManifest manifest)
+    {
+        try
+        {
+            Directory.CreateDirectory(workspace.WebstirPath);
+            string manifestPath = workspace.BackendManifestPath;
+            string payload = JsonSerializer.Serialize(manifest, ManifestSerializerOptions);
+            File.WriteAllText(manifestPath, payload);
+            _logger.LogDebug("[backend] backend manifest written to {ManifestPath}.", manifestPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[backend] failed to persist backend manifest.");
         }
     }
 

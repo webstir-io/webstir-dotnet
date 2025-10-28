@@ -1,6 +1,6 @@
 {
   "name": "@webstir-io/module-contract",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Public contract definitions for Webstir frontend and backend module providers.",
   "type": "module",
   "main": "dist/index.js",
@@ -11,6 +11,11 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./ts-rest": {
+      "types": "./dist/adapters/ts-rest.d.ts",
+      "import": "./dist/adapters/ts-rest.js",
+      "default": "./dist/adapters/ts-rest.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -18,8 +23,14 @@
     "schema"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "clean": "rm -rf dist schema"
+    "clean": "rm -rf dist schema",
+    "build": "npm run clean && npm run build:types && npm run build:schema",
+    "build:types": "tsc -p tsconfig.json",
+    "build:schema": "node scripts/build-schema.mjs",
+    "test": "npm run build && npm run test:examples",
+    "test:examples": "tsc -p tsconfig.examples.json",
+    "release": "bash scripts/publish.sh",
+    "prepare": "npm run build"
   },
   "keywords": [
     "webstir",
@@ -29,10 +40,24 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/electric/webstir"
+    "url": "https://github.com/webstir-io/module-contract"
   },
   "author": "Webstir",
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
   "devDependencies": {
-    "typescript": "^5.4.0"
+    "@types/node": "^20.19.21",
+    "@ts-rest/core": "^3.40.0",
+    "typescript": "^5.7.2",
+    "zod-to-json-schema": "^3.23.3"
+  },
+  "peerDependencies": {
+    "@ts-rest/core": "^3.40.0"
+  },
+  "peerDependenciesMeta": {
+    "@ts-rest/core": {
+      "optional": true
+    }
   }
 }

@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Engine;
@@ -254,7 +255,8 @@ internal sealed record ModuleProviderMetadata(
 internal sealed record ModuleBuildManifest(
     IReadOnlyList<string> EntryPoints,
     IReadOnlyList<string> StaticAssets,
-    IReadOnlyList<ModuleDiagnostic> Diagnostics);
+    IReadOnlyList<ModuleDiagnostic> Diagnostics,
+    [property: JsonPropertyName("module")] ModuleRuntimeManifest? Module);
 
 internal sealed record ModuleDiagnostic(
     string Severity,

@@ -77,6 +77,7 @@ try
     services.AddTransient<IWorkflow, AddTestWorkflow>();
     services.AddTransient<IWorkflow, TestWorkflow>();
     services.AddTransient<IWorkflow, WatchWorkflow>();
+    services.AddTransient<IWorkflow, SmokeWorkflow>();
 
     using ServiceProvider provider = services.BuildServiceProvider();
     await provider.GetRequiredService<Runner>().Run(args);
