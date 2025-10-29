@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+// Centralized manifest contract version used by providers and examples.
+export const CONTRACT_VERSION = '1.0.0' as const;
+export const contractVersionLiteral = z.literal(CONTRACT_VERSION);
+
 export type ModuleKind = 'frontend' | 'backend';
 
 export interface ModuleCompatibility {

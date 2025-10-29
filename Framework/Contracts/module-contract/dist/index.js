@@ -1,4 +1,7 @@
 import { z } from 'zod';
+// Centralized manifest contract version used by providers and examples.
+export const CONTRACT_VERSION = '1.0.0';
+export const contractVersionLiteral = z.literal(CONTRACT_VERSION);
 export const moduleKindSchema = z.enum(['frontend', 'backend']);
 export const logLevelSchema = z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']);
 export const moduleErrorCodeSchema = z.enum(['validation', 'auth', 'not_found', 'domain', 'conflict', 'internal']);

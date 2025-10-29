@@ -1,4 +1,6 @@
 import { z } from 'zod';
+export declare const CONTRACT_VERSION: "1.0.0";
+export declare const contractVersionLiteral: z.ZodLiteral<"1.0.0">;
 export type ModuleKind = 'frontend' | 'backend';
 export interface ModuleCompatibility {
     readonly minCliVersion: string;
