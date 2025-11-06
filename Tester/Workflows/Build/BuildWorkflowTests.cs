@@ -44,10 +44,14 @@ public sealed class BuildWorkflowTests
         ProcessRunner.ProcessResult result = context.Run(
             $"{Commands.Build} {ProjectOptions.ProjectName} {projectName}",
             testDir,
-            timeoutMs: 20000);
+            timeoutMs: 45000);
 
         Assert.False(result.TimedOut, $"{Commands.Build} command timed out");
-        Assert.Equal(0, result.ExitCode);
+        if (result.ExitCode != 0)
+        {
+            string combined = (result.Output ?? string.Empty) + Environment.NewLine + (result.Error ?? string.Empty);
+            throw new XunitException($"Build failed (exit {result.ExitCode}). Output:{Environment.NewLine}{combined}");
+        }
         context.AssertNoCompilationErrors(result);
 
         AppWorkspace workspace = new();

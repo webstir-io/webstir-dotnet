@@ -295,13 +295,18 @@ internal sealed class ProcessHandle : IProcessHandle
 
     private static Task SendTerminationSignalAsync(Process process, TerminationMethod method, CancellationToken cancellationToken)
     {
-        return method switch
+        if (OperatingSystem.IsWindows())
         {
-            TerminationMethod.CtrlC when !OperatingSystem.IsWindows() => ExecuteHelperAsync("kill", $"-INT {process.Id}", cancellationToken),
-            TerminationMethod.CtrlC => ExecuteHelperAsync("taskkill", $"/F /T /PID {process.Id}", cancellationToken),
-            _ when !OperatingSystem.IsWindows() => ExecuteHelperAsync("kill", $"-TERM -{process.Id}", cancellationToken),
-            _ => ExecuteHelperAsync("taskkill", $"/F /T /PID {process.Id}", cancellationToken)
-        };
+            // Use a softer signal for CtrlC: request termination without /F; fall back escalates later if needed.
+            string args = method == TerminationMethod.CtrlC
+                ? $"/T /PID {process.Id}"
+                : $"/F /T /PID {process.Id}";
+            return ExecuteHelperAsync("taskkill", args, cancellationToken);
+        }
+
+        // On Unix, target the process ID directly. Escalation to SIGKILL and process-tree kill happens in EnsureTerminatedAsync.
+        string signal = method == TerminationMethod.CtrlC ? "-INT" : "-TERM";
+        return ExecuteHelperAsync("kill", $"{signal} {process.Id}", cancellationToken);
     }
 
     private static async Task ExecuteHelperAsync(string fileName, string arguments, CancellationToken cancellationToken)
@@ -313,11 +318,16 @@ internal sealed class ProcessHandle : IProcessHandle
                 FileName = fileName,
                 Arguments = arguments,
                 UseShellExecute = false,
-                CreateNoWindow = true
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
             });
 
             if (helper is not null)
             {
+                // Drain streams to avoid inherited console noise (e.g., "kill: No such process")
+                _ = helper.StandardOutput.ReadToEndAsync(cancellationToken);
+                _ = helper.StandardError.ReadToEndAsync(cancellationToken);
                 await helper.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
             }
         }

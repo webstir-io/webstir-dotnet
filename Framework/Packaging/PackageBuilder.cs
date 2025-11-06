@@ -63,7 +63,7 @@ public sealed class PackageBuilder
             throw new InvalidOperationException("Framework package verification failed.");
         }
 
-        _logger.LogInformation("[packages] Registry metadata verification succeeded.");
+        _logger.LogDebug("[packages] Registry metadata verification succeeded.");
         return Task.CompletedTask;
     }
 

@@ -3,7 +3,7 @@
 Modern, minimal full-stack TypeScript web framework and build tool. Webstir scaffolds projects, builds client and server code, runs a fast dev server with live reload and API proxying, and produces optimized production bundles.
 
 ## Highlights
-- Simple CLI: `init`, `watch` (default), `build`, `publish`, `add-page`, `help`
+- Simple CLI: `init`, `watch` (default), `build`, `publish`, `add-page`, `add-route`, `add-job`, `help`
 - Full-stack by default: client + server + shared types
 - Dev server with live reload (SSE) and `/api` proxy to Node server
 - TypeScript-first: project references; single `tsc --build` for client/server/shared
@@ -83,11 +83,22 @@ dist/                 # Production output
   - Injects SSE endpoint for reload notifications
   - Proxies `/api/*` to the Node server
 - Node server runs compiled `build/backend/index.js` on `http://localhost:8008`
+  - Waits for the `API server running` readiness line and hits `/api/health` before reporting success
+  - Tuning flags:
+    - `WEBSTIR_BACKEND_WAIT_FOR_READY=skip` — skip waiting for the readiness log line
+    - `WEBSTIR_BACKEND_READY_TIMEOUT_SECONDS` — override readiness wait timeout (default 30)
+    - `WEBSTIR_BACKEND_HEALTHCHECK=skip` — skip the health probe entirely
+    - `WEBSTIR_BACKEND_HEALTH_TIMEOUT_SECONDS` — per-attempt probe timeout (default 5)
+    - `WEBSTIR_BACKEND_HEALTH_ATTEMPTS` — retries before failing (default 5)
+    - `WEBSTIR_BACKEND_HEALTH_DELAY_MILLISECONDS` — delay between retries (default 250)
+    - `WEBSTIR_BACKEND_HEALTH_PATH` — override the probe path (default `/api/health`)
+    - `WEBSTIR_BACKEND_TERMINATION` — shutdown method for Node during watch (`ctrlc` or `kill`; default `kill`)
 - API proxy default target updated accordingly
 - Ports can be customized in `AppSettings` (when running the published binary) or via environment variables used by the Node server (`PORT`, `WEB_SERVER_URL`, `API_SERVER_URL`).
 
 ## Build & Publish Pipelines
 - See [docs/explanations/pipelines.md](docs/explanations/pipelines.md) for HTML, CSS, JS/TS, and static asset (Images, Fonts, Media) stages and publish details.
+  - Backend sourcemaps (publish): set `WEBSTIR_BACKEND_SOURCEMAPS=on` to emit `.map` files under `dist/backend/**` and retain a `//# sourceMappingURL` in `index.js`.
 
 ## Testing
 - Philosophy and scope: [docs/explanations/testing.md](docs/explanations/testing.md)
@@ -98,6 +109,21 @@ dist/                 # Production output
 - Docs: [docs/how-to/sandbox.md](docs/how-to/sandbox.md)
 - Start: `docker compose -f Sandbox/docker-compose.yml up --build`
 - Mounts: `CLI/out/seed/dist/frontend` (web), `CLI/out/seed` (api)
+
+## CLI Usage Examples
+In multi-project workspaces, append `--project-name <project>` to target a specific app.
+
+- Routes
+  - `webstir add-route users` — adds `GET /api/users` to `webstir.module.routes` in `package.json`.
+  - `webstir add-route users --method POST --path /api/users` — adds `POST /api/users`.
+  - `webstir add-route accounts --fastify` — also scaffolds `src/backend/server/routes/accounts.ts` and registers it in `server/fastify.ts` when present.
+  - `webstir add-route reports --summary "List reports" --tags analytics,reports` — seeds route metadata for downstream consumers.
+  - `webstir add-route invoices --body-schema json-schema:Invoice@./schemas/invoice.json --response-status 201` — wires schema references into the manifest.
+
+- Jobs
+  - `webstir add-job cleanup` — creates `src/backend/jobs/cleanup/index.ts` and adds a jobs manifest entry.
+  - `webstir add-job nightly --schedule "0 0 * * *"` — sets a schedule in the manifest.
+  - `webstir add-job archive --description "Archive stale data" --priority 10` — adds metadata to the job manifest entry.
 
 ---
 

@@ -6,7 +6,7 @@ import { performance } from 'node:perf_hooks';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { build as esbuild } from 'esbuild';
 import { glob } from 'glob';
-import { moduleManifestSchema } from '@webstir-io/module-contract';
+import { moduleManifestSchema, CONTRACT_VERSION } from '@webstir-io/module-contract';
 import packageJson from '../package.json' with { type: 'json' };
 const pkg = packageJson;
 function resolveWorkspacePaths(workspaceRoot) {
@@ -123,11 +123,13 @@ async function loadWorkspaceModuleManifest(workspaceRoot, buildRoot, entryPoints
     }
     const moduleConfig = workspacePackage?.webstir?.module ?? {};
     let manifestCandidate = {
-        contractVersion: typeof moduleConfig.contractVersion === 'string' ? moduleConfig.contractVersion : '1.0.0',
+        contractVersion: typeof moduleConfig.contractVersion === 'string' ? moduleConfig.contractVersion : CONTRACT_VERSION,
         name: typeof moduleConfig.name === 'string' ? moduleConfig.name : deriveModuleName(workspacePackage, workspaceRoot),
         version: typeof moduleConfig.version === 'string' ? moduleConfig.version : deriveModuleVersion(workspacePackage),
         kind: 'backend',
         capabilities: Array.isArray(moduleConfig.capabilities) ? moduleConfig.capabilities : [],
+        assets: Array.isArray(moduleConfig.assets) ? moduleConfig.assets : [],
+        middlewares: Array.isArray(moduleConfig.middlewares) ? moduleConfig.middlewares : [],
         routes: moduleConfig.routes ?? [],
         views: moduleConfig.views ?? [],
         jobs: moduleConfig.jobs ?? [],
@@ -146,6 +148,12 @@ async function loadWorkspaceModuleManifest(workspaceRoot, buildRoot, entryPoints
             ...manifestCandidate,
             ...definitionManifest,
             capabilities: mergedCapabilities,
+            assets: Array.isArray(definitionManifest.assets)
+                ? definitionManifest.assets
+                : manifestCandidate.assets ?? [],
+            middlewares: Array.isArray(definitionManifest.middlewares)
+                ? definitionManifest.middlewares
+                : manifestCandidate.middlewares ?? [],
             routes: routesFromDefinition ?? definitionManifest.routes ?? manifestCandidate.routes ?? [],
             views: viewsFromDefinition ?? definitionManifest.views ?? manifestCandidate.views ?? [],
             jobs: definitionManifest.jobs ?? manifestCandidate.jobs ?? [],
@@ -165,7 +173,7 @@ async function loadWorkspaceModuleManifest(workspaceRoot, buildRoot, entryPoints
             message: `[webstir-backend] module manifest validation failed (${problems}). Falling back to defaults.`
         });
         return {
-            contractVersion: '1.0.0',
+            contractVersion: CONTRACT_VERSION,
             name: deriveModuleName(workspacePackage, workspaceRoot),
             version: deriveModuleVersion(workspacePackage),
             kind: 'backend',
@@ -348,6 +356,9 @@ async function runEsbuild(options) {
         return;
     }
     const isProduction = mode === 'publish';
+    const emitSourceMaps = String(env?.WEBSTIR_BACKEND_SOURCEMAPS ?? '').toLowerCase() === 'on'
+        || String(env?.WEBSTIR_BACKEND_SOURCEMAPS ?? '').toLowerCase() === 'true'
+        || String(env?.WEBSTIR_BACKEND_SOURCEMAPS ?? '').toLowerCase() === '1';
     const nodeEnv = env?.NODE_ENV ?? (isProduction ? 'production' : 'development');
     const define = {
         'process.env.NODE_ENV': JSON.stringify(nodeEnv)
@@ -363,7 +374,7 @@ async function runEsbuild(options) {
                 target: 'node20',
                 format: 'esm',
                 minify: true,
-                sourcemap: false,
+                sourcemap: emitSourceMaps ? true : false,
                 legalComments: 'none',
                 outdir: buildRoot,
                 outbase: sourceRoot,

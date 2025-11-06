@@ -70,5 +70,60 @@ public sealed class WatchWorkflowTests
         string combinedOutput = $"{result.Output}{Environment.NewLine}{result.Error}";
         Assert.Contains("@webstir-io/webstir-frontend", combinedOutput, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("entry point(s)", combinedOutput, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("API server running", combinedOutput, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Backend health probe succeeded", combinedOutput, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    [Trait(TestTraits.Category, TestTraits.Full)]
+    public void WatchSkipsReadinessAndHealthWithToggles()
+    {
+        if (!WorkspaceManager.EnsureLocalPackagesReady())
+        {
+            throw new ConditionalSkipException("Skipping watch workflow: framework packages not available (set GH_PACKAGES_TOKEN).");
+        }
+
+        if (!TestCategoryGuards.ShouldRun(TestCategory.Full))
+        {
+            return;
+        }
+
+        // Set toggles so NodeServer skips waiting and health check
+        string? prevReady = Environment.GetEnvironmentVariable("WEBSTIR_BACKEND_WAIT_FOR_READY");
+        string? prevHealth = Environment.GetEnvironmentVariable("WEBSTIR_BACKEND_HEALTHCHECK");
+        try
+        {
+            Environment.SetEnvironmentVariable("WEBSTIR_BACKEND_WAIT_FOR_READY", "skip");
+            Environment.SetEnvironmentVariable("WEBSTIR_BACKEND_HEALTHCHECK", "skip");
+
+            TestCaseContext context = _fixture.Context;
+            string testDir = context.OutPath;
+            Directory.CreateDirectory(testDir);
+            string projectName = "seed-watch";
+            string seedDir = WorkspaceManager.CreateSeedWorkspace(context, projectName);
+
+            string configurationPath = Path.Combine(seedDir, "webstir.providers.json");
+            File.WriteAllText(configurationPath, """
+{
+  "frontend": "@webstir-io/webstir-frontend"
+}
+""");
+
+            ProcessRunner.ProcessResult result = context.Run(
+                $"{Commands.Watch} {ProjectOptions.ProjectName} {projectName}",
+                testDir,
+                timeoutMs: 10000,
+                waitForSignal: App.DevService);
+
+            Assert.True(result.ReceivedReadySignal, "Watch mode did not start - readiness message not received");
+            string combinedOutput = $"{result.Output}{Environment.NewLine}{result.Error}";
+            Assert.Contains("Skipping backend ready signal wait", combinedOutput, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Backend health probe disabled", combinedOutput, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("WEBSTIR_BACKEND_WAIT_FOR_READY", prevReady);
+            Environment.SetEnvironmentVariable("WEBSTIR_BACKEND_HEALTHCHECK", prevHealth);
+        }
     }
 }

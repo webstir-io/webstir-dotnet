@@ -367,12 +367,16 @@ internal static class HtmlPublishScenarios
         string key,
         Func<HtmlPublishScenarioWorkspace, HtmlPublishScenarioResult> factory)
     {
-        // Fast path
+        // Fast path with on-disk validation to avoid stale cached results
         lock (Sync)
         {
             if (Cache.TryGetValue(key, out HtmlPublishScenarioResult? cached) && cached is not null)
             {
-                return cached;
+                if (System.IO.Directory.Exists(cached.DistFrontendPath))
+                {
+                    return cached;
+                }
+                // Fall through to rebuild if dist output has been cleaned
             }
         }
 
@@ -380,10 +384,14 @@ internal static class HtmlPublishScenarios
         object keyLock = GetKeyLock(key);
         lock (keyLock)
         {
-            // Re-check after acquiring the lock
+            // Re-check after acquiring the lock; validate output exists
             if (Cache.TryGetValue(key, out HtmlPublishScenarioResult? cached) && cached is not null)
             {
-                return cached;
+                if (System.IO.Directory.Exists(cached.DistFrontendPath))
+                {
+                    return cached;
+                }
+                // cached is stale; rebuild below
             }
 
             HtmlPublishScenarioWorkspace workspace = HtmlPublishScenarioWorkspace.Create(context, key);

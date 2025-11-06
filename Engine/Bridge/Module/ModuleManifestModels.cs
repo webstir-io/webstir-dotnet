@@ -20,6 +20,12 @@ internal sealed class ModuleRuntimeManifest
     [JsonPropertyName("capabilities")]
     public IReadOnlyList<string>? Capabilities { get; init; }
 
+    [JsonPropertyName("assets")]
+    public IReadOnlyList<string>? Assets { get; init; }
+
+    [JsonPropertyName("middlewares")]
+    public IReadOnlyList<string>? Middlewares { get; init; }
+
     [JsonPropertyName("routes")]
     public IReadOnlyList<RouteDefinition>? Routes { get; init; }
 

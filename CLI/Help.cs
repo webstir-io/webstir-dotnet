@@ -14,6 +14,8 @@ public static class Help
         [Commands.Init] = GetInitCommand(),
         [Commands.AddPage] = GetAddPageCommand(),
         [Commands.AddTest] = GetAddTestCommand(),
+        [Commands.AddRoute] = GetAddRouteCommand(),
+        [Commands.AddJob] = GetAddJobCommand(),
         [Commands.Build] = GetBuildCommand(),
         [Commands.Test] = GetTestCommand(),
         [Commands.Watch] = GetWatchCommand(),
@@ -155,6 +157,47 @@ public static class Help
             ],
             null,
             "<name-or-path>");
+
+    private static CommandHelp GetAddRouteCommand() =>
+        CreateCommand(Commands.AddRoute,
+            "Add a backend route entry to the module manifest (package.json)",
+            [
+                Example($"{App.Name} {Commands.AddRoute} users", "Add GET /api/users to webstir.module.routes"),
+                Example($"{App.Name} {Commands.AddRoute} users --method POST --path /api/users", "Add POST /api/users route"),
+                Example($"{App.Name} {Commands.AddRoute} accounts --fastify", "Also scaffold a Fastify handler under src/backend/server/routes/")
+            ],
+            [
+                Option("--method", "HTTP method (default GET)"),
+                Option("--path", "Route path (default /api/<name>)"),
+                Option("--fastify", "Also scaffold a Fastify handler and register it if possible"),
+                Option("--summary", "Optional summary for the route manifest entry"),
+                Option("--description", "Optional description for the route manifest entry"),
+                Option("--tags", "Comma-separated tag list for the route manifest entry"),
+                Option("--params-schema", "Schema reference for params (kind:name@source)"),
+                Option("--query-schema", "Schema reference for query (kind:name@source)"),
+                Option("--body-schema", "Schema reference for body (kind:name@source)"),
+                Option("--headers-schema", "Schema reference for headers (kind:name@source)"),
+                Option("--response-schema", "Schema reference for response body (kind:name@source)"),
+                Option("--response-status", "Optional HTTP status for response schema"),
+                Option("--response-headers-schema", "Schema reference for response headers (kind:name@source)"),
+                Option(ProjectOptions.ProjectName, "Specify project when multiple exist")
+            ],
+            "<name> [--method <METHOD>] [--path <path>] [--fastify]");
+
+    private static CommandHelp GetAddJobCommand() =>
+        CreateCommand(Commands.AddJob,
+            "Add a backend job stub and manifest entry",
+            [
+                Example($"{App.Name} {Commands.AddJob} cleanup", "Create src/backend/jobs/cleanup/index.ts and add to manifest"),
+                Example($"{App.Name} {Commands.AddJob} nightly --schedule \"0 0 * * *\"", "Add a cron-like schedule to the manifest entry")
+            ],
+            [
+                Option("--schedule", "Optional schedule string to include in manifest"),
+                Option("--description", "Optional description for the job manifest entry"),
+                Option("--priority", "Optional priority (number or string) for the job"),
+                Option(ProjectOptions.ProjectName, "Specify project when multiple exist")
+            ],
+            "<name> [--schedule <expression>]");
 
     private static CommandHelp GetHelpCommand() =>
         CreateCommand(Commands.Help,

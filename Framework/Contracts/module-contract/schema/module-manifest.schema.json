@@ -29,6 +29,18 @@
             "type": "string"
           }
         },
+        "assets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "middlewares": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "routes": {
           "type": "array",
           "items": {

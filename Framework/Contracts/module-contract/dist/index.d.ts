@@ -796,6 +796,8 @@ export declare const moduleManifestSchema: z.ZodObject<{
     version: z.ZodString;
     kind: z.ZodEnum<["frontend", "backend"]>;
     capabilities: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    assets: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    middlewares: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     routes: z.ZodOptional<z.ZodArray<z.ZodObject<{
         name: z.ZodString;
         method: z.ZodEnum<["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]>;
@@ -1199,6 +1201,8 @@ export declare const moduleManifestSchema: z.ZodObject<{
     contractVersion: string;
     version: string;
     capabilities?: string[] | undefined;
+    assets?: string[] | undefined;
+    middlewares?: string[] | undefined;
     routes?: {
         name: string;
         path: string;
@@ -1292,6 +1296,8 @@ export declare const moduleManifestSchema: z.ZodObject<{
     contractVersion: string;
     version: string;
     capabilities?: string[] | undefined;
+    assets?: string[] | undefined;
+    middlewares?: string[] | undefined;
     routes?: {
         name: string;
         path: string;

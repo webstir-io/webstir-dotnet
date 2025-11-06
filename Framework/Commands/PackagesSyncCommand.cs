@@ -88,10 +88,9 @@ internal sealed class PackagesSyncCommand(PackageBuilder packageBuilder, IPackag
     private void LogResult(PackageBuildResult result, bool publish)
     {
         _logger.LogInformation(
-            "[packages] Built {Package} {Version}. Registry specifier: {Registry}.",
+            "[packages] Built {Package} {Version}.",
             result.PackageName,
-            result.Version,
-            result.RegistrySpecifier);
+            result.Version);
 
         if (publish)
         {

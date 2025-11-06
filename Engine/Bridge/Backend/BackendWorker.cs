@@ -80,6 +80,12 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
             ["WEB_PORT"] = _settings.WebServerPort.ToString(System.Globalization.CultureInfo.InvariantCulture)
         };
 
+        bool emitSourceMaps = ShouldEmitSourceMaps();
+        if (emitSourceMaps)
+        {
+            env["WEBSTIR_BACKEND_SOURCEMAPS"] = "on";
+        }
+
         ModuleBuildExecutionResult result = await ModuleBuildExecutor.ExecuteAsync(
             workspace,
             provider.Id,
@@ -97,9 +103,28 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
             Directory.CreateDirectory(Path.GetDirectoryName(targetFilePath)!);
 
             string jsContent = File.ReadAllText(jsFilepath);
-            jsContent = RemoveJavaScriptComments(jsContent);
+            if (!emitSourceMaps)
+            {
+                jsContent = RemoveJavaScriptComments(jsContent);
+            }
+            else if (!jsContent.Contains("sourceMappingURL=", StringComparison.Ordinal))
+            {
+                string fileName = Path.GetFileName(targetFilePath);
+                jsContent += $"\n//# sourceMappingURL={fileName}{FileExtensions.Map}";
+            }
 
             File.WriteAllText(targetFilePath, jsContent);
+        }
+
+        if (emitSourceMaps)
+        {
+            foreach (string mapPath in Directory.GetFiles(workspace.BackendBuildPath, "*.map", SearchOption.AllDirectories))
+            {
+                string relative = Path.GetRelativePath(workspace.BackendBuildPath, mapPath);
+                string target = Path.Combine(workspace.BackendDistPath, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                File.Copy(mapPath, target, overwrite: true);
+            }
         }
 
         LogBackendManifest("Publish", result);
@@ -127,6 +152,18 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
         );
 
         return js.Trim();
+    }
+
+    private static bool ShouldEmitSourceMaps()
+    {
+        string? flag = Environment.GetEnvironmentVariable("WEBSTIR_BACKEND_SOURCEMAPS");
+        if (string.IsNullOrWhiteSpace(flag))
+        {
+            return false;
+        }
+
+        string v = flag.Trim().ToLowerInvariant();
+        return v is "on" or "true" or "1";
     }
 
     private async Task EnsurePackagesAsync()

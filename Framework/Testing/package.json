@@ -45,7 +45,7 @@
     "dist"
   ],
   "engines": {
-    "node": ">=20.18.1"
+    "node": "\u003E=20.18.1"
   },
   "license": "MIT",
   "repository": {

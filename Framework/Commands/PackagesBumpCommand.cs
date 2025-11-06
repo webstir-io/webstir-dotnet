@@ -58,7 +58,7 @@ internal sealed class PackagesBumpCommand(
         if (explicitVersion is not null)
         {
             targetVersion = explicitVersion.Value;
-            _logger.LogInformation("[packages] Using explicit version {Version} for {Count} package(s).", targetVersion, manifests.Count);
+            // Compact summary logged after updates
             entries.AddRange(manifests.Select(manifest => PackageBumpEntry.Create(manifest, null, Array.Empty<string>())));
         }
         else if (context.BumpExplicit)
@@ -120,20 +120,15 @@ internal sealed class PackagesBumpCommand(
             await _metadataService.UpdatePackageVersionAsync(manifest, targetVersion, context.IsDryRun, cancellationToken).ConfigureAwait(false);
         }
 
-        if (context.IsDryRun)
-        {
-            _logger.LogInformation(
-                "[packages] (dry run) Would update {Count} package(s) to version {Version}.",
-                manifests.Count,
-                targetVersion);
-        }
-        else
-        {
-            _logger.LogInformation(
-                "[packages] Updated {Count} package(s) to version {Version}.",
-                manifests.Count,
-                targetVersion);
-        }
+        // Compact summary line instead of per-package info spam
+        string summary = string.Join(", ", manifests.Select(m => m.PackageName));
+        _logger.LogInformation(
+            context.IsDryRun
+                ? "[packages] (dry run) Version {Version} for {Count} package(s): {Packages}."
+                : "[packages] Version {Version} for {Count} package(s): {Packages}.",
+            targetVersion,
+            manifests.Count,
+            summary);
 
         return new PackageBumpSummary(
             HasPackages: true,

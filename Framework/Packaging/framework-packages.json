@@ -2,9 +2,9 @@
   "packages": {
     "@webstir-io/webstir-backend": {
       "name": "@webstir-io/webstir-backend",
-      "version": "0.1.5",
-      "registrySpecifier": "@webstir-io/webstir-backend@0.1.5",
-      "workspaceSpecifier": "^0.1.5"
+      "version": "0.1.6",
+      "registrySpecifier": "@webstir-io/webstir-backend@0.1.6",
+      "workspaceSpecifier": "^0.1.6"
     },
     "@webstir-io/webstir-frontend": {
       "name": "@webstir-io/webstir-frontend",

@@ -5,6 +5,8 @@ public static class Commands
     public const string Init = "init";
     public const string AddPage = "add-page";
     public const string AddTest = "add-test";
+    public const string AddRoute = "add-route";
+    public const string AddJob = "add-job";
     public const string Build = "build";
     public const string Test = "test";
     public const string Watch = "watch";

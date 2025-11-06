@@ -6,6 +6,8 @@ usage() {
   cat <<'EOF'
 Usage: Utilities/scripts/sync-framework-versions.sh [options]
 
+Run with no options to resolve backend/frontend/testing to the registry's latest tag.
+
 Sync framework package versions (catalog + templates) after a publish.
 
 Options:
@@ -62,12 +64,22 @@ BACKEND_SPEC=""
 FRONTEND_SPEC=""
 TESTING_SPEC=""
 
-if [[ $# -eq 0 ]]; then
-  usage; exit 1
-fi
+spec_version() {
+  # Extract x.y.z from a spec like @scope/name@x.y.z or bare x.y.z
+  local spec="$1"
+  if [[ -z "$spec" ]]; then echo ""; return; fi
+  if [[ "$spec" =~ ([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+    echo "${BASH_REMATCH[1]}"
+  else
+    echo ""
+  fi
+}
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
+if [[ $# -eq 0 ]]; then
+  USE_LATEST=1
+else
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
     -a|--all)
       [[ $# -ge 2 ]] || { echo "error: --all requires a value" >&2; exit 1; }
       BACKEND_SPEC="$(make_spec backend "$2")"
@@ -99,6 +111,7 @@ while [[ $# -gt 0 ]]; do
       echo "error: unknown arg '$1'" >&2; usage; exit 1;;
   esac
 done
+fi
 
 SYNC_FLAGS=()
 [[ -n "$BACKEND_SPEC"  ]] && SYNC_FLAGS+=(--backend)
@@ -136,18 +149,60 @@ echo "› Syncing framework package versions"
 echo "  backend : ${BACKEND_SPEC:-(no override)}"
 echo "  frontend: ${FRONTEND_SPEC:-(no override)}"
 echo "  testing : ${TESTING_SPEC:-(no override)}"
-echo "  flags   : ${SYNC_FLAGS[*]}"
+
+# Derive versions (if provided) for local Framework package bumps
+BACKEND_VER="$(spec_version "$BACKEND_SPEC")"
+FRONTEND_VER="$(spec_version "$FRONTEND_SPEC")"
+TESTING_VER="$(spec_version "$TESTING_SPEC")"
+
+# Determine local versions to avoid redundant bumps/builds
+local_version() {
+  local rel="$1"; node -e "console.log(require(require('path').resolve('${rel}')).version)" 2>/dev/null || true
+}
+BACKEND_LOCAL_VER="$(local_version Framework/Backend/package.json)"
+FRONTEND_LOCAL_VER="$(local_version Framework/Frontend/package.json)"
+TESTING_LOCAL_VER="$(local_version Framework/Testing/package.json)"
+
+CHANGED_PACKAGES=()
+if [[ -n "$BACKEND_VER" && "$BACKEND_VER" != "$BACKEND_LOCAL_VER" ]]; then CHANGED_PACKAGES+=(backend); fi
+if [[ -n "$FRONTEND_VER" && "$FRONTEND_VER" != "$FRONTEND_LOCAL_VER" ]]; then CHANGED_PACKAGES+=(frontend); fi
+if [[ -n "$TESTING_VER" && "$TESTING_VER" != "$TESTING_LOCAL_VER" ]]; then CHANGED_PACKAGES+=(testing); fi
 
 if [[ $DRY_RUN -eq 1 ]]; then
-  echo "(dry-run) dotnet run --project Framework/Framework.csproj -- packages sync ${SYNC_FLAGS[*]}"
-  echo "(dry-run) dotnet run --project Framework/Framework.csproj -- packages verify"
+  if [[ -n "$BACKEND_VER" && "$BACKEND_VER" != "$BACKEND_LOCAL_VER" ]]; then echo "(dry-run) dotnet run --project Framework/Framework.csproj -- packages bump --backend --set-version $BACKEND_VER"; fi
+  if [[ -n "$FRONTEND_VER" && "$FRONTEND_VER" != "$FRONTEND_LOCAL_VER" ]]; then echo "(dry-run) dotnet run --project Framework/Framework.csproj -- packages bump --frontend --set-version $FRONTEND_VER"; fi
+  if [[ -n "$TESTING_VER" && "$TESTING_VER" != "$TESTING_LOCAL_VER" ]]; then echo "(dry-run) dotnet run --project Framework/Framework.csproj -- packages bump --testing --set-version $TESTING_VER"; fi
+  # Only sync changed packages; verify still runs for all
+  if [[ ${#CHANGED_PACKAGES[@]} -gt 0 ]]; then
+    pkgs=( ); for p in "${CHANGED_PACKAGES[@]}"; do pkgs+=(--package "$p"); done
+    echo "(dry-run) dotnet run --project Framework/Framework.csproj -- packages sync ${pkgs[*]}"
+  else
+    echo "(dry-run) packages up-to-date; skipping sync"
+  fi
+  echo "(dry-run) dotnet run --project Framework/Framework.csproj -- packages verify --all"
   exit 0
 fi
 
 pushd "$(root_dir)" >/dev/null
-  # shellcheck disable=SC2086
-  env ${ENV_EXPORT[@]} dotnet run --project Framework/Framework.csproj -- packages sync ${SYNC_FLAGS[*]}
-  dotnet run --project Framework/Framework.csproj -- packages verify
+  # Bump local Framework package versions to match resolved specs (if provided)
+  if [[ -n "$BACKEND_VER" && "$BACKEND_VER" != "$BACKEND_LOCAL_VER" ]]; then
+    dotnet run --project Framework/Framework.csproj -- packages bump --backend --set-version "$BACKEND_VER"
+  fi
+  if [[ -n "$FRONTEND_VER" && "$FRONTEND_VER" != "$FRONTEND_LOCAL_VER" ]]; then
+    dotnet run --project Framework/Framework.csproj -- packages bump --frontend --set-version "$FRONTEND_VER"
+  fi
+  if [[ -n "$TESTING_VER" && "$TESTING_VER" != "$TESTING_LOCAL_VER" ]]; then
+    dotnet run --project Framework/Framework.csproj -- packages bump --testing --set-version "$TESTING_VER"
+  fi
+  # Sync only changed packages to avoid needless builds
+  if [[ ${#CHANGED_PACKAGES[@]} -gt 0 ]]; then
+    pkgs=( ); for p in "${CHANGED_PACKAGES[@]}"; do pkgs+=(--package "$p"); done
+    # shellcheck disable=SC2086
+    env ${ENV_EXPORT[@]} dotnet run --project Framework/Framework.csproj -- packages sync ${pkgs[*]}
+  else
+    echo "[sync] Packages already at target versions; skipping sync build."
+  fi
+  dotnet run --project Framework/Framework.csproj -- packages verify --all
 popd >/dev/null
 
 echo "Done."

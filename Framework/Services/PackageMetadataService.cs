@@ -84,6 +84,13 @@ internal sealed class PackageMetadataService(
         ArgumentNullException.ThrowIfNull(manifest);
 
         string versionText = version.ToString();
+
+        // If the version is already current, skip file writes and keep logs quiet
+        if (string.Equals(manifest.Version.ToString(), versionText, StringComparison.Ordinal))
+        {
+            _logger.LogDebug("[packages] {Package} already at {Version}; skipping.", manifest.PackageName, versionText);
+            return;
+        }
         await UpdatePackageJsonAsync(manifest.PackageJsonPath, versionText, dryRun, cancellationToken).ConfigureAwait(false);
 
         if (!string.IsNullOrWhiteSpace(manifest.PackageLockPath) && File.Exists(manifest.PackageLockPath))
@@ -91,7 +98,7 @@ internal sealed class PackageMetadataService(
             await UpdatePackageLockAsync(manifest.PackageLockPath!, versionText, dryRun, cancellationToken).ConfigureAwait(false);
         }
 
-        _logger.LogInformation(
+        _logger.LogDebug(
             dryRun ? "[packages] (dry run) {Package} would be set to {Version}." : "[packages] {Package} set to {Version}.",
             manifest.PackageName,
             versionText);
