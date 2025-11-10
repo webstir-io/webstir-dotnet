@@ -9,6 +9,12 @@ namespace CLI;
 
 public static class Help
 {
+    private const string RouteDocsUrl = "https://github.com/webstir-io/webstir-portal/blob/main/docs/reference/cli.md#add-route";
+    private const string JobDocsUrl = "https://github.com/webstir-io/webstir-portal/blob/main/docs/reference/cli.md#add-job";
+    private const string SchemaReferenceDocsUrl = "https://github.com/webstir-io/module-contract#schema-references";
+
+    private static readonly string SchemaReferenceHint = $"kind:name@source (see {SchemaReferenceDocsUrl})";
+
     private static readonly Dictionary<string, CommandHelp> AppCommands = new(StringComparer.OrdinalIgnoreCase)
     {
         [Commands.Init] = GetInitCommand(),
@@ -160,44 +166,48 @@ public static class Help
 
     private static CommandHelp GetAddRouteCommand() =>
         CreateCommand(Commands.AddRoute,
-            "Add a backend route entry to the module manifest (package.json)",
+            $"Add a backend route entry to the module manifest (package.json). Metadata and schema flags are documented at {RouteDocsUrl}",
             [
                 Example($"{App.Name} {Commands.AddRoute} users", "Add GET /api/users to webstir.module.routes"),
                 Example($"{App.Name} {Commands.AddRoute} users --method POST --path /api/users", "Add POST /api/users route"),
-                Example($"{App.Name} {Commands.AddRoute} accounts --fastify", "Also scaffold a Fastify handler under src/backend/server/routes/")
+                Example($"{App.Name} {Commands.AddRoute} accounts --fastify", "Also scaffold a Fastify handler under src/backend/server/routes/"),
+                Example($"{App.Name} {Commands.AddRoute} users --project-name api", "Target a specific workspace project when multiple exist"),
+                Example($"{App.Name} {Commands.AddRoute} users --params-schema zod:UserParams@src/shared/contracts/users.ts", "Attach schema references via kind:name@source format")
             ],
             [
                 Option("--method", "HTTP method (default GET)"),
                 Option("--path", "Route path (default /api/<name>)"),
+                Option(ProjectOptions.ProjectName, "Select workspace project when multiple exist"),
                 Option("--fastify", "Also scaffold a Fastify handler and register it if possible"),
-                Option("--summary", "Optional summary for the route manifest entry"),
-                Option("--description", "Optional description for the route manifest entry"),
-                Option("--tags", "Comma-separated tag list for the route manifest entry"),
-                Option("--params-schema", "Schema reference for params (kind:name@source)"),
-                Option("--query-schema", "Schema reference for query (kind:name@source)"),
-                Option("--body-schema", "Schema reference for body (kind:name@source)"),
-                Option("--headers-schema", "Schema reference for headers (kind:name@source)"),
-                Option("--response-schema", "Schema reference for response body (kind:name@source)"),
-                Option("--response-status", "Optional HTTP status for response schema"),
-                Option("--response-headers-schema", "Schema reference for response headers (kind:name@source)"),
-                Option(ProjectOptions.ProjectName, "Specify project when multiple exist")
+                Option("--summary", "Short manifest summary (stored on webstir.module.routes)"),
+                Option("--description", "Longer manifest description for docs and tooling"),
+                Option("--tags", "Comma-separated tags (trimmed and deduped case-insensitively)"),
+                Option("--params-schema", $"Schema reference for params ({SchemaReferenceHint})"),
+                Option("--query-schema", $"Schema reference for query ({SchemaReferenceHint})"),
+                Option("--body-schema", $"Schema reference for body ({SchemaReferenceHint})"),
+                Option("--headers-schema", $"Schema reference for headers ({SchemaReferenceHint})"),
+                Option("--response-schema", $"Schema reference for response body ({SchemaReferenceHint})"),
+                Option("--response-status", "Override the success status code (100-599)"),
+                Option("--response-headers-schema", $"Schema reference for response headers ({SchemaReferenceHint})")
             ],
-            "<name> [--method <METHOD>] [--path <path>] [--fastify]");
+            "<name> [--method <METHOD>] [--path <path>] [--fastify] [--project-name <project>]");
 
     private static CommandHelp GetAddJobCommand() =>
         CreateCommand(Commands.AddJob,
-            "Add a backend job stub and manifest entry",
+            $"Add a backend job stub and manifest entry. Metadata flags are documented at {JobDocsUrl}",
             [
                 Example($"{App.Name} {Commands.AddJob} cleanup", "Create src/backend/jobs/cleanup/index.ts and add to manifest"),
-                Example($"{App.Name} {Commands.AddJob} nightly --schedule \"0 0 * * *\"", "Add a cron-like schedule to the manifest entry")
+                Example($"{App.Name} {Commands.AddJob} nightly --schedule \"0 0 * * *\"", "Add a cron-like schedule to the manifest entry"),
+                Example($"{App.Name} {Commands.AddJob} cleanup --project-name api", "Target a specific workspace project"),
+                Example($"{App.Name} {Commands.AddJob} nightly --description \"Archive data\" --priority 5", "Store manifest metadata for docs and alerting")
             ],
             [
-                Option("--schedule", "Optional schedule string to include in manifest"),
-                Option("--description", "Optional description for the job manifest entry"),
-                Option("--priority", "Optional priority (number or string) for the job"),
-                Option(ProjectOptions.ProjectName, "Specify project when multiple exist")
+                Option("--schedule", "Optional schedule string stored verbatim in the manifest"),
+                Option("--description", "Manifest description (surfaced in docs/help output)"),
+                Option("--priority", "Manifest priority (numbers stored as integers, otherwise as strings)"),
+                Option(ProjectOptions.ProjectName, "Select workspace project when multiple exist")
             ],
-            "<name> [--schedule <expression>]");
+            "<name> [--schedule <expression>] [--project-name <project>]");
 
     private static CommandHelp GetHelpCommand() =>
         CreateCommand(Commands.Help,
