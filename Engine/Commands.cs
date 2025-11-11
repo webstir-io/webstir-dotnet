@@ -46,3 +46,9 @@ public static class InstallOptions
     public const string PackageManager = "--package-manager";
     public const string PackageManagerShort = "-m";
 }
+
+public static class TestOptions
+{
+    public const string Runtime = "--runtime";
+    public const string RuntimeShort = "-r";
+}

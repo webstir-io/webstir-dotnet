@@ -1,4 +1,5 @@
 import { run as runVmRuntime } from './runtime.js';
+import { createBackendProvider } from './providers/backend-provider.js';
 import type { RunnerSummary, TestRuntime } from './types.js';
 
 export interface TestProvider {
@@ -18,7 +19,7 @@ export function createDefaultProviderRegistry(): ProviderRegistry {
 
   const providers = new Map<TestRuntime, TestProvider>([
     ['frontend', defaultProvider],
-    ['backend', defaultProvider],
+    ['backend', createBackendProvider()],
   ]);
 
   return {

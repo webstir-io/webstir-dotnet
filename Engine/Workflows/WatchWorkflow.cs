@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,37 +20,53 @@ public class WatchWorkflow(
     : BaseWorkflow(context, workers)
 {
     private readonly ILogger<WatchWorkflow> _logger = logger;
+    private string? _testRuntimeFilter;
+    private ProjectMode? _projectModeFilter;
+    private ProjectMode _workspaceMode;
 
     public override string WorkflowName => Commands.Watch;
 
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
-        await ExecuteBuildAsync();
+        _testRuntimeFilter = TestRuntimeOptionParser.Parse(args);
+        _workspaceMode = Context.DetectProjectMode();
+        _projectModeFilter = ResolveProjectMode(_testRuntimeFilter);
+
+        ProjectMode? effectiveMode = _projectModeFilter ?? NormalizeWorkspaceMode(_workspaceMode);
+
+        await ExecuteBuildWithFilterAsync(effectiveMode, _workspaceMode);
 
         PackageEnsureSummary ensureSummary = await TestPackageUtilities.EnsurePackageAsync(Context);
         TestPackageUtilities.LogEnsureMessages(ensureSummary);
 
         await RunTestsAsync();
         bool watchStarted = false;
+        bool frontendWatchEnabled = ShouldStartFrontendWatch(effectiveMode, _workspaceMode);
         try
         {
-            await Frontend.StartWatchAsync();
-            watchStarted = true;
+            if (frontendWatchEnabled)
+            {
+                await Frontend.StartWatchAsync();
+                watchStarted = true;
+            }
 
             await devService.StartAsync(Context, async (filePath, _) =>
             {
-                await ExecuteBuildAsync(filePath);
+                await ExecuteBuildWithFilterAsync(effectiveMode, _workspaceMode, filePath);
 
                 FrontendHotUpdate? hotUpdate = null;
-                FrontendHotUpdate? candidate;
-                while ((candidate = Frontend.DequeueHotUpdate()) is not null)
+                if (frontendWatchEnabled)
                 {
-                    hotUpdate = candidate;
+                    FrontendHotUpdate? candidate;
+                    while ((candidate = Frontend.DequeueHotUpdate()) is not null)
+                    {
+                        hotUpdate = candidate;
+                    }
                 }
 
                 await RunTestsAsync();
 
-                if (hotUpdate is null)
+                if (!frontendWatchEnabled || hotUpdate is null)
                 {
                     return ChangeProcessingResult.Empty;
                 }
@@ -62,7 +79,7 @@ public class WatchWorkflow(
         }
         finally
         {
-            if (watchStarted)
+            if (frontendWatchEnabled && watchStarted)
             {
                 await Frontend.StopWatchAsync();
             }
@@ -72,7 +89,9 @@ public class WatchWorkflow(
     private async Task RunTestsAsync()
     {
         TestCliRunner runner = new(Context);
-        TestCliRunResult result = await runner.RunTestsAsync(CancellationToken.None);
+        TestCliRunResult result = await runner.RunTestsAsync(
+            CancellationToken.None,
+            new TestCliRunSettings(_testRuntimeFilter));
 
         if (!result.TestsDiscovered)
         {
@@ -90,5 +109,58 @@ public class WatchWorkflow(
         {
             _logger.LogWarning("Test runner reported errors. See logs above.");
         }
+    }
+
+    private static ProjectMode? ResolveProjectMode(string? runtimeFilter) =>
+        string.Equals(runtimeFilter, "backend", StringComparison.OrdinalIgnoreCase)
+            ? ProjectMode.ServerOnly
+            : string.Equals(runtimeFilter, "frontend", StringComparison.OrdinalIgnoreCase)
+                ? ProjectMode.ClientOnly
+                : null;
+
+    private static ProjectMode? NormalizeWorkspaceMode(ProjectMode mode) =>
+        mode == ProjectMode.Fullstack ? null : mode;
+
+    private static bool WorkspaceHasFrontend(ProjectMode mode) =>
+        mode is ProjectMode.Fullstack or ProjectMode.ClientOnly;
+
+    private async Task ExecuteBuildWithFilterAsync(
+        ProjectMode? runtimeMode,
+        ProjectMode workspaceMode,
+        string? changedFilePath = null)
+    {
+        ProjectMode? effective = runtimeMode ?? NormalizeWorkspaceMode(workspaceMode);
+        if (effective is { } filtered)
+        {
+            if (changedFilePath is null)
+            {
+                await ExecuteBuildAsync(filtered);
+            }
+            else
+            {
+                await ExecuteBuildAsync(changedFilePath, filtered);
+            }
+
+            return;
+        }
+
+        if (changedFilePath is null)
+        {
+            await ExecuteBuildAsync();
+        }
+        else
+        {
+            await ExecuteBuildAsync(changedFilePath);
+        }
+    }
+
+    private static bool ShouldStartFrontendWatch(ProjectMode? runtimeMode, ProjectMode workspaceMode)
+    {
+        if (!WorkspaceHasFrontend(workspaceMode))
+        {
+            return false;
+        }
+
+        return runtimeMode is null or not ProjectMode.ServerOnly;
     }
 }

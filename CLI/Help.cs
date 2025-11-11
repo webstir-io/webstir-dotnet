@@ -125,8 +125,13 @@ public static class Help
                 Example($"{App.Name} {Commands.Test}", "Build (incremental) and run tests"),
                 Example($"{App.Name} {Commands.Test} ./my-app", "Run in ./my-app"),
                 Example($"WEBSTIR_TESTING_PROVIDER=@webstir-io/vitest-testing {App.Name} {Commands.Test}", "Execute through the Vitest provider"),
-                Example($"WEBSTIR_TESTING_PROVIDER_SPEC=../vitest-testing {App.Name} {Commands.Test}", "Install and run against a local provider build")
+                Example($"WEBSTIR_TESTING_PROVIDER_SPEC=../vitest-testing {App.Name} {Commands.Test}", "Install and run against a local provider build"),
+                Example($"{App.Name} {Commands.Test} {TestOptions.Runtime} backend", "Run backend-only tests (skips frontend tests)")
+            ],
+            [
+                Option($"{TestOptions.Runtime} | {TestOptions.RuntimeShort}", "Limit tests to a runtime: frontend, backend, or all (default)")
             ]);
+
 
     private static CommandHelp GetWatchCommand() =>
         CreateCommand(Commands.Watch,
@@ -135,6 +140,9 @@ public static class Help
                 Example($"{App.Name} {Commands.Watch}", "Start development server with hot reload"),
                 Example(App.Name, $"Same as '{App.Name} {Commands.Watch}'"),
                 Example($"{App.Name} {Commands.Watch} ../project", "Watch project in parent directory")
+            ],
+            [
+                Option($"{TestOptions.Runtime} | {TestOptions.RuntimeShort}", "Limit watch-triggered tests to frontend, backend, or all (default)")
             ]);
 
     private static CommandHelp GetPublishCommand() =>

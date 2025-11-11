@@ -12,6 +12,7 @@ const TEST_FOLDER = 'tests';
 const BACKEND_FOLDER = 'backend';
 const TEST_SUFFIXES = ['.test.ts', '.test.js'];
 const EXCLUDED_DIRECTORIES = new Set(['node_modules', 'build', 'dist', '.git']);
+const RUNTIME_FILTER = normalizeRuntimeFilter(process.env.WEBSTIR_TEST_RUNTIME);
 
 overrideConsole();
 
@@ -31,13 +32,22 @@ async function main() {
 
     try {
       const manifest = await discoverTestManifest(workspaceRoot);
+      const filteredManifest = applyRuntimeFilter(manifest, RUNTIME_FILTER);
+      if (RUNTIME_FILTER) {
+        emitEvent({
+          type: 'log',
+          runId,
+          level: 'info',
+          message: runtimeFilterMessage(RUNTIME_FILTER, manifest.modules.length, filteredManifest.modules.length),
+        });
+      }
       emitEvent({
         type: 'start',
         runId,
-        manifest,
+        manifest: filteredManifest,
       });
 
-      if (manifest.modules.length === 0) {
+      if (filteredManifest.modules.length === 0) {
         emitEvent({
           type: 'log',
           runId,
@@ -48,7 +58,7 @@ async function main() {
         return;
       }
 
-      const summary = await executeRun(runId, manifest, registry);
+      const summary = await executeRun(runId, filteredManifest, registry);
       emitEvent(makeOverallSummary(runId, summary));
 
       if ((summary?.failed ?? 0) > 0) {
@@ -440,4 +450,38 @@ function stringify(value) {
   } catch {
     return String(value);
   }
+}
+
+function normalizeRuntimeFilter(value) {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized || normalized === 'all') {
+    return null;
+  }
+
+  if (normalized === 'frontend' || normalized === 'backend') {
+    return normalized;
+  }
+
+  return null;
+}
+
+function applyRuntimeFilter(manifest, runtime) {
+  if (!runtime) {
+    return manifest;
+  }
+
+  const modules = manifest.modules.filter((module) => module?.runtime === runtime);
+  return {
+    ...manifest,
+    modules,
+  };
+}
+
+function runtimeFilterMessage(runtime, beforeCount, afterCount) {
+  const skipped = Math.max(beforeCount - afterCount, 0);
+  return `Runtime filter '${runtime}' matched ${afterCount} test${afterCount === 1 ? '' : 's'} (${skipped} skipped).`;
 }

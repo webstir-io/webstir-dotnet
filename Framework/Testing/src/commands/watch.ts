@@ -4,6 +4,7 @@ import chokidar from 'chokidar';
 import { discoverTestManifest } from '../discovery.js';
 import { emitEvent, createRunId } from '../events.js';
 import { executeRun } from '../execution.js';
+import { applyRuntimeFilter, describeRuntimeFilter, normalizeRuntimeFilter } from '../runtime-filter.js';
 import type { RunnerSummary, RunnerSummaryEvent, RunnerWatchIterationEvent } from '../types.js';
 
 export interface WatchCommandOptions {
@@ -16,6 +17,7 @@ export async function runWatchCommand(options: WatchCommandOptions): Promise<voi
   const workspaceRoot = path.resolve(options.workspace);
   const srcRoot = path.join(workspaceRoot, 'src');
   const debounce = options.debounceMs ?? 150;
+  const runtimeFilter = normalizeRuntimeFilter(process.env.WEBSTIR_TEST_RUNTIME);
   let iteration = 0;
   let pending = Promise.resolve();
   let scheduled: NodeJS.Timeout | null = null;
@@ -29,13 +31,23 @@ export async function runWatchCommand(options: WatchCommandOptions): Promise<voi
 
     try {
       const manifest = await discoverTestManifest(workspaceRoot);
+      const filteredManifest = applyRuntimeFilter(manifest, runtimeFilter);
+      const filterMessage = describeRuntimeFilter(runtimeFilter, manifest.modules.length, filteredManifest.modules.length);
+      if (filterMessage) {
+        emitEvent({
+          type: 'log',
+          runId: iterationId,
+          level: 'info',
+          message: filterMessage,
+        });
+      }
       emitEvent({
         type: 'start',
         runId: iterationId,
-        manifest,
+        manifest: filteredManifest,
       });
 
-      if (manifest.modules.length === 0) {
+      if (filteredManifest.modules.length === 0) {
         emitEvent({
           type: 'summary',
           runId: iterationId,
@@ -46,7 +58,7 @@ export async function runWatchCommand(options: WatchCommandOptions): Promise<voi
         return;
       }
 
-      const summary = await executeRun(iterationId, manifest);
+      const summary = await executeRun(iterationId, filteredManifest);
       emitEvent({
         type: 'summary',
         runId: iterationId,

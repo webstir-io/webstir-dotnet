@@ -45,6 +45,9 @@ Binary aliases: `webstir-testing`, `webstir-testing-runner`, `webstir-testing-ad
 | `webstir-testing watch` | Watches `src/` and reruns on change. | `--workspace`, `--debounce <ms>` (default 150). |
 | `webstir-testing-add <name>` | Scaffolds a sample test file. | `--workspace` to control destination. |
 
+Tips:
+- Set `WEBSTIR_TEST_RUNTIME=<frontend|backend|all>` to limit discovery to a single runtime. This is the same flag the Webstir CLI passes when you invoke `webstir test --runtime backend`.
+
 ### Event Stream
 
 Runner events emit to `stdout` prefixed with `WEBSTIR_TEST ` followed by JSON. Event types include `start`, `result`, `summary`, `watch-iteration`, `log`, and `error`. Downstream tooling can parse these payloads using `@webstir-io/testing-contract`.

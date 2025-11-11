@@ -9,6 +9,8 @@ using Engine.Bridge.Module;
 
 namespace Engine.Bridge.Test;
 
+internal sealed record TestCliRunSettings(string? RuntimeFilter);
+
 internal sealed class TestCliRunner
 {
     private const string EventPrefix = "WEBSTIR_TEST ";
@@ -26,7 +28,9 @@ internal sealed class TestCliRunner
         _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
     }
 
-    internal async Task<TestCliRunResult> RunTestsAsync(CancellationToken cancellationToken)
+    internal async Task<TestCliRunResult> RunTestsAsync(
+        CancellationToken cancellationToken,
+        TestCliRunSettings? settings = null)
     {
         NodeRuntime.EnsureMinimumVersion();
 
@@ -48,6 +52,14 @@ internal sealed class TestCliRunner
         startInfo.ArgumentList.Add(providerId);
         startInfo.ArgumentList.Add("--workspace");
         startInfo.ArgumentList.Add(_workspace.WorkingPath);
+        startInfo.Environment["WEBSTIR_WORKSPACE_ROOT"] = _workspace.WorkingPath;
+        startInfo.Environment["WEBSTIR_BACKEND_BUILD_ROOT"] = _workspace.BackendBuildPath;
+        startInfo.Environment["WEBSTIR_BACKEND_TEST_MANIFEST"] = _workspace.BackendManifestPath;
+        startInfo.Environment["WEBSTIR_BACKEND_TEST_ENTRY"] = Path.Combine(_workspace.BackendBuildPath, "index.js");
+        if (!string.IsNullOrWhiteSpace(settings?.RuntimeFilter))
+        {
+            startInfo.Environment["WEBSTIR_TEST_RUNTIME"] = settings.RuntimeFilter;
+        }
 
         using Process process = new()
         {

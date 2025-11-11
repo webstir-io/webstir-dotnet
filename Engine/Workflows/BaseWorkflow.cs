@@ -59,10 +59,16 @@ public abstract class BaseWorkflow(
         };
     }
 
-    protected async Task ExecuteBuildAsync() => await ExecuteWorkersAsync(async worker => await worker.BuildAsync());
+    protected async Task ExecuteBuildAsync() => await ExecuteBuildAsync(Context.DetectProjectMode());
+
+    protected async Task ExecuteBuildAsync(ProjectMode mode) =>
+        await ExecuteWorkersAsync(async worker => await worker.BuildAsync(), mode);
 
     protected async Task ExecuteBuildAsync(string? changedFilePath) =>
-        await ExecuteWorkersAsync(async worker => await worker.BuildAsync(changedFilePath));
+        await ExecuteBuildAsync(changedFilePath, Context.DetectProjectMode());
+
+    protected async Task ExecuteBuildAsync(string? changedFilePath, ProjectMode mode) =>
+        await ExecuteWorkersAsync(async worker => await worker.BuildAsync(changedFilePath), mode);
 
     protected virtual void InitializeWorkspace(string[] args)
     {

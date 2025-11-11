@@ -8,6 +8,7 @@ using Engine.Bridge.Module;
 using Engine.Bridge.Test;
 using Engine.Extensions;
 using Engine.Interfaces;
+using Engine.Models;
 using Framework.Packaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -26,15 +27,25 @@ public sealed class TestWorkflow(
 
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
-        await ExecuteBuildAsync();
+        string? runtimeFilter = TestRuntimeOptionParser.Parse(args);
+        ProjectMode workspaceMode = Context.DetectProjectMode();
+        ProjectMode? modeFilter = ResolveProjectMode(runtimeFilter);
+        ProjectMode? effectiveMode = modeFilter ?? NormalizeWorkspaceMode(workspaceMode);
+
+        await ExecuteBuildWithFilterAsync(effectiveMode, workspaceMode);
         await CompileTypeScriptAsync();
-        await CompileBackendAsync();
+        if (ShouldCompileBackend(workspaceMode, effectiveMode))
+        {
+            await CompileBackendAsync();
+        }
 
         PackageEnsureSummary ensureSummary = await TestPackageUtilities.EnsurePackageAsync(Context);
         TestPackageUtilities.LogEnsureMessages(ensureSummary);
 
         TestCliRunner runner = new(Context);
-        TestCliRunResult runResult = await runner.RunTestsAsync(CancellationToken.None);
+        TestCliRunResult runResult = await runner.RunTestsAsync(
+            CancellationToken.None,
+            new TestCliRunSettings(runtimeFilter));
 
         if (!runResult.TestsDiscovered)
         {
@@ -88,6 +99,41 @@ public sealed class TestWorkflow(
             Console.ResetColor();
             Console.WriteLine("All tests passed");
         }
+    }
+
+    private static ProjectMode? ResolveProjectMode(string? runtimeFilter) =>
+        string.Equals(runtimeFilter, "backend", StringComparison.OrdinalIgnoreCase)
+            ? ProjectMode.ServerOnly
+            : string.Equals(runtimeFilter, "frontend", StringComparison.OrdinalIgnoreCase)
+                ? ProjectMode.ClientOnly
+                : null;
+
+    private static ProjectMode? NormalizeWorkspaceMode(ProjectMode mode) =>
+        mode == ProjectMode.Fullstack ? null : mode;
+
+    private static bool WorkspaceHasBackend(ProjectMode mode) =>
+        mode is ProjectMode.Fullstack or ProjectMode.ServerOnly;
+
+    private async Task ExecuteBuildWithFilterAsync(ProjectMode? mode, ProjectMode workspaceMode)
+    {
+        ProjectMode? effective = mode ?? NormalizeWorkspaceMode(workspaceMode);
+        if (effective is { } filtered)
+        {
+            await ExecuteBuildAsync(filtered);
+            return;
+        }
+
+        await ExecuteBuildAsync();
+    }
+
+    private static bool ShouldCompileBackend(ProjectMode workspaceMode, ProjectMode? runtimeMode)
+    {
+        if (!WorkspaceHasBackend(workspaceMode))
+        {
+            return false;
+        }
+
+        return runtimeMode is null or not ProjectMode.ClientOnly;
     }
 
     private async Task CompileTypeScriptAsync()
