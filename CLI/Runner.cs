@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Engine;
 using Engine.Services;
+using Engine.Workflows;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CLI;
@@ -64,6 +65,14 @@ public class Runner(IServiceProvider serviceProvider)
             command = Commands.Watch;
         }
 
-        await _workflowFactory.ExecuteAsync(command, args);
+        try
+        {
+            await _workflowFactory.ExecuteAsync(command, args);
+        }
+        catch (WorkflowUsageException ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            Environment.ExitCode = 1;
+        }
     }
 }

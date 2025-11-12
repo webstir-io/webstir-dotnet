@@ -75,11 +75,12 @@ try
     services.AddTransient<IWorkflow, InstallWorkflow>();
     services.AddTransient<IWorkflow, AddPageWorkflow>();
     services.AddTransient<IWorkflow, AddTestWorkflow>();
-    services.AddTransient<IWorkflow, AddRouteWorkflow>();
-    services.AddTransient<IWorkflow, AddJobWorkflow>();
-    services.AddTransient<IWorkflow, TestWorkflow>();
-    services.AddTransient<IWorkflow, WatchWorkflow>();
-    services.AddTransient<IWorkflow, SmokeWorkflow>();
+services.AddTransient<IWorkflow, AddRouteWorkflow>();
+services.AddTransient<IWorkflow, AddJobWorkflow>();
+services.AddTransient<IWorkflow, TestWorkflow>();
+services.AddTransient<IWorkflow, WatchWorkflow>();
+services.AddTransient<IWorkflow, SmokeWorkflow>();
+services.AddTransient<IWorkflow, BackendInspectWorkflow>();
 
     using ServiceProvider provider = services.BuildServiceProvider();
     await provider.GetRequiredService<Runner>().Run(args);

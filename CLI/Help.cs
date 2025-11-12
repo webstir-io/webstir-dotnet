@@ -25,6 +25,7 @@ public static class Help
         [Commands.Build] = GetBuildCommand(),
         [Commands.Test] = GetTestCommand(),
         [Commands.Watch] = GetWatchCommand(),
+        [Commands.BackendInspect] = GetBackendInspectCommand(),
         [Commands.Install] = GetInstallCommand(),
         [Commands.Publish] = GetPublishCommand(),
         [Commands.Smoke] = GetSmokeCommand(),
@@ -94,10 +95,12 @@ public static class Help
             [
                 Example($"{App.Name} {Commands.Build}", "Build the project"),
                 Example($"{App.Name} {Commands.Build} {BuildOptions.Clean}", "Clean build (removes build directory first)"),
-                Example($"{App.Name} {Commands.Build} ./my-app", "Build project in ./my-app directory")
+                Example($"{App.Name} {Commands.Build} ./my-app", "Build project in ./my-app directory"),
+                Example($"{App.Name} {Commands.Build} {TestOptions.Runtime} backend", "Focus on backend workers only")
             ],
             [
-                Option(BuildOptions.Clean, "Clean build directory before building")
+                Option(BuildOptions.Clean, "Clean build directory before building"),
+                Option($"{TestOptions.Runtime} | {TestOptions.RuntimeShort}", "Limit build to frontend, backend, or all (default)")
             ],
             "[options]");
 
@@ -145,11 +148,28 @@ public static class Help
                 Option($"{TestOptions.Runtime} | {TestOptions.RuntimeShort}", "Limit watch-triggered tests to frontend, backend, or all (default)")
             ]);
 
+    private static CommandHelp GetBackendInspectCommand() =>
+        CreateCommand(Commands.BackendInspect,
+            "Build backend (server-only) and print manifest metadata",
+            [
+                Example($"{App.Name} {Commands.BackendInspect}", "Inspect backend manifest in current project"),
+                Example($"{App.Name} {Commands.BackendInspect} ./api", "Inspect a sibling project"),
+                Example($"{App.Name} {Commands.BackendInspect} {ProjectOptions.ProjectName} api", "Select a specific project when multiple exist")
+            ],
+            [
+                Option(ProjectOptions.ProjectName, "Select workspace project when multiple exist")
+            ],
+            "[project]");
+
     private static CommandHelp GetPublishCommand() =>
         CreateCommand(Commands.Publish,
             "Create production build",
             [
-                Example($"{App.Name} {Commands.Publish}", "Create optimized production build")
+                Example($"{App.Name} {Commands.Publish}", "Create optimized production build"),
+                Example($"{App.Name} {Commands.Publish} {TestOptions.Runtime} backend", "Only publish backend artifacts")
+            ],
+            [
+                Option($"{TestOptions.Runtime} | {TestOptions.RuntimeShort}", "Limit publish work to frontend, backend, or all (default)")
             ]);
 
     private static CommandHelp GetSmokeCommand() =>

@@ -80,7 +80,7 @@ public abstract class BaseWorkflow(
         {
             string projectPath = Context.WorkingPath.Combine(projectName);
             if (!projectPath.Exists())
-                throw new DirectoryNotFoundException($"Project directory '{projectName}' not found in current directory");
+                throw new WorkflowUsageException($"Project directory '{projectName}' not found in current directory.");
 
             Context.Initialize(projectPath);
             return;
@@ -90,8 +90,8 @@ public abstract class BaseWorkflow(
             .Where(projectPath => projectPath.Combine(Folders.Src).Exists())];
 
         if (validProjects.Count == 0)
-            throw new InvalidOperationException(
-                "No valid webstir projects found in current directory. Run 'init <project-name>' to create a new project.");
+            throw new WorkflowUsageException(
+                "No webstir project found here. Run 'webstir init <name>' first or pass the target path (e.g., 'webstir build ../my-app').");
 
         if (validProjects.Count == 1)
         {
@@ -100,9 +100,9 @@ public abstract class BaseWorkflow(
         }
 
         IEnumerable<string?> projectNames = validProjects.Select(Path.GetFileName);
-        throw new InvalidOperationException(
+        throw new WorkflowUsageException(
             $"Multiple projects found: {string.Join(", ", projectNames)}. " +
-            $"Please specify which project to use: {WorkflowName} <project-name> or {WorkflowName} --project-name <project-name>");
+            $"Specify which project to use: {WorkflowName} <project-name> or {WorkflowName} --project-name <project-name>.");
     }
 
     protected static string? GetProjectFromFlags(string[] args)

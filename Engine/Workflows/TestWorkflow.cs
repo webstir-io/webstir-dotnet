@@ -27,10 +27,11 @@ public sealed class TestWorkflow(
 
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
-        string? runtimeFilter = TestRuntimeOptionParser.Parse(args);
+        string? runtimeFilter = RuntimeOptionParser.Parse(args);
         ProjectMode workspaceMode = Context.DetectProjectMode();
         ProjectMode? modeFilter = ResolveProjectMode(runtimeFilter);
         ProjectMode? effectiveMode = modeFilter ?? NormalizeWorkspaceMode(workspaceMode);
+        LogRuntimeScope(workspaceMode, runtimeFilter, effectiveMode);
 
         await ExecuteBuildWithFilterAsync(effectiveMode, workspaceMode);
         await CompileTypeScriptAsync();
@@ -272,4 +273,30 @@ public sealed class TestWorkflow(
             }
         }
     }
+
+    private void LogRuntimeScope(ProjectMode workspaceMode, string? runtimeFilter, ProjectMode? effectiveMode)
+    {
+        string workspaceLabel = DescribeMode(workspaceMode);
+        string filterLabel = string.IsNullOrWhiteSpace(runtimeFilter) ? "auto" : runtimeFilter!;
+        string effectiveLabel = effectiveMode switch
+        {
+            ProjectMode.ClientOnly => "frontend-only",
+            ProjectMode.ServerOnly => "backend-only",
+            _ => "frontend+backend"
+        };
+
+        _logger.LogInformation(
+            "[{Workflow}] Runtime scope — workspace: {Workspace}, filter: {Filter}, running: {Effective}.",
+            WorkflowName,
+            workspaceLabel,
+            filterLabel,
+            effectiveLabel);
+    }
+
+    private static string DescribeMode(ProjectMode mode) => mode switch
+    {
+        ProjectMode.ClientOnly => "frontend-only",
+        ProjectMode.ServerOnly => "backend-only",
+        _ => "frontend+backend"
+    };
 }

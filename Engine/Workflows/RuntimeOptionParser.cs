@@ -2,7 +2,7 @@ using System;
 
 namespace Engine.Workflows;
 
-internal static class TestRuntimeOptionParser
+internal static class RuntimeOptionParser
 {
     public static string? Parse(string[] args)
     {
