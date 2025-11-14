@@ -5,11 +5,16 @@ Frontend build and publish toolkit for Webstir workspaces. The package bundles t
 ## Quick Start
 
 1. **Authenticate to GitHub Packages**
-   ```ini
-   # .npmrc
-   @webstir-io:registry=https://npm.pkg.github.com
-   //npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}
-   ```
+   Configure user-level auth (recommended) or set an env var:
+   - User config (`~/.npmrc`):
+     ```ini
+     @webstir-io:registry=https://npm.pkg.github.com
+     //npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}
+     ```
+   - Or export a token (CI uses `NODE_AUTH_TOKEN`):
+     ```bash
+     export NODE_AUTH_TOKEN="$GH_PACKAGES_TOKEN"
+     ```
    Use a token with `read:packages` for consumers and `write:packages` for publishers.
 2. **Install the package**
    ```bash
@@ -113,9 +118,14 @@ console.log(result.manifest.entryPoints);
 npm install
 npm run build          # TypeScript → dist/
 npm run test           # Node --test against compiled output
+# Optional quick E2E
+npm run smoke          # scaffolds a temp workspace and runs build/publish
 ```
 
 GitHub Actions should run `npm ci`, `npm run build`, and `npm run test` before publishing. The package publishes to GitHub Packages per `publishConfig`.
+
+CI notes
+- Package CI runs build + tests on PRs and main; a smoke step runs on main only to exercise the end-to-end path quickly.
 
 ## Troubleshooting
 

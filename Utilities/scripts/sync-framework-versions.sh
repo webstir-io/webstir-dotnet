@@ -185,13 +185,13 @@ fi
 
 pushd "$(root_dir)" >/dev/null
   # Bump local Framework package versions to match resolved specs (if provided)
-  if [[ -n "$BACKEND_VER" && "$BACKEND_VER" != "$BACKEND_LOCAL_VER" ]]; then
+  if [[ -n "$BACKEND_VER" ]]; then
     dotnet run --project Framework/Framework.csproj -- packages bump --backend --set-version "$BACKEND_VER"
   fi
-  if [[ -n "$FRONTEND_VER" && "$FRONTEND_VER" != "$FRONTEND_LOCAL_VER" ]]; then
+  if [[ -n "$FRONTEND_VER" ]]; then
     dotnet run --project Framework/Framework.csproj -- packages bump --frontend --set-version "$FRONTEND_VER"
   fi
-  if [[ -n "$TESTING_VER" && "$TESTING_VER" != "$TESTING_LOCAL_VER" ]]; then
+  if [[ -n "$TESTING_VER" ]]; then
     dotnet run --project Framework/Framework.csproj -- packages bump --testing --set-version "$TESTING_VER"
   fi
   # Sync only changed packages to avoid needless builds
