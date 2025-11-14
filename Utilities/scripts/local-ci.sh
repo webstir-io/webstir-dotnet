@@ -105,6 +105,15 @@ step "Install workspace dependencies (npm ci --workspaces)"
 run rm -rf node_modules Framework/*/node_modules || true
 run env npm_config_platform=linux npm_config_arch=arm64 npm ci --workspaces
 
+step "Build module contract package (npm --workspace Framework/Contracts/module-contract run build)"
+run npm --workspace Framework/Contracts/module-contract run build
+
+step "Build backend package (npm --workspace Framework/Backend run build)"
+run npm --workspace Framework/Backend run build
+
+step "Build frontend package (npm --workspace Framework/Frontend run build)"
+run npm --workspace Framework/Frontend run build
+
 step "Install platform-specific sharp binding (@img/sharp-linux-arm64)"
 run env npm_config_platform=linux npm_config_arch=arm64 npm install --no-save --foreground-scripts @img/sharp-linux-arm64 || true
 
