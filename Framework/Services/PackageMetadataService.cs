@@ -221,8 +221,9 @@ internal sealed class PackageMetadataService(
 
         if (changed.Count == 0)
         {
-            _logger.LogInformation(
-                "[packages] Detected {Count} changed path(s) but none map to known framework packages.",
+            // Nothing actionable for framework packages; a no-op is expected when only docs/infra changed.
+            _logger.LogDebug(
+                "[packages] Ignoring {Count} changed path(s) that do not map to framework packages.",
                 diff.Paths.Count);
             return Array.Empty<PackageManifest>();
         }

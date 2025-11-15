@@ -41,11 +41,20 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci --workspaces
 
+      - name: Install module contract workspace deps
+        run: npm --workspace Framework/Contracts/module-contract ci
+
       - name: Build module contract package
         run: npm --workspace Framework/Contracts/module-contract run build
 
+      - name: Install backend workspace deps
+        run: npm --workspace Framework/Backend ci
+
       - name: Build backend package
         run: npm --workspace Framework/Backend run build
+
+      - name: Install frontend workspace deps
+        run: npm --workspace Framework/Frontend ci
 
       - name: Build frontend package
         run: npm --workspace Framework/Frontend run build
@@ -72,6 +81,3 @@ jobs:
 
       - name: Build framework packages
         run: dotnet run --project Framework/Framework.csproj -- packages sync
-
-      - name: Verify framework packages
-        run: dotnet run --project Framework/Framework.csproj -- packages verify

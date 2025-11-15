@@ -28,7 +28,8 @@ internal sealed class PackagesVerifyCommand(PackageBuilder packageBuilder, IPack
 
         if (manifests.Count == 0)
         {
-            _logger.LogWarning("[packages] No framework packages matched the selection.");
+            _logger.LogInformation(
+                "[packages] No framework package changes detected; nothing to verify. Use '--all' to check all packages.");
             return 0;
         }
 

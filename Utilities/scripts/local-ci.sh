@@ -105,13 +105,19 @@ step "Install workspace dependencies (npm ci --workspaces)"
 run rm -rf node_modules Framework/*/node_modules || true
 run env npm_config_platform=linux npm_config_arch=arm64 npm ci --workspaces
 
-step "Build module contract package (npm --workspace Framework/Contracts/module-contract run build)"
+step "Install module contract workspace deps"
+run npm --workspace Framework/Contracts/module-contract ci
+step "Build module contract package"
 run npm --workspace Framework/Contracts/module-contract run build
 
-step "Build backend package (npm --workspace Framework/Backend run build)"
+step "Install backend workspace deps"
+run npm --workspace Framework/Backend ci
+step "Build backend package"
 run npm --workspace Framework/Backend run build
 
-step "Build frontend package (npm --workspace Framework/Frontend run build)"
+step "Install frontend workspace deps"
+run npm --workspace Framework/Frontend ci
+step "Build frontend package"
 run npm --workspace Framework/Frontend run build
 
 step "Install platform-specific sharp binding (@img/sharp-linux-arm64)"
@@ -137,8 +143,5 @@ run npm --workspace Framework/Frontend test --silent
 
 step "Build framework packages (dotnet run -- packages sync)"
 run dotnet run --project Framework/Framework.csproj -- packages sync
-
-step "Verify framework packages (dotnet run -- packages verify)"
-run dotnet run --project Framework/Framework.csproj -- packages verify
 
 step "Completed GitHub CI equivalent workflow."

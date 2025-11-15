@@ -42,7 +42,8 @@ internal sealed class PackagesSyncCommand(PackageBuilder packageBuilder, IPackag
 
         if (manifests.Count == 0)
         {
-            _logger.LogWarning("[packages] No framework packages matched the selection.");
+            _logger.LogInformation(
+                "[packages] No framework package changes detected; nothing to sync. Use '--all' to rebuild all packages.");
             return PackageBuildSummary.None(context.IsDryRun, publish);
         }
 
