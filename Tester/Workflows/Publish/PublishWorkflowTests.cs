@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Engine;
 using Tester.Infrastructure;
+using Utilities.Process;
 using Xunit;
 
 namespace Tester.Workflows.Publish;
@@ -38,7 +39,7 @@ public sealed class PublishWorkflowTests
             Directory.Delete(distDir, recursive: true);
         }
 
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.Publish} {ProjectOptions.ProjectName} {projectName}",
             testDir,
             timeoutMs: 30000);
@@ -75,7 +76,7 @@ public sealed class PublishWorkflowTests
             }
         }
 
-        ProcessRunner.ProcessResult init = context.Run(
+        ProcessResult init = context.Run(
             $"{Commands.Init} {ProjectOptions.ProjectName} {projectName}",
             testDir,
             timeoutMs: 10000);
@@ -85,12 +86,12 @@ public sealed class PublishWorkflowTests
         Assert.True(File.Exists(indexTs), $"Expected TS entry at {indexTs}");
         File.AppendAllText(indexTs, "\nconst broken = ;\n");
 
-        ProcessRunner.ProcessResult publish = context.Run(
+        ProcessResult publish = context.Run(
             $"{Commands.Publish} {ProjectOptions.ProjectName} {projectName}",
             testDir,
             timeoutMs: 20000);
 
-        string combinedLower = string.Concat(publish.Output ?? string.Empty, publish.Error ?? string.Empty)
+        string combinedLower = string.Concat(publish.StandardOutput ?? string.Empty, publish.StandardError ?? string.Empty)
             .ToLowerInvariant();
 
         Assert.NotEqual(0, publish.ExitCode);

@@ -4,6 +4,7 @@ using System.Text.Json;
 using Engine;
 using Tester.Helpers;
 using Tester.Infrastructure;
+using Utilities.Process;
 using Xunit;
 using Xunit.Sdk;
 
@@ -38,7 +39,7 @@ public sealed class SmokeWorkflowTests
         string seedDir = WorkspaceManager.CreateSeedWorkspace(context, projectName);
 
         string args = $"{Commands.Smoke} \"{seedDir}\"";
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             args,
             Paths.RepositoryRoot,
             timeoutMs: 180000);
@@ -46,15 +47,11 @@ public sealed class SmokeWorkflowTests
         Assert.False(result.TimedOut, $"{Commands.Smoke} command timed out.");
         Assert.True(
             result.ExitCode == 0,
-            $"{Commands.Smoke} exited with code {result.ExitCode}.{Environment.NewLine}stdout:{Environment.NewLine}{result.Output}{Environment.NewLine}stderr:{Environment.NewLine}{result.Error}");
+            $"{Commands.Smoke} exited with code {result.ExitCode}.{Environment.NewLine}stdout:{Environment.NewLine}{result.StandardOutput}{Environment.NewLine}stderr:{Environment.NewLine}{result.StandardError}");
 
         string manifestPath = Path.Combine(
-            Paths.RepositoryRoot,
-            "CLI",
-            "out",
-            "smoke",
-            "accounts",
-            ".webstir",
+            seedDir,
+            Folders.Webstir,
             Files.BackendManifestJson);
 
         Assert.True(File.Exists(manifestPath), $"Backend manifest missing at {manifestPath}");

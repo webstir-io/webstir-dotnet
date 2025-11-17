@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Utilities.ProcessRunner;
+namespace Utilities.Process;
 
 public sealed class ProcessRunner : IProcessRunner
 {
@@ -54,7 +54,7 @@ public sealed class ProcessRunner : IProcessRunner
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        Process process = new()
+        System.Diagnostics.Process process = new()
         {
             StartInfo = BuildStartInfo(spec),
             EnableRaisingEvents = true
@@ -75,9 +75,9 @@ public sealed class ProcessRunner : IProcessRunner
         return Task.FromResult(handle);
     }
 
-    private static ProcessStartInfo BuildStartInfo(ProcessSpec spec)
+    private static System.Diagnostics.ProcessStartInfo BuildStartInfo(ProcessSpec spec)
     {
-        ProcessStartInfo startInfo = new()
+        System.Diagnostics.ProcessStartInfo startInfo = new()
         {
             FileName = spec.FileName,
             Arguments = spec.Arguments,

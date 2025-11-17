@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Engine;
 using Tester.Infrastructure;
+using Utilities.Process;
 using Xunit;
 
 namespace Tester.Workflows.Publish;
@@ -38,7 +39,7 @@ public sealed class BackendPublishWorkflowTests
             Directory.Delete(backendDistRoot, recursive: true);
         }
 
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.Publish} {ProjectOptions.ProjectName} {projectName}",
             testDir,
             timeoutMs: 45000);
@@ -77,7 +78,7 @@ public sealed class BackendPublishWorkflowTests
                 Directory.Delete(backendDistRoot, recursive: true);
             }
 
-            ProcessRunner.ProcessResult result = context.Run(
+            ProcessResult result = context.Run(
                 $"{Commands.Publish} {ProjectOptions.ProjectName} {projectName}",
                 testDir,
                 timeoutMs: 45000);

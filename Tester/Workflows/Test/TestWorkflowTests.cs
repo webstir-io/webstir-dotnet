@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Engine;
 using Tester.Infrastructure;
+using Utilities.Process;
 using Xunit;
 using Xunit.Sdk;
 
@@ -39,7 +40,7 @@ public sealed class TestWorkflowTests
             Directory.Delete(projectDirectory, recursive: true);
         }
 
-        ProcessRunner.ProcessResult init = context.Run(
+        ProcessResult init = context.Run(
             $"{Commands.Init} {InitOptions.ServerOnly} {ProjectName}",
             testRoot,
             timeoutMs: 20000);
@@ -51,15 +52,15 @@ public sealed class TestWorkflowTests
         string backendTestFile = Path.Combine(backendTestsDirectory, BackendTestFileName);
         File.WriteAllText(backendTestFile, SampleBackendTestContent);
 
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.Test} {ProjectOptions.ProjectName} {ProjectName}",
             testRoot,
             timeoutMs: 30000);
 
         context.AssertNoCompilationErrors(result);
         Assert.Equal(0, result.ExitCode);
-        Assert.DoesNotContain("No tests found", result.Output, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("All tests passed", result.Output, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("No tests found", result.StandardOutput, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("All tests passed", result.StandardOutput, StringComparison.OrdinalIgnoreCase);
 
         string compiledBackendTest = Path.Combine(projectDirectory, Folders.Build, Folders.Backend, Folders.Tests, BackendTestFileName.Replace(".ts", ".js", StringComparison.Ordinal));
         Assert.True(File.Exists(compiledBackendTest), "Compiled backend test output missing.");

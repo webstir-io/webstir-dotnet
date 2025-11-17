@@ -2,9 +2,10 @@ using System;
 using System.IO;
 using Tester.Helpers;
 using Tester.Infrastructure;
+using Engine;
+using Utilities.Process;
 using Xunit;
 using Xunit.Sdk;
-using Engine;
 
 namespace Tester.Pipelines.JavaScript;
 
@@ -77,7 +78,7 @@ public sealed class JavaScriptPipelineTests
             Directory.Delete(distDir, recursive: true);
         }
 
-        ProcessRunner.ProcessResult publish = context.Run(
+        ProcessResult publish = context.Run(
             $"{Commands.Publish} {ProjectOptions.ProjectName} {projectName}",
             testDir,
             timeoutMs: 45000);

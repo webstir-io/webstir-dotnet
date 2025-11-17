@@ -1,52 +1,61 @@
 using System;
 
-namespace Utilities.ProcessRunner;
+namespace Utilities.Process;
 
 public sealed class ProcessResult
 {
     public int ExitCode
     {
-        get; init;
+        get;
+        init;
     }
 
     public string StandardOutput
     {
-        get; init;
+        get;
+        init;
     } = string.Empty;
 
     public string StandardError
     {
-        get; init;
+        get;
+        init;
     } = string.Empty;
 
     public TimeSpan Duration
     {
-        get; init;
+        get;
+        init;
     }
 
     public bool TimedOut
     {
-        get; init;
+        get;
+        init;
     }
 
     public bool WasCancelled
     {
-        get; init;
+        get;
+        init;
     }
 
     public bool IsExitCodeAccepted
     {
-        get; init;
+        get;
+        init;
     }
 
     public bool ReadySignalReceived
     {
-        get; init;
+        get;
+        init;
     }
 
     public bool ReadySignalTimedOut
     {
-        get; init;
+        get;
+        init;
     }
 
     public bool CompletedSuccessfully => !TimedOut && !WasCancelled && IsExitCodeAccepted;

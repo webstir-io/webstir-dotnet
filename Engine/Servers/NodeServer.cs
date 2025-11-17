@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Engine.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Utilities.ProcessRunner;
+using Utilities.Process;
 
 namespace Engine.Servers;
 
@@ -523,11 +523,11 @@ public class NodeServer(IOptions<AppSettings> options, ILogger<NodeServer> logge
         {
             if (string.IsNullOrWhiteSpace(value))
             {
-                return Utilities.ProcessRunner.TerminationMethod.Kill;
+                return Utilities.Process.TerminationMethod.Kill;
             }
 
             string v = value.Trim().ToLowerInvariant();
-            return v is "ctrlc" or "ctrl-c" or "int" ? Utilities.ProcessRunner.TerminationMethod.CtrlC : Utilities.ProcessRunner.TerminationMethod.Kill;
+            return v is "ctrlc" or "ctrl-c" or "int" ? Utilities.Process.TerminationMethod.CtrlC : Utilities.Process.TerminationMethod.Kill;
         }
     }
 }

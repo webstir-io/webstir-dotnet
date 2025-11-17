@@ -1,4 +1,5 @@
 using System;
+using Utilities.Process;
 using Xunit;
 
 namespace Tester.Infrastructure;
@@ -21,13 +22,17 @@ public sealed class TestCaseContext
         get;
     }
 
-    public ProcessRunner.ProcessResult Run(string arguments, string? workingDirectory = null, int timeoutMs = 10000, string? waitForSignal = null) =>
+    public ProcessResult Run(
+        string arguments,
+        string? workingDirectory = null,
+        int timeoutMs = 10000,
+        string? waitForSignal = null) =>
         Runner.Run(arguments, workingDirectory, timeoutMs, waitForSignal);
 
-    public void AssertNoCompilationErrors(ProcessRunner.ProcessResult result)
+    public void AssertNoCompilationErrors(ProcessResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
-        Assert.DoesNotContain("error CS", result.Output, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("error TS", result.Output, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("error CS", result.StandardOutput, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("error TS", result.StandardOutput, StringComparison.OrdinalIgnoreCase);
     }
 }

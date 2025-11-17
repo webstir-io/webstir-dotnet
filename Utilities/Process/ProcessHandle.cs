@@ -4,11 +4,11 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Utilities.ProcessRunner;
+namespace Utilities.Process;
 
 internal sealed class ProcessHandle : IProcessHandle
 {
-    private readonly Process _process;
+    private readonly System.Diagnostics.Process _process;
     private readonly ProcessSpec _spec;
     private readonly Action<ProcessOutput>? _observer;
     private readonly StringBuilder _stdout = new();
@@ -25,7 +25,7 @@ internal sealed class ProcessHandle : IProcessHandle
     private bool _cancelled;
     private bool _disposed;
 
-    internal ProcessHandle(Process process, ProcessSpec spec)
+    internal ProcessHandle(System.Diagnostics.Process process, ProcessSpec spec)
     {
         _process = process;
         _spec = spec;
@@ -293,7 +293,7 @@ internal sealed class ProcessHandle : IProcessHandle
         }
     }
 
-    private static Task SendTerminationSignalAsync(Process process, TerminationMethod method, CancellationToken cancellationToken)
+    private static Task SendTerminationSignalAsync(System.Diagnostics.Process process, TerminationMethod method, CancellationToken cancellationToken)
     {
         if (OperatingSystem.IsWindows())
         {
@@ -313,7 +313,7 @@ internal sealed class ProcessHandle : IProcessHandle
     {
         try
         {
-            using Process? helper = Process.Start(new ProcessStartInfo
+            using System.Diagnostics.Process? helper = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
                 FileName = fileName,
                 Arguments = arguments,

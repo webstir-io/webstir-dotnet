@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Engine;
 using Tester.Infrastructure;
+using Utilities.Process;
 using Xunit;
 using Xunit.Sdk;
 
@@ -43,7 +44,7 @@ public sealed class InitWorkflowTests
             }
         }
 
-        ProcessRunner.ProcessResult result = context.Run(Commands.Init, testDir, timeoutMs: 10000);
+        ProcessResult result = context.Run(Commands.Init, testDir, timeoutMs: 10000);
 
         Assert.Equal(0, result.ExitCode);
         Assert.True(File.Exists(Path.Combine(seedDir, Folders.Src, Folders.Frontend, Folders.App, "app.css")), "app.css missing");
@@ -83,7 +84,7 @@ public sealed class InitWorkflowTests
             }
         }
 
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.Init} --project-name {projectName}",
             testDir,
             timeoutMs: 10000);

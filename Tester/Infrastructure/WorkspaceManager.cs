@@ -1,8 +1,10 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Engine;
 using Engine.Bridge;
+using Utilities.Process;
 using Xunit;
 
 namespace Tester.Infrastructure;
@@ -11,8 +13,10 @@ public static class WorkspaceManager
 {
     private static readonly object SeedLock = new();
     private static readonly object SeedNodeModulesLock = new();
+    private static readonly object BackendFrameworkLock = new();
     private static readonly object RegistryCheckLock = new();
     private static bool _seedBaselineReady;
+    private static bool _backendFrameworkBuilt;
 
     public static bool EnsureLocalPackagesReady()
     {
@@ -69,7 +73,7 @@ public static class WorkspaceManager
                 Directory.Delete(SeedBaselinePath, recursive: true);
             }
 
-            ProcessRunner.ProcessResult init = context.Run(
+            ProcessResult init = context.Run(
                 $"{Commands.Init} {ProjectOptions.ProjectName} {Folders.Seed}",
                 CacheRoot,
                 timeoutMs: 20000);
@@ -78,20 +82,20 @@ public static class WorkspaceManager
             // Seed workspace now exists; write auth if available before install
             EnsureWorkspaceNpmAuth(SeedBaselinePath);
 
-            ProcessRunner.ProcessResult install = context.Run(
+            ProcessResult install = context.Run(
                 $"{Commands.Install} {ProjectOptions.ProjectName} {Folders.Seed} {InstallOptions.Clean}",
                 CacheRoot,
                 timeoutMs: 60000);
             if (install.ExitCode != 0)
             {
                 Console.WriteLine($"[seed] webstir install failed (exit {install.ExitCode})");
-                if (!string.IsNullOrEmpty(install.Output))
+                if (!string.IsNullOrEmpty(install.StandardOutput))
                 {
-                    Console.WriteLine(install.Output);
+                    Console.WriteLine(install.StandardOutput);
                 }
-                if (!string.IsNullOrEmpty(install.Error))
+                if (!string.IsNullOrEmpty(install.StandardError))
                 {
-                    Console.WriteLine(install.Error);
+                    Console.WriteLine(install.StandardError);
                 }
             }
             Assert.Equal(0, install.ExitCode);
@@ -106,6 +110,81 @@ public static class WorkspaceManager
 
             CopyWorkspaceFromBaseline(Path.Combine(Paths.OutPath, Folders.Seed));
             _seedBaselineReady = true;
+        }
+    }
+
+    public static void EnsureBackendFrameworkBuilt()
+    {
+        if (_backendFrameworkBuilt)
+        {
+            return;
+        }
+
+        lock (BackendFrameworkLock)
+        {
+            if (_backendFrameworkBuilt)
+            {
+                return;
+            }
+
+            string repositoryRoot = Paths.RepositoryRoot;
+            string rootNodeModules = Path.Combine(repositoryRoot, Folders.NodeModules);
+            if (!Directory.Exists(rootNodeModules))
+            {
+                ProcessResult installResult = RunUtilityProcess(
+                    "npm",
+                    "ci --workspaces",
+                    repositoryRoot,
+                    300000);
+
+                if (installResult.ExitCode != 0)
+                {
+                    Console.WriteLine("[framework] workspace npm ci --workspaces failed:");
+                    if (!string.IsNullOrEmpty(installResult.StandardOutput))
+                    {
+                        Console.WriteLine(installResult.StandardOutput);
+                    }
+
+                    if (!string.IsNullOrEmpty(installResult.StandardError))
+                    {
+                        Console.WriteLine(installResult.StandardError);
+                    }
+
+                    Assert.Fail($"Failed to install workspace dependencies before backend build. ExitCode={installResult.ExitCode}.");
+                }
+            }
+
+            string backendRoot = Path.Combine(repositoryRoot, "Framework", "Backend");
+            string distEntry = Path.Combine(backendRoot, Folders.Dist, $"{Files.Index}{FileExtensions.Js}");
+            if (File.Exists(distEntry))
+            {
+                _backendFrameworkBuilt = true;
+                return;
+            }
+
+            ProcessResult result = RunUtilityProcess(
+                "npm",
+                "--workspace Framework/Backend run build",
+                Paths.RepositoryRoot,
+                180000);
+
+            if (result.ExitCode != 0)
+            {
+                Console.WriteLine("[framework] backend build failed:");
+                if (!string.IsNullOrEmpty(result.StandardOutput))
+                {
+                    Console.WriteLine(result.StandardOutput);
+                }
+
+                if (!string.IsNullOrEmpty(result.StandardError))
+                {
+                    Console.WriteLine(result.StandardError);
+                }
+
+                Assert.Fail($"Failed to build backend framework package before tests. ExitCode={result.ExitCode}.");
+            }
+
+            _backendFrameworkBuilt = true;
         }
     }
 
@@ -198,19 +277,38 @@ public static class WorkspaceManager
 
             Assert.True(Directory.Exists(SeedBaselinePath), "Seed baseline directory missing before dependency restore.");
 
-            ProcessRunner.ProcessResult restore = ProcessRunner.Run(new ProcessRunOptions
-            {
-                FileName = "npm",
-                Arguments = "install",
-                WorkingDirectory = SeedBaselinePath,
-                ExitTimeoutMs = 90000
-            });
+            ProcessResult restore = RunUtilityProcess(
+                "npm",
+                "install",
+                SeedBaselinePath,
+                90000);
 
             Assert.Equal(0, restore.ExitCode);
             Assert.True(
                 Directory.Exists(sourceNodeModules) && Directory.GetFileSystemEntries(sourceNodeModules).Length > 0,
                 "Seed baseline node_modules missing after dependency restore.");
         }
+    }
+
+    private static ProcessResult RunUtilityProcess(
+        string fileName,
+        string arguments,
+        string workingDirectory,
+        int timeoutMs)
+    {
+        ProcessRunner runner = new();
+        ProcessSpec spec = new()
+        {
+            FileName = fileName,
+            Arguments = arguments,
+            WorkingDirectory = workingDirectory,
+            ExitTimeout = timeoutMs > 0 ? TimeSpan.FromMilliseconds(timeoutMs) : null,
+            TerminationMethod = TerminationMethod.Kill,
+            RedirectStandardInput = false,
+            WaitForReadySignalOnStart = false
+        };
+
+        return runner.RunAsync(spec, CancellationToken.None).GetAwaiter().GetResult();
     }
 
     private static bool TryCreateSymbolicLink(string link, string target)
@@ -244,9 +342,9 @@ public static class WorkspaceManager
     // No-op: authentication is expected to come from user-level ~/.npmrc or env tokens.
     private static bool EnsureRegistryCredentials() => true;
 
-    private static bool IsRegistryAuthFailure(ProcessRunner.ProcessResult result)
+    private static bool IsRegistryAuthFailure(ProcessResult result)
     {
-        string output = $"{result.Output}{Environment.NewLine}{result.Error}".ToLowerInvariant();
+        string output = $"{result.StandardOutput}{Environment.NewLine}{result.StandardError}".ToLowerInvariant();
         return output.Contains("npm.pkg.github.com") ||
             output.Contains("e401") ||
             output.Contains("authentication token not provided") ||

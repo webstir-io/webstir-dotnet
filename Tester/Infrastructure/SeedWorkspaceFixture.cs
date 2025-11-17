@@ -18,6 +18,7 @@ public sealed class SeedWorkspaceFixture : IAsyncLifetime
     public Task InitializeAsync()
     {
         WorkspaceManager.EnsureSeedWorkspaceReady(Context);
+        WorkspaceManager.EnsureBackendFrameworkBuilt();
         return Task.CompletedTask;
     }
 

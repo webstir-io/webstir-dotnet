@@ -70,6 +70,14 @@ if [[ -z "${LOCAL_CI_IN_CONTAINER:-}" ]]; then
 fi
 
 # From this point onward we are inside the container (Debian-based like GitHub Actions)
+# To avoid polluting the host's bin/obj (which can confuse IDE design-time builds),
+# run the workflow against an isolated copy of the repo inside the container.
+
+CI_WORK_DIR="/tmp/webstir-ci"
+rm -rf "$CI_WORK_DIR"
+mkdir -p "$CI_WORK_DIR"
+cp -R . "$CI_WORK_DIR"
+cd "$CI_WORK_DIR"
 
 step() {
   echo "[local-ci] $*"

@@ -4,6 +4,7 @@ using Tester.Infrastructure;
 using Tester.Helpers;
 using Engine;
 using Engine.Bridge.Frontend;
+using Utilities.Process;
 using Xunit;
 using Xunit.Sdk;
 
@@ -41,7 +42,7 @@ public sealed class BuildWorkflowTests
             Directory.Delete(seedBuild, recursive: true);
         }
 
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.Build} {ProjectOptions.ProjectName} {projectName}",
             testDir,
             timeoutMs: 45000);
@@ -49,7 +50,7 @@ public sealed class BuildWorkflowTests
         Assert.False(result.TimedOut, $"{Commands.Build} command timed out");
         if (result.ExitCode != 0)
         {
-            string combined = (result.Output ?? string.Empty) + Environment.NewLine + (result.Error ?? string.Empty);
+            string combined = (result.StandardOutput ?? string.Empty) + Environment.NewLine + (result.StandardError ?? string.Empty);
             throw new XunitException($"Build failed (exit {result.ExitCode}). Output:{Environment.NewLine}{combined}");
         }
         context.AssertNoCompilationErrors(result);
@@ -113,14 +114,14 @@ public sealed class BuildWorkflowTests
             File.WriteAllText(pageFragment, "<head><title>Test</title></head><body><main>Home</main></body>\n");
         }
 
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.Build} {ProjectOptions.ProjectName} {projectName}",
             testDir,
             timeoutMs: 20000);
 
         if (result.ExitCode == 0)
         {
-            string combined = (result.Output ?? string.Empty) + Environment.NewLine + (result.Error ?? string.Empty);
+            string combined = (result.StandardOutput ?? string.Empty) + Environment.NewLine + (result.StandardError ?? string.Empty);
             throw new XunitException($"Expected non-zero exit code when app.html is missing. Actual output:{Environment.NewLine}{combined}");
         }
     }

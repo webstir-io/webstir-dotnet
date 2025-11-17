@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Engine;
+using Utilities.Process;
 using Tester.Infrastructure;
 using Xunit;
 using Assert = Tester.Helpers.LegacyAssert;
@@ -45,7 +46,7 @@ internal static class HtmlPublishScenarios
             File.WriteAllText(configPath, config);
 
             workspace.CleanOutputs();
-            ProcessRunner.ProcessResult publish = workspace.Publish();
+            ProcessResult publish = workspace.Publish();
             Assert.IsFalse(publish.TimedOut, "Publish timed out for html-default.");
             return workspace.CreateResult(publish, Folders.Home);
         });
@@ -77,7 +78,7 @@ internal static class HtmlPublishScenarios
             File.WriteAllText(pagePath, content);
 
             workspace.CleanOutputs();
-            ProcessRunner.ProcessResult publish = workspace.Publish();
+            ProcessResult publish = workspace.Publish();
             Assert.IsFalse(publish.TimedOut, "Publish timed out for html-attributes-comments.");
             return workspace.CreateResult(publish, Folders.Home);
         });
@@ -114,7 +115,7 @@ internal static class HtmlPublishScenarios
             File.WriteAllText(pageHtmlPath, pageHtml);
 
             workspace.CleanOutputs();
-            ProcessRunner.ProcessResult publish = workspace.Publish();
+            ProcessResult publish = workspace.Publish();
             Assert.IsFalse(publish.TimedOut, "Publish timed out for html-meta-overrides.");
             return workspace.CreateResult(publish, Folders.Home);
         });
@@ -159,7 +160,7 @@ internal static class HtmlPublishScenarios
             File.WriteAllText(pageHtmlPath, pageHtml);
 
             workspace.CleanOutputs();
-            ProcessRunner.ProcessResult publish = workspace.Publish();
+            ProcessResult publish = workspace.Publish();
             Assert.IsFalse(publish.TimedOut, "Publish timed out for html-head-ordering.");
             return workspace.CreateResult(publish, Folders.Home);
         });
@@ -228,7 +229,7 @@ internal static class HtmlPublishScenarios
             File.WriteAllText(pageHtmlPath, pageHtml);
 
             workspace.CleanOutputs();
-            ProcessRunner.ProcessResult publish = workspace.Publish();
+            ProcessResult publish = workspace.Publish();
             Assert.IsFalse(publish.TimedOut, "Publish timed out for html-head-combined.");
             return workspace.CreateResult(publish, Folders.Home);
         });
@@ -283,7 +284,7 @@ internal static class HtmlPublishScenarios
             File.WriteAllText(tsPath, "import '../../app/app';\n");
 
             workspace.CleanOutputs();
-            ProcessRunner.ProcessResult publish = workspace.Publish();
+            ProcessResult publish = workspace.Publish();
             Assert.IsFalse(publish.TimedOut, "Publish timed out for html-perf.");
             return workspace.CreateResult(publish, "perf");
         });
@@ -334,7 +335,7 @@ internal static class HtmlPublishScenarios
             File.WriteAllText(configPath, config);
 
             workspace.CleanOutputs();
-            ProcessRunner.ProcessResult publish = workspace.Publish();
+            ProcessResult publish = workspace.Publish();
             Assert.IsFalse(publish.TimedOut, "Publish timed out for html-feature-flags-disabled.");
             return workspace.CreateResult(publish, Folders.Home);
         });
@@ -357,7 +358,7 @@ internal static class HtmlPublishScenarios
             File.WriteAllText(configPath, config);
 
             workspace.CleanOutputs();
-            ProcessRunner.ProcessResult publish = workspace.Publish();
+            ProcessResult publish = workspace.Publish();
             Assert.IsFalse(publish.TimedOut, "Publish timed out for html-precompression-on.");
             return workspace.CreateResult(publish, Folders.Home);
         });
@@ -443,7 +444,7 @@ internal sealed class HtmlPublishScenarioWorkspace
         TryDeleteDirectory(DistPath);
     }
 
-    public ProcessRunner.ProcessResult Publish(int timeoutMs = 45000)
+    public ProcessResult Publish(int timeoutMs = 45000)
     {
         return _context.Run(
             $"{Commands.Publish} {ProjectOptions.ProjectName} {WorkspaceName}",
@@ -451,11 +452,11 @@ internal sealed class HtmlPublishScenarioWorkspace
             timeoutMs: timeoutMs);
     }
 
-    public ProcessRunner.ProcessResult RunCommand(string arguments, int timeoutMs) =>
+    public ProcessResult RunCommand(string arguments, int timeoutMs) =>
         _context.Run(arguments, _context.OutPath, timeoutMs: timeoutMs);
 
     public HtmlPublishScenarioResult CreateResult(
-        ProcessRunner.ProcessResult publishResult,
+        ProcessResult publishResult,
         params string[] pagesToPrime)
     {
         HtmlPublishScenarioResult result = new HtmlPublishScenarioResult(
@@ -489,7 +490,7 @@ internal sealed class HtmlPublishScenarioResult
     public HtmlPublishScenarioResult(
         string workspacePath,
         string distFrontendPath,
-        ProcessRunner.ProcessResult publishResult)
+        ProcessResult publishResult)
     {
         WorkspacePath = workspacePath;
         DistFrontendPath = distFrontendPath;
@@ -506,7 +507,7 @@ internal sealed class HtmlPublishScenarioResult
         get;
     }
 
-    public ProcessRunner.ProcessResult PublishResult
+    public ProcessResult PublishResult
     {
         get;
     }

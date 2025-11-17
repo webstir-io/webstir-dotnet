@@ -8,7 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Core;
-using SharedProcessRunner = Utilities.ProcessRunner;
+using SharedProcessRunner = Utilities.Process;
 
 Logger logger = CreateBootstrapLogger();
 

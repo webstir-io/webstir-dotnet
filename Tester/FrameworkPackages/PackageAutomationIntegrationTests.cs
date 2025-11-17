@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Threading;
+using Utilities.Process;
 using Tester.Infrastructure;
 using Xunit;
 
@@ -16,7 +18,7 @@ public sealed class PackageAutomationIntegrationTests
         using PackageCliWorkspace workspace = PackageCliWorkspace.Create("single-change");
         workspace.ModifyFile(Path.Combine("Framework", "Frontend", "src", "integration-change.txt"), "// integration change");
 
-        ProcessRunner.ProcessResult result = workspace.RunFramework("-- packages release --dry-run", timeoutMs: 25000);
+        ProcessResult result = workspace.RunFramework("-- packages release --dry-run", timeoutMs: 25000);
         Assert.Equal(0, result.ExitCode);
 
         using JsonDocument summary = workspace.ReadSummary();
@@ -33,7 +35,7 @@ public sealed class PackageAutomationIntegrationTests
         workspace.ModifyFile(Path.Combine("Framework", "Frontend", "src", "multi-change.ts"), "// frontend change");
         workspace.ModifyFile(Path.Combine("Framework", "Testing", "specs", "multi-change.test.ts"), "// testing change");
 
-        ProcessRunner.ProcessResult result = workspace.RunFramework("-- packages release --dry-run", timeoutMs: 25000);
+        ProcessResult result = workspace.RunFramework("-- packages release --dry-run", timeoutMs: 25000);
         Assert.Equal(0, result.ExitCode);
 
         using JsonDocument summary = workspace.ReadSummary();
@@ -47,10 +49,10 @@ public sealed class PackageAutomationIntegrationTests
     {
         using PackageCliWorkspace workspace = PackageCliWorkspace.Create("no-change");
 
-        ProcessRunner.ProcessResult result = workspace.RunFramework("-- packages release --dry-run", timeoutMs: 25000);
+        ProcessResult result = workspace.RunFramework("-- packages release --dry-run", timeoutMs: 25000);
         Assert.Equal(0, result.ExitCode);
 
-        string output = string.Concat(result.Output, result.Error);
+        string output = string.Concat(result.StandardOutput, result.StandardError);
         Assert.Contains("No framework packages matched the selection.", output);
 
         using JsonDocument summary = workspace.ReadSummary();
@@ -64,7 +66,7 @@ public sealed class PackageAutomationIntegrationTests
     {
         using PackageCliWorkspace workspace = PackageCliWorkspace.Create("publish-dryrun");
 
-        ProcessRunner.ProcessResult result = workspace.RunFramework("-- packages publish --dry-run --all", timeoutMs: 30000);
+        ProcessResult result = workspace.RunFramework("-- packages publish --dry-run --all", timeoutMs: 30000);
         Assert.Equal(0, result.ExitCode);
 
         using JsonDocument summary = workspace.ReadSummary();
@@ -87,10 +89,10 @@ public sealed class PackageAutomationIntegrationTests
 
         try
         {
-            ProcessRunner.ProcessResult result = workspace.RunFramework("-- packages publish --all", timeoutMs: 25000);
+            ProcessResult result = workspace.RunFramework("-- packages publish --all", timeoutMs: 25000);
             Assert.Equal(1, result.ExitCode);
 
-            string output = string.Concat(result.Output, result.Error);
+        string output = string.Concat(result.StandardOutput, result.StandardError);
             Assert.Contains("GH_PACKAGES_TOKEN", output);
             Assert.Contains("does not exist", output, StringComparison.OrdinalIgnoreCase);
 
@@ -159,15 +161,21 @@ public sealed class PackageAutomationIntegrationTests
             return new PackageCliWorkspace(root);
         }
 
-        public ProcessRunner.ProcessResult RunFramework(string arguments, int timeoutMs)
+        public ProcessResult RunFramework(string arguments, int timeoutMs)
         {
-            return ProcessRunner.Run(new ProcessRunOptions
+            ProcessRunner runner = new();
+            ProcessSpec spec = new()
             {
                 FileName = "dotnet",
                 Arguments = $"run --project Framework/Framework.csproj -- {arguments.Trim()}",
                 WorkingDirectory = RepositoryRoot,
-                ExitTimeoutMs = timeoutMs
-            });
+                ExitTimeout = timeoutMs > 0 ? TimeSpan.FromMilliseconds(timeoutMs) : null,
+                TerminationMethod = TerminationMethod.Kill,
+                RedirectStandardInput = false,
+                WaitForReadySignalOnStart = false
+            };
+
+            return runner.RunAsync(spec, CancellationToken.None).GetAwaiter().GetResult();
         }
 
         public JsonDocument ReadSummary()

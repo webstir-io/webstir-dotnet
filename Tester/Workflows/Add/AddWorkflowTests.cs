@@ -6,6 +6,7 @@ using System.Text.Json;
 using Engine;
 using Framework.Packaging;
 using Tester.Infrastructure;
+using Utilities.Process;
 using Xunit;
 
 namespace Tester.Workflows.Add;
@@ -35,7 +36,7 @@ public sealed class AddWorkflowTests
         WorkspaceManager.EnsureSeedWorkspaceReady(context);
         string seedDir = Path.Combine(testDir, Folders.Seed);
 
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.AddPage} about {ProjectOptions.ProjectName} {Folders.Seed}",
             testDir,
             timeoutMs: 10000);
@@ -63,7 +64,7 @@ public sealed class AddWorkflowTests
         WorkspaceManager.EnsureSeedWorkspaceReady(context);
         string seedDir = Path.Combine(testDir, Folders.Seed);
 
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.AddTest} frontend/pages/home/home {ProjectOptions.ProjectName} {Folders.Seed}",
             testDir,
             timeoutMs: 10000);
@@ -99,7 +100,7 @@ public sealed class AddWorkflowTests
         string seedDir = Path.Combine(testDir, Folders.Seed);
 
         const string jobName = "cleanup";
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.AddJob} {jobName} {ProjectOptions.ProjectName} {Folders.Seed}",
             testDir,
             timeoutMs: 10000);
@@ -144,7 +145,7 @@ public sealed class AddWorkflowTests
 
         const string jobName = "cleanup2";
         const string schedule = "0 12 * * *"; // noon daily
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.AddJob} {jobName} --schedule \"{schedule}\" {ProjectOptions.ProjectName} {Folders.Seed}",
             testDir,
             timeoutMs: 10000);
@@ -190,7 +191,7 @@ public sealed class AddWorkflowTests
         const string jobName = "priority-job";
         const string description = "Nightly cleanup";
         const string priority = "5";
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.AddJob} {jobName} --description \"{description}\" --priority {priority} {ProjectOptions.ProjectName} {Folders.Seed}",
             testDir,
             timeoutMs: 10000);
@@ -223,13 +224,13 @@ public sealed class AddWorkflowTests
         WorkspaceManager.EnsureSeedWorkspaceReady(context);
 
         const string jobName = "invalid-schedule";
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.AddJob} {jobName} --schedule \"every day\" {ProjectOptions.ProjectName} {Folders.Seed}",
             testDir,
             timeoutMs: 10000);
 
         Assert.NotEqual(0, result.ExitCode);
-        string combined = (result.Output + result.Error) ?? string.Empty;
+        string combined = (result.StandardOutput + result.StandardError) ?? string.Empty;
         Assert.Contains("Invalid --schedule value", combined, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -262,7 +263,7 @@ export async function start() {
 """);
 
         const string routeName = "profile";
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.AddRoute} {routeName} --fastify {ProjectOptions.ProjectName} {Folders.Seed}",
             testDir,
             timeoutMs: 10000);
@@ -291,23 +292,23 @@ export async function start() {
         Directory.CreateDirectory(testDir);
         WorkspaceManager.EnsureSeedWorkspaceReady(context);
 
-        ProcessRunner.ProcessResult routeHelp = context.Run($"{Commands.Help} {Commands.AddRoute}", testDir, timeoutMs: 8000);
+        ProcessResult routeHelp = context.Run($"{Commands.Help} {Commands.AddRoute}", testDir, timeoutMs: 8000);
         Assert.Equal(0, routeHelp.ExitCode);
-        Assert.Contains("Add a backend route entry", routeHelp.Output, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("--method", routeHelp.Output, StringComparison.Ordinal);
-        Assert.Contains("--path", routeHelp.Output, StringComparison.Ordinal);
-        Assert.Contains("--summary", routeHelp.Output, StringComparison.Ordinal);
-        Assert.Contains("--description", routeHelp.Output, StringComparison.Ordinal);
-        Assert.Contains("--tags", routeHelp.Output, StringComparison.Ordinal);
-        Assert.Contains(ProjectOptions.ProjectName, routeHelp.Output, StringComparison.Ordinal);
+        Assert.Contains("Add a backend route entry", routeHelp.StandardOutput, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("--method", routeHelp.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("--path", routeHelp.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("--summary", routeHelp.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("--description", routeHelp.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("--tags", routeHelp.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains(ProjectOptions.ProjectName, routeHelp.StandardOutput, StringComparison.Ordinal);
 
-        ProcessRunner.ProcessResult jobHelp = context.Run($"{Commands.Help} {Commands.AddJob}", testDir, timeoutMs: 8000);
+        ProcessResult jobHelp = context.Run($"{Commands.Help} {Commands.AddJob}", testDir, timeoutMs: 8000);
         Assert.Equal(0, jobHelp.ExitCode);
-        Assert.Contains("Add a backend job stub", jobHelp.Output, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("--schedule", jobHelp.Output, StringComparison.Ordinal);
-        Assert.Contains("--description", jobHelp.Output, StringComparison.Ordinal);
-        Assert.Contains("--priority", jobHelp.Output, StringComparison.Ordinal);
-        Assert.Contains(ProjectOptions.ProjectName, jobHelp.Output, StringComparison.Ordinal);
+        Assert.Contains("Add a backend job stub", jobHelp.StandardOutput, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("--schedule", jobHelp.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("--description", jobHelp.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("--priority", jobHelp.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains(ProjectOptions.ProjectName, jobHelp.StandardOutput, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -326,7 +327,7 @@ export async function start() {
         string seedDir = Path.Combine(testDir, Folders.Seed);
 
         const string routeName = "users";
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.AddRoute} {routeName} {ProjectOptions.ProjectName} {Folders.Seed}",
             testDir,
             timeoutMs: 10000);
@@ -372,7 +373,7 @@ export async function start() {
         const string summary = "List reports";
         const string description = "Returns paginated reports";
         const string tags = "analytics, reports ,analytics";
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.AddRoute} {routeName} --summary \"{summary}\" --description \"{description}\" --tags \"{tags}\" {ProjectOptions.ProjectName} {Folders.Seed}",
             testDir,
             timeoutMs: 10000);
@@ -410,7 +411,7 @@ export async function start() {
         string seedDir = Path.Combine(testDir, Folders.Seed);
 
         const string routeName = "invoices";
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.AddRoute} {routeName} --params-schema AccountParams --query-schema json-schema:AccountQuery@./schemas/account-query.json --body-schema BodySchema --headers-schema HeadersSchema --response-schema ResponseSchema --response-status 201 --response-headers-schema ResponseHeaders {ProjectOptions.ProjectName} {Folders.Seed}",
             testDir,
             timeoutMs: 10000);
@@ -457,13 +458,13 @@ export async function start() {
         Directory.CreateDirectory(testDir);
         WorkspaceManager.EnsureSeedWorkspaceReady(context);
 
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.AddRoute} broken --body-schema :invalid {ProjectOptions.ProjectName} {Folders.Seed}",
             testDir,
             timeoutMs: 10000);
 
         Assert.NotEqual(0, result.ExitCode);
-        string combined = (result.Output + result.Error) ?? string.Empty;
+        string combined = (result.StandardOutput + result.StandardError) ?? string.Empty;
         Assert.Contains("Invalid --body-schema value", combined, StringComparison.OrdinalIgnoreCase);
     }
 }

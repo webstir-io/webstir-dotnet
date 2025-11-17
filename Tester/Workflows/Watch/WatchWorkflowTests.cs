@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using Engine;
 using Tester.Infrastructure;
+using Utilities.Process;
 using Xunit;
 using Xunit.Sdk;
 
@@ -76,19 +77,19 @@ public sealed class WatchWorkflowTests
 }
 """);
 
-            ProcessRunner.ProcessResult result = context.Run(
+            ProcessResult result = context.Run(
                 $"{Commands.Watch} {ProjectOptions.ProjectName} {projectName}",
                 testDir,
                 timeoutMs: 30000,
                 waitForSignal: DevServiceReadySignal);
 
             Assert.True(
-                result.ReceivedReadySignal,
-                $"Watch mode did not start - readiness message not received. ExitCode={result.ExitCode}{Environment.NewLine}stdout:{Environment.NewLine}{result.Output}{Environment.NewLine}stderr:{Environment.NewLine}{result.Error}");
+                result.ReadySignalReceived,
+                $"Watch mode did not start - readiness message not received. ExitCode={result.ExitCode}{Environment.NewLine}stdout:{Environment.NewLine}{result.StandardOutput}{Environment.NewLine}stderr:{Environment.NewLine}{result.StandardError}");
             context.AssertNoCompilationErrors(result);
-            Assert.True(result.Output.Length + result.Error.Length > 0, "watch command produced no output");
+            Assert.True(result.StandardOutput.Length + result.StandardError.Length > 0, "watch command produced no output");
 
-            string combinedOutput = $"{result.Output}{Environment.NewLine}{result.Error}";
+            string combinedOutput = $"{result.StandardOutput}{Environment.NewLine}{result.StandardError}";
             Assert.Contains("@webstir-io/webstir-frontend", combinedOutput, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("entry point(s)", combinedOutput, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("API server running", combinedOutput, StringComparison.OrdinalIgnoreCase);
@@ -140,16 +141,16 @@ public sealed class WatchWorkflowTests
 }
 """);
 
-            ProcessRunner.ProcessResult result = context.Run(
+            ProcessResult result = context.Run(
                 $"{Commands.Watch} {ProjectOptions.ProjectName} {projectName}",
                 testDir,
                 timeoutMs: 30000,
                 waitForSignal: DevServiceReadySignal);
 
             Assert.True(
-                result.ReceivedReadySignal,
-                $"Watch mode did not start - readiness message not received. ExitCode={result.ExitCode}{Environment.NewLine}stdout:{Environment.NewLine}{result.Output}{Environment.NewLine}stderr:{Environment.NewLine}{result.Error}");
-            string combinedOutput = $"{result.Output}{Environment.NewLine}{result.Error}";
+                result.ReadySignalReceived,
+                $"Watch mode did not start - readiness message not received. ExitCode={result.ExitCode}{Environment.NewLine}stdout:{Environment.NewLine}{result.StandardOutput}{Environment.NewLine}stderr:{Environment.NewLine}{result.StandardError}");
+            string combinedOutput = $"{result.StandardOutput}{Environment.NewLine}{result.StandardError}";
             Assert.Contains("Skipping backend ready signal wait", combinedOutput, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("Backend health probe disabled", combinedOutput, StringComparison.OrdinalIgnoreCase);
         }

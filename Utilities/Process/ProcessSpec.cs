@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Utilities.ProcessRunner;
+namespace Utilities.Process;
 
 public sealed class ProcessSpec
 {
@@ -10,17 +10,20 @@ public sealed class ProcessSpec
 
     public required string FileName
     {
-        get; init;
+        get;
+        init;
     }
 
     public string Arguments
     {
-        get; init;
+        get;
+        init;
     } = string.Empty;
 
     public string? WorkingDirectory
     {
-        get; init;
+        get;
+        init;
     }
 
     public IReadOnlyDictionary<string, string?> EnvironmentVariables => _environmentVariables;
@@ -28,42 +31,50 @@ public sealed class ProcessSpec
 
     public bool RedirectStandardInput
     {
-        get; init;
+        get;
+        init;
     }
 
     public TerminationMethod TerminationMethod
     {
-        get; init;
+        get;
+        init;
     } = TerminationMethod.Kill;
 
     public TimeSpan? ExitTimeout
     {
-        get; init;
+        get;
+        init;
     }
 
     public string? ReadySignal
     {
-        get; init;
+        get;
+        init;
     }
 
     public ProcessOutputStream ReadySignalStream
     {
-        get; init;
+        get;
+        init;
     } = ProcessOutputStream.StandardOutput;
 
     public TimeSpan ReadySignalTimeout
     {
-        get; init;
+        get;
+        init;
     } = TimeSpan.FromSeconds(30);
 
     public bool WaitForReadySignalOnStart
     {
-        get; init;
+        get;
+        init;
     } = true;
 
     public Action<ProcessOutput>? OutputObserver
     {
-        get; init;
+        get;
+        init;
     }
 
     public ProcessSpec WithEnvironmentVariable(string key, string? value)

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Engine;
 using Tester.Infrastructure;
+using Utilities.Process;
 using Xunit;
 
 namespace Tester.Workflows.Build;
@@ -38,7 +39,7 @@ public sealed class BackendBuildWorkflowTests
             Directory.Delete(backendBuildRoot, recursive: true);
         }
 
-        ProcessRunner.ProcessResult result = context.Run(
+        ProcessResult result = context.Run(
             $"{Commands.Build} {ProjectOptions.ProjectName} {projectName}",
             testDir,
             timeoutMs: 30000);
@@ -51,4 +52,3 @@ public sealed class BackendBuildWorkflowTests
         Assert.True(File.Exists(backendIndex), "Backend build index.js not found under build/backend.");
     }
 }
-

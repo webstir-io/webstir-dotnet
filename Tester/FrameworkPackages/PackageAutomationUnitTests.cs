@@ -10,7 +10,7 @@ using Framework.Utilities;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tester.Infrastructure;
 using Xunit;
-using Utilities.ProcessRunner;
+using Utilities.Process;
 
 namespace Tester.FrameworkPackages;
 

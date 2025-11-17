@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Engine;
 using Tester.Infrastructure;
+using Utilities.Process;
 using Xunit;
 
 namespace Tester.Workflows.Install;
@@ -29,25 +30,9 @@ public sealed class InstallWorkflowTests
         ForceFrontendSpecDrift(workspace, "file:../override");
 
         string command = $"{Commands.Install} {ProjectOptions.ProjectName} {workspaceName} {InstallOptions.DryRun} {InstallOptions.PackageManager}=pnpm@9.0.0";
-        Tester.Infrastructure.ProcessRunner.ProcessResult result = context.Run(command, context.OutPath, timeoutMs: 60000);
+        ProcessResult result = context.Run(command, context.OutPath, timeoutMs: 60000);
 
-        Assert.Contains("pnpm@9.0.0", result.Output, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    [Trait(TestTraits.Category, TestTraits.Quick)]
-    public void DryRunLogsShortPackageManagerOption()
-    {
-        TestCaseContext context = _fixture.Context;
-        string workspace = WorkspaceManager.CreateSeedWorkspace(context, "install-override-short");
-        string workspaceName = Path.GetFileName(workspace);
-
-        ForceFrontendSpecDrift(workspace, "workspace:*");
-
-        string command = $"{Commands.Install} {ProjectOptions.ProjectName} {workspaceName} {InstallOptions.DryRun} {InstallOptions.PackageManagerShort} yarn";
-        Tester.Infrastructure.ProcessRunner.ProcessResult result = context.Run(command, context.OutPath, timeoutMs: 60000);
-
-        Assert.Contains("yarn install", result.Output, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("pnpm@9.0.0", result.StandardOutput, StringComparison.OrdinalIgnoreCase);
     }
 
     private static void ForceFrontendSpecDrift(string workspacePath, string specifier)

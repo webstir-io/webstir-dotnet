@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Utilities.ProcessRunner;
+namespace Utilities.Process;
 
 public interface IProcessHandle : IAsyncDisposable
 {
