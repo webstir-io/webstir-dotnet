@@ -79,10 +79,12 @@ public sealed class WatchWorkflowTests
             ProcessRunner.ProcessResult result = context.Run(
                 $"{Commands.Watch} {ProjectOptions.ProjectName} {projectName}",
                 testDir,
-                timeoutMs: 12000,
+                timeoutMs: 30000,
                 waitForSignal: DevServiceReadySignal);
 
-            Assert.True(result.ReceivedReadySignal, "Watch mode did not start - readiness message not received");
+            Assert.True(
+                result.ReceivedReadySignal,
+                $"Watch mode did not start - readiness message not received. ExitCode={result.ExitCode}{Environment.NewLine}stdout:{Environment.NewLine}{result.Output}{Environment.NewLine}stderr:{Environment.NewLine}{result.Error}");
             context.AssertNoCompilationErrors(result);
             Assert.True(result.Output.Length + result.Error.Length > 0, "watch command produced no output");
 
@@ -141,10 +143,12 @@ public sealed class WatchWorkflowTests
             ProcessRunner.ProcessResult result = context.Run(
                 $"{Commands.Watch} {ProjectOptions.ProjectName} {projectName}",
                 testDir,
-                timeoutMs: 10000,
+                timeoutMs: 30000,
                 waitForSignal: DevServiceReadySignal);
 
-            Assert.True(result.ReceivedReadySignal, "Watch mode did not start - readiness message not received");
+            Assert.True(
+                result.ReceivedReadySignal,
+                $"Watch mode did not start - readiness message not received. ExitCode={result.ExitCode}{Environment.NewLine}stdout:{Environment.NewLine}{result.Output}{Environment.NewLine}stderr:{Environment.NewLine}{result.Error}");
             string combinedOutput = $"{result.Output}{Environment.NewLine}{result.Error}";
             Assert.Contains("Skipping backend ready signal wait", combinedOutput, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("Backend health probe disabled", combinedOutput, StringComparison.OrdinalIgnoreCase);

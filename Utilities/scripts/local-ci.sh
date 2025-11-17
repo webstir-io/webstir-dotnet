@@ -93,6 +93,16 @@ run() {
   fi
 }
 
+# Detect container CPU arch so we install the matching sharp binary.
+SHARP_ARCH="linux-x64"
+SHARP_NPM_ARCH="x64"
+case "$(uname -m)" in
+  arm64|aarch64)
+    SHARP_ARCH="linux-arm64"
+    SHARP_NPM_ARCH="arm64"
+    ;;
+esac
+
 # Ensure npm has the GitHub Packages token when provided.
 if [[ -n "${GH_PACKAGES_TOKEN:-}" ]]; then
   step "Configure npm auth for GitHub Packages"
@@ -103,7 +113,7 @@ fi
 
 step "Install workspace dependencies (npm ci --workspaces)"
 run rm -rf node_modules Framework/*/node_modules || true
-run env npm_config_platform=linux npm_config_arch=arm64 npm ci --workspaces
+run npm ci --workspaces
 
 step "Install module contract workspace deps"
 run npm --workspace Framework/Contracts/module-contract ci
@@ -120,11 +130,13 @@ run npm --workspace Framework/Frontend ci
 step "Build frontend package"
 run npm --workspace Framework/Frontend run build
 
-step "Install platform-specific sharp binding (@img/sharp-linux-arm64)"
-run env npm_config_platform=linux npm_config_arch=arm64 npm install --no-save --foreground-scripts @img/sharp-linux-arm64 || true
+step "Install platform-specific sharp binding (@img/sharp-${SHARP_ARCH})"
+run env npm_config_platform=linux npm_config_arch="${SHARP_NPM_ARCH}" \
+  npm install --no-save "@img/sharp-${SHARP_ARCH}" "@img/sharp-libvips-${SHARP_ARCH}" || true
 
-step "Rebuild sharp for linux-arm64 (npm rebuild sharp with platform/arch)"
-run env npm_config_platform=linux npm_config_arch=arm64 npm rebuild sharp --foreground-scripts --unsafe-perm --verbose || true
+step "Rebuild sharp for ${SHARP_ARCH} (npm rebuild sharp with platform/arch)"
+run env SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm_config_platform=linux npm_config_arch="${SHARP_NPM_ARCH}" \
+  npm rebuild sharp --foreground-scripts --verbose || true
 
 step "Build testing package (npm --workspace Framework/Testing run build)"
 run npm --workspace Framework/Testing run build

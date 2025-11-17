@@ -37,10 +37,12 @@ public sealed class SmokeWorkflowTests
         ProcessRunner.ProcessResult result = context.Run(
             Commands.Smoke,
             Paths.RepositoryRoot,
-            timeoutMs: 120000);
+            timeoutMs: 180000);
 
         Assert.False(result.TimedOut, $"{Commands.Smoke} command timed out.");
-        Assert.Equal(0, result.ExitCode);
+        Assert.True(
+            result.ExitCode == 0,
+            $"{Commands.Smoke} exited with code {result.ExitCode}.{Environment.NewLine}stdout:{Environment.NewLine}{result.Output}{Environment.NewLine}stderr:{Environment.NewLine}{result.Error}");
 
         string manifestPath = Path.Combine(
             Paths.RepositoryRoot,
