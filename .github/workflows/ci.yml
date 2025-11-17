@@ -29,6 +29,13 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Debug Node installation
+        run: |
+          echo "which node:"
+          which node || echo "node not found"
+          echo "node --version:"
+          node --version || echo "node failed"
+
       - name: Configure npm auth for GitHub Packages
         if: ${{ env.GH_PACKAGES_TOKEN != '' }}
         run: |
