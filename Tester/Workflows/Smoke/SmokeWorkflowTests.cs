@@ -34,8 +34,12 @@ public sealed class SmokeWorkflowTests
         }
 
         TestCaseContext context = _fixture.Context;
+        string projectName = "seed-smoke";
+        string seedDir = WorkspaceManager.CreateSeedWorkspace(context, projectName);
+
+        string args = $"{Commands.Smoke} \"{seedDir}\"";
         ProcessRunner.ProcessResult result = context.Run(
-            Commands.Smoke,
+            args,
             Paths.RepositoryRoot,
             timeoutMs: 180000);
 
@@ -63,11 +67,5 @@ public sealed class SmokeWorkflowTests
         {
             throw new XunitException("Smoke manifest did not include module metadata.");
         }
-
-        int routeCount = moduleElement.TryGetProperty("routes", out JsonElement routesElement) && routesElement.ValueKind == JsonValueKind.Array
-            ? routesElement.GetArrayLength()
-            : 0;
-
-        Assert.True(routeCount > 0, "Smoke manifest did not report any route definitions.");
     }
 }

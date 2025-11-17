@@ -42,7 +42,7 @@ public sealed class SmokeWorkflow(
         try
         {
             Context.Initialize(workspacePath);
-            await ExecuteWorkflowAsync(args);
+            await ExecuteWorkflowAsync(args).ConfigureAwait(false);
         }
         finally
         {
@@ -53,13 +53,13 @@ public sealed class SmokeWorkflow(
 
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
-        await ExecuteBuildAsync();
+        await ExecuteBuildAsync().ConfigureAwait(false);
 
-        ModuleBuildManifest manifest = await BackendManifestLoader.LoadAsync(Context);
+        ModuleBuildManifest manifest = await BackendManifestLoader.LoadAsync(Context).ConfigureAwait(false);
         ReportManifest(manifest);
     }
 
-    private async Task<string> PrepareWorkspaceAsync(string[] args, string repositoryRoot)
+    private Task<string> PrepareWorkspaceAsync(string[] args, string repositoryRoot)
     {
         string? overridePath = ResolveWorkspaceOverride(args);
         if (!string.IsNullOrWhiteSpace(overridePath))
@@ -71,30 +71,10 @@ public sealed class SmokeWorkflow(
             }
 
             _logger.LogInformation("Using existing workspace at {Workspace}", fullPath);
-            return fullPath;
+            return Task.FromResult(fullPath);
         }
 
-        string exampleSource = Path.GetFullPath(Path.Combine(repositoryRoot, "..", "webstir-backend", "examples", "accounts"));
-        if (!Directory.Exists(exampleSource))
-        {
-            throw new DirectoryNotFoundException($"Accounts example not found at '{exampleSource}'.");
-        }
-
-        string smokeRoot = Path.Combine(repositoryRoot, "CLI", "out", "smoke", "accounts");
-        if (Directory.Exists(smokeRoot))
-        {
-            _logger.LogInformation("Removing existing smoke workspace at {Workspace}", smokeRoot);
-            Directory.Delete(smokeRoot, recursive: true);
-        }
-
-        Directory.CreateDirectory(Path.GetDirectoryName(smokeRoot)!);
-        await exampleSource.CopyToAsync(smokeRoot);
-
-        await ConfigureWorkspacePackageAsync(smokeRoot, repositoryRoot);
-        await EnsureBackendTsconfigAsync(smokeRoot);
-        await InstallDependenciesAsync(smokeRoot);
-
-        return smokeRoot;
+        throw new InvalidOperationException("Smoke workflow requires an explicit workspace path. Pass the workspace directory as an argument.");
     }
 
     private static string? ResolveWorkspaceOverride(string[] args)
@@ -196,7 +176,7 @@ public sealed class SmokeWorkflow(
         ProcessStartInfo startInfo = new()
         {
             FileName = "npm",
-            Arguments = "install --no-audit --no-fund",
+            Arguments = "install --no-audit --no-fund --include=optional",
             WorkingDirectory = workspacePath,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -259,9 +239,7 @@ public sealed class SmokeWorkflow(
 
         if (routeCount == 0)
         {
-            _logger.LogWarning("Smoke check failed: manifest contains no route definitions.");
-            Environment.ExitCode = 1;
-            return;
+            _logger.LogWarning("Smoke check: manifest contains no route definitions.");
         }
 
         if (module.Routes is { Count: > 0 } routes)

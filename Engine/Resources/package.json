@@ -7,7 +7,7 @@
   "dependencies": {
     "@webstir-io/webstir-testing": "^0.1.2",
     "@webstir-io/webstir-frontend": "^0.1.4",
-    "@webstir-io/webstir-backend": "^0.1.10"
+    "@webstir-io/webstir-backend": "^0.1.11"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
