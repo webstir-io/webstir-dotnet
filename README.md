@@ -2,6 +2,10 @@
 
 Modern, minimal full-stack TypeScript web framework and build tool. Webstir scaffolds projects, builds client and server code, runs a fast dev server with live reload and API proxying, and produces optimized production bundles.
 
+## Status
+- Experimental and evolving — APIs, defaults, and workflows may change between releases while the ecosystem settles.
+- Not yet recommended for production workloads; see the docs mission and vision for more context.
+
 ## Highlights
 - Simple CLI: `init`, `watch` (default), `build`, `publish`, `add-page`, `add-route`, `add-job`, `help`
 - Full-stack by default: client + server + shared types
@@ -124,6 +128,12 @@ In multi-project workspaces, append `--project-name <project>` to target a speci
   - `webstir add-job cleanup` — creates `src/backend/jobs/cleanup/index.ts` and adds a jobs manifest entry.
   - `webstir add-job nightly --schedule "0 0 * * *"` — sets a schedule in the manifest.
   - `webstir add-job archive --description "Archive stale data" --priority 10` — adds metadata to the job manifest entry.
+
+## Community & Support
+- Code of Conduct: https://github.com/webstir-io/.github/blob/main/CODE_OF_CONDUCT.md
+- Contributing guide for this repo: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- Security disclosures: https://github.com/webstir-io/.github/blob/main/SECURITY.md
+- Support expectations and contact channels: https://github.com/webstir-io/.github/blob/main/SUPPORT.md
 
 ---
 
