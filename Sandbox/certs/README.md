@@ -3,14 +3,28 @@ Sandbox TLS Certificates
 
 This folder holds self-signed certificates for the Sandbox HTTPS server.
 
-Generate once:
-- ./Sandbox/generate-certs.sh
+## Generate Certificates (mkcert container)
 
-It creates:
-- dev.crt — certificate
-- dev.key — private key
+From the repo root, run:
 
-These are mounted into the Nginx container at /etc/nginx/certs.
+```bash
+docker compose -f Sandbox/docker-compose.yml run --rm certs
+```
 
-Note: Browsers will warn on self-signed certs. For a trusted local cert, use mkcert instead and place the resulting key/cert here with names dev.key/dev.crt.
+This uses the `mkcert` container to:
+- Create a local CA in `Sandbox/certs` (`rootCA.pem` and `rootCA-key.pem`).
+- Generate `dev.crt` (certificate) and `dev.key` (private key) for `localhost`, `127.0.0.1`, and `web`.
 
+These files are mounted into the Nginx container at `/etc/nginx/certs` by `Sandbox/docker-compose.yml`.
+
+## Trust the Local CA
+
+To trust the new root CA on your host (so browsers stop warning on the Sandbox HTTPS endpoint), run:
+
+```bash
+Sandbox/mkcert/trust-local-ca.sh
+```
+
+This script imports `Sandbox/certs/rootCA.pem` into the OS trust store on supported platforms (macOS and common Linux distributions). On unsupported platforms, import `rootCA.pem` manually.
+
+Note: Private keys (`dev.key`, `rootCA-key.pem`) are intentionally ignored by git and should remain local only.

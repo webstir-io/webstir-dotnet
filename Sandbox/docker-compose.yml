@@ -32,7 +32,7 @@ services:
       - ../CLI/out/seed/dist/frontend/app:/usr/share/nginx/html/app:ro
       # Provide an nginx site config that supports clean URLs + brotli
       - ./web/nginx.conf:/etc/nginx/conf.d/default.conf
-      # Mount self-signed TLS certs (generate via Sandbox/generate-certs.sh)
+      # Mount self-signed TLS certs (generated via the `certs` mkcert service)
       - ./certs:/etc/nginx/certs:ro
     networks:
       - webstir
