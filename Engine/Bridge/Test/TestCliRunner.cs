@@ -118,7 +118,21 @@ internal sealed class TestCliRunner
 
         await process.WaitForExitAsync(cancellationToken);
 
-        return new TestCliRunResult(passed, failed, total, durationMs, results, testsDiscovered, hadErrors, process.ExitCode);
+        TestCliRunResult runResult = new(passed, failed, total, durationMs, results, testsDiscovered, hadErrors, process.ExitCode);
+
+        if (runResult.Failed > 0 || runResult.HadErrors)
+        {
+            foreach (TestCliTestResult result in results)
+            {
+                if (!result.Passed)
+                {
+                    string detail = string.IsNullOrWhiteSpace(result.Message) ? "(no message from runner)" : result.Message!;
+                    Console.Error.WriteLine($"[test] FAILED: {result.Name} — {detail}");
+                }
+            }
+        }
+
+        return runResult;
     }
 
     private string ResolveProviderId()

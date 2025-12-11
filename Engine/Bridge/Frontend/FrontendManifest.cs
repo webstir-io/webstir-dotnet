@@ -76,6 +76,12 @@ public sealed class FrontendManifestPathGroup
         get; init;
     }
 
+    [JsonPropertyName("content")]
+    public required string Content
+    {
+        get; init;
+    }
+
     [JsonPropertyName("images")]
     public required string Images
     {

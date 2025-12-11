@@ -498,13 +498,28 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
                 !path.StartsWith(ApiRoute, StringComparison.Ordinal) &&
                 !path.StartsWith(SseRoute, StringComparison.Ordinal))
             {
-                string pageName = path.TrimStart('/');
+                string pageName = path.Trim('/');
                 string indexPath = $"/{Folders.Pages}/{pageName}/{Files.IndexHtml}";
 
                 string webRoot = context.RequestServices.GetRequiredService<IWebHostEnvironment>().WebRootPath;
                 string fullPath = Path.Combine(webRoot, indexPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
                 if (File.Exists(fullPath))
                     context.Request.Path = indexPath;
+                else if (pageName.StartsWith("docs/", StringComparison.Ordinal))
+                {
+                    // Fuzzy match doc slug anywhere under pages/docs
+                    string slug = Path.GetFileName(pageName);
+                    string docsRoot = Path.Combine(webRoot, Folders.Pages, "docs");
+                    if (Directory.Exists(docsRoot))
+                    {
+                        string? match = Directory.EnumerateFiles(docsRoot, $"{slug}.html", SearchOption.AllDirectories).FirstOrDefault();
+                        if (match is not null)
+                        {
+                            string relative = "/" + Path.GetRelativePath(webRoot, match).Replace('\\', '/');
+                            context.Request.Path = relative;
+                        }
+                    }
+                }
             }
         }
 

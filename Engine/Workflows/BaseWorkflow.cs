@@ -53,7 +53,7 @@ public abstract class BaseWorkflow(
     {
         return mode switch
         {
-            ProjectMode.ClientOnly => Workers.Where(w => w is IFrontendWorker),
+            ProjectMode.ClientOnly => Workers.Where(w => w is IFrontendWorker or Engine.Bridge.Shared.SharedWorker),
             ProjectMode.ServerOnly => Workers.Where(w => w is not IFrontendWorker),
             _ => Workers
         };

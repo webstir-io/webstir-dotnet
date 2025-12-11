@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Models;
 
@@ -15,6 +16,7 @@ public class PublishWorkflow(
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         string? runtimeFilter = RuntimeOptionParser.Parse(args);
+        string? frontendMode = FrontendModeParser.Parse(args);
         ProjectMode workspaceMode = Context.DetectProjectMode();
         ProjectMode? modeFilter = ResolveProjectMode(runtimeFilter);
         ProjectMode? effectiveMode = modeFilter ?? NormalizeWorkspaceMode(workspaceMode);
@@ -28,7 +30,22 @@ public class PublishWorkflow(
             await ExecuteBuildAsync();
         }
 
-        await ExecuteWorkersAsync(async worker => await worker.PublishAsync(), effectiveMode);
+        if (!string.IsNullOrWhiteSpace(frontendMode))
+        {
+            Environment.SetEnvironmentVariable("WEBSTIR_FRONTEND_MODE", frontendMode);
+        }
+
+        try
+        {
+            await ExecuteWorkersAsync(async worker => await worker.PublishAsync(), effectiveMode);
+        }
+        finally
+        {
+            if (!string.IsNullOrWhiteSpace(frontendMode))
+            {
+                Environment.SetEnvironmentVariable("WEBSTIR_FRONTEND_MODE", null);
+            }
+        }
     }
 
     private static ProjectMode? ResolveProjectMode(string? runtimeFilter) =>

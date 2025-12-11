@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Engine.Bridge.Test;
+using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Models;
 using Framework.Packaging;
@@ -40,6 +41,7 @@ public class WatchWorkflow(
         PackageEnsureSummary ensureSummary = await TestPackageUtilities.EnsurePackageAsync(Context);
         TestPackageUtilities.LogEnsureMessages(ensureSummary);
 
+        await TypeScriptCompiler.CompileAsync(Context);
         await RunTestsAsync();
         bool watchStarted = false;
         bool frontendWatchEnabled = ShouldStartFrontendWatch(effectiveMode, _workspaceMode);
@@ -65,6 +67,7 @@ public class WatchWorkflow(
                     }
                 }
 
+                await TypeScriptCompiler.CompileAsync(Context);
                 await RunTestsAsync();
 
                 if (!frontendWatchEnabled || hotUpdate is null)

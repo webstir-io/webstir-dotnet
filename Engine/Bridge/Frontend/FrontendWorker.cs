@@ -66,8 +66,16 @@ public sealed class FrontendWorker : IFrontendWorker
 
     public int BuildOrder => 1;
 
-    public async Task InitAsync(ProjectMode mode) =>
+    public async Task InitAsync(ProjectMode mode)
+    {
+        // If a mode-specific template already populated the frontend folder, avoid overwriting it.
+        if (Directory.Exists(_workspace.FrontendPath) && Directory.GetFileSystemEntries(_workspace.FrontendPath).Length > 0)
+        {
+            return;
+        }
+
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.FrontendPath, _workspace.FrontendPath);
+    }
 
     public async Task BuildAsync(string? changedFilePath = null)
     {

@@ -7,6 +7,7 @@ public static class Commands
     public const string AddTest = "add-test";
     public const string AddRoute = "add-route";
     public const string AddJob = "add-job";
+    public const string Enable = "enable";
     public const string Build = "build";
     public const string Test = "test";
     public const string Watch = "watch";
@@ -33,6 +34,14 @@ public static class InitOptions
 {
     public const string ClientOnly = "--client-only";
     public const string ServerOnly = "--server-only";
+}
+
+public static class InitModes
+{
+    public const string Full = "full";
+    public const string Ssg = "ssg";
+    public const string Spa = "spa";
+    public const string Api = "api";
 }
 
 public static class BuildOptions

@@ -80,6 +80,7 @@ public sealed class FrontendManifestLoaderTests
             Frontend = Path.Combine(basePath, Folders.Frontend),
             App = Path.Combine(basePath, Folders.Frontend, Folders.App),
             Pages = Path.Combine(basePath, Folders.Frontend, Folders.Pages),
+            Content = Path.Combine(basePath, Folders.Frontend, Folders.Pages, "docs"),
             Images = Path.Combine(basePath, Folders.Frontend, Folders.Images),
             Fonts = Path.Combine(basePath, Folders.Frontend, Folders.Fonts),
             Media = Path.Combine(basePath, Folders.Frontend, Folders.Media)

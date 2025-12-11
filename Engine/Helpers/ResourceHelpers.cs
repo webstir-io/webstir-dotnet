@@ -60,7 +60,9 @@ public static class ResourceHelpers
 
         string[] resources = [.. assembly.GetManifestResourceNames()
             .Where(name => name.StartsWith(prefixWithDot, StringComparison.Ordinal)
-                && !name.StartsWith($"{prefixWithDot}{Folders.Src}.", StringComparison.Ordinal))];
+                && !name.StartsWith($"{prefixWithDot}{Folders.Src}.", StringComparison.Ordinal)
+                && !name.StartsWith($"{prefixWithDot}Templates.", StringComparison.Ordinal)
+                && !name.StartsWith($"{prefixWithDot}optional.", StringComparison.Ordinal))];
 
         foreach (string resourceName in resources)
         {

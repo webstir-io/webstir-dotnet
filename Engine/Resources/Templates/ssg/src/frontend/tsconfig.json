@@ -1,0 +1,15 @@
+{
+  "extends": "../../base.tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM"],
+    "outDir": "../../build/frontend",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "incremental": true,
+    "tsBuildInfoFile": "../../build/frontend/.tsbuildinfo"
+  },
+  "include": ["**/*.ts", "../../types/**/*.d.ts"],
+  "exclude": ["node_modules", "../../build", "../../dist"],
+  "references": []
+}

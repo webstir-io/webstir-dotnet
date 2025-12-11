@@ -61,6 +61,7 @@ public static class FrontendManifestLoader
         ValidatePath(group.Frontend, $"{property}.frontend", manifestPath);
         ValidatePath(group.App, $"{property}.app", manifestPath);
         ValidatePath(group.Pages, $"{property}.pages", manifestPath);
+        ValidatePath(group.Content, $"{property}.content", manifestPath);
         ValidatePath(group.Images, $"{property}.images", manifestPath);
         ValidatePath(group.Fonts, $"{property}.fonts", manifestPath);
         ValidatePath(group.Media, $"{property}.media", manifestPath);

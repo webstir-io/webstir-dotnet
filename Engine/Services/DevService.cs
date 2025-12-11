@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Engine.Bridge.Backend;
 using Engine.Bridge.Module;
+using Engine.Extensions;
 using Engine.Models;
 using Engine.Servers;
 
@@ -33,7 +34,20 @@ public class DevService(
         try
         {
             await _webServer.StartAsync(workspace, cancellationToken);
-            await _nodeServer.StartAsync(workspace, cancellationToken);
+            ProjectMode workspaceMode = workspace.DetectProjectMode();
+            bool hasBackendSource = workspace.BackendPath.Exists();
+            if (hasBackendSource)
+            {
+                await _nodeServer.StartAsync(workspace, cancellationToken);
+            }
+            else if (workspaceMode is ProjectMode.Fullstack or ProjectMode.ServerOnly)
+            {
+                _logger.LogWarning("Backend source expected but not found. Skipping Node.js server.");
+            }
+            else
+            {
+                _logger.LogDebug("Backend not present for frontend-only project; skipping Node.js server.");
+            }
             await _changeService.Initialize(workspace, onChangeAction, RestartNodeServerAsync, NotifyClientsAsync, PublishHotUpdateAsync);
             await InspectBackendManifestAsync(workspace, cancellationToken);
             await _changeService.StartAsync();
@@ -78,6 +92,12 @@ public class DevService(
     public async Task RestartNodeServerAsync(AppWorkspace workspace)
     {
         ArgumentNullException.ThrowIfNull(workspace);
+        if (!workspace.BackendPath.Exists())
+        {
+            _logger.LogDebug("Backend source still missing; skipping Node server restart.");
+            return;
+        }
+
         _logger.LogInformation("Restarting Node server...");
         await _nodeServer.StopAsync();
         await _nodeServer.StartAsync(workspace);
@@ -107,14 +127,6 @@ public class DevService(
 
     private async Task PublishHotUpdateAsync(FrontendHotUpdate hotUpdate)
     {
-        if (hotUpdate.Stats is { } stats)
-        {
-            _logger.LogInformation(
-                "Hot update totals — applied: {HotUpdates}, fallbacks: {ReloadFallbacks}.",
-                stats.HotUpdates,
-                stats.ReloadFallbacks);
-        }
-
         if (hotUpdate.RequiresReload)
         {
             _logger.LogDebug(

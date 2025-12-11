@@ -9,6 +9,12 @@ CLI/out
 # Test output files
 Tester/out/
 
+# Sandbox TLS certs (generated locally by mkcert)
+Sandbox/certs/dev.key
+Sandbox/certs/dev.crt
+Sandbox/certs/rootCA.pem
+Sandbox/certs/rootCA-key.pem
+
 # OS-specific files
 .DS_Store
 

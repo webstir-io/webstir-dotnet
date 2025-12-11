@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Engine;
 using Engine.Models;
+using Engine.Helpers;
 
 namespace CLI;
 
@@ -22,6 +23,7 @@ public static class Help
         [Commands.AddTest] = GetAddTestCommand(),
         [Commands.AddRoute] = GetAddRouteCommand(),
         [Commands.AddJob] = GetAddJobCommand(),
+        [Commands.Enable] = GetEnableCommand(),
         [Commands.Build] = GetBuildCommand(),
         [Commands.Test] = GetTestCommand(),
         [Commands.Watch] = GetWatchCommand(),
@@ -67,18 +69,16 @@ public static class Help
         CreateCommand(Commands.Init,
             $"Initialize a new {App.Name} project",
             [
-                Example($"{App.Name} {Commands.Init}", "Create a full-stack project (default)"),
-                Example($"{App.Name} {Commands.Init} my-app", "Create a project in 'my-app' directory (positional)"),
-                Example($"{App.Name} {Commands.Init} --project-name my-app", "Create a project in 'my-app' directory (flag)"),
-                Example($"{App.Name} {Commands.Init} {InitOptions.ClientOnly}", "Create a client-only project"),
-                Example($"{App.Name} {Commands.Init} {InitOptions.ServerOnly}", "Create a server-only project")
+                Example($"{App.Name} {Commands.Init} {InitModes.Full} my-app", "Create a full-stack app (frontend + backend)"),
+                Example($"{App.Name} {Commands.Init} {InitModes.Ssg} docs", "Create a static site (SSG) project"),
+                Example($"{App.Name} {Commands.Init} {InitModes.Spa} dashboard", "Create a SPA frontend project"),
+                Example($"{App.Name} {Commands.Init} {InitModes.Api} api", "Create a backend-only API project"),
+                Example($"{App.Name} {Commands.Init} my-app", "Create a full-stack app named 'my-app' (default)")
             ],
             [
-                Option(InitOptions.ClientOnly, "Create a client-side only project"),
-                Option(InitOptions.ServerOnly, "Create a server-side only project"),
-                Option(ProjectOptions.ProjectName, "Specify target project folder name (alternative to positional [directory])")
+                Option(ProjectOptions.ProjectName, "Specify target project folder name (alternative to positional <directory>)")
             ],
-            "[options] [directory]");
+            "<mode> <directory> | <directory>");
 
     private static CommandHelp GetAddPageCommand() =>
         CreateCommand(Commands.AddPage,
@@ -166,10 +166,12 @@ public static class Help
             "Create production build",
             [
                 Example($"{App.Name} {Commands.Publish}", "Create optimized production build"),
-                Example($"{App.Name} {Commands.Publish} {TestOptions.Runtime} backend", "Only publish backend artifacts")
+                Example($"{App.Name} {Commands.Publish} {TestOptions.Runtime} backend", "Only publish backend artifacts"),
+                Example($"{App.Name} {Commands.Publish} --frontend-mode ssg", "Publish static frontend assets (SSG preview)")
             ],
             [
-                Option($"{TestOptions.Runtime} | {TestOptions.RuntimeShort}", "Limit publish work to frontend, backend, or all (default)")
+                Option($"{TestOptions.Runtime} | {TestOptions.RuntimeShort}", "Limit publish work to frontend, backend, or all (default)"),
+                Option(FrontendModeParser.FrontendMode, "Frontend publish mode: bundle (default) or ssg")
             ]);
 
     private static CommandHelp GetSmokeCommand() =>
@@ -236,6 +238,18 @@ public static class Help
                 Option(ProjectOptions.ProjectName, "Select workspace project when multiple exist")
             ],
             "<name> [--schedule <expression>] [--project-name <project>]");
+
+    private static CommandHelp GetEnableCommand() =>
+        CreateCommand(Commands.Enable,
+            "Enable optional capabilities in an existing workspace.",
+            [
+                Example($"{App.Name} {Commands.Enable} scripts home", "Add a page-level script stub to pages/home."),
+                Example($"{App.Name} {Commands.Enable} spa", "Enable client routing and router assets."),
+                Example($"{App.Name} {Commands.Enable} seamless-nav", "Enable PJAX-style navigation helper."),
+                Example($"{App.Name} {Commands.Enable} backend", "Add backend scaffold to a frontend-only app.")
+            ],
+            null,
+            "<scripts <page>|spa|seamless-nav|backend>");
 
     private static CommandHelp GetHelpCommand() =>
         CreateCommand(Commands.Help,

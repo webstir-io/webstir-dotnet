@@ -41,7 +41,7 @@ public sealed class TestWorkflowTests
         }
 
         ProcessResult init = context.Run(
-            $"{Commands.Init} {InitOptions.ServerOnly} {ProjectName}",
+            $"{Commands.Init} {InitModes.Api} {ProjectName}",
             testRoot,
             timeoutMs: 20000);
         Assert.Equal(0, init.ExitCode);

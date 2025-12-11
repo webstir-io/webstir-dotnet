@@ -77,6 +77,7 @@ try
     services.AddTransient<IWorkflow, AddTestWorkflow>();
 services.AddTransient<IWorkflow, AddRouteWorkflow>();
 services.AddTransient<IWorkflow, AddJobWorkflow>();
+services.AddTransient<IWorkflow, EnableWorkflow>();
 services.AddTransient<IWorkflow, TestWorkflow>();
 services.AddTransient<IWorkflow, WatchWorkflow>();
 services.AddTransient<IWorkflow, SmokeWorkflow>();

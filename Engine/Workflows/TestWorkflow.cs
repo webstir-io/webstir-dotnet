@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Engine.Bridge.Module;
 using Engine.Bridge.Test;
+using Engine.Helpers;
 using Engine.Extensions;
 using Engine.Interfaces;
 using Engine.Models;
@@ -137,56 +137,7 @@ public sealed class TestWorkflow(
         return runtimeMode is null or not ProjectMode.ClientOnly;
     }
 
-    private async Task CompileTypeScriptAsync()
-    {
-        string tsConfigPath = Context.WorkingPath.Combine(Files.BaseTsConfigJson);
-        if (!File.Exists(tsConfigPath))
-        {
-            return;
-        }
-
-        ProcessStartInfo startInfo = new()
-        {
-            FileName = "tsc",
-            Arguments = $"--build \"{tsConfigPath}\"",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WorkingDirectory = Context.WorkingPath
-        };
-
-        using Process process = new()
-        {
-            StartInfo = startInfo
-        };
-
-        process.OutputDataReceived += (_, args) =>
-        {
-            if (!string.IsNullOrWhiteSpace(args.Data))
-            {
-                Console.WriteLine(args.Data);
-            }
-        };
-
-        process.ErrorDataReceived += (_, args) =>
-        {
-            if (!string.IsNullOrWhiteSpace(args.Data))
-            {
-                Console.Error.WriteLine(args.Data);
-            }
-        };
-
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        await process.WaitForExitAsync();
-
-        if (process.ExitCode != 0)
-        {
-            throw new InvalidOperationException($"TypeScript compilation failed with exit code {process.ExitCode}.");
-        }
-    }
+    private async Task CompileTypeScriptAsync() => await TypeScriptCompiler.CompileAsync(Context);
 
     private async Task CompileBackendAsync()
     {

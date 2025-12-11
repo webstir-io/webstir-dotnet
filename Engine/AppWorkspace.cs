@@ -39,9 +39,9 @@ public class AppWorkspace
     public string FrontendDistPagesPath => FrontendDistPath.CreateSubDirectory(Folders.Pages);
     public string FrontendDistAppPath => FrontendDistPath.CreateSubDirectory(Folders.App);
 
-    public string BackendPath => SrcPath.CreateSubDirectory(Folders.Backend);
-    public string BackendBuildPath => BuildPath.CreateSubDirectory(Folders.Backend);
-    public string BackendDistPath => DistPath.CreateSubDirectory(Folders.Backend);
+    public string BackendPath => WorkingPath.Combine(Folders.Src, Folders.Backend);
+    public string BackendBuildPath => BuildPath.Combine(Folders.Backend);
+    public string BackendDistPath => DistPath.Combine(Folders.Backend);
 
     public string SharedPath => SrcPath.CreateSubDirectory(Folders.Shared);
 
@@ -58,7 +58,8 @@ public class AppWorkspace
             (true, true) => ProjectMode.Fullstack,
             (true, false) => ProjectMode.ClientOnly,
             (false, true) => ProjectMode.ServerOnly,
-            (false, false) => ProjectMode.Fullstack
+            // When neither exists, assume client-only to avoid running backend by default.
+            (false, false) => ProjectMode.ClientOnly
         };
     }
 }
