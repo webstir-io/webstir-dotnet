@@ -261,22 +261,7 @@ public class InitWorkflow(
             workspaceRoot,
             "Static site (SSG) workspace for Webstir.",
             "ssg",
-            (JsonObject module) =>
-            {
-                JsonArray views = module["views"] as JsonArray ?? [];
-                if (!views.OfType<JsonObject>().Any(view => string.Equals((string?)view["name"], "HomeView", StringComparison.Ordinal)))
-                {
-                    JsonObject homeView = new()
-                    {
-                        ["name"] = "HomeView",
-                        ["path"] = "/",
-                        ["renderMode"] = "ssg",
-                        ["staticPaths"] = new JsonArray("/")
-                    };
-                    views.Add(homeView);
-                }
-                module["views"] = views;
-            });
+            null);
     }
 
     private static async Task UpdatePackageJsonAsync(
