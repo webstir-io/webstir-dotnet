@@ -40,7 +40,7 @@ async function readManifestJobs(): Promise<ManifestJobMetadata[]> {
   try {
     const raw = await readFile(pkgPath, 'utf8');
     const pkg = JSON.parse(raw) as Record<string, any>;
-    const jobs = pkg?.webstir?.module?.jobs;
+    const jobs = pkg?.webstir?.moduleManifest?.jobs;
     if (!Array.isArray(jobs)) {
       return [];
     }

@@ -22,19 +22,17 @@ public sealed class BackendInspectWorkflow(
 
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
-        ProjectMode workspaceMode = Context.DetectProjectMode();
-        if (!WorkspaceHasBackend(workspaceMode))
+        WorkspaceProfile profile = WorkspaceProfile;
+        if (!profile.HasBackend)
         {
             _logger.LogWarning("No backend directory detected under src/backend; nothing to inspect.");
             return;
         }
 
-        await ExecuteBuildAsync(ProjectMode.ServerOnly);
+        WorkspaceProfile backendOnly = profile with { HasFrontend = false, HasBackend = true };
+        await ExecuteBuildAsync(backendOnly);
         await PrintManifestSummaryAsync();
     }
-
-    private static bool WorkspaceHasBackend(ProjectMode mode) =>
-        mode is ProjectMode.Fullstack or ProjectMode.ServerOnly;
 
     private async Task PrintManifestSummaryAsync()
     {

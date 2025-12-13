@@ -16,26 +16,14 @@ public class BuildWorkflow(
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         string? runtimeFilter = RuntimeOptionParser.Parse(args);
-        ProjectMode workspaceMode = Context.DetectProjectMode();
-        ProjectMode? modeFilter = ResolveProjectMode(runtimeFilter);
-        ProjectMode? effectiveMode = modeFilter ?? NormalizeWorkspaceMode(workspaceMode);
-
-        if (effectiveMode is { } filtered)
-        {
-            await ExecuteBuildAsync(filtered);
-            return;
-        }
-
-        await ExecuteBuildAsync();
+        WorkspaceProfile effectiveProfile = ApplyRuntimeFilter(WorkspaceProfile, runtimeFilter);
+        await ExecuteBuildAsync(effectiveProfile);
     }
 
-    private static ProjectMode? ResolveProjectMode(string? runtimeFilter) =>
+    private static WorkspaceProfile ApplyRuntimeFilter(WorkspaceProfile profile, string? runtimeFilter) =>
         string.Equals(runtimeFilter, "backend", StringComparison.OrdinalIgnoreCase)
-            ? ProjectMode.ServerOnly
+            ? profile with { HasFrontend = false, HasBackend = true }
             : string.Equals(runtimeFilter, "frontend", StringComparison.OrdinalIgnoreCase)
-                ? ProjectMode.ClientOnly
-                : null;
-
-    private static ProjectMode? NormalizeWorkspaceMode(ProjectMode mode) =>
-        mode == ProjectMode.Fullstack ? null : mode;
+                ? profile with { HasFrontend = true, HasBackend = false }
+                : profile;
 }

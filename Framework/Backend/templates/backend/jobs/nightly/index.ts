@@ -1,5 +1,5 @@
 // Example job entry (scheduled by your orchestrator)
-// Update `webstir.module.jobs` in package.json to point to this job with a schedule, e.g.:
+// Update `webstir.moduleManifest.jobs` in package.json to point to this job with a schedule, e.g.:
 // { "name": "nightly", "schedule": "0 0 * * *", "description": "Nightly maintenance" }
 
 export async function run(): Promise<void> {

@@ -15,6 +15,8 @@ public abstract class BaseWorkflow(
 {
     protected readonly AppWorkspace Context = context;
     protected IEnumerable<IWorkflowWorker> Workers { get; } = workers;
+    protected WorkspaceProfile WorkspaceProfile { get; private set; }
+    protected void SetWorkspaceProfile(WorkspaceProfile profile) => WorkspaceProfile = profile;
     protected IFrontendWorker Frontend => Workers.OfType<IFrontendWorker>().Single();
     public abstract string WorkflowName
     {
@@ -29,11 +31,12 @@ public abstract class BaseWorkflow(
 
     protected abstract Task ExecuteWorkflowAsync(string[] args);
 
-    protected async Task ExecuteWorkersAsync(Func<IWorkflowWorker, Task> workerAction, ProjectMode? mode = null)
+    protected async Task ExecuteWorkersAsync(Func<IWorkflowWorker, Task> workerAction, WorkspaceProfile? profile = null)
     {
         ArgumentNullException.ThrowIfNull(workerAction);
 
-        IEnumerable<IWorkflowWorker> workers = GetFilteredWorkers(mode ?? Context.DetectProjectMode());
+        WorkspaceProfile effectiveProfile = profile ?? WorkspaceProfile;
+        IEnumerable<IWorkflowWorker> workers = GetFilteredWorkers(effectiveProfile);
 
         IEnumerable<IGrouping<int, IWorkflowWorker>> workerGroups = workers
             .GroupBy(w => w.BuildOrder)
@@ -49,26 +52,36 @@ public abstract class BaseWorkflow(
         }
     }
 
-    private IEnumerable<IWorkflowWorker> GetFilteredWorkers(ProjectMode mode)
+    private IEnumerable<IWorkflowWorker> GetFilteredWorkers(WorkspaceProfile profile)
     {
-        return mode switch
+        if (profile.HasFrontend && profile.HasBackend)
         {
-            ProjectMode.ClientOnly => Workers.Where(w => w is IFrontendWorker or Engine.Bridge.Shared.SharedWorker),
-            ProjectMode.ServerOnly => Workers.Where(w => w is not IFrontendWorker),
-            _ => Workers
-        };
+            return Workers;
+        }
+
+        if (profile.HasFrontend)
+        {
+            return Workers.Where(w => w is IFrontendWorker or Engine.Bridge.Shared.SharedWorker);
+        }
+
+        if (profile.HasBackend)
+        {
+            return Workers.Where(w => w is not IFrontendWorker);
+        }
+
+        return Enumerable.Empty<IWorkflowWorker>();
     }
 
-    protected async Task ExecuteBuildAsync() => await ExecuteBuildAsync(Context.DetectProjectMode());
+    protected async Task ExecuteBuildAsync() => await ExecuteWorkersAsync(async worker => await worker.BuildAsync(), WorkspaceProfile);
 
-    protected async Task ExecuteBuildAsync(ProjectMode mode) =>
-        await ExecuteWorkersAsync(async worker => await worker.BuildAsync(), mode);
+    protected async Task ExecuteBuildAsync(WorkspaceProfile profile) =>
+        await ExecuteWorkersAsync(async worker => await worker.BuildAsync(), profile);
 
     protected async Task ExecuteBuildAsync(string? changedFilePath) =>
-        await ExecuteBuildAsync(changedFilePath, Context.DetectProjectMode());
+        await ExecuteWorkersAsync(async worker => await worker.BuildAsync(changedFilePath), WorkspaceProfile);
 
-    protected async Task ExecuteBuildAsync(string? changedFilePath, ProjectMode mode) =>
-        await ExecuteWorkersAsync(async worker => await worker.BuildAsync(changedFilePath), mode);
+    protected async Task ExecuteBuildAsync(string? changedFilePath, WorkspaceProfile profile) =>
+        await ExecuteWorkersAsync(async worker => await worker.BuildAsync(changedFilePath), profile);
 
     protected virtual void InitializeWorkspace(string[] args)
     {
@@ -83,6 +96,7 @@ public abstract class BaseWorkflow(
                 throw new WorkflowUsageException($"Project directory '{projectName}' not found in current directory.");
 
             Context.Initialize(projectPath);
+            WorkspaceProfile = Context.DetectWorkspaceProfile();
             return;
         }
 
@@ -96,6 +110,7 @@ public abstract class BaseWorkflow(
         if (validProjects.Count == 1)
         {
             Context.Initialize(validProjects.Single());
+            WorkspaceProfile = Context.DetectWorkspaceProfile();
             return;
         }
 

@@ -53,6 +53,15 @@ export async function runBackendBuildPipeline(options) {
             diagnostics
         });
     }
+    if (mode === 'test') {
+        await buildBackendTests({
+            sourceRoot,
+            buildRoot,
+            tsconfigPath,
+            env,
+            diagnostics
+        });
+    }
     const includePublishSourcemaps = mode === 'publish' && shouldEmitPublishSourcemaps(env);
     return {
         entryPoints,
@@ -187,6 +196,62 @@ async function buildModuleDefinition(options) {
             diagnostics.push({ severity: 'error', message: String(error) });
         }
     }
+}
+async function buildBackendTests(options) {
+    const { sourceRoot, buildRoot, tsconfigPath, env, diagnostics } = options;
+    const pattern = '**/tests/**/*.test.{ts,tsx,js,mjs}';
+    const matches = await glob(pattern, {
+        cwd: sourceRoot,
+        absolute: true,
+        nodir: true,
+        dot: false
+    });
+    if (matches.length === 0) {
+        diagnostics.push({ severity: 'info', message: '[webstir-backend] test:no-tests found' });
+        return;
+    }
+    console.info(`[webstir-backend] test:tests-build start (${matches.length} file(s))`);
+    const define = {
+        'process.env.NODE_ENV': JSON.stringify(env?.NODE_ENV ?? 'test')
+    };
+    try {
+        await esbuild({
+            entryPoints: matches,
+            bundle: false,
+            platform: 'node',
+            target: 'node20',
+            format: 'esm',
+            sourcemap: true,
+            outdir: buildRoot,
+            outbase: sourceRoot,
+            entryNames: '[dir]/[name]',
+            tsconfig: existsSync(tsconfigPath) ? tsconfigPath : undefined,
+            define,
+            logLevel: 'silent'
+        });
+    }
+    catch (error) {
+        if (isEsbuildFailure(error)) {
+            for (const e of error.errors ?? []) {
+                diagnostics.push({ severity: 'error', message: formatEsbuildMessage(e) });
+            }
+            for (const w of error.warnings ?? []) {
+                diagnostics.push({ severity: 'warn', message: formatEsbuildMessage(w) });
+            }
+        }
+        else if (error instanceof Error) {
+            diagnostics.push({ severity: 'error', message: error.message });
+        }
+        else {
+            diagnostics.push({ severity: 'error', message: String(error) });
+        }
+        throw new Error('backend tests build failed.');
+    }
+    diagnostics.push({
+        severity: 'info',
+        message: `[webstir-backend] test:built backend tests=${matches.length}`
+    });
+    console.info('[webstir-backend] test:tests-build done');
 }
 export async function buildSupportFile(options) {
     const { sourceFile, sourceRoot, buildRoot, tsconfigPath, mode, env, diagnostics } = options;

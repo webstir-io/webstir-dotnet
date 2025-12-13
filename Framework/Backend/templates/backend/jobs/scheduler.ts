@@ -13,7 +13,7 @@ async function main() {
 
   const jobs = await loadJobs();
   if (jobs.length === 0) {
-    console.info('[jobs] no jobs registered in webstir.module.jobs');
+    console.info('[jobs] no jobs registered in webstir.moduleManifest.jobs');
     return;
   }
 

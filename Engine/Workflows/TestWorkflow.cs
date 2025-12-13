@@ -28,14 +28,13 @@ public sealed class TestWorkflow(
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         string? runtimeFilter = RuntimeOptionParser.Parse(args);
-        ProjectMode workspaceMode = Context.DetectProjectMode();
-        ProjectMode? modeFilter = ResolveProjectMode(runtimeFilter);
-        ProjectMode? effectiveMode = modeFilter ?? NormalizeWorkspaceMode(workspaceMode);
-        LogRuntimeScope(workspaceMode, runtimeFilter, effectiveMode);
+        WorkspaceProfile workspaceProfile = WorkspaceProfile;
+        WorkspaceProfile effectiveProfile = ApplyRuntimeFilter(workspaceProfile, runtimeFilter);
+        LogRuntimeScope(workspaceProfile, runtimeFilter, effectiveProfile);
 
-        await ExecuteBuildWithFilterAsync(effectiveMode, workspaceMode);
+        await ExecuteBuildWithFilterAsync(effectiveProfile);
         await CompileTypeScriptAsync();
-        if (ShouldCompileBackend(workspaceMode, effectiveMode))
+        if (effectiveProfile.HasBackend)
         {
             await CompileBackendAsync();
         }
@@ -102,40 +101,15 @@ public sealed class TestWorkflow(
         }
     }
 
-    private static ProjectMode? ResolveProjectMode(string? runtimeFilter) =>
+    private static WorkspaceProfile ApplyRuntimeFilter(WorkspaceProfile profile, string? runtimeFilter) =>
         string.Equals(runtimeFilter, "backend", StringComparison.OrdinalIgnoreCase)
-            ? ProjectMode.ServerOnly
+            ? profile with { HasFrontend = false, HasBackend = true }
             : string.Equals(runtimeFilter, "frontend", StringComparison.OrdinalIgnoreCase)
-                ? ProjectMode.ClientOnly
-                : null;
+                ? profile with { HasFrontend = true, HasBackend = false }
+                : profile;
 
-    private static ProjectMode? NormalizeWorkspaceMode(ProjectMode mode) =>
-        mode == ProjectMode.Fullstack ? null : mode;
-
-    private static bool WorkspaceHasBackend(ProjectMode mode) =>
-        mode is ProjectMode.Fullstack or ProjectMode.ServerOnly;
-
-    private async Task ExecuteBuildWithFilterAsync(ProjectMode? mode, ProjectMode workspaceMode)
-    {
-        ProjectMode? effective = mode ?? NormalizeWorkspaceMode(workspaceMode);
-        if (effective is { } filtered)
-        {
-            await ExecuteBuildAsync(filtered);
-            return;
-        }
-
-        await ExecuteBuildAsync();
-    }
-
-    private static bool ShouldCompileBackend(ProjectMode workspaceMode, ProjectMode? runtimeMode)
-    {
-        if (!WorkspaceHasBackend(workspaceMode))
-        {
-            return false;
-        }
-
-        return runtimeMode is null or not ProjectMode.ClientOnly;
-    }
+    private async Task ExecuteBuildWithFilterAsync(WorkspaceProfile profile) =>
+        await ExecuteBuildAsync(profile);
 
     private async Task CompileTypeScriptAsync() => await TypeScriptCompiler.CompileAsync(Context);
 
@@ -225,16 +199,11 @@ public sealed class TestWorkflow(
         }
     }
 
-    private void LogRuntimeScope(ProjectMode workspaceMode, string? runtimeFilter, ProjectMode? effectiveMode)
+    private void LogRuntimeScope(WorkspaceProfile workspaceProfile, string? runtimeFilter, WorkspaceProfile effectiveProfile)
     {
-        string workspaceLabel = DescribeMode(workspaceMode);
+        string workspaceLabel = DescribeProfile(workspaceProfile);
         string filterLabel = string.IsNullOrWhiteSpace(runtimeFilter) ? "auto" : runtimeFilter!;
-        string effectiveLabel = effectiveMode switch
-        {
-            ProjectMode.ClientOnly => "frontend-only",
-            ProjectMode.ServerOnly => "backend-only",
-            _ => "frontend+backend"
-        };
+        string effectiveLabel = DescribeProfile(effectiveProfile);
 
         _logger.LogInformation(
             "[{Workflow}] Runtime scope — workspace: {Workspace}, filter: {Filter}, running: {Effective}.",
@@ -244,10 +213,11 @@ public sealed class TestWorkflow(
             effectiveLabel);
     }
 
-    private static string DescribeMode(ProjectMode mode) => mode switch
+    private static string DescribeProfile(WorkspaceProfile profile) => (profile.HasFrontend, profile.HasBackend) switch
     {
-        ProjectMode.ClientOnly => "frontend-only",
-        ProjectMode.ServerOnly => "backend-only",
-        _ => "frontend+backend"
+        (true, true) => "frontend+backend",
+        (true, false) => "frontend-only",
+        (false, true) => "backend-only",
+        _ => "none"
     };
 }

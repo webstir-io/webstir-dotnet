@@ -16,20 +16,12 @@ public class PublishWorkflow(
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         string? runtimeFilter = RuntimeOptionParser.Parse(args);
-        string? frontendMode = FrontendModeParser.Parse(args);
-        ProjectMode workspaceMode = Context.DetectProjectMode();
-        ProjectMode? modeFilter = ResolveProjectMode(runtimeFilter);
-        ProjectMode? effectiveMode = modeFilter ?? NormalizeWorkspaceMode(workspaceMode);
+        WorkspaceProfile effectiveProfile = ApplyRuntimeFilter(WorkspaceProfile, runtimeFilter);
+        string? frontendMode = ResolveFrontendMode(args, effectiveProfile);
 
-        if (effectiveMode is { } filtered)
-        {
-            await ExecuteBuildAsync(filtered);
-        }
-        else
-        {
-            await ExecuteBuildAsync();
-        }
+        await ExecuteBuildAsync(effectiveProfile);
 
+        string? previousFrontendMode = Environment.GetEnvironmentVariable("WEBSTIR_FRONTEND_MODE");
         if (!string.IsNullOrWhiteSpace(frontendMode))
         {
             Environment.SetEnvironmentVariable("WEBSTIR_FRONTEND_MODE", frontendMode);
@@ -37,24 +29,39 @@ public class PublishWorkflow(
 
         try
         {
-            await ExecuteWorkersAsync(async worker => await worker.PublishAsync(), effectiveMode);
+            await ExecuteWorkersAsync(async worker => await worker.PublishAsync(), effectiveProfile);
         }
         finally
         {
             if (!string.IsNullOrWhiteSpace(frontendMode))
             {
-                Environment.SetEnvironmentVariable("WEBSTIR_FRONTEND_MODE", null);
+                Environment.SetEnvironmentVariable("WEBSTIR_FRONTEND_MODE", previousFrontendMode);
             }
         }
     }
 
-    private static ProjectMode? ResolveProjectMode(string? runtimeFilter) =>
-        string.Equals(runtimeFilter, "backend", StringComparison.OrdinalIgnoreCase)
-            ? ProjectMode.ServerOnly
-            : string.Equals(runtimeFilter, "frontend", StringComparison.OrdinalIgnoreCase)
-                ? ProjectMode.ClientOnly
-                : null;
+    private static string? ResolveFrontendMode(string[] args, WorkspaceProfile effectiveProfile)
+    {
+        string? parsed = FrontendModeParser.Parse(args);
+        if (!string.IsNullOrWhiteSpace(parsed))
+        {
+            return parsed;
+        }
 
-    private static ProjectMode? NormalizeWorkspaceMode(ProjectMode mode) =>
-        mode == ProjectMode.Fullstack ? null : mode;
+        if (!effectiveProfile.HasFrontend)
+        {
+            return null;
+        }
+
+        return effectiveProfile.Mode == WorkspaceMode.Ssg
+            ? "ssg"
+            : null;
+    }
+
+    private static WorkspaceProfile ApplyRuntimeFilter(WorkspaceProfile profile, string? runtimeFilter) =>
+        string.Equals(runtimeFilter, "backend", StringComparison.OrdinalIgnoreCase)
+            ? profile with { HasFrontend = false, HasBackend = true }
+            : string.Equals(runtimeFilter, "frontend", StringComparison.OrdinalIgnoreCase)
+                ? profile with { HasFrontend = true, HasBackend = false }
+                : profile;
 }

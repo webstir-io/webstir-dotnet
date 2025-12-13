@@ -127,7 +127,7 @@ Install `pino` (and optionally `pino-pretty` for local formatting) in any worksp
 
 ### Jobs & scheduling
 
-- Define jobs via `webstir add-job <name> [--schedule "<cron>"] [--description "..."] [--priority <number|label>]`. The CLI creates `src/backend/jobs/<name>/index.ts` and records metadata in `webstir.module.jobs` in `package.json`.
+- Define jobs via `webstir add-job <name> [--schedule "<cron>"] [--description "..."] [--priority <number|label>]`. The CLI creates `src/backend/jobs/<name>/index.ts` and records metadata in `webstir.moduleManifest.jobs` in `package.json`.
 - The template provides a zero-config job loader (`src/backend/jobs/runtime.ts`) and a lightweight scheduler/runner (`build/backend/jobs/scheduler.js`). Use it to explore your jobs without wiring a full queue:
 
 ```bash
@@ -157,7 +157,7 @@ npx tsx src/backend/db/migrate.ts --down --steps 1
 
 ### Module Manifest Integration
 
-When `build()` completes, it now returns a `ModuleBuildManifest` with a `module` property that matches the contract introduced in `@webstir-io/module-contract@0.1.5`. The provider looks for module metadata in the workspace’s `package.json` under `webstir.module`. If present, the object is validated against the shared `moduleManifestSchema`; otherwise, sane defaults are generated from the workspace package name/version.
+When `build()` completes, it now returns a `ModuleBuildManifest` with a `module` property that matches the contract introduced in `@webstir-io/module-contract@0.1.5`. The provider looks for module metadata in the workspace’s `package.json` under `webstir.moduleManifest`. If present, the object is validated against the shared `moduleManifestSchema`; otherwise, sane defaults are generated from the workspace package name/version.
 
 ```jsonc
 // workspace/package.json
@@ -165,7 +165,7 @@ When `build()` completes, it now returns a `ModuleBuildManifest` with a `module`
   "name": "@demo/accounts",
   "version": "0.1.0",
   "webstir": {
-    "module": {
+    "moduleManifest": {
       "contractVersion": "1.0.0",
       "name": "@demo/accounts",
       "version": "0.1.0",

@@ -66,8 +66,13 @@ public sealed class FrontendWorker : IFrontendWorker
 
     public int BuildOrder => 1;
 
-    public async Task InitAsync(ProjectMode mode)
+    public async Task InitAsync(WorkspaceProfile profile)
     {
+        if (!profile.HasFrontend)
+        {
+            return;
+        }
+
         // If a mode-specific template already populated the frontend folder, avoid overwriting it.
         if (Directory.Exists(_workspace.FrontendPath) && Directory.GetFileSystemEntries(_workspace.FrontendPath).Length > 0)
         {
@@ -116,17 +121,257 @@ public sealed class FrontendWorker : IFrontendWorker
         await EnsurePackagesAsync();
         FrontendModuleProvider provider = await EnsureProviderAsync();
 
+        Dictionary<string, string?> env = new(StringComparer.Ordinal);
+        string? frontendMode = Environment.GetEnvironmentVariable("WEBSTIR_FRONTEND_MODE");
+        if (!string.IsNullOrWhiteSpace(frontendMode))
+        {
+            env["WEBSTIR_FRONTEND_MODE"] = frontendMode;
+        }
+
         ModuleBuildExecutionResult buildResult = await ModuleBuildExecutor.ExecuteAsync(
             _workspace,
             provider.Id,
             ModuleBuildMode.Publish,
-            new Dictionary<string, string?>(StringComparer.Ordinal),
+            env,
             incremental: false,
             _logger,
             CancellationToken.None);
 
         LogModuleBuildResult("Publish", buildResult);
+        if (string.Equals(frontendMode, "ssg", StringComparison.OrdinalIgnoreCase))
+        {
+            ApplySsgPublishAliases();
+        }
         await LogPublishManifestAsync();
+    }
+
+    private void ApplySsgPublishAliases()
+    {
+        try
+        {
+            string distPagesRoot = _workspace.FrontendDistPagesPath;
+            if (!Directory.Exists(distPagesRoot))
+            {
+                return;
+            }
+
+            Dictionary<string, string> pageIndexMap = new(StringComparer.OrdinalIgnoreCase);
+            foreach (string pageDir in Directory.GetDirectories(distPagesRoot, "*", SearchOption.TopDirectoryOnly))
+            {
+                string pageName = Path.GetFileName(pageDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                if (string.IsNullOrWhiteSpace(pageName))
+                {
+                    continue;
+                }
+
+                string sourceIndex = Path.Combine(pageDir, Files.IndexHtml);
+                if (!File.Exists(sourceIndex))
+                {
+                    continue;
+                }
+
+                pageIndexMap[pageName] = sourceIndex;
+
+                string targetDir = Path.Combine(_workspace.FrontendDistPath, pageName);
+                Directory.CreateDirectory(targetDir);
+                string targetIndex = Path.Combine(targetDir, Files.IndexHtml);
+                File.Copy(sourceIndex, targetIndex, overwrite: true);
+            }
+
+            string homeIndexPath = Path.Combine(distPagesRoot, Folders.Home, Files.IndexHtml);
+            if (File.Exists(homeIndexPath))
+            {
+                string rootIndexPath = Path.Combine(_workspace.FrontendDistPath, Files.IndexHtml);
+                Directory.CreateDirectory(_workspace.FrontendDistPath);
+                File.Copy(homeIndexPath, rootIndexPath, overwrite: true);
+            }
+
+            ApplyStaticPathAliases(distPagesRoot, pageIndexMap);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            _logger.LogWarning(ex, "[frontend] Failed to apply SSG publish aliases.");
+        }
+    }
+
+    private void ApplyStaticPathAliases(string distPagesRoot, IReadOnlyDictionary<string, string> pageIndexMap)
+    {
+        if (pageIndexMap.Count == 0)
+        {
+            return;
+        }
+
+        string packageJsonPath = Path.Combine(_workspace.WorkingPath, Files.PackageJson);
+        if (!File.Exists(packageJsonPath))
+        {
+            return;
+        }
+
+        using FileStream stream = File.OpenRead(packageJsonPath);
+        using JsonDocument doc = JsonDocument.Parse(stream);
+        if (!doc.RootElement.TryGetProperty("webstir", out JsonElement webstir) ||
+            !webstir.TryGetProperty("moduleManifest", out JsonElement moduleManifestElement) ||
+            !moduleManifestElement.TryGetProperty("views", out JsonElement viewsElement) ||
+            viewsElement.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        foreach (JsonElement view in viewsElement.EnumerateArray())
+        {
+            if (view.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            if (!IsSsgView(view))
+            {
+                continue;
+            }
+
+            List<string> staticPaths = ResolveStaticPaths(view);
+            if (staticPaths.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (string raw in staticPaths)
+            {
+                if (string.IsNullOrWhiteSpace(raw))
+                {
+                    continue;
+                }
+
+                string normalized = NormalizeStaticPath(raw);
+                string? sourceIndex = ResolveSourceIndexForStaticPath(distPagesRoot, normalized, pageIndexMap);
+                if (string.IsNullOrEmpty(sourceIndex))
+                {
+                    continue;
+                }
+
+                string targetIndex = normalized == "/"
+                    ? Path.Combine(_workspace.FrontendDistPath, Files.IndexHtml)
+                    : Path.Combine(_workspace.FrontendDistPath, normalized.TrimStart('/'), Files.IndexHtml);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(targetIndex)!);
+                File.Copy(sourceIndex, targetIndex, overwrite: true);
+            }
+        }
+    }
+
+    private static bool IsSsgView(JsonElement view)
+    {
+        if (!view.TryGetProperty("renderMode", out JsonElement renderModeElement))
+        {
+            return true;
+        }
+
+        string renderMode = renderModeElement.GetString() ?? string.Empty;
+        return string.Equals(renderMode, "ssg", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static List<string> ResolveStaticPaths(JsonElement view)
+    {
+        if (view.TryGetProperty("staticPaths", out JsonElement staticPathsElement) && staticPathsElement.ValueKind == JsonValueKind.Array)
+        {
+            List<string> paths = new();
+            foreach (JsonElement pathElement in staticPathsElement.EnumerateArray())
+            {
+                string? raw = pathElement.GetString();
+                if (!string.IsNullOrWhiteSpace(raw))
+                {
+                    paths.Add(raw);
+                }
+            }
+
+            if (paths.Count > 0)
+            {
+                return paths;
+            }
+        }
+
+        if (!view.TryGetProperty("path", out JsonElement pathElementValue))
+        {
+            return [];
+        }
+
+        string? template = pathElementValue.GetString();
+        if (!IsDefaultStaticPathCandidate(template))
+        {
+            return [];
+        }
+
+        return [template!];
+    }
+
+    private static bool IsDefaultStaticPathCandidate(string? template)
+    {
+        if (string.IsNullOrWhiteSpace(template))
+        {
+            return false;
+        }
+
+        string trimmed = template.Trim();
+        if (!trimmed.StartsWith("/", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return !trimmed.Contains(':', StringComparison.Ordinal) && !trimmed.Contains('*', StringComparison.Ordinal);
+    }
+
+    private static string NormalizeStaticPath(string value)
+    {
+        string trimmed = value.Trim();
+        if (!trimmed.StartsWith("/", StringComparison.Ordinal))
+        {
+            trimmed = "/" + trimmed;
+        }
+
+        if (trimmed.Length > 1 && trimmed.EndsWith("/", StringComparison.Ordinal))
+        {
+            trimmed = trimmed[..^1];
+        }
+
+        return trimmed;
+    }
+
+    private static string? ResolveSourceIndexForStaticPath(
+        string distPagesRoot,
+        string normalizedPath,
+        IReadOnlyDictionary<string, string> pageIndexMap)
+    {
+        if (normalizedPath == "/")
+        {
+            return pageIndexMap.TryGetValue(Folders.Home, out string? homeIndex) ? homeIndex : null;
+        }
+
+        string relativePath = normalizedPath.TrimStart('/');
+        string candidate = Path.Combine(distPagesRoot, relativePath, Files.IndexHtml);
+        if (File.Exists(candidate))
+        {
+            return candidate;
+        }
+
+        string? pageName = FirstPathSegment(normalizedPath);
+        if (string.IsNullOrWhiteSpace(pageName))
+        {
+            return null;
+        }
+
+        return pageIndexMap.TryGetValue(pageName, out string? pageIndex) ? pageIndex : null;
+    }
+
+    private static string? FirstPathSegment(string pathname)
+    {
+        string trimmed = pathname.Trim('/');
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return null;
+        }
+
+        int separatorIndex = trimmed.IndexOf('/', StringComparison.Ordinal);
+        return separatorIndex < 0 ? trimmed : trimmed[..separatorIndex];
     }
 
     public async Task AddPageAsync(string pageName)
@@ -134,6 +379,75 @@ public sealed class FrontendWorker : IFrontendWorker
         await EnsurePackagesAsync();
         await EnsureProviderAsync();
         await RunFrontendCliAsync("add-page", null, pageName);
+
+        WorkspaceProfile profile = _workspace.DetectWorkspaceProfile();
+        if (profile.Mode == WorkspaceMode.Ssg)
+        {
+            NormalizeSsgPageScaffold(pageName);
+        }
+    }
+
+    private void NormalizeSsgPageScaffold(string pageName)
+    {
+        string pageRoot = Path.Combine(_workspace.FrontendPagesPath, pageName);
+        string htmlPath = Path.Combine(pageRoot, $"{Files.Index}{FileExtensions.Html}");
+        string tsPath = Path.Combine(pageRoot, $"{Files.Index}{FileExtensions.Ts}");
+
+        try
+        {
+            if (File.Exists(tsPath))
+            {
+                File.Delete(tsPath);
+            }
+
+            if (!File.Exists(htmlPath))
+            {
+                return;
+            }
+
+            string[] lines = File.ReadAllLines(htmlPath);
+            bool modified = false;
+            List<string> updated = new(lines.Length);
+
+            foreach (string line in lines)
+            {
+                if (line.Contains("<script", StringComparison.OrdinalIgnoreCase) &&
+                    line.Contains($"{Files.Index}{FileExtensions.Js}", StringComparison.OrdinalIgnoreCase))
+                {
+                    string indent = GetLeadingWhitespace(line);
+                    updated.Add($"{indent}<!-- Add {Files.Index}{FileExtensions.Ts} to enable JS on this page. -->");
+                    modified = true;
+                    continue;
+                }
+
+                updated.Add(line);
+            }
+
+            if (modified)
+            {
+                File.WriteAllLines(htmlPath, updated);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogDebug(ex, "[frontend] Unable to normalize SSG scaffold for page '{PageName}'.", pageName);
+        }
+    }
+
+    private static string GetLeadingWhitespace(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        int length = 0;
+        while (length < value.Length && char.IsWhiteSpace(value[length]))
+        {
+            length += 1;
+        }
+
+        return length == 0 ? string.Empty : value[..length];
     }
 
     public async Task StartWatchAsync()
@@ -230,6 +544,7 @@ public sealed class FrontendWorker : IFrontendWorker
 
             PackageWorkspaceAdapter workspaceAdapter = new(_workspace);
             PackageManagerDescriptor packageManager = workspaceAdapter.PackageManager;
+            WorkspaceProfile profile = _workspace.DetectWorkspaceProfile();
             PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
                 workspaceAdapter,
                 _logger,
@@ -238,7 +553,7 @@ public sealed class FrontendWorker : IFrontendWorker
                 ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter),
                 includeFrontend: true,
                 includeTesting: true,
-                includeBackend: true,
+                includeBackend: profile.HasBackend,
                 autoInstall: true);
 
             if (summary.InstallPerformed)

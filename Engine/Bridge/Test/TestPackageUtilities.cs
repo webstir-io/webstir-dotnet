@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Engine.Models;
 using Framework.Packaging;
 
 namespace Engine.Bridge.Test;
@@ -14,6 +15,7 @@ internal static class TestPackageUtilities
     internal static async Task<PackageEnsureSummary> EnsurePackageAsync(AppWorkspace workspace)
     {
         NodeRuntime.EnsureMinimumVersion();
+        WorkspaceProfile profile = workspace.DetectWorkspaceProfile();
         PackageWorkspaceAdapter workspaceAdapter = new(workspace);
         PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
             workspaceAdapter,
@@ -23,7 +25,7 @@ internal static class TestPackageUtilities
             ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter),
             includeFrontend: false,
             includeTesting: true,
-            includeBackend: true,
+            includeBackend: profile.HasBackend,
             autoInstall: true);
         await EnsureAlternateProviderAsync(workspaceAdapter).ConfigureAwait(false);
         ValidateSummary(summary);

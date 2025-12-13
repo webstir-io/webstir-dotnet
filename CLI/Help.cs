@@ -84,7 +84,7 @@ public static class Help
         CreateCommand(Commands.AddPage,
             "Add a new page (frontend only)",
             [
-                Example($"{App.Name} {Commands.AddPage} about", "Create a new about page")
+                Example($"{App.Name} {Commands.AddPage} about", "Create a new about page (defaults to JS-free scaffold when webstir.mode=ssg)")
             ],
             null,
             "<page-name>");
@@ -171,7 +171,7 @@ public static class Help
             ],
             [
                 Option($"{TestOptions.Runtime} | {TestOptions.RuntimeShort}", "Limit publish work to frontend, backend, or all (default)"),
-                Option(FrontendModeParser.FrontendMode, "Frontend publish mode: bundle (default) or ssg")
+                Option(FrontendModeParser.FrontendMode, "Frontend publish mode: bundle or ssg (defaults to ssg when webstir.mode=ssg)")
             ]);
 
     private static CommandHelp GetSmokeCommand() =>
@@ -198,7 +198,7 @@ public static class Help
         CreateCommand(Commands.AddRoute,
             $"Add a backend route entry to the module manifest (package.json). Metadata and schema flags are documented at {RouteDocsUrl}",
             [
-                Example($"{App.Name} {Commands.AddRoute} users", "Add GET /api/users to webstir.module.routes"),
+                Example($"{App.Name} {Commands.AddRoute} users", "Add GET /api/users to webstir.moduleManifest.routes"),
                 Example($"{App.Name} {Commands.AddRoute} users --method POST --path /api/users", "Add POST /api/users route"),
                 Example($"{App.Name} {Commands.AddRoute} accounts --fastify", "Also scaffold a Fastify handler under src/backend/server/routes/"),
                 Example($"{App.Name} {Commands.AddRoute} users --project-name api", "Target a specific workspace project when multiple exist"),
@@ -209,7 +209,7 @@ public static class Help
                 Option("--path", "Route path (default /api/<name>)"),
                 Option(ProjectOptions.ProjectName, "Select workspace project when multiple exist"),
                 Option("--fastify", "Also scaffold a Fastify handler and register it if possible"),
-                Option("--summary", "Short manifest summary (stored on webstir.module.routes)"),
+                Option("--summary", "Short manifest summary (stored on webstir.moduleManifest.routes)"),
                 Option("--description", "Longer manifest description for docs and tooling"),
                 Option("--tags", "Comma-separated tags (trimmed and deduped case-insensitively)"),
                 Option("--params-schema", $"Schema reference for params ({SchemaReferenceHint})"),

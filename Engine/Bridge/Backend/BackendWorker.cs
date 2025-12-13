@@ -35,7 +35,7 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
 
     public int BuildOrder => 2;
 
-    public async Task InitAsync(ProjectMode mode = ProjectMode.Fullstack) =>
+    public async Task InitAsync(WorkspaceProfile profile) =>
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.BackendPath, workspace.BackendPath);
 
     public async Task BuildAsync(string? changedFilePath = null)

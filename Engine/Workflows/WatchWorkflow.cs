@@ -22,21 +22,18 @@ public class WatchWorkflow(
 {
     private readonly ILogger<WatchWorkflow> _logger = logger;
     private string? _testRuntimeFilter;
-    private ProjectMode? _projectModeFilter;
-    private ProjectMode _workspaceMode;
+    private WorkspaceProfile _workspaceProfile;
 
     public override string WorkflowName => Commands.Watch;
 
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         _testRuntimeFilter = RuntimeOptionParser.Parse(args);
-        _workspaceMode = Context.DetectProjectMode();
-        _projectModeFilter = ResolveProjectMode(_testRuntimeFilter);
+        _workspaceProfile = WorkspaceProfile;
+        WorkspaceProfile effectiveProfile = ApplyRuntimeFilter(_workspaceProfile, _testRuntimeFilter);
+        LogRuntimeScope(_workspaceProfile, _testRuntimeFilter, effectiveProfile);
 
-        ProjectMode? effectiveMode = _projectModeFilter ?? NormalizeWorkspaceMode(_workspaceMode);
-        LogRuntimeScope(_workspaceMode, _testRuntimeFilter, effectiveMode);
-
-        await ExecuteBuildWithFilterAsync(effectiveMode, _workspaceMode);
+        await ExecuteBuildWithFilterAsync(effectiveProfile, _workspaceProfile);
 
         PackageEnsureSummary ensureSummary = await TestPackageUtilities.EnsurePackageAsync(Context);
         TestPackageUtilities.LogEnsureMessages(ensureSummary);
@@ -44,7 +41,7 @@ public class WatchWorkflow(
         await TypeScriptCompiler.CompileAsync(Context);
         await RunTestsAsync();
         bool watchStarted = false;
-        bool frontendWatchEnabled = ShouldStartFrontendWatch(effectiveMode, _workspaceMode);
+        bool frontendWatchEnabled = ShouldStartFrontendWatch(effectiveProfile);
         try
         {
             if (frontendWatchEnabled)
@@ -55,7 +52,7 @@ public class WatchWorkflow(
 
             await devService.StartAsync(Context, async (filePath, _) =>
             {
-                await ExecuteBuildWithFilterAsync(effectiveMode, _workspaceMode, filePath);
+                await ExecuteBuildWithFilterAsync(effectiveProfile, _workspaceProfile, filePath);
 
                 FrontendHotUpdate? hotUpdate = null;
                 if (frontendWatchEnabled)
@@ -115,69 +112,37 @@ public class WatchWorkflow(
         }
     }
 
-    private static ProjectMode? ResolveProjectMode(string? runtimeFilter) =>
+    private static WorkspaceProfile ApplyRuntimeFilter(WorkspaceProfile profile, string? runtimeFilter) =>
         string.Equals(runtimeFilter, "backend", StringComparison.OrdinalIgnoreCase)
-            ? ProjectMode.ServerOnly
+            ? profile with { HasFrontend = false, HasBackend = true }
             : string.Equals(runtimeFilter, "frontend", StringComparison.OrdinalIgnoreCase)
-                ? ProjectMode.ClientOnly
-                : null;
-
-    private static ProjectMode? NormalizeWorkspaceMode(ProjectMode mode) =>
-        mode == ProjectMode.Fullstack ? null : mode;
-
-    private static bool WorkspaceHasFrontend(ProjectMode mode) =>
-        mode is ProjectMode.Fullstack or ProjectMode.ClientOnly;
+                ? profile with { HasFrontend = true, HasBackend = false }
+                : profile;
 
     private async Task ExecuteBuildWithFilterAsync(
-        ProjectMode? runtimeMode,
-        ProjectMode workspaceMode,
+        WorkspaceProfile runtimeProfile,
+        WorkspaceProfile workspaceProfile,
         string? changedFilePath = null)
     {
-        ProjectMode? effective = runtimeMode ?? NormalizeWorkspaceMode(workspaceMode);
-        if (effective is { } filtered)
-        {
-            if (changedFilePath is null)
-            {
-                await ExecuteBuildAsync(filtered);
-            }
-            else
-            {
-                await ExecuteBuildAsync(changedFilePath, filtered);
-            }
-
-            return;
-        }
-
+        WorkspaceProfile effective = runtimeProfile;
         if (changedFilePath is null)
         {
-            await ExecuteBuildAsync();
+            await ExecuteBuildAsync(effective);
         }
         else
         {
-            await ExecuteBuildAsync(changedFilePath);
+            await ExecuteBuildAsync(changedFilePath, effective);
         }
     }
 
-    private static bool ShouldStartFrontendWatch(ProjectMode? runtimeMode, ProjectMode workspaceMode)
-    {
-        if (!WorkspaceHasFrontend(workspaceMode))
-        {
-            return false;
-        }
+    private static bool ShouldStartFrontendWatch(WorkspaceProfile effectiveProfile) =>
+        effectiveProfile.HasFrontend;
 
-        return runtimeMode is null or not ProjectMode.ServerOnly;
-    }
-
-    private void LogRuntimeScope(ProjectMode workspaceMode, string? runtimeFilter, ProjectMode? effectiveMode)
+    private void LogRuntimeScope(WorkspaceProfile workspaceProfile, string? runtimeFilter, WorkspaceProfile effectiveProfile)
     {
-        string workspaceLabel = DescribeMode(workspaceMode);
+        string workspaceLabel = DescribeProfile(workspaceProfile);
         string filterLabel = string.IsNullOrWhiteSpace(runtimeFilter) ? "auto" : runtimeFilter!;
-        string effectiveLabel = effectiveMode switch
-        {
-            ProjectMode.ClientOnly => "frontend-only",
-            ProjectMode.ServerOnly => "backend-only",
-            _ => "frontend+backend"
-        };
+        string effectiveLabel = DescribeProfile(effectiveProfile);
 
         _logger.LogInformation(
             "[{Workflow}] Runtime scope — workspace: {Workspace}, filter: {Filter}, running: {Effective}.",
@@ -187,10 +152,11 @@ public class WatchWorkflow(
             effectiveLabel);
     }
 
-    private static string DescribeMode(ProjectMode mode) => mode switch
+    private static string DescribeProfile(WorkspaceProfile profile) => (profile.HasFrontend, profile.HasBackend) switch
     {
-        ProjectMode.ClientOnly => "frontend-only",
-        ProjectMode.ServerOnly => "backend-only",
-        _ => "frontend+backend"
+        (true, true) => "frontend+backend",
+        (true, false) => "frontend-only",
+        (false, true) => "backend-only",
+        _ => "none"
     };
 }

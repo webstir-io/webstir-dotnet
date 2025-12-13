@@ -95,8 +95,8 @@ if (isMain) {
         JsonNode root = JsonNode.Parse(File.ReadAllText(packageJsonPath)) ?? new JsonObject();
         JsonObject pkg = root as JsonObject ?? new JsonObject();
         JsonObject webstir = pkg["webstir"] as JsonObject ?? new JsonObject();
-        JsonObject module = webstir["module"] as JsonObject ?? new JsonObject();
-        JsonArray jobs = module["jobs"] as JsonArray ?? new JsonArray();
+        JsonObject moduleManifest = webstir["moduleManifest"] as JsonObject ?? new JsonObject();
+        JsonArray jobs = moduleManifest["jobs"] as JsonArray ?? new JsonArray();
 
         JsonObject? jobObject = jobs
             .Select(j => j as JsonObject)
@@ -113,8 +113,8 @@ if (isMain) {
         ApplyOptionalString(jobObject, "description", description);
         ApplyPriority(jobObject, priority);
 
-        module["jobs"] = jobs;
-        webstir["module"] = module;
+        moduleManifest["jobs"] = jobs;
+        webstir["moduleManifest"] = moduleManifest;
         pkg["webstir"] = webstir;
 
         JsonSerializerOptions options = new() { WriteIndented = true };

@@ -2,15 +2,15 @@
   "packages": {
     "@webstir-io/webstir-backend": {
       "name": "@webstir-io/webstir-backend",
-      "version": "0.1.11",
-      "registrySpecifier": "@webstir-io/webstir-backend@0.1.11",
-      "workspaceSpecifier": "^0.1.11"
+      "version": "0.1.12",
+      "registrySpecifier": "@webstir-io/webstir-backend@0.1.12",
+      "workspaceSpecifier": "^0.1.12"
     },
     "@webstir-io/webstir-frontend": {
       "name": "@webstir-io/webstir-frontend",
-      "version": "0.1.7",
-      "registrySpecifier": "@webstir-io/webstir-frontend@0.1.7",
-      "workspaceSpecifier": "^0.1.7"
+      "version": "0.1.8",
+      "registrySpecifier": "@webstir-io/webstir-frontend@0.1.8",
+      "workspaceSpecifier": "^0.1.8"
     },
     "@webstir-io/webstir-testing": {
       "name": "@webstir-io/webstir-testing",

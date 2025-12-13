@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.Json;
 using Engine.Extensions;
 using Engine.Models;
 
@@ -45,7 +46,18 @@ public class AppWorkspace
 
     public string SharedPath => SrcPath.CreateSubDirectory(Folders.Shared);
 
-    public ProjectMode DetectProjectMode()
+    public WorkspaceProfile DetectWorkspaceProfile()
+    {
+        WorkspaceProfile? fromPackage = TryReadWorkspaceProfile();
+        if (fromPackage is { } profileFromPackage)
+        {
+            return profileFromPackage;
+        }
+
+        return DetectProfileFromFolders();
+    }
+
+    private WorkspaceProfile DetectProfileFromFolders()
     {
         string clientPath = WorkingPath.Combine(Folders.Src, Folders.Frontend);
         string serverPath = WorkingPath.Combine(Folders.Src, Folders.Backend);
@@ -55,11 +67,53 @@ public class AppWorkspace
 
         return (hasClientDir, hasServerDir) switch
         {
-            (true, true) => ProjectMode.Fullstack,
-            (true, false) => ProjectMode.ClientOnly,
-            (false, true) => ProjectMode.ServerOnly,
-            // When neither exists, assume client-only to avoid running backend by default.
-            (false, false) => ProjectMode.ClientOnly
+            (true, true) => WorkspaceProfile.Full,
+            (true, false) => WorkspaceProfile.Spa,
+            (false, true) => WorkspaceProfile.Api,
+            // When neither exists, assume frontend-only to avoid running backend by default.
+            (false, false) => WorkspaceProfile.Spa
         };
+    }
+
+    private WorkspaceProfile? TryReadWorkspaceProfile()
+    {
+        string packageJsonPath = WorkingPath.Combine(Files.PackageJson);
+        if (!File.Exists(packageJsonPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            using FileStream stream = File.OpenRead(packageJsonPath);
+            using JsonDocument doc = JsonDocument.Parse(stream);
+            if (!doc.RootElement.TryGetProperty("webstir", out JsonElement webstir))
+            {
+                return null;
+            }
+
+            if (!webstir.TryGetProperty("mode", out JsonElement modeElement))
+            {
+                return null;
+            }
+
+            string? modeValue = modeElement.GetString();
+            return modeValue?.ToLowerInvariant() switch
+            {
+                "ssg" => WorkspaceProfile.Ssg,
+                "spa" => WorkspaceProfile.Spa,
+                "api" => WorkspaceProfile.Api,
+                "full" => WorkspaceProfile.Full,
+                _ => null
+            };
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 }

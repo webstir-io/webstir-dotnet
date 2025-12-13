@@ -118,7 +118,7 @@ dist/                 # Production output
 In multi-project workspaces, append `--project-name <project>` to target a specific app.
 
 - Routes
-  - `webstir add-route users` — adds `GET /api/users` to `webstir.module.routes` in `package.json`.
+  - `webstir add-route users` — adds `GET /api/users` to `webstir.moduleManifest.routes` in `package.json`.
   - `webstir add-route users --method POST --path /api/users` — adds `POST /api/users`.
   - `webstir add-route accounts --fastify` — also scaffolds `src/backend/server/routes/accounts.ts` and registers it in `server/fastify.ts` when present.
   - `webstir add-route reports --summary "List reports" --tags analytics,reports` — seeds route metadata for downstream consumers.

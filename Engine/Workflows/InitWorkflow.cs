@@ -47,17 +47,30 @@ public class InitWorkflow(
     protected override async Task ExecuteWorkflowAsync(string[] args)
     {
         InitArguments initArgs = ParseInitArguments(args);
-        ProjectMode mode = MapToProjectMode(initArgs.Mode);
+        WorkspaceProfile profile = MapToWorkspaceProfile(initArgs.Mode);
+        SetWorkspaceProfile(profile);
         await ResourceHelpers.CopyEmbeddedRootFilesAsync(Resources.Path, Context.WorkingPath);
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.TypesPath, Context.WorkingPath.Combine(Folders.Types));
         await CopyModeTemplatesAsync(initArgs.Mode);
 
+        await TrimFrameworkDependenciesAsync(Context.WorkingPath, profile);
+
         PackageWorkspaceAdapter workspaceAdapter = new(Context);
-        await FrontendPackageInstaller.EnsureAsync(workspaceAdapter);
+        if (profile.HasFrontend)
+        {
+            await FrontendPackageInstaller.EnsureAsync(workspaceAdapter);
+        }
+
         await TestPackageInstaller.EnsureAsync(workspaceAdapter);
-        await ExecuteWorkersAsync(async worker => await worker.InitAsync(mode), mode);
+
+        if (profile.HasBackend)
+        {
+            await BackendPackageInstaller.EnsureAsync(workspaceAdapter);
+        }
+
+        await ExecuteWorkersAsync(async worker => await worker.InitAsync(profile), profile);
         await ApplyInitModeCustomizationsAsync(initArgs.Mode);
-        TrimTypeScriptReferences(mode);
+        TrimTypeScriptReferences(profile);
     }
 
     private readonly record struct InitArguments(InitMode Mode, string? ProjectName);
@@ -121,14 +134,51 @@ public class InitWorkflow(
         };
     }
 
-    private static ProjectMode MapToProjectMode(InitMode mode) =>
+    private static WorkspaceProfile MapToWorkspaceProfile(InitMode mode) =>
         mode switch
         {
-            InitMode.Ssg => ProjectMode.ClientOnly,
-            InitMode.Spa => ProjectMode.ClientOnly,
-            InitMode.Api => ProjectMode.ServerOnly,
-            _ => ProjectMode.Fullstack
+            InitMode.Ssg => WorkspaceProfile.Ssg,
+            InitMode.Spa => WorkspaceProfile.Spa,
+            InitMode.Api => WorkspaceProfile.Api,
+            _ => WorkspaceProfile.Full
         };
+
+    private static async Task TrimFrameworkDependenciesAsync(string workspaceRoot, WorkspaceProfile profile)
+    {
+        string packageJsonPath = workspaceRoot.Combine(Files.PackageJson);
+        if (!File.Exists(packageJsonPath))
+        {
+            return;
+        }
+
+        JsonNode? rootNode = JsonNode.Parse(await File.ReadAllTextAsync(packageJsonPath));
+        if (rootNode is not JsonObject root)
+        {
+            return;
+        }
+
+        if (root["dependencies"] is not JsonObject dependencies)
+        {
+            return;
+        }
+
+        if (!profile.HasFrontend)
+        {
+            dependencies.Remove(FrameworkPackageCatalog.Frontend.Name);
+        }
+
+        if (!profile.HasBackend)
+        {
+            dependencies.Remove(FrameworkPackageCatalog.Backend.Name);
+        }
+
+        JsonSerializerOptions options = new()
+        {
+            WriteIndented = true
+        };
+
+        await File.WriteAllTextAsync(packageJsonPath, root.ToJsonString(options) + Environment.NewLine);
+    }
 
     private async Task ApplyInitModeCustomizationsAsync(InitMode mode)
     {
@@ -233,7 +283,7 @@ public class InitWorkflow(
         string workspaceRoot,
         string? description,
         string mode,
-        Action<JsonObject>? mutateModule)
+        Action<JsonObject>? mutateModuleManifest)
     {
         string packageJsonPath = workspaceRoot.Combine(Files.PackageJson);
         if (!File.Exists(packageJsonPath))
@@ -255,9 +305,9 @@ public class InitWorkflow(
         JsonObject webstir = root["webstir"] as JsonObject ?? new JsonObject();
         webstir["mode"] = mode;
 
-        JsonObject module = webstir["module"] as JsonObject ?? new JsonObject();
-        mutateModule?.Invoke(module);
-        webstir["module"] = module;
+        JsonObject moduleManifest = webstir["moduleManifest"] as JsonObject ?? new JsonObject();
+        mutateModuleManifest?.Invoke(moduleManifest);
+        webstir["moduleManifest"] = moduleManifest;
         root["webstir"] = webstir;
 
         JsonSerializerOptions options = new()
@@ -358,7 +408,7 @@ public class InitWorkflow(
             Directory.Delete(sharedPath, recursive: true);
         }
     }
-    private void TrimTypeScriptReferences(ProjectMode mode)
+    private void TrimTypeScriptReferences(WorkspaceProfile profile)
     {
         string tsConfigPath = Context.WorkingPath.Combine(Files.BaseTsConfigJson);
         if (!File.Exists(tsConfigPath))
@@ -374,7 +424,7 @@ public class InitWorkflow(
         JsonArray references = root["references"] as JsonArray ?? [];
         references.Clear();
 
-        foreach (string path in GetTsReferences(mode, Context.WorkingPath))
+        foreach (string path in GetTsReferences(profile, Context.WorkingPath))
         {
             references.Add(new JsonObject
             {
@@ -392,7 +442,7 @@ public class InitWorkflow(
         File.WriteAllText(tsConfigPath, root.ToJsonString(options) + Environment.NewLine);
     }
 
-    private static IEnumerable<string> GetTsReferences(ProjectMode mode, string workspaceRoot)
+    private static IEnumerable<string> GetTsReferences(WorkspaceProfile profile, string workspaceRoot)
     {
         string sharedPath = Path.Combine(workspaceRoot, Folders.Src, Folders.Shared);
         if (Directory.Exists(sharedPath))
@@ -400,12 +450,12 @@ public class InitWorkflow(
             yield return Path.Combine(Folders.Src, Folders.Shared);
         }
 
-        if (mode is ProjectMode.Fullstack or ProjectMode.ClientOnly)
+        if (profile.HasFrontend)
         {
             yield return Path.Combine(Folders.Src, Folders.Frontend);
         }
 
-        if (mode is ProjectMode.Fullstack or ProjectMode.ServerOnly)
+        if (profile.HasBackend)
         {
             yield return Path.Combine(Folders.Src, Folders.Backend);
         }

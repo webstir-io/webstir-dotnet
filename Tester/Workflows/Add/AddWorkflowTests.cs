@@ -114,8 +114,8 @@ public sealed class AddWorkflowTests
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(packageJsonPath));
         JsonElement root = doc.RootElement;
         Assert.True(root.TryGetProperty("webstir", out JsonElement webstir), "package.json missing 'webstir'");
-        Assert.True(webstir.TryGetProperty("module", out JsonElement module), "package.json missing 'webstir.module'");
-        Assert.True(module.TryGetProperty("jobs", out JsonElement jobs), "package.json missing 'webstir.module.jobs'");
+        Assert.True(webstir.TryGetProperty("moduleManifest", out JsonElement moduleManifest), "package.json missing 'webstir.moduleManifest'");
+        Assert.True(moduleManifest.TryGetProperty("jobs", out JsonElement jobs), "package.json missing 'webstir.moduleManifest.jobs'");
         bool found = false;
         foreach (JsonElement j in jobs.EnumerateArray())
         {
@@ -156,8 +156,8 @@ public sealed class AddWorkflowTests
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(packageJsonPath));
         JsonElement root = doc.RootElement;
         Assert.True(root.TryGetProperty("webstir", out JsonElement webstir), "package.json missing 'webstir'");
-        Assert.True(webstir.TryGetProperty("module", out JsonElement module), "package.json missing 'webstir.module'");
-        Assert.True(module.TryGetProperty("jobs", out JsonElement jobs), "package.json missing 'webstir.module.jobs'");
+        Assert.True(webstir.TryGetProperty("moduleManifest", out JsonElement moduleManifest), "package.json missing 'webstir.moduleManifest'");
+        Assert.True(moduleManifest.TryGetProperty("jobs", out JsonElement jobs), "package.json missing 'webstir.moduleManifest.jobs'");
         bool found = false;
         foreach (JsonElement j in jobs.EnumerateArray())
         {
@@ -200,7 +200,7 @@ public sealed class AddWorkflowTests
 
         string packageJsonPath = Path.Combine(seedDir, Files.PackageJson);
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(packageJsonPath));
-        JsonElement jobs = doc.RootElement.GetProperty("webstir").GetProperty("module").GetProperty("jobs");
+        JsonElement jobs = doc.RootElement.GetProperty("webstir").GetProperty("moduleManifest").GetProperty("jobs");
         JsonElement? jobElement = jobs.EnumerateArray()
             .FirstOrDefault(j => string.Equals(j.GetProperty("name").GetString(), jobName, StringComparison.Ordinal));
 
@@ -338,8 +338,8 @@ export async function start() {
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(packageJsonPath));
         JsonElement root = doc.RootElement;
         Assert.True(root.TryGetProperty("webstir", out JsonElement webstir), "package.json missing 'webstir'");
-        Assert.True(webstir.TryGetProperty("module", out JsonElement module), "package.json missing 'webstir.module'");
-        Assert.True(module.TryGetProperty("routes", out JsonElement routes), "package.json missing 'webstir.module.routes'");
+        Assert.True(webstir.TryGetProperty("moduleManifest", out JsonElement moduleManifest), "package.json missing 'webstir.moduleManifest'");
+        Assert.True(moduleManifest.TryGetProperty("routes", out JsonElement routes), "package.json missing 'webstir.moduleManifest.routes'");
         bool found = false;
         foreach (JsonElement r in routes.EnumerateArray())
         {
@@ -382,7 +382,7 @@ export async function start() {
 
         string packageJsonPath = Path.Combine(seedDir, Files.PackageJson);
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(packageJsonPath));
-        JsonElement routes = doc.RootElement.GetProperty("webstir").GetProperty("module").GetProperty("routes");
+        JsonElement routes = doc.RootElement.GetProperty("webstir").GetProperty("moduleManifest").GetProperty("routes");
         JsonElement? routeElement = routes.EnumerateArray()
             .FirstOrDefault(r => string.Equals(r.GetProperty("path").GetString(), "/api/reports", StringComparison.Ordinal));
 
@@ -420,7 +420,7 @@ export async function start() {
 
         string packageJsonPath = Path.Combine(seedDir, Files.PackageJson);
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(packageJsonPath));
-        JsonElement routes = doc.RootElement.GetProperty("webstir").GetProperty("module").GetProperty("routes");
+        JsonElement routes = doc.RootElement.GetProperty("webstir").GetProperty("moduleManifest").GetProperty("routes");
         JsonElement? routeElement = routes.EnumerateArray()
             .FirstOrDefault(r => string.Equals(r.GetProperty("path").GetString(), $"/api/{routeName}", StringComparison.Ordinal));
 

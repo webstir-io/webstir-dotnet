@@ -1,6 +1,8 @@
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Engine.Extensions;
 
@@ -18,9 +20,17 @@ internal static class TypeScriptCompiler
             return;
         }
 
+        string localTscName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? "tsc.cmd"
+            : "tsc";
+        string localTscPath = Path.Combine(workspace.WorkingPath, Folders.NodeModules, ".bin", localTscName);
+        string tscExecutable = File.Exists(localTscPath)
+            ? localTscPath
+            : "tsc";
+
         ProcessStartInfo startInfo = new()
         {
-            FileName = "tsc",
+            FileName = tscExecutable,
             Arguments = $"--build \"{tsConfigPath}\"",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -50,7 +60,16 @@ internal static class TypeScriptCompiler
             }
         };
 
-        process.Start();
+        try
+        {
+            process.Start();
+        }
+        catch (Exception ex) when (ex is Win32Exception or FileNotFoundException)
+        {
+            throw new InvalidOperationException(
+                $"TypeScript compiler not found. Install 'typescript' (run '{App.Name} install' or add it to devDependencies).",
+                ex);
+        }
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         await process.WaitForExitAsync();

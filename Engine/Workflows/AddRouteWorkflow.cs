@@ -184,8 +184,8 @@ public sealed class AddRouteWorkflow(
         JsonNode root = JsonNode.Parse(File.ReadAllText(packageJsonPath)) ?? new JsonObject();
         JsonObject pkg = root as JsonObject ?? new JsonObject();
         JsonObject webstir = pkg["webstir"] as JsonObject ?? new JsonObject();
-        JsonObject module = webstir["module"] as JsonObject ?? new JsonObject();
-        JsonArray routes = module["routes"] as JsonArray ?? new JsonArray();
+        JsonObject moduleManifest = webstir["moduleManifest"] as JsonObject ?? new JsonObject();
+        JsonArray routes = moduleManifest["routes"] as JsonArray ?? new JsonArray();
 
         JsonObject? routeObject = routes
             .Select(r => r as JsonObject)
@@ -208,8 +208,8 @@ public sealed class AddRouteWorkflow(
         ApplyInput(routeObject, paramsSchema, querySchema, bodySchema, headersSchema);
         ApplyOutput(routeObject, responseSchema, responseHeadersSchema, responseStatus);
 
-        module["routes"] = routes;
-        webstir["module"] = module;
+        moduleManifest["routes"] = routes;
+        webstir["moduleManifest"] = moduleManifest;
         pkg["webstir"] = webstir;
 
         JsonSerializerOptions options = new() { WriteIndented = true };

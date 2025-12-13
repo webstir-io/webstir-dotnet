@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Engine.Bridge;
 using Engine.Bridge.Test;
 using Engine.Interfaces;
+using Engine.Models;
 using Framework.Packaging;
 using Microsoft.Extensions.Logging;
 
@@ -51,6 +52,7 @@ public sealed class InstallWorkflow(
         try
         {
             PackageWorkspaceAdapter workspaceAdapter = new(Context);
+            WorkspaceProfile profile = WorkspaceProfile;
             PackageManagerDescriptor packageManager = workspaceAdapter.PackageManager;
             PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
                 workspaceAdapter,
@@ -58,9 +60,9 @@ public sealed class InstallWorkflow(
                 ensureFrontend: () => FrontendPackageInstaller.EnsureAsync(workspaceAdapter),
                 ensureTesting: () => TestPackageInstaller.EnsureAsync(workspaceAdapter),
                 ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter),
-                includeFrontend: true,
+                includeFrontend: profile.HasFrontend,
                 includeTesting: true,
-                includeBackend: true,
+                includeBackend: profile.HasBackend,
                 autoInstall: !dryRun);
 
             if (dryRun)

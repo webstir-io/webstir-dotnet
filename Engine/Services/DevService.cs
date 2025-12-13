@@ -34,13 +34,13 @@ public class DevService(
         try
         {
             await _webServer.StartAsync(workspace, cancellationToken);
-            ProjectMode workspaceMode = workspace.DetectProjectMode();
+            WorkspaceProfile profile = workspace.DetectWorkspaceProfile();
             bool hasBackendSource = workspace.BackendPath.Exists();
-            if (hasBackendSource)
+            if (hasBackendSource && profile.HasBackend)
             {
                 await _nodeServer.StartAsync(workspace, cancellationToken);
             }
-            else if (workspaceMode is ProjectMode.Fullstack or ProjectMode.ServerOnly)
+            else if (profile.HasBackend)
             {
                 _logger.LogWarning("Backend source expected but not found. Skipping Node.js server.");
             }

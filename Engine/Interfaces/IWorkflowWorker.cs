@@ -9,8 +9,7 @@ public interface IWorkflowWorker
     {
         get;
     }
-    Task InitAsync(ProjectMode mode);
+    Task InitAsync(WorkspaceProfile profile);
     Task BuildAsync(string? changedFilePath = null);
     Task PublishAsync();
 }
-

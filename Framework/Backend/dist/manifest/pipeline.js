@@ -17,7 +17,7 @@ export async function loadBackendModuleManifest(options) {
             message: `[webstir-backend] unable to read ${pkgPath}: ${error.message}. Using defaults.`
         });
     }
-    const moduleConfig = workspacePackage?.webstir?.module ?? {};
+    const moduleConfig = workspacePackage?.webstir?.moduleManifest ?? {};
     let manifestCandidate = {
         contractVersion: typeof moduleConfig.contractVersion === 'string' ? moduleConfig.contractVersion : CONTRACT_VERSION,
         name: typeof moduleConfig.name === 'string' ? moduleConfig.name : deriveModuleName(workspacePackage, workspaceRoot),
@@ -189,8 +189,8 @@ function isModuleDefinition(value) {
     return typeof value === 'object' && value !== null && 'manifest' in value;
 }
 function deriveModuleName(pkg, workspaceRoot) {
-    if (typeof pkg?.webstir?.module?.name === 'string' && pkg.webstir.module.name.length > 0) {
-        return pkg.webstir.module.name;
+    if (typeof pkg?.webstir?.moduleManifest?.name === 'string' && pkg.webstir.moduleManifest.name.length > 0) {
+        return pkg.webstir.moduleManifest.name;
     }
     if (typeof pkg?.name === 'string' && pkg.name.length > 0) {
         return pkg.name;
@@ -198,8 +198,8 @@ function deriveModuleName(pkg, workspaceRoot) {
     return `backend-module-${path.basename(workspaceRoot)}`;
 }
 function deriveModuleVersion(pkg) {
-    if (typeof pkg?.webstir?.module?.version === 'string' && pkg.webstir.module.version.length > 0) {
-        return pkg.webstir.module.version;
+    if (typeof pkg?.webstir?.moduleManifest?.version === 'string' && pkg.webstir.moduleManifest.version.length > 0) {
+        return pkg.webstir.moduleManifest.version;
     }
     if (typeof pkg?.version === 'string' && pkg.version.length > 0) {
         return pkg.version;

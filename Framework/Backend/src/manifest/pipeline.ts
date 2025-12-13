@@ -10,7 +10,7 @@ interface WorkspacePackageJson {
     readonly name?: string;
     readonly version?: string;
     readonly webstir?: {
-        readonly module?: WorkspaceModuleConfig;
+        readonly moduleManifest?: WorkspaceModuleConfig;
     };
 }
 
@@ -41,7 +41,7 @@ export async function loadBackendModuleManifest(options: LoadManifestOptions): P
         });
     }
 
-    const moduleConfig = workspacePackage?.webstir?.module ?? {};
+    const moduleConfig = workspacePackage?.webstir?.moduleManifest ?? {};
 
     let manifestCandidate: ModuleManifest = {
         contractVersion: typeof moduleConfig.contractVersion === 'string' ? moduleConfig.contractVersion : CONTRACT_VERSION,
@@ -231,8 +231,8 @@ function isModuleDefinition(value: unknown): value is ModuleDefinition {
 }
 
 function deriveModuleName(pkg: WorkspacePackageJson | undefined, workspaceRoot: string): string {
-    if (typeof pkg?.webstir?.module?.name === 'string' && pkg.webstir.module.name.length > 0) {
-        return pkg.webstir.module.name;
+    if (typeof pkg?.webstir?.moduleManifest?.name === 'string' && pkg.webstir.moduleManifest.name.length > 0) {
+        return pkg.webstir.moduleManifest.name;
     }
     if (typeof pkg?.name === 'string' && pkg.name.length > 0) {
         return pkg.name;
@@ -241,8 +241,8 @@ function deriveModuleName(pkg: WorkspacePackageJson | undefined, workspaceRoot: 
 }
 
 function deriveModuleVersion(pkg: WorkspacePackageJson | undefined): string {
-    if (typeof pkg?.webstir?.module?.version === 'string' && pkg.webstir.module.version.length > 0) {
-        return pkg.webstir.module.version;
+    if (typeof pkg?.webstir?.moduleManifest?.version === 'string' && pkg.webstir.moduleManifest.version.length > 0) {
+        return pkg.webstir.moduleManifest.version;
     }
     if (typeof pkg?.version === 'string' && pkg.version.length > 0) {
         return pkg.version;
