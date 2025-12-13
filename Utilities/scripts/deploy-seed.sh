@@ -47,12 +47,12 @@ fi
 dotnet run --project CLI -- init "$SEED_DIR"
 
 echo "[2/5] Synchronizing framework packages ..."
-dotnet run --project CLI -- install --project-name "$SEED_DIR"
+dotnet run --project CLI -- install "$SEED_DIR"
 
 echo "[3/5] Running tests ..."
-if dotnet run --project CLI -- test --project-name "$SEED_DIR"; then
+if dotnet run --project CLI -- test "$SEED_DIR"; then
   echo "[4/5] Publishing seed ..."
-  dotnet run --project CLI -- publish --project-name "$SEED_DIR"
+  dotnet run --project CLI -- publish "$SEED_DIR"
   echo "Done."
 else
   echo "Tests failed; skipping publish." >&2

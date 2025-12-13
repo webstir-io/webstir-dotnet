@@ -24,7 +24,7 @@ public sealed class AddJobWorkflow(
         string? name = filteredArgs.FirstOrDefault(arg => !arg.StartsWith('-'));
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new ArgumentException($"Usage: {App.Name} {Commands.AddJob} <name> [--project-name <project>]");
+            throw new ArgumentException($"Usage: {App.Name} {Commands.AddJob} <name> [--project <project>]");
         }
 
         string? schedule = ParseOptionValue(filteredArgs, "--schedule");

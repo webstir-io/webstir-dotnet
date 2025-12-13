@@ -134,7 +134,7 @@ public abstract class BaseWorkflow(
         IEnumerable<string?> projectNames = validProjects.Select(Path.GetFileName);
         throw new WorkflowUsageException(
             $"Multiple projects found: {string.Join(", ", projectNames)}. " +
-            $"Specify which project to use: {WorkflowName} <project-name> or {WorkflowName} --project-name <project-name>.");
+            $"Specify which project to use: {WorkflowName} <project-name> or {WorkflowName} {ProjectOptions.ProjectName} <project-name>.");
     }
 
     private static string? ResolveWorkspaceOverride(string[] args)

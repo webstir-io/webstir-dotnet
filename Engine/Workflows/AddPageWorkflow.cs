@@ -24,7 +24,7 @@ public class AddPageWorkflow(
 
         if (string.IsNullOrEmpty(pageName))
         {
-            throw new ArgumentException($"Usage: {App.Name} {Commands.AddPage} <page-name> [--project-name <project>]");
+            throw new ArgumentException($"Usage: {App.Name} {Commands.AddPage} <page-name> [--project <project>]");
         }
 
         string pagePath = Context.FrontendPagesPath.Combine(pageName);

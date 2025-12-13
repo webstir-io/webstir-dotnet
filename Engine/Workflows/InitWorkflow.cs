@@ -79,7 +79,7 @@ public class InitWorkflow(
     {
         string[] filteredArgs = [.. args.Where(arg => arg != Commands.Init)];
 
-        // Support optional --project-name/-p <name>
+        // Support optional --project/-p <name>
         string? projectNameFromFlags = GetProjectFromFlags(filteredArgs);
 
         string? modeToken = null;

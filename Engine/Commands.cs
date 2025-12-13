@@ -26,7 +26,7 @@ public static class HelpOptions
 
 public static class ProjectOptions
 {
-    public const string ProjectName = "--project-name";
+    public const string ProjectName = "--project";
     public const string ProjectNameShort = "-p";
 }
 

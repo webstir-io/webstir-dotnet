@@ -90,7 +90,7 @@ public sealed class InitWorkflowTests
         }
 
         ProcessResult result = context.Run(
-            $"{Commands.Init} --project-name {projectName}",
+            $"{Commands.Init} {ProjectOptions.ProjectName} {projectName}",
             testDir,
             timeoutMs: 10000);
 

@@ -201,7 +201,7 @@ public static class Help
                 Example($"{App.Name} {Commands.AddRoute} users", "Add GET /api/users to webstir.moduleManifest.routes"),
                 Example($"{App.Name} {Commands.AddRoute} users --method POST --path /api/users", "Add POST /api/users route"),
                 Example($"{App.Name} {Commands.AddRoute} accounts --fastify", "Also scaffold a Fastify handler under src/backend/server/routes/"),
-                Example($"{App.Name} {Commands.AddRoute} users --project-name api", "Target a specific workspace project when multiple exist"),
+                Example($"{App.Name} {Commands.AddRoute} users --project api", "Target a specific workspace project when multiple exist"),
                 Example($"{App.Name} {Commands.AddRoute} users --params-schema zod:UserParams@src/shared/contracts/users.ts", "Attach schema references via kind:name@source format")
             ],
             [
@@ -220,7 +220,7 @@ public static class Help
                 Option("--response-status", "Override the success status code (100-599)"),
                 Option("--response-headers-schema", $"Schema reference for response headers ({SchemaReferenceHint})")
             ],
-            "<name> [--method <METHOD>] [--path <path>] [--fastify] [--project-name <project>]");
+            "<name> [--method <METHOD>] [--path <path>] [--fastify] [--project <project>]");
 
     private static CommandHelp GetAddJobCommand() =>
         CreateCommand(Commands.AddJob,
@@ -228,7 +228,7 @@ public static class Help
             [
                 Example($"{App.Name} {Commands.AddJob} cleanup", "Create src/backend/jobs/cleanup/index.ts and add to manifest"),
                 Example($"{App.Name} {Commands.AddJob} nightly --schedule \"0 0 * * *\"", "Add a cron-like schedule to the manifest entry"),
-                Example($"{App.Name} {Commands.AddJob} cleanup --project-name api", "Target a specific workspace project"),
+                Example($"{App.Name} {Commands.AddJob} cleanup --project api", "Target a specific workspace project"),
                 Example($"{App.Name} {Commands.AddJob} nightly --description \"Archive data\" --priority 5", "Store manifest metadata for docs and alerting")
             ],
             [
@@ -237,7 +237,7 @@ public static class Help
                 Option("--priority", "Manifest priority (numbers stored as integers, otherwise as strings)"),
                 Option(ProjectOptions.ProjectName, "Select workspace project when multiple exist")
             ],
-            "<name> [--schedule <expression>] [--project-name <project>]");
+            "<name> [--schedule <expression>] [--project <project>]");
 
     private static CommandHelp GetEnableCommand() =>
         CreateCommand(Commands.Enable,

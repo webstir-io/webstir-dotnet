@@ -41,7 +41,7 @@ public sealed class AddRouteWorkflow(
         string? name = filteredArgs.FirstOrDefault(arg => !arg.StartsWith('-'));
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new ArgumentException($"Usage: {App.Name} {Commands.AddRoute} <name> [--method <METHOD>] [--path <path>] [--project-name <project>]");
+            throw new ArgumentException($"Usage: {App.Name} {Commands.AddRoute} <name> [--method <METHOD>] [--path <path>] [--project <project>]");
         }
 
         string method = ParseOptionValue(filteredArgs, "--method")?.ToUpperInvariant() ?? "GET";

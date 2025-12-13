@@ -29,7 +29,7 @@ Modern, minimal full-stack TypeScript web framework and build tool. Webstir scaf
 dotnet run --project CLI -- init my-app
 
 # 2) Start dev mode (same as running with no command)
-dotnet run --project CLI -- watch --project-name my-app
+dotnet run --project CLI -- watch --project my-app
 # or
 dotnet run --project CLI -- --help
 ```
@@ -115,7 +115,7 @@ dist/                 # Production output
 - Mounts: `CLI/out/seed/dist/frontend` (web), `CLI/out/seed` (api)
 
 ## CLI Usage Examples
-In multi-project workspaces, append `--project-name <project>` to target a specific app.
+In multi-project workspaces, append `--project <project>` (or `-p <project>`) to target a specific app.
 
 - Routes
   - `webstir add-route users` — adds `GET /api/users` to `webstir.moduleManifest.routes` in `package.json`.
