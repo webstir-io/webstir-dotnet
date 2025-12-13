@@ -87,6 +87,17 @@ public abstract class BaseWorkflow(
     {
         ArgumentNullException.ThrowIfNull(args);
         string[] filteredArgs = [.. args.Where(arg => arg != WorkflowName)];
+        string? workspaceOverride = ResolveWorkspaceOverride(filteredArgs);
+        if (!string.IsNullOrWhiteSpace(workspaceOverride))
+        {
+            string fullPath = Path.GetFullPath(workspaceOverride, Context.WorkingPath);
+            if (Directory.Exists(fullPath))
+            {
+                Context.Initialize(fullPath);
+                filteredArgs = filteredArgs.Where(arg => arg != workspaceOverride).ToArray();
+            }
+        }
+
         string? projectName = GetProjectFromFlags(filteredArgs);
 
         if (!string.IsNullOrEmpty(projectName))
@@ -96,6 +107,12 @@ public abstract class BaseWorkflow(
                 throw new WorkflowUsageException($"Project directory '{projectName}' not found in current directory.");
 
             Context.Initialize(projectPath);
+            WorkspaceProfile = Context.DetectWorkspaceProfile();
+            return;
+        }
+
+        if (Context.WorkingPath.Combine(Folders.Src).Exists())
+        {
             WorkspaceProfile = Context.DetectWorkspaceProfile();
             return;
         }
@@ -118,6 +135,40 @@ public abstract class BaseWorkflow(
         throw new WorkflowUsageException(
             $"Multiple projects found: {string.Join(", ", projectNames)}. " +
             $"Specify which project to use: {WorkflowName} <project-name> or {WorkflowName} --project-name <project-name>.");
+    }
+
+    private static string? ResolveWorkspaceOverride(string[] args)
+    {
+        for (int index = args.Length - 1; index >= 0; index--)
+        {
+            string candidate = args[index];
+            if (candidate.StartsWith("-", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (!LooksLikeWorkspacePath(candidate))
+            {
+                continue;
+            }
+
+            return candidate;
+        }
+
+        return null;
+    }
+
+    private static bool LooksLikeWorkspacePath(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        return Path.IsPathRooted(value) ||
+            value.StartsWith(".", StringComparison.Ordinal) ||
+            value.Contains(Path.DirectorySeparatorChar) ||
+            value.Contains(Path.AltDirectorySeparatorChar);
     }
 
     protected static string? GetProjectFromFlags(string[] args)
