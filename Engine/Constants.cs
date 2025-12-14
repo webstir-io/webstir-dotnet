@@ -84,11 +84,7 @@ public static class Resources
 {
     public const string Path = "Engine.Resources";
     public const string TemplatesPath = $"{Path}.Templates";
-    public const string OptionalTemplatesPath = $"{Path}.optional.templates";
-    public const string SrcPath = $"{Path}.{Folders.Src}";
-    public const string FrontendPath = $"{SrcPath}.{Folders.Frontend}";
-    public const string BackendPath = $"{SrcPath}.{Folders.Backend}";
-    public const string SharedPath = $"{SrcPath}.{Folders.Shared}";
+    public const string FeaturesPath = $"{Path}.features";
     public const string TypesPath = $"{Path}.types";
     public const string WebstirPath = $"{Path}.webstir";
     public const string ModuleHostPath = $"{Path}.modulehost";

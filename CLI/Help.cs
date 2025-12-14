@@ -19,6 +19,7 @@ public static class Help
     private static readonly Dictionary<string, CommandHelp> AppCommands = new(StringComparer.OrdinalIgnoreCase)
     {
         [Commands.Init] = GetInitCommand(),
+        [Commands.Repair] = GetRepairCommand(),
         [Commands.AddPage] = GetAddPageCommand(),
         [Commands.AddTest] = GetAddTestCommand(),
         [Commands.AddRoute] = GetAddRouteCommand(),
@@ -79,6 +80,18 @@ public static class Help
                 Option(ProjectOptions.ProjectName, "Specify target project folder name (alternative to positional <directory>)")
             ],
             "<mode> <directory> | <directory>");
+
+    private static CommandHelp GetRepairCommand() =>
+        CreateCommand(Commands.Repair,
+            "Restore missing scaffold files for the current workspace mode (does not overwrite existing files)",
+            [
+                Example($"{App.Name} {Commands.Repair}", "Restore missing files in the current project"),
+                Example($"{App.Name} {Commands.Repair} ./my-app", "Restore missing files for ./my-app")
+            ],
+            [
+                Option(RepairOptions.DryRun, "Print what would be restored without writing any files")
+            ],
+            "[<path>]");
 
     private static CommandHelp GetAddPageCommand() =>
         CreateCommand(Commands.AddPage,

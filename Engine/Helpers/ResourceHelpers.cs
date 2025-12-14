@@ -9,6 +9,12 @@ namespace Engine.Helpers;
 public static class ResourceHelpers
 {
     public static async Task CopyEmbeddedDirectoryAsync(string resourcePrefix, string destinationPath)
+        => await CopyEmbeddedDirectoryAsync(resourcePrefix, destinationPath, overwriteExisting: true);
+
+    public static async Task CopyEmbeddedDirectoryAsync(
+        string resourcePrefix,
+        string destinationPath,
+        bool overwriteExisting)
     {
         Assembly assembly = Assembly.GetExecutingAssembly();
         string resourcePrefixWithDot = $"{resourcePrefix}.";
@@ -25,35 +31,39 @@ public static class ResourceHelpers
 
             string resourcePath = resourceName.Replace(resourcePrefixWithDot, "");
 
-            string relativePath;
-            if (resourcePath.EndsWith(FileExtensions.Dts, StringComparison.Ordinal))
-            {
-                string basePart = resourcePath[..^FileExtensions.Dts.Length];
-                relativePath = basePart.Replace('.', Path.DirectorySeparatorChar) + FileExtensions.Dts;
-            }
-            else if (resourcePath.EndsWith(Files.Test + FileExtensions.Ts, StringComparison.Ordinal))
-            {
-                string testTs = Files.Test + FileExtensions.Ts;
-                string basePart = resourcePath[..^testTs.Length];
-                relativePath = basePart.Replace('.', Path.DirectorySeparatorChar) + testTs;
-            }
-            else
-            {
-                int lastDotIndex = resourcePath.LastIndexOf('.');
-                relativePath = lastDotIndex > 0
-                    ? resourcePath[..lastDotIndex].Replace('.', Path.DirectorySeparatorChar) + resourcePath[lastDotIndex..]
-                    : resourcePath.Replace('.', Path.DirectorySeparatorChar);
-            }
+            string relativePath = ConvertEmbeddedResourcePathToRelativePath(resourcePath);
 
             string outputPath = Path.Combine(destinationPath, relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+
+            if (!overwriteExisting && File.Exists(outputPath))
+            {
+                continue;
+            }
 
             using FileStream fileStream = File.Create(outputPath);
             await stream.CopyToAsync(fileStream);
         }
     }
 
+    public static string[] ListEmbeddedDirectoryFiles(string resourcePrefix)
+    {
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        string resourcePrefixWithDot = $"{resourcePrefix}.";
+
+        return [.. assembly.GetManifestResourceNames()
+            .Where(name => name.StartsWith(resourcePrefixWithDot, StringComparison.Ordinal))
+            .Select(name => name.Replace(resourcePrefixWithDot, ""))
+            .Select(ConvertEmbeddedResourcePathToRelativePath)];
+    }
+
     public static async Task CopyEmbeddedRootFilesAsync(string resourcePrefix, string destinationPath)
+        => await CopyEmbeddedRootFilesAsync(resourcePrefix, destinationPath, overwriteExisting: true);
+
+    public static async Task CopyEmbeddedRootFilesAsync(
+        string resourcePrefix,
+        string destinationPath,
+        bool overwriteExisting)
     {
         Assembly assembly = Assembly.GetExecutingAssembly();
         string prefixWithDot = $"{resourcePrefix}.";
@@ -62,6 +72,7 @@ public static class ResourceHelpers
             .Where(name => name.StartsWith(prefixWithDot, StringComparison.Ordinal)
                 && !name.StartsWith($"{prefixWithDot}{Folders.Src}.", StringComparison.Ordinal)
                 && !name.StartsWith($"{prefixWithDot}Templates.", StringComparison.Ordinal)
+                && !name.StartsWith($"{prefixWithDot}features.", StringComparison.Ordinal)
                 && !name.StartsWith($"{prefixWithDot}optional.", StringComparison.Ordinal))];
 
         foreach (string resourceName in resources)
@@ -75,9 +86,48 @@ public static class ResourceHelpers
             string fileName = resourceName.Replace(prefixWithDot, "");
             string outputPath = Path.Combine(destinationPath, fileName);
 
+            if (!overwriteExisting && File.Exists(outputPath))
+            {
+                continue;
+            }
+
             using FileStream fileStream = File.Create(outputPath);
             await stream.CopyToAsync(fileStream);
         }
     }
 
+    public static string[] ListEmbeddedRootFiles(string resourcePrefix)
+    {
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        string prefixWithDot = $"{resourcePrefix}.";
+
+        return [.. assembly.GetManifestResourceNames()
+            .Where(name => name.StartsWith(prefixWithDot, StringComparison.Ordinal)
+                && !name.StartsWith($"{prefixWithDot}{Folders.Src}.", StringComparison.Ordinal)
+                && !name.StartsWith($"{prefixWithDot}Templates.", StringComparison.Ordinal)
+                && !name.StartsWith($"{prefixWithDot}features.", StringComparison.Ordinal)
+                && !name.StartsWith($"{prefixWithDot}optional.", StringComparison.Ordinal))
+            .Select(name => name.Replace(prefixWithDot, ""))];
+    }
+
+    private static string ConvertEmbeddedResourcePathToRelativePath(string resourcePath)
+    {
+        if (resourcePath.EndsWith(FileExtensions.Dts, StringComparison.Ordinal))
+        {
+            string basePart = resourcePath[..^FileExtensions.Dts.Length];
+            return basePart.Replace('.', Path.DirectorySeparatorChar) + FileExtensions.Dts;
+        }
+
+        string testTs = Files.Test + FileExtensions.Ts;
+        if (resourcePath.EndsWith(testTs, StringComparison.Ordinal))
+        {
+            string basePart = resourcePath[..^testTs.Length];
+            return basePart.Replace('.', Path.DirectorySeparatorChar) + testTs;
+        }
+
+        int lastDotIndex = resourcePath.LastIndexOf('.');
+        return lastDotIndex > 0
+            ? resourcePath[..lastDotIndex].Replace('.', Path.DirectorySeparatorChar) + resourcePath[lastDotIndex..]
+            : resourcePath.Replace('.', Path.DirectorySeparatorChar);
+    }
 }

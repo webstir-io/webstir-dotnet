@@ -85,21 +85,21 @@ public class EnableWorkflow(
             throw new InvalidOperationException($"Page '{pageName}' already has an index.ts script.");
         }
 
-        string templatePrefix = $"{Resources.OptionalTemplatesPath}.page-script";
+        string templatePrefix = $"{Resources.FeaturesPath}.page-script";
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(templatePrefix, pageDir);
     }
 
     private async Task EnableSpaAsync()
     {
         string appDir = Context.FrontendAppPath;
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.OptionalTemplatesPath}.router", appDir);
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.FeaturesPath}.router", appDir);
         await UpdatePackageJsonAsync(enableSpa: true, enableSeamlessNav: null, enableBackend: null, mode: null);
     }
 
     private async Task EnableSeamlessNavAsync()
     {
         string appDir = Context.FrontendAppPath;
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.OptionalTemplatesPath}.seamless-nav", appDir);
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.FeaturesPath}.seamless-nav", appDir);
         await UpdatePackageJsonAsync(enableSpa: null, enableSeamlessNav: true, enableBackend: null, mode: null);
     }
 

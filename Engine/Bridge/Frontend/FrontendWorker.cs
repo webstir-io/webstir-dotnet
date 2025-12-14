@@ -11,6 +11,7 @@ using Engine.Bridge.Module;
 using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Models;
+using Engine.Workflows;
 using Framework.Packaging;
 using Microsoft.Extensions.Logging;
 
@@ -66,20 +67,22 @@ public sealed class FrontendWorker : IFrontendWorker
 
     public int BuildOrder => 1;
 
-    public async Task InitAsync(WorkspaceProfile profile)
+    public Task InitAsync(WorkspaceProfile profile)
     {
         if (!profile.HasFrontend)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         // If a mode-specific template already populated the frontend folder, avoid overwriting it.
         if (Directory.Exists(_workspace.FrontendPath) && Directory.GetFileSystemEntries(_workspace.FrontendPath).Length > 0)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.FrontendPath, _workspace.FrontendPath);
+        throw new WorkflowUsageException(
+            $"Frontend scaffold is missing at '{_workspace.FrontendPath}'. " +
+            $"Run '{App.Name} {Commands.Repair} {RepairOptions.DryRun}' to see what will be restored, then '{App.Name} {Commands.Repair}'.");
     }
 
     public async Task BuildAsync(string? changedFilePath = null)

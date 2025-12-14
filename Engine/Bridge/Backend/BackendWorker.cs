@@ -12,6 +12,7 @@ using Engine.Extensions;
 using Engine.Helpers;
 using Engine.Interfaces;
 using Engine.Models;
+using Engine.Workflows;
 using Framework.Packaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -35,8 +36,22 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
 
     public int BuildOrder => 2;
 
-    public async Task InitAsync(WorkspaceProfile profile) =>
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync(Resources.BackendPath, workspace.BackendPath);
+    public Task InitAsync(WorkspaceProfile profile)
+    {
+        if (!profile.HasBackend)
+        {
+            return Task.CompletedTask;
+        }
+
+        if (Directory.Exists(workspace.BackendPath) && Directory.GetFileSystemEntries(workspace.BackendPath).Length > 0)
+        {
+            return Task.CompletedTask;
+        }
+
+        throw new WorkflowUsageException(
+            $"Backend scaffold is missing at '{workspace.BackendPath}'. " +
+            $"Run '{App.Name} {Commands.Repair} {RepairOptions.DryRun}' to see what will be restored, then '{App.Name} {Commands.Repair}'.");
+    }
 
     public async Task BuildAsync(string? changedFilePath = null)
     {

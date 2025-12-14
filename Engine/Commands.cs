@@ -3,6 +3,7 @@ namespace Engine;
 public static class Commands
 {
     public const string Init = "init";
+    public const string Repair = "repair";
     public const string AddPage = "add-page";
     public const string AddTest = "add-test";
     public const string AddRoute = "add-route";
@@ -61,4 +62,9 @@ public static class TestOptions
 {
     public const string Runtime = "--runtime";
     public const string RuntimeShort = "-r";
+}
+
+public static class RepairOptions
+{
+    public const string DryRun = "--dry-run";
 }
