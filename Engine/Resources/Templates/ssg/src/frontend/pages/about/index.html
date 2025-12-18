@@ -1,0 +1,60 @@
+<head>
+  <title>About</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+  <main>
+    <section class="page">
+      <div class="ws-container">
+        <div class="ws-stack">
+          <header class="page-header">
+            <h1>About</h1>
+            <p class="lead">
+              This starter uses static site generation (SSG): your pages become fast, standalone HTML you can deploy anywhere.
+            </p>
+          </header>
+
+          <section>
+            <h2>What is SSG?</h2>
+            <p>
+              With SSG, your site is rendered at build time. Visitors get a real HTML page (great for performance and SEO),
+              and you can still add JavaScript later when you need interactivity.
+            </p>
+          </section>
+
+          <section>
+            <h2>How Webstir helps</h2>
+            <ul class="bullets">
+              <li>Keep pages simple: plain HTML and CSS per page.</li>
+              <li>Share a layout: common markup lives in <code>src/frontend/app/app.html</code>.</li>
+              <li>Ship production output with <code>webstir publish</code>.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Dev experience</h2>
+            <p>
+              Run <code>webstir watch</code> while you edit for fast refresh and hot reload, so you can iterate without a full rebuild.
+            </p>
+          </section>
+
+          <section>
+            <h2>Build output</h2>
+            <ul class="bullets">
+              <li>Dev builds go to <code>build/frontend/</code> (used by <code>webstir watch</code>).</li>
+              <li>Publish output goes to <code>dist/frontend/</code> (used by <code>webstir publish</code>).</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Deploying</h2>
+            <p>
+              <code>dist/frontend/</code> is a plain static site. If you want clean URLs (like <code>/docs/content-pipeline/</code>),
+              configure your host to serve <code>index.html</code> for directory paths.
+            </p>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>

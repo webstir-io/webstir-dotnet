@@ -30,6 +30,7 @@ namespace Engine.Servers;
 public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
 {
     private readonly List<HttpContext> _sseClients = [];
+    private readonly object _sseClientsLock = new();
     private WebApplication? _app;
     private readonly object _reloadLock = new();
     private CancellationTokenSource? _pendingReloadCts;
@@ -372,7 +373,13 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
     {
         byte[] bytes = Encoding.UTF8.GetBytes(message);
 
-        foreach (HttpContext client in _sseClients.ToList())
+        HttpContext[] clients;
+        lock (_sseClientsLock)
+        {
+            clients = _sseClients.ToArray();
+        }
+
+        foreach (HttpContext client in clients)
         {
             try
             {
@@ -381,7 +388,10 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
             }
             catch
             {
-                _sseClients.Remove(client);
+                lock (_sseClientsLock)
+                {
+                    _sseClients.Remove(client);
+                }
             }
         }
     }
@@ -423,15 +433,26 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
             context.Response.Headers.Append("Cache-Control", "no-cache");
             context.Response.Headers.Append("Connection", "keep-alive");
 
-            _sseClients.Add(context);
+            lock (_sseClientsLock)
+            {
+                _sseClients.Add(context);
+            }
 
-            await context.Response.Body.FlushAsync();
+            try
+            {
+                await context.Response.Body.FlushAsync();
 
-            TaskCompletionSource tcs = new();
-            context.RequestAborted.Register(tcs.SetResult);
-            await tcs.Task;
-
-            _sseClients.Remove(context);
+                TaskCompletionSource tcs = new();
+                context.RequestAborted.Register(tcs.SetResult);
+                await tcs.Task;
+            }
+            finally
+            {
+                lock (_sseClientsLock)
+                {
+                    _sseClients.Remove(context);
+                }
+            }
         }
         else
         {
@@ -489,6 +510,24 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
             if (path.StartsWith("/" + Files.Index + ".", StringComparison.Ordinal) && !path.StartsWith("/" + Files.IndexHtml, StringComparison.Ordinal))
             {
                 context.Request.Path = $"/{Folders.Pages}/{Folders.Home}{path}";
+            }
+            else if (path.EndsWith($"/{Files.Index}{FileExtensions.Js}", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith($"/{Files.Index}{FileExtensions.Css}", StringComparison.OrdinalIgnoreCase))
+            {
+                string[] segments = path.Trim('/').Split('/');
+                if (segments.Length == 2)
+                {
+                    string pageName = segments[0];
+                    string fileName = segments[1];
+                    string candidate = $"/{Folders.Pages}/{pageName}/{fileName}";
+
+                    string webRoot = context.RequestServices.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+                    string fullPath = Path.Combine(webRoot, candidate.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                    if (File.Exists(fullPath))
+                    {
+                        context.Request.Path = candidate;
+                    }
+                }
             }
             else if (!path.Contains('.') &&
                 !path.StartsWith("/" + Folders.Images, StringComparison.Ordinal) &&

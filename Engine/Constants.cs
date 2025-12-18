@@ -19,6 +19,7 @@ public static class Folders
     public const string Types = "types";
     public const string App = "app";
     public const string Pages = "pages";
+    public const string Content = "content";
     public const string Styles = "styles";
     public const string Scripts = "scripts";
     public const string Images = "images";

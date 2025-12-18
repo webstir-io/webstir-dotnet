@@ -13,8 +13,12 @@ test('home page has expected parts', () => {
   const htmlPath = resolve(currentDir, '..', 'index.html');
   const html = readFileSync(htmlPath, 'utf8');
 
-  assert.isTrue(html.includes('<title>Webstir SSG Demo</title>'), 'Missing demo page title');
-  assert.isTrue(html.includes('<link rel="stylesheet" href="index.css"'), 'Missing CSS link to index.css');
+  assert.isTrue(html.includes('<title>Webstir SSG Starter</title>'), 'Missing page title');
+  assert.isTrue(
+    html.includes('<link rel="stylesheet" href="index.css"') || html.includes('<link rel="stylesheet" href="/pages/home/index.css"'),
+    'Missing CSS link to index.css'
+  );
   assert.isTrue(html.includes('<main'), 'Missing <main> container');
-  assert.isTrue(html.includes('Webstir SSG demo'), 'Missing hero heading content');
+  assert.isTrue(html.includes('Welcome to your Webstir site'), 'Missing hero heading content');
+  assert.isTrue(html.includes('href="/about"'), 'Missing About link');
 });

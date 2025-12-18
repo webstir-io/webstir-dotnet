@@ -394,15 +394,31 @@ internal sealed class FrontendWatcher(
 
     private void OnProcessExited(object? sender, EventArgs args)
     {
-        int exitCode = sender is Process exitedProcess ? exitedProcess.ExitCode : -1;
+        if (sender is not Process exitedProcess)
+        {
+            return;
+        }
+
+        if (!ReferenceEquals(exitedProcess, _process))
+        {
+            return;
+        }
+
+        int exitCode = exitedProcess.ExitCode;
 
         if (_stopping)
         {
             _logger.LogInformation("Frontend watch daemon exited with code {ExitCode}.", exitCode);
         }
+        else if (exitCode is 0 or 130)
+        {
+            TaskCanceledException exception = new("Frontend watch daemon exited.");
+            CompletePendingCommandFailure(exception);
+            ClearPendingCommands(exception);
+        }
         else
         {
-            _logger.LogWarning("Frontend watch daemon exited unexpectedly with code {ExitCode}.", exitCode);
+            _logger.LogWarning("Frontend watch daemon exited unexpectedly (code {ExitCode}).", exitCode);
             InvalidOperationException exception = new("Frontend watch daemon exited unexpectedly.");
             CompletePendingCommandFailure(exception);
             ClearPendingCommands(exception);

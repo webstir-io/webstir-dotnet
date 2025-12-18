@@ -1,5 +1,5 @@
 <head>
-  <title>Webstir SSG Demo</title>
+  <title>Webstir SSG Starter</title>
   <link rel="stylesheet" href="index.css" />
   <!--
     This page is intentionally static-first.
@@ -10,12 +10,28 @@
 <body>
   <main>
     <section class="hero">
-      <div class="hero__content">
-        <h1>Webstir SSG demo</h1>
-        <p>
-          A minimal static site workspace that renders standalone HTML pages
-          and stays usable even if JavaScript is disabled.
+      <div class="ws-container hero__inner">
+        <p class="hero__kicker">Webstir SSG Starter</p>
+        <h1>Welcome to your Webstir site</h1>
+        <p class="hero__lead">
+          A clean starting point for a static site: shared layout, simple pages, and static-first output.
         </p>
+        <div class="ws-cluster">
+          <a data-ui="btn" data-variant="solid" data-tone="accent" href="/about">About</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="start">
+      <div class="ws-container">
+        <h2>Some things to try</h2>
+        <ol class="start__list">
+          <li>Start the dev server: <code>webstir watch</code></li>
+          <li>Edit this page: <code>src/frontend/pages/home/index.html</code></li>
+          <li>Add a doc: <code>src/frontend/content/my-doc.md</code></li>
+          <li>Enable smoother navigation: <code>webstir enable client-nav</code></li>
+          <li>Publish output: <code>webstir publish</code></li>
+        </ol>
       </div>
     </section>
   </main>

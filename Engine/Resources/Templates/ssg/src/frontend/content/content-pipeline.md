@@ -1,0 +1,80 @@
+# Content pipeline
+
+This starter supports Markdown docs out of the box.
+
+If you add files under `src/frontend/content/**/*.md`, Webstir will:
+
+- Convert Markdown to HTML at build time
+- Wrap it in your shared layout (`src/frontend/app/app.html`)
+- Write real pages under `/docs/.../`
+
+The starter includes a docs hub at `/docs/` with basic navigation.
+
+## Add a doc
+
+Create a file like:
+
+- `src/frontend/content/my-doc.md`
+
+It becomes:
+
+- `/docs/my-doc/`
+
+## Where the output goes
+
+For example, this file:
+
+- `src/frontend/content/content-pipeline.md`
+
+builds to:
+
+- `/docs/content-pipeline/`
+
+## Routing rules (simple)
+
+- In a folder, `index.md` becomes the folder root (e.g. `src/frontend/content/guides/index.md` → `/docs/guides/`)
+- In a folder, `readme.md` also becomes the folder root (e.g. `src/frontend/content/guides/readme.md` → `/docs/guides/`)
+- Otherwise, the file name becomes a segment (e.g. `content-pipeline.md` → `/docs/content-pipeline/`)
+
+## Frontmatter (optional)
+
+You can set a title/description at the top of a Markdown file:
+
+```md
+---
+title: My doc
+description: A short summary for the docs index.
+order: 10
+---
+```
+
+## Manifests
+
+Webstir also emits helper manifests for docs navigation:
+
+- `/docs-nav.json`
+ 
+It’s written alongside your built frontend output:
+
+- `build/frontend/docs-nav.json` while watching
+- `dist/frontend/docs-nav.json` for publish output
+
+## Search (optional)
+
+Enable site-wide search:
+
+- `webstir enable search`
+
+When enabled, Webstir emits:
+
+- `/search.json` (used by `/search.js`)
+
+## Development vs publish
+
+- `webstir watch` builds to `build/frontend/` for a fast dev loop.
+- `webstir publish` writes `dist/frontend/` for static hosting.
+
+## Clean URLs on static hosts
+
+If you deploy `dist/frontend/` with folder-style URLs (like `/docs/content-pipeline/`), configure your host to serve
+`index.html` for directory paths.

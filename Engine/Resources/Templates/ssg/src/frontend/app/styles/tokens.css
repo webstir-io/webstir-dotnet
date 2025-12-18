@@ -1,0 +1,62 @@
+@layer tokens {
+  :root {
+    color-scheme: light;
+
+    --ws-bg: #ffffff;
+    --ws-fg: #111827;
+    --ws-muted: #6b7280;
+    --ws-border: #e5e7eb;
+
+    --ws-accent: #2563eb;
+    --ws-accent-hover: #1d4ed8;
+    --ws-focus: rgba(37, 99, 235, 0.35);
+
+    --ws-radius-1: 8px;
+    --ws-radius-2: 10px;
+    --ws-radius-3: 12px;
+
+    --ws-container: 960px;
+    --ws-shell-container: 1320px;
+    --ws-article: 72ch;
+    --ws-docs-sidebar: 260px;
+    --ws-docs-toc: 240px;
+
+    --ws-space-1: 0.25rem;
+    --ws-space-2: 0.5rem;
+    --ws-space-3: 0.75rem;
+    --ws-space-4: 1rem;
+    --ws-space-5: 1.25rem;
+    --ws-space-6: 1.5rem;
+    --ws-space-7: 1.75rem;
+    --ws-space-8: 2rem;
+
+    --ws-font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue",
+      Arial, sans-serif;
+    --ws-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace;
+
+    /* Compatibility aliases (migrate templates incrementally) */
+    --text: var(--ws-fg);
+    --muted: var(--ws-muted);
+    --border: var(--ws-border);
+    --accent: var(--ws-accent);
+    --accent-hover: var(--ws-accent-hover);
+    --focus: var(--ws-focus);
+    --radius: var(--ws-radius-2);
+    --container: var(--ws-container);
+  }
+
+  [data-theme="dark"] {
+    color-scheme: dark;
+
+    --ws-bg: #0b1220;
+    --ws-fg: #e5e7eb;
+    --ws-muted: #94a3b8;
+    --ws-border: rgba(148, 163, 184, 0.24);
+
+    --ws-accent: #60a5fa;
+    --ws-accent-hover: #3b82f6;
+    --ws-focus: rgba(96, 165, 250, 0.35);
+  }
+}

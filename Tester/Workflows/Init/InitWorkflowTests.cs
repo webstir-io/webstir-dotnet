@@ -162,6 +162,15 @@ public sealed class InitWorkflowTests
             Assert.Equal(0, initResult.ExitCode);
             AssertModeFolders(projectDir, scenario);
             AssertModeDependencies(projectDir, scenario);
+
+            if (string.Equals(scenario.Mode, InitModes.Ssg, StringComparison.Ordinal))
+            {
+                string pagesRoot = Path.Combine(projectDir, Folders.Src, Folders.Frontend, Folders.Pages);
+                string contentRoot = Path.Combine(projectDir, Folders.Src, Folders.Frontend, Folders.Content);
+                Assert.True(File.Exists(Path.Combine(pagesRoot, "home", Files.IndexHtml)), "SSG home page missing");
+                Assert.True(File.Exists(Path.Combine(pagesRoot, "about", Files.IndexHtml)), "SSG about page missing");
+                Assert.True(File.Exists(Path.Combine(contentRoot, "content-pipeline.md")), "SSG docs sample missing");
+            }
         }
     }
 

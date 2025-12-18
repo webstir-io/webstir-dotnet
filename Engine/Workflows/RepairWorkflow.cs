@@ -136,7 +136,7 @@ public sealed class RepairWorkflow(
             value.Contains(Path.AltDirectorySeparatorChar);
     }
 
-    private sealed record EnableFlags(bool Spa, bool SeamlessNav);
+    private sealed record EnableFlags(bool Spa, bool ClientNav);
 
     private static void PrintPlan(string workspaceRoot, IReadOnlyCollection<string> missing)
     {
@@ -201,9 +201,9 @@ public sealed class RepairWorkflow(
                 }
             }
 
-            if (enable.SeamlessNav)
+            if (enable.ClientNav)
             {
-                foreach (string relativePath in ResourceHelpers.ListEmbeddedDirectoryFiles($"{Resources.FeaturesPath}.seamless-nav"))
+                foreach (string relativePath in ResourceHelpers.ListEmbeddedDirectoryFiles($"{Resources.FeaturesPath}.client_nav"))
                 {
                     string outputPath = Path.Combine(workspaceRoot, appDir, relativePath);
                     if (!File.Exists(outputPath))
@@ -222,7 +222,7 @@ public sealed class RepairWorkflow(
         string packageJsonPath = workspaceRoot.Combine(Files.PackageJson);
         if (!File.Exists(packageJsonPath))
         {
-            return new EnableFlags(Spa: false, SeamlessNav: false);
+            return new EnableFlags(Spa: false, ClientNav: false);
         }
 
         try
@@ -233,13 +233,13 @@ public sealed class RepairWorkflow(
             JsonObject? enable = webstir?["enable"] as JsonObject;
 
             bool spa = (bool?)enable?["spa"] ?? false;
-            bool seamlessNav = (bool?)enable?["seamlessNav"] ?? false;
+            bool clientNav = (bool?)enable?["clientNav"] ?? false;
 
-            return new EnableFlags(Spa: spa, SeamlessNav: seamlessNav);
+            return new EnableFlags(Spa: spa, ClientNav: clientNav);
         }
         catch
         {
-            return new EnableFlags(Spa: false, SeamlessNav: false);
+            return new EnableFlags(Spa: false, ClientNav: false);
         }
     }
 
@@ -252,9 +252,9 @@ public sealed class RepairWorkflow(
             await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.FeaturesPath}.router", appDir, overwriteExisting: false);
         }
 
-        if (enable.SeamlessNav)
+        if (enable.ClientNav)
         {
-            await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.FeaturesPath}.seamless-nav", appDir, overwriteExisting: false);
+            await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.FeaturesPath}.client_nav", appDir, overwriteExisting: false);
         }
     }
 }

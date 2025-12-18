@@ -5,6 +5,9 @@ const eventSource = existingEventSource instanceof EventSource
 window.__webstirEventSource = eventSource;
 let isShuttingDown = false;
 let resetTimer;
+let currentStatus;
+const STATUS_STORAGE_KEY = '__webstirDevStatus';
+const STATUS_MAX_AGE_MS = 5000;
 
 const indicator = document.createElement('div');
 indicator.id = 'dev-server-indicator';
@@ -75,21 +78,67 @@ const statusHandlers = {
 };
 
 function applyStatus(status, message) {
+    currentStatus = status;
     const handler = statusHandlers[status];
     if (typeof handler === 'function') {
         handler(message);
+    }
+
+    if (status === 'connected' || status === 'disconnected') {
+        return;
+    }
+
+    try {
+        sessionStorage.setItem(
+            STATUS_STORAGE_KEY,
+            JSON.stringify({ status, message, timestamp: Date.now() })
+        );
+    } catch {
+        // ignore
     }
 }
 
 window.__webstirSetDevStatus = applyStatus;
 
+try {
+    const raw = sessionStorage.getItem(STATUS_STORAGE_KEY);
+    if (raw) {
+        sessionStorage.removeItem(STATUS_STORAGE_KEY);
+        const saved = JSON.parse(raw);
+        if (saved && typeof saved === 'object') {
+            const age = Date.now() - (saved.timestamp ?? 0);
+            if (age >= 0 && age <= STATUS_MAX_AGE_MS && typeof saved.status === 'string') {
+                applyStatus(saved.status.trim(), typeof saved.message === 'string' ? saved.message : undefined);
+            }
+        }
+    }
+} catch {
+    // ignore
+}
+
+let loggedConnected = false;
+function markConnected() {
+    if (!loggedConnected) {
+        loggedConnected = true;
+        console.log('SSE connection established.');
+    }
+
+    if (indicator.style.opacity === '0' || currentStatus === 'disconnected') {
+        applyStatus('connected');
+    }
+}
+
 eventSource.onopen = () => {
-    console.log('SSE connection established.');
-    applyStatus('connected');
+    markConnected();
 };
+
+if (eventSource.readyState === EventSource.OPEN) {
+    markConnected();
+}
 
 eventSource.onmessage = (event) => {
     if (event.data === 'reload') {
+        applyStatus('success');
         location.reload();
     } else if (event.data === 'shutdown') {
         isShuttingDown = true;
@@ -99,7 +148,7 @@ eventSource.onmessage = (event) => {
 };
 
 eventSource.addEventListener('status', (event) => {
-    applyStatus(event.data);
+    applyStatus(String(event.data ?? '').trim());
 });
 
 eventSource.onerror = (error) => {

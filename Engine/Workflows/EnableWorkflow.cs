@@ -21,7 +21,8 @@ public class EnableWorkflow(
     {
         Scripts,
         Spa,
-        SeamlessNav,
+        ClientNav,
+        Search,
         Backend
     }
 
@@ -30,7 +31,7 @@ public class EnableWorkflow(
         string[] filteredArgs = [.. args.Where(arg => arg != WorkflowName)];
         if (filteredArgs.Length == 0)
         {
-            throw new ArgumentException($"Usage: {App.Name} {Commands.Enable} <scripts <page>|spa|seamless-nav|backend>");
+            throw new WorkflowUsageException($"Usage: {App.Name} {Commands.Enable} <scripts <page>|spa|client-nav|search|backend>");
         }
 
         Feature feature = ParseFeature(filteredArgs[0]);
@@ -41,15 +42,18 @@ public class EnableWorkflow(
                 string? page = filteredArgs.Skip(1).FirstOrDefault();
                 if (string.IsNullOrWhiteSpace(page))
                 {
-                    throw new ArgumentException($"Usage: {App.Name} {Commands.Enable} scripts <page>");
+                    throw new WorkflowUsageException($"Usage: {App.Name} {Commands.Enable} scripts <page>");
                 }
                 await EnableScriptsAsync(page);
                 break;
             case Feature.Spa:
                 await EnableSpaAsync();
                 break;
-            case Feature.SeamlessNav:
-                await EnableSeamlessNavAsync();
+            case Feature.ClientNav:
+                await EnableClientNavAsync();
+                break;
+            case Feature.Search:
+                await EnableSearchAsync();
                 break;
             case Feature.Backend:
                 await EnableBackendAsync();
@@ -64,10 +68,12 @@ public class EnableWorkflow(
         {
             "scripts" => Feature.Scripts,
             "spa" => Feature.Spa,
-            "seamless-nav" => Feature.SeamlessNav,
-            "seamless" => Feature.SeamlessNav,
+            "client-nav" => Feature.ClientNav,
+            "search" => Feature.Search,
             "backend" => Feature.Backend,
-            _ => throw new ArgumentException($"Unknown feature '{token}'. Expected scripts, spa, seamless-nav, or backend.")
+            _ => throw new WorkflowUsageException(
+                $"Unknown feature '{token}'. Expected scripts, spa, client-nav, search, or backend. " +
+                $"Usage: {App.Name} {Commands.Enable} <scripts <page>|spa|client-nav|search|backend>")
         };
     }
 
@@ -85,22 +91,55 @@ public class EnableWorkflow(
             throw new InvalidOperationException($"Page '{pageName}' already has an index.ts script.");
         }
 
-        string templatePrefix = $"{Resources.FeaturesPath}.page-script";
+        string templatePrefix = $"{Resources.FeaturesPath}.page_script";
         await ResourceHelpers.CopyEmbeddedDirectoryAsync(templatePrefix, pageDir);
+
+        string relativePath = Path.Combine(Folders.Src, Folders.Frontend, Folders.Pages, pageName, $"index{FileExtensions.Ts}");
+        Console.WriteLine($"Enabled scripts for page '{pageName}'.");
+        Console.WriteLine($"  + {relativePath}");
     }
 
     private async Task EnableSpaAsync()
     {
         string appDir = Context.FrontendAppPath;
         await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.FeaturesPath}.router", appDir);
-        await UpdatePackageJsonAsync(enableSpa: true, enableSeamlessNav: null, enableBackend: null, mode: null);
+        bool updatedPackageJson = await UpdatePackageJsonAsync(enableSpa: true, enableClientNav: null, enableSearch: null, enableBackend: null, mode: null);
+
+        Console.WriteLine("Enabled spa.");
+        if (updatedPackageJson)
+        {
+            Console.WriteLine("  Updated package.json: webstir.enable.spa=true");
+        }
     }
 
-    private async Task EnableSeamlessNavAsync()
+    private async Task EnableClientNavAsync()
     {
         string appDir = Context.FrontendAppPath;
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.FeaturesPath}.seamless-nav", appDir);
-        await UpdatePackageJsonAsync(enableSpa: null, enableSeamlessNav: true, enableBackend: null, mode: null);
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.FeaturesPath}.client_nav", appDir);
+        bool updatedPackageJson = await UpdatePackageJsonAsync(enableSpa: null, enableClientNav: true, enableSearch: null, enableBackend: null, mode: null);
+
+        string relativePath = Path.Combine(Folders.Src, Folders.Frontend, Folders.App, $"clientNav{FileExtensions.Js}");
+        Console.WriteLine("Enabled client-nav.");
+        Console.WriteLine($"  + {relativePath}");
+        if (updatedPackageJson)
+        {
+            Console.WriteLine("  Updated package.json: webstir.enable.clientNav=true");
+        }
+    }
+
+    private async Task EnableSearchAsync()
+    {
+        string appDir = Context.FrontendAppPath;
+        await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.FeaturesPath}.search", appDir);
+        bool updatedPackageJson = await UpdatePackageJsonAsync(enableSpa: null, enableClientNav: null, enableSearch: true, enableBackend: null, mode: null);
+
+        string relativePath = Path.Combine(Folders.Src, Folders.Frontend, Folders.App, $"search{FileExtensions.Js}");
+        Console.WriteLine("Enabled search.");
+        Console.WriteLine($"  + {relativePath}");
+        if (updatedPackageJson)
+        {
+            Console.WriteLine("  Updated package.json: webstir.enable.search=true");
+        }
     }
 
     private async Task EnableBackendAsync()
@@ -112,22 +151,28 @@ public class EnableWorkflow(
             await ResourceHelpers.CopyEmbeddedDirectoryAsync(templatePrefix, backendDir);
         }
 
-        await UpdatePackageJsonAsync(enableSpa: null, enableSeamlessNav: null, enableBackend: true, mode: "full");
+        bool updatedPackageJson = await UpdatePackageJsonAsync(enableSpa: null, enableClientNav: null, enableSearch: null, enableBackend: true, mode: "full");
         EnsureTsReference(Folders.Backend);
+
+        Console.WriteLine("Enabled backend.");
+        if (updatedPackageJson)
+        {
+            Console.WriteLine("  Updated package.json: webstir.mode=full, webstir.enable.backend=true");
+        }
     }
 
-    private async Task UpdatePackageJsonAsync(bool? enableSpa, bool? enableSeamlessNav, bool? enableBackend, string? mode)
+    private async Task<bool> UpdatePackageJsonAsync(bool? enableSpa, bool? enableClientNav, bool? enableSearch, bool? enableBackend, string? mode)
     {
         string packageJsonPath = Context.WorkingPath.Combine(Files.PackageJson);
         if (!File.Exists(packageJsonPath))
         {
-            return;
+            return false;
         }
 
         JsonNode? rootNode = JsonNode.Parse(await File.ReadAllTextAsync(packageJsonPath));
         if (rootNode is not JsonObject root)
         {
-            return;
+            return false;
         }
 
         JsonObject webstir = root["webstir"] as JsonObject ?? new JsonObject();
@@ -141,9 +186,13 @@ public class EnableWorkflow(
         {
             enable["spa"] = enableSpa.Value;
         }
-        if (enableSeamlessNav.HasValue)
+        if (enableClientNav.HasValue)
         {
-            enable["seamlessNav"] = enableSeamlessNav.Value;
+            enable["clientNav"] = enableClientNav.Value;
+        }
+        if (enableSearch.HasValue)
+        {
+            enable["search"] = enableSearch.Value;
         }
         if (enableBackend.HasValue)
         {
@@ -158,6 +207,7 @@ public class EnableWorkflow(
             WriteIndented = true
         };
         await File.WriteAllTextAsync(packageJsonPath, root.ToJsonString(options) + Environment.NewLine);
+        return true;
     }
 
     private void EnsureTsReference(string folderName)

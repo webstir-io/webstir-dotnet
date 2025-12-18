@@ -1,0 +1,14 @@
+{
+  "pages": [
+    {
+      "path": "/docs/content-pipeline/",
+      "title": "Content pipeline",
+      "order": 1
+    },
+    {
+      "path": "/docs/hosting/",
+      "title": "Deploying your site",
+      "order": 2
+    }
+  ]
+}

@@ -1,2 +1,72 @@
-/* Base styles placeholder (extend as needed) */
-/* This file can be extended by projects if desired. */
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    font-family: var(--ws-font-sans);
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--ws-fg);
+    background: var(--ws-bg);
+  }
+
+  main {
+    display: block;
+    padding-top: 48px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: var(--ws-fg);
+    line-height: 1.25;
+    margin: 0 0 0.5rem 0;
+  }
+
+  p {
+    margin: 0 0 1rem 0;
+  }
+
+  a {
+    color: var(--ws-accent);
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  a:focus-visible {
+    outline: 3px solid var(--ws-focus);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+
+  code {
+    font-family: var(--ws-font-mono);
+    font-size: 0.95em;
+    padding: 0.12em 0.4em;
+    border-radius: 8px;
+    border: 1px solid var(--ws-border);
+    background: rgba(17, 24, 39, 0.06);
+  }
+
+  pre {
+    padding: 12px 14px;
+    border-radius: var(--ws-radius-2);
+    border: 1px solid var(--ws-border);
+    background: rgba(17, 24, 39, 0.04);
+    overflow-x: auto;
+  }
+
+  pre code {
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+}

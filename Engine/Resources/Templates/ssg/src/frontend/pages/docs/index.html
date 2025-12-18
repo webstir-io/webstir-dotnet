@@ -1,0 +1,52 @@
+<head>
+  <title>Docs</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+  <main>
+    <section class="docs-layout" data-scope="docs">
+      <div class="ws-container docs-layout__inner">
+        <aside class="docs-sidebar" aria-label="Docs navigation">
+          <div class="docs-sidebar__header">
+            <a class="docs-sidebar__title" href="/docs/">Docs</a>
+          </div>
+          <nav class="docs-nav" aria-label="Docs pages">
+            <ul id="docs-links" class="docs-links">
+              <li><a href="/docs/content-pipeline/">Content pipeline</a></li>
+              <li><a href="/docs/css-playbook/">CSS Playbook</a></li>
+            </ul>
+          </nav>
+        </aside>
+
+        <div class="docs-main">
+          <header class="docs-hero">
+            <h1>Documentation</h1>
+            <p class="docs-lead">
+              Drop Markdown files into <code>src/frontend/content/</code> and Webstir turns them into real pages under
+              <code>/docs/</code>.
+            </p>
+          </header>
+
+          <section class="docs-cards">
+            <a class="docs-card" href="/docs/content-pipeline/">
+              <div class="docs-card__title">Start here</div>
+              <div class="docs-card__body">How the content pipeline works.</div>
+            </a>
+            <a class="docs-card" href="/docs/css-playbook/">
+              <div class="docs-card__title">CSS Playbook</div>
+              <div class="docs-card__body">Minimal tokens, primitives, and components.</div>
+            </a>
+          </section>
+        </div>
+
+        <aside class="docs-toc" aria-label="On this page" hidden>
+          <div class="docs-toc__title">On this page</div>
+          <nav class="docs-toc__nav">
+            <ul id="docs-toc" class="docs-toc__links"></ul>
+          </nav>
+        </aside>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="index.js"></script>
+</body>

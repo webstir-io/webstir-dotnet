@@ -1,0 +1,43 @@
+@layer primitives {
+  .ws-container,
+  .container {
+    width: 100%;
+    max-width: var(--ws-container);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--ws-container-pad, var(--ws-space-4));
+    padding-right: var(--ws-container-pad, var(--ws-space-4));
+  }
+
+  .ws-stack,
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ws-gap, var(--ws-space-6));
+  }
+
+  .ws-cluster {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ws-gap, var(--ws-space-3));
+  }
+
+  .ws-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--ws-grid-min, 16rem)), 1fr));
+    gap: var(--ws-gap, var(--ws-space-4));
+  }
+
+  .ws-sidebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ws-gap, var(--ws-space-6));
+  }
+
+  @media (min-width: 860px) {
+    .ws-sidebar {
+      grid-template-columns: minmax(0, 1fr) minmax(240px, var(--ws-sidebar, 320px));
+    }
+  }
+}

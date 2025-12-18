@@ -258,11 +258,12 @@ public static class Help
             [
                 Example($"{App.Name} {Commands.Enable} scripts home", "Add a page-level script stub to pages/home."),
                 Example($"{App.Name} {Commands.Enable} spa", "Enable client routing and router assets."),
-                Example($"{App.Name} {Commands.Enable} seamless-nav", "Enable PJAX-style navigation helper."),
+                Example($"{App.Name} {Commands.Enable} client-nav", "Enable PJAX-style navigation helper."),
+                Example($"{App.Name} {Commands.Enable} search", "Enable site-wide search UI and index output."),
                 Example($"{App.Name} {Commands.Enable} backend", "Add backend scaffold to a frontend-only app.")
             ],
             null,
-            "<scripts <page>|spa|seamless-nav|backend>");
+            "<scripts <page>|spa|client-nav|search|backend>");
 
     private static CommandHelp GetHelpCommand() =>
         CreateCommand(Commands.Help,
