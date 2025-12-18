@@ -136,6 +136,26 @@ jobs:
         if: ${{ env.IS_DRY_RUN != 'true' }}
         run: npm ci --workspaces
 
+      - name: Build testing contract package
+        if: ${{ env.IS_DRY_RUN != 'true' }}
+        run: npm --workspace Framework/Contracts/testing-contract run build
+
+      - name: Build module contract package
+        if: ${{ env.IS_DRY_RUN != 'true' }}
+        run: npm --workspace Framework/Contracts/module-contract run build
+
+      - name: Build backend package
+        if: ${{ env.IS_DRY_RUN != 'true' }}
+        run: npm --workspace Framework/Backend run build
+
+      - name: Build frontend package
+        if: ${{ env.IS_DRY_RUN != 'true' }}
+        run: npm --workspace Framework/Frontend run build
+
+      - name: Build testing package
+        if: ${{ env.IS_DRY_RUN != 'true' }}
+        run: npm --workspace Framework/Testing run build
+
       - name: Run .NET workflow tests
         if: ${{ env.IS_DRY_RUN != 'true' }}
         run: WEBSTIR_TEST_MODE=full dotnet test Tester/Tester.csproj --nologo --logger "console;verbosity=minimal;summary=true"
