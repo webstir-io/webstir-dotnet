@@ -45,6 +45,8 @@ public static class Files
     public const string Test = ".test";
     public const string Index = "index";
     public const string IndexHtml = "index.html";
+    public const string AppHtml = "app.html";
+    public const string AppCss = "app.css";
     public const string RefreshJs = "refresh.js";
     public const string HmrJs = "hmr.js";
     public const string RobotsTxt = "robots.txt";

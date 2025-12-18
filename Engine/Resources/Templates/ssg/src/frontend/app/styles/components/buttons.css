@@ -1,0 +1,62 @@
+@layer components {
+  /* Buttons */
+  :where([data-ui="btn"]),
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--ws-space-3) var(--ws-space-4);
+    border-radius: var(--ws-radius-2);
+    border: 1px solid var(--ws-border);
+    background: var(--ws-bg);
+    color: var(--ws-fg);
+    text-decoration: none;
+    font-weight: 650;
+    transition: background-color 120ms ease, border-color 120ms ease, filter 120ms ease;
+    cursor: pointer;
+  }
+
+  :where([data-ui="btn"]):focus-visible,
+  .button:focus-visible {
+    outline: 0.1875rem solid var(--ws-focus);
+    outline-offset: 0.125rem;
+  }
+
+  :where([data-ui="btn"]):hover,
+  .button:hover {
+    text-decoration: none;
+    background: rgba(17, 24, 39, 0.03);
+  }
+
+  :where([data-ui="btn"][data-variant="solid"][data-tone="accent"]),
+  .button--primary {
+    background: var(--ws-accent);
+    color: #ffffff;
+    border-color: var(--ws-accent);
+  }
+
+  :where([data-ui="btn"][data-variant="solid"][data-tone="accent"]):hover,
+  .button--primary:hover {
+    background: var(--ws-accent-hover);
+    border-color: var(--ws-accent-hover);
+  }
+
+  :where([data-ui="btn"][data-variant="ghost"]) {
+    border-color: transparent;
+    background: transparent;
+  }
+
+  :where([data-ui="btn"][data-variant="ghost"]):hover {
+    background: rgba(17, 24, 39, 0.04);
+  }
+
+  :where([data-ui="btn"][data-size="sm"]) {
+    padding: var(--ws-space-2) var(--ws-space-3);
+    font-size: 0.95rem;
+  }
+
+  :where([data-ui="btn"][data-size="lg"]) {
+    padding: 0.875rem 1.125rem;
+    font-size: 1.05rem;
+  }
+}

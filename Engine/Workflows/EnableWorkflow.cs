@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Engine.Extensions;
 using Engine.Helpers;
@@ -131,6 +132,8 @@ public class EnableWorkflow(
     {
         string appDir = Context.FrontendAppPath;
         await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.FeaturesPath}.search", appDir);
+        await EnableSearchCssAsync(appDir).ConfigureAwait(false);
+        await EnsureSearchCssModeEnabledAsync(appDir).ConfigureAwait(false);
         bool updatedPackageJson = await UpdatePackageJsonAsync(enableSpa: null, enableClientNav: null, enableSearch: true, enableBackend: null, mode: null);
 
         string relativePath = Path.Combine(Folders.Src, Folders.Frontend, Folders.App, $"search{FileExtensions.Js}");
@@ -140,6 +143,125 @@ public class EnableWorkflow(
         {
             Console.WriteLine("  Updated package.json: webstir.enable.search=true");
         }
+    }
+
+    private static async Task EnableSearchCssAsync(string appDir)
+    {
+        string appCssPath = Path.Combine(appDir, Files.AppCss);
+        if (!File.Exists(appCssPath))
+        {
+            return;
+        }
+
+        string css = await File.ReadAllTextAsync(appCssPath).ConfigureAwait(false);
+        string updated = css;
+
+        updated = EnsureLayerIncludes(updated, "search");
+        updated = EnsureImportIncludes(updated, "./styles/features/search.css", "./styles/components/buttons.css");
+
+        if (!string.Equals(css, updated, StringComparison.Ordinal))
+        {
+            await File.WriteAllTextAsync(appCssPath, updated).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task EnsureSearchCssModeEnabledAsync(string appDir)
+    {
+        string appHtmlPath = Path.Combine(appDir, Files.AppHtml);
+        if (!File.Exists(appHtmlPath))
+        {
+            return;
+        }
+
+        string html = await File.ReadAllTextAsync(appHtmlPath).ConfigureAwait(false);
+        if (html.Contains("data-webstir-search-styles=", StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        string updated = Regex.Replace(
+            html,
+            "<html\\b(?![^>]*\\bdata-webstir-search-styles=)",
+            "<html data-webstir-search-styles=\"css\"",
+            RegexOptions.IgnoreCase,
+            TimeSpan.FromMilliseconds(250));
+
+        if (!string.Equals(html, updated, StringComparison.Ordinal))
+        {
+            await File.WriteAllTextAsync(appHtmlPath, updated).ConfigureAwait(false);
+        }
+    }
+
+    private static string EnsureLayerIncludes(string css, string layerName)
+    {
+        Match match = Regex.Match(css, @"@layer\\s+([^;]+);", RegexOptions.None, TimeSpan.FromMilliseconds(250));
+        if (!match.Success)
+        {
+            return css;
+        }
+
+        string layerList = match.Groups[1].Value;
+        string[] layers = layerList
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (layers.Any(layer => string.Equals(layer, layerName, StringComparison.Ordinal)))
+        {
+            return css;
+        }
+
+        List<string> updated = [.. layers];
+        int utilitiesIndex = updated.FindIndex(layer => string.Equals(layer, "utilities", StringComparison.Ordinal));
+        int overridesIndex = updated.FindIndex(layer => string.Equals(layer, "overrides", StringComparison.Ordinal));
+
+        int insertIndex = utilitiesIndex >= 0
+            ? utilitiesIndex
+            : overridesIndex >= 0
+                ? overridesIndex
+                : updated.Count;
+
+        updated.Insert(insertIndex, layerName);
+        string rewritten = $"@layer {string.Join(", ", updated)};";
+        return css[..match.Index] + rewritten + css[(match.Index + match.Length)..];
+    }
+
+    private static string EnsureImportIncludes(string css, string importPath, string insertAfterImportPath)
+    {
+        string importNeedle = $"@import \"{importPath}\"";
+        if (css.Contains(importNeedle, StringComparison.Ordinal)
+            || css.Contains($"@import '{importPath}'", StringComparison.Ordinal))
+        {
+            return css;
+        }
+
+        string insertAfterNeedle = $"@import \"{insertAfterImportPath}\"";
+        int insertAfterIndex = css.IndexOf(insertAfterNeedle, StringComparison.Ordinal);
+        if (insertAfterIndex < 0)
+        {
+            insertAfterNeedle = $"@import '{insertAfterImportPath}'";
+            insertAfterIndex = css.IndexOf(insertAfterNeedle, StringComparison.Ordinal);
+        }
+
+        if (insertAfterIndex >= 0)
+        {
+            int lineEnd = css.IndexOf('\n', insertAfterIndex);
+            int insertAt = lineEnd >= 0 ? lineEnd + 1 : css.Length;
+            return css.Insert(insertAt, $"@import \"{importPath}\";{Environment.NewLine}");
+        }
+
+        MatchCollection imports = Regex.Matches(
+            css,
+            @"@import\s+['""][^'""]+['""];?",
+            RegexOptions.None,
+            TimeSpan.FromMilliseconds(250));
+        if (imports.Count > 0)
+        {
+            Match lastImport = imports[^1];
+            int insertAt = lastImport.Index + lastImport.Length;
+            string separator = css.Length > insertAt && css[insertAt] == '\n' ? "" : Environment.NewLine;
+            return css.Insert(insertAt, $"{separator}@import \"{importPath}\";{Environment.NewLine}");
+        }
+
+        return css + $"{Environment.NewLine}@import \"{importPath}\";{Environment.NewLine}";
     }
 
     private async Task EnableBackendAsync()

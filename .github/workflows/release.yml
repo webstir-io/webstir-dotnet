@@ -44,7 +44,7 @@ jobs:
       - name: Set up .NET 9 SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 9.0.x
+          dotnet-version: 10.0.x
 
       - name: Set up Node 20.18.1
         uses: actions/setup-node@v4

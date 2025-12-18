@@ -15,7 +15,10 @@ public abstract class BaseWorkflow(
 {
     protected readonly AppWorkspace Context = context;
     protected IEnumerable<IWorkflowWorker> Workers { get; } = workers;
-    protected WorkspaceProfile WorkspaceProfile { get; private set; }
+    protected WorkspaceProfile WorkspaceProfile
+    {
+        get; private set;
+    }
     protected void SetWorkspaceProfile(WorkspaceProfile profile) => WorkspaceProfile = profile;
     protected IFrontendWorker Frontend => Workers.OfType<IFrontendWorker>().Single();
     public abstract string WorkflowName

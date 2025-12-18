@@ -543,7 +543,7 @@ public sealed class FrontendWorker : IFrontendWorker
             }
 
             NodeRuntime.EnsureMinimumVersion();
-            _logger.LogInformation("[frontend] Verifying framework packages...");
+            _logger.LogDebug("[frontend] Verifying framework packages...");
 
             PackageWorkspaceAdapter workspaceAdapter = new(_workspace);
             PackageManagerDescriptor packageManager = workspaceAdapter.PackageManager;
@@ -580,7 +580,7 @@ public sealed class FrontendWorker : IFrontendWorker
                 ThrowMismatch(summary);
             }
 
-            _logger.LogInformation("[frontend] Package verification complete.");
+            _logger.LogDebug("[frontend] Package verification complete.");
             _packagesVerified = true;
         }
         finally
@@ -603,7 +603,7 @@ public sealed class FrontendWorker : IFrontendWorker
 
     private void LogModuleBuildResult(string stage, ModuleBuildExecutionResult result)
     {
-        _logger.LogInformation(
+        _logger.LogDebug(
             "[frontend] {Stage} provider {ProviderId} produced {EntryCount} entry point(s).",
             stage,
             result.Provider.Id,
@@ -635,7 +635,7 @@ public sealed class FrontendWorker : IFrontendWorker
             }
             else
             {
-                _logger.LogInformation("[frontend] {Message}", diagnostic.Message);
+                _logger.LogDebug("[frontend] {Message}", diagnostic.Message);
             }
         }
 
@@ -657,7 +657,7 @@ public sealed class FrontendWorker : IFrontendWorker
         }
         else
         {
-            _logger.LogInformation("[frontend] {Message}", evt.Message);
+            _logger.LogDebug("[frontend] {Message}", evt.Message);
         }
     }
 

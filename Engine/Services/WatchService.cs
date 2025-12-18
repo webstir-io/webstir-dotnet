@@ -31,7 +31,7 @@ public class WatchService(ChangeService changeService, ILogger<WatchService> log
     private void StartFileWatching(AppWorkspace workspace)
     {
         _watcher = CreateFileSystemWatcher(workspace);
-        _logger.LogInformation("Started watching for file changes in {SrcPath}", workspace.SrcPath);
+        _logger.LogInformation("Started watching for file changes in {SrcPath}", workspace.ToDisplayPath(workspace.SrcPath));
     }
 
     private FileSystemWatcher CreateFileSystemWatcher(AppWorkspace workspace)

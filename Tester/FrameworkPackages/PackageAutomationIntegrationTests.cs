@@ -92,7 +92,7 @@ public sealed class PackageAutomationIntegrationTests
             ProcessResult result = workspace.RunFramework("-- packages publish --all", timeoutMs: 25000);
             Assert.Equal(1, result.ExitCode);
 
-        string output = string.Concat(result.StandardOutput, result.StandardError);
+            string output = string.Concat(result.StandardOutput, result.StandardError);
             Assert.Contains("GH_PACKAGES_TOKEN", output);
             Assert.Contains("does not exist", output, StringComparison.OrdinalIgnoreCase);
 

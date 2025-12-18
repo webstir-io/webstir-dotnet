@@ -1,0 +1,25 @@
+@layer components {
+  /* Markdown content pages (main > article) */
+  main > article {
+    max-width: var(--ws-container);
+    margin: 0 auto;
+    padding: 3rem var(--ws-container-pad, 1rem) 6rem;
+  }
+
+  main > article h1 {
+    margin-bottom: 1rem;
+  }
+
+  main > article h2 {
+    margin-top: 2rem;
+  }
+
+  main > article ul,
+  main > article ol {
+    padding-left: 1.25rem;
+  }
+
+  main > article li {
+    margin: 0.625rem 0;
+  }
+}

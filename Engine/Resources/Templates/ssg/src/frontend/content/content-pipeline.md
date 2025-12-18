@@ -65,9 +65,10 @@ Enable site-wide search:
 
 - `webstir enable search`
 
-When enabled, Webstir emits:
+When enabled, Webstir generates search data and adds the search UI assets to your app:
 
 - `/search.json` (used by `/search.js`)
+- `src/frontend/app/styles/features/search.css` (search UI styling, added to your source tree)
 
 ## Development vs publish
 

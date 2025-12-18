@@ -44,9 +44,10 @@ public class ChangeService(ILogger<ChangeService> logger)
 
     public void EnqueueChange(string filePath, FileChangeType changeType)
     {
+        string displayPath = _workspace?.ToDisplayPath(filePath) ?? filePath;
         if (IsIgnored(filePath))
         {
-            _logger.LogDebug("Ignoring file change: {FilePath}", filePath);
+            _logger.LogDebug("Ignoring file change: {FilePath}", displayPath);
             return;
         }
 
@@ -54,7 +55,7 @@ public class ChangeService(ILogger<ChangeService> logger)
 
         if (!_channel.Writer.TryWrite(changeEvent))
         {
-            _logger.LogWarning("Failed to enqueue file change: {FilePath}", filePath);
+            _logger.LogWarning("Failed to enqueue file change: {FilePath}", displayPath);
         }
     }
 
@@ -70,8 +71,9 @@ public class ChangeService(ILogger<ChangeService> logger)
         {
             await foreach (FileChangeEvent changeEvent in _channel.Reader.ReadAllAsync(cancellationToken))
             {
+                string displayPath = _workspace?.ToDisplayPath(changeEvent.FilePath) ?? changeEvent.FilePath;
                 _logger.LogInformation("File change detected: {FilePath} ({ChangeType})",
-                    changeEvent.FilePath, changeEvent.ChangeType);
+                    displayPath, changeEvent.ChangeType);
 
                 switch (changeEvent.ChangeType)
                 {
@@ -94,7 +96,7 @@ public class ChangeService(ILogger<ChangeService> logger)
                         catch (Exception ex)
                         {
                             buildSucceeded = false;
-                            _logger.LogError(ex, "Frontend change processing failed for {FilePath}", changeEvent.FilePath);
+                            _logger.LogError(ex, "Frontend change processing failed for {FilePath}", displayPath);
                             await NotifyClientsAsync(ClientNotificationType.BuildFailed);
                         }
 
@@ -130,7 +132,7 @@ public class ChangeService(ILogger<ChangeService> logger)
                         catch (Exception ex)
                         {
                             deleteSucceeded = false;
-                            _logger.LogError(ex, "Frontend deletion handling failed for {FilePath}", changeEvent.FilePath);
+                            _logger.LogError(ex, "Frontend deletion handling failed for {FilePath}", displayPath);
                             await NotifyClientsAsync(ClientNotificationType.BuildFailed);
                         }
 

@@ -18,34 +18,64 @@ internal sealed class ModuleRuntimeManifest
     public string Kind { get; init; } = string.Empty;
 
     [JsonPropertyName("capabilities")]
-    public IReadOnlyList<string>? Capabilities { get; init; }
+    public IReadOnlyList<string>? Capabilities
+    {
+        get; init;
+    }
 
     [JsonPropertyName("assets")]
-    public IReadOnlyList<string>? Assets { get; init; }
+    public IReadOnlyList<string>? Assets
+    {
+        get; init;
+    }
 
     [JsonPropertyName("middlewares")]
-    public IReadOnlyList<string>? Middlewares { get; init; }
+    public IReadOnlyList<string>? Middlewares
+    {
+        get; init;
+    }
 
     [JsonPropertyName("routes")]
-    public IReadOnlyList<RouteDefinition>? Routes { get; init; }
+    public IReadOnlyList<RouteDefinition>? Routes
+    {
+        get; init;
+    }
 
     [JsonPropertyName("views")]
-    public IReadOnlyList<ViewDefinition>? Views { get; init; }
+    public IReadOnlyList<ViewDefinition>? Views
+    {
+        get; init;
+    }
 
     [JsonPropertyName("jobs")]
-    public IReadOnlyList<JobDefinition>? Jobs { get; init; }
+    public IReadOnlyList<JobDefinition>? Jobs
+    {
+        get; init;
+    }
 
     [JsonPropertyName("events")]
-    public IReadOnlyList<EventDefinition>? Events { get; init; }
+    public IReadOnlyList<EventDefinition>? Events
+    {
+        get; init;
+    }
 
     [JsonPropertyName("services")]
-    public IReadOnlyList<ServiceDefinition>? Services { get; init; }
+    public IReadOnlyList<ServiceDefinition>? Services
+    {
+        get; init;
+    }
 
     [JsonPropertyName("init")]
-    public string? Init { get; init; }
+    public string? Init
+    {
+        get; init;
+    }
 
     [JsonPropertyName("dispose")]
-    public string? Dispose { get; init; }
+    public string? Dispose
+    {
+        get; init;
+    }
 }
 
 internal sealed class RouteDefinition
@@ -60,61 +90,109 @@ internal sealed class RouteDefinition
     public string Path { get; init; } = string.Empty;
 
     [JsonPropertyName("summary")]
-    public string? Summary { get; init; }
+    public string? Summary
+    {
+        get; init;
+    }
 
     [JsonPropertyName("description")]
-    public string? Description { get; init; }
+    public string? Description
+    {
+        get; init;
+    }
 
     [JsonPropertyName("tags")]
-    public IReadOnlyList<string>? Tags { get; init; }
+    public IReadOnlyList<string>? Tags
+    {
+        get; init;
+    }
 
     [JsonPropertyName("input")]
-    public RouteInputDefinition? Input { get; init; }
+    public RouteInputDefinition? Input
+    {
+        get; init;
+    }
 
     [JsonPropertyName("output")]
-    public RouteOutputDefinition? Output { get; init; }
+    public RouteOutputDefinition? Output
+    {
+        get; init;
+    }
 
     [JsonPropertyName("errors")]
-    public IReadOnlyList<ModuleError>? Errors { get; init; }
+    public IReadOnlyList<ModuleError>? Errors
+    {
+        get; init;
+    }
 }
 
 internal sealed class RouteInputDefinition
 {
     [JsonPropertyName("params")]
-    public SchemaReference? Params { get; init; }
+    public SchemaReference? Params
+    {
+        get; init;
+    }
 
     [JsonPropertyName("query")]
-    public SchemaReference? Query { get; init; }
+    public SchemaReference? Query
+    {
+        get; init;
+    }
 
     [JsonPropertyName("body")]
-    public SchemaReference? Body { get; init; }
+    public SchemaReference? Body
+    {
+        get; init;
+    }
 
     [JsonPropertyName("headers")]
-    public SchemaReference? Headers { get; init; }
+    public SchemaReference? Headers
+    {
+        get; init;
+    }
 }
 
 internal sealed class RouteOutputDefinition
 {
     [JsonPropertyName("body")]
-    public SchemaReference? Body { get; init; }
+    public SchemaReference? Body
+    {
+        get; init;
+    }
 
     [JsonPropertyName("status")]
-    public int? Status { get; init; }
+    public int? Status
+    {
+        get; init;
+    }
 
     [JsonPropertyName("headers")]
-    public SchemaReference? Headers { get; init; }
+    public SchemaReference? Headers
+    {
+        get; init;
+    }
 }
 
 internal sealed class SchemaReference
 {
     [JsonPropertyName("kind")]
-    public string? Kind { get; init; }
+    public string? Kind
+    {
+        get; init;
+    }
 
     [JsonPropertyName("name")]
-    public string? Name { get; init; }
+    public string? Name
+    {
+        get; init;
+    }
 
     [JsonPropertyName("source")]
-    public string? Source { get; init; }
+    public string? Source
+    {
+        get; init;
+    }
 }
 
 internal sealed class ModuleError
@@ -126,10 +204,16 @@ internal sealed class ModuleError
     public string Message { get; init; } = string.Empty;
 
     [JsonPropertyName("details")]
-    public object? Details { get; init; }
+    public object? Details
+    {
+        get; init;
+    }
 
     [JsonPropertyName("correlationId")]
-    public string? CorrelationId { get; init; }
+    public string? CorrelationId
+    {
+        get; init;
+    }
 }
 
 internal sealed class ViewDefinition
@@ -141,19 +225,34 @@ internal sealed class ViewDefinition
     public string Path { get; init; } = string.Empty;
 
     [JsonPropertyName("summary")]
-    public string? Summary { get; init; }
+    public string? Summary
+    {
+        get; init;
+    }
 
     [JsonPropertyName("description")]
-    public string? Description { get; init; }
+    public string? Description
+    {
+        get; init;
+    }
 
     [JsonPropertyName("tags")]
-    public IReadOnlyList<string>? Tags { get; init; }
+    public IReadOnlyList<string>? Tags
+    {
+        get; init;
+    }
 
     [JsonPropertyName("params")]
-    public SchemaReference? Params { get; init; }
+    public SchemaReference? Params
+    {
+        get; init;
+    }
 
     [JsonPropertyName("data")]
-    public SchemaReference? Data { get; init; }
+    public SchemaReference? Data
+    {
+        get; init;
+    }
 }
 
 internal sealed class JobDefinition
@@ -162,10 +261,16 @@ internal sealed class JobDefinition
     public string Name { get; init; } = string.Empty;
 
     [JsonPropertyName("schedule")]
-    public string? Schedule { get; init; }
+    public string? Schedule
+    {
+        get; init;
+    }
 
     [JsonPropertyName("priority")]
-    public object? Priority { get; init; }
+    public object? Priority
+    {
+        get; init;
+    }
 }
 
 internal sealed class EventDefinition
@@ -174,10 +279,16 @@ internal sealed class EventDefinition
     public string Name { get; init; } = string.Empty;
 
     [JsonPropertyName("payload")]
-    public SchemaReference? Payload { get; init; }
+    public SchemaReference? Payload
+    {
+        get; init;
+    }
 
     [JsonPropertyName("description")]
-    public string? Description { get; init; }
+    public string? Description
+    {
+        get; init;
+    }
 }
 
 internal sealed class ServiceDefinition
@@ -186,5 +297,8 @@ internal sealed class ServiceDefinition
     public string Name { get; init; } = string.Empty;
 
     [JsonPropertyName("description")]
-    public string? Description { get; init; }
+    public string? Description
+    {
+        get; init;
+    }
 }

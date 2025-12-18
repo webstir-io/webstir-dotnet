@@ -2,7 +2,7 @@
 
 @layer overrides {
 .docs-layout {
-  padding: 20px 0 112px;
+  padding: 48px 0 112px;
   --ws-container: var(--ws-shell-container);
 }
 
@@ -45,12 +45,12 @@
 
 .docs-sidebar__title {
   font-weight: 800;
-  color: var(--text);
+  color: var(--ws-fg);
   text-decoration: none;
 }
 
 .docs-nav {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--ws-border);
   padding-top: 12px;
 }
 
@@ -80,7 +80,7 @@
   border-radius: 8px;
   border: 0;
   background: transparent;
-  color: var(--text);
+  color: var(--ws-fg);
   font-weight: 700;
   cursor: pointer;
   text-align: left;
@@ -121,7 +121,7 @@
   display: block;
   padding: 8px 10px;
   border-radius: 8px;
-  color: var(--text);
+  color: var(--ws-fg);
   text-decoration: none;
   font-weight: 600;
 }
@@ -133,7 +133,7 @@
 
 .docs-links a[aria-current="page"] {
   background: rgba(37, 99, 235, 0.10);
-  color: var(--text);
+  color: var(--ws-fg);
 }
 
 .docs-section {
@@ -145,7 +145,7 @@
 }
 
 .docs-section__title {
-  color: var(--muted);
+  color: var(--ws-muted);
   font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -172,7 +172,7 @@
 }
 
 .docs-toc__title {
-  color: var(--muted);
+  color: var(--ws-muted);
   font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -189,7 +189,7 @@
 }
 
 .docs-toc__links a {
-  color: var(--muted);
+  color: var(--ws-muted);
   text-decoration: none;
   font-weight: 600;
   font-size: 0.95rem;
@@ -197,12 +197,12 @@
 }
 
 .docs-toc__links a:hover {
-  color: var(--text);
+  color: var(--ws-fg);
   text-decoration: none;
 }
 
 .docs-toc__links a[aria-current="true"] {
-  color: var(--text);
+  color: var(--ws-fg);
 }
 
 .docs-toc__links .docs-toc__sub {
@@ -220,7 +220,7 @@
 }
 
 .docs-lead {
-  color: var(--muted);
+  color: var(--ws-muted);
   font-size: 1.1rem;
   margin: 0;
 }
@@ -233,11 +233,11 @@
 }
 
 .docs-card {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid var(--ws-border);
+  border-radius: var(--ws-radius-2);
   padding: 14px 16px;
   text-decoration: none;
-  color: var(--text);
+  color: var(--ws-fg);
   background: #ffffff;
 }
 
@@ -252,7 +252,7 @@
 }
 
 .docs-card__body {
-  color: var(--muted);
+  color: var(--ws-muted);
 }
 
 /* Markdown docs content */
@@ -296,7 +296,7 @@
   display: block;
   padding: 14px 16px;
   border-radius: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--ws-border);
   background: rgba(17, 24, 39, 0.04);
   overflow-x: auto;
   font-size: 0.95rem;
@@ -312,7 +312,7 @@
 
 .hljs-comment,
 .hljs-quote {
-  color: var(--muted);
+  color: var(--ws-muted);
   font-style: italic;
 }
 
@@ -348,7 +348,7 @@
   margin: 1.2rem 0 1.6rem;
   padding: 14px 16px;
   border-radius: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--ws-border);
   border-left-width: 4px;
   background: rgba(17, 24, 39, 0.03);
 }

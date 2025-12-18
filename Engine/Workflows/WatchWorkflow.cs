@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -33,7 +34,7 @@ public class WatchWorkflow(
         WorkspaceProfile effectiveProfile = ApplyRuntimeFilter(_workspaceProfile, _testRuntimeFilter);
         LogRuntimeScope(_workspaceProfile, _testRuntimeFilter, effectiveProfile);
 
-        await ExecuteBuildWithFilterAsync(effectiveProfile, _workspaceProfile);
+        await ExecuteBuildWithTimingAsync(effectiveProfile, _workspaceProfile);
 
         PackageEnsureSummary ensureSummary = await TestPackageUtilities.EnsurePackageAsync(Context);
         TestPackageUtilities.LogEnsureMessages(ensureSummary);
@@ -52,7 +53,7 @@ public class WatchWorkflow(
 
             await devService.StartAsync(Context, async (filePath, _) =>
             {
-                await ExecuteBuildWithFilterAsync(effectiveProfile, _workspaceProfile, filePath);
+                await ExecuteBuildWithTimingAsync(effectiveProfile, _workspaceProfile, filePath);
 
                 FrontendHotUpdate? hotUpdate = null;
                 if (frontendWatchEnabled)
@@ -90,9 +91,11 @@ public class WatchWorkflow(
     private async Task RunTestsAsync()
     {
         TestCliRunner runner = new(Context);
+        Stopwatch stopwatch = Stopwatch.StartNew();
         TestCliRunResult result = await runner.RunTestsAsync(
             CancellationToken.None,
             new TestCliRunSettings(_testRuntimeFilter));
+        stopwatch.Stop();
 
         if (!result.TestsDiscovered)
         {
@@ -100,8 +103,18 @@ public class WatchWorkflow(
             return;
         }
 
-        _logger.LogInformation(
-            "Tests completed. Passed: {Passed}, Failed: {Failed}, Total: {Total}",
+        bool succeeded = result.ExitCode == 0 && !result.HadErrors && result.Failed == 0;
+        if (succeeded)
+        {
+            _logger.LogInformation("Testing... done ({Elapsed})", FormatElapsed(stopwatch.ElapsedMilliseconds));
+        }
+        else
+        {
+            _logger.LogWarning("Testing... failed ({Elapsed})", FormatElapsed(stopwatch.ElapsedMilliseconds));
+        }
+
+        _logger.LogDebug(
+            "Testing results. Passed: {Passed}, Failed: {Failed}, Total: {Total}",
             result.Passed,
             result.Failed,
             result.Total);
@@ -114,9 +127,17 @@ public class WatchWorkflow(
 
     private static WorkspaceProfile ApplyRuntimeFilter(WorkspaceProfile profile, string? runtimeFilter) =>
         string.Equals(runtimeFilter, "backend", StringComparison.OrdinalIgnoreCase)
-            ? profile with { HasFrontend = false, HasBackend = true }
+            ? profile with
+            {
+                HasFrontend = false,
+                HasBackend = true
+            }
             : string.Equals(runtimeFilter, "frontend", StringComparison.OrdinalIgnoreCase)
-                ? profile with { HasFrontend = true, HasBackend = false }
+                ? profile with
+                {
+                    HasFrontend = true,
+                    HasBackend = false
+                }
                 : profile;
 
     private async Task ExecuteBuildWithFilterAsync(
@@ -135,6 +156,30 @@ public class WatchWorkflow(
         }
     }
 
+    private async Task ExecuteBuildWithTimingAsync(
+        WorkspaceProfile runtimeProfile,
+        WorkspaceProfile workspaceProfile,
+        string? changedFilePath = null)
+    {
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        await ExecuteBuildWithFilterAsync(runtimeProfile, workspaceProfile, changedFilePath);
+        stopwatch.Stop();
+        _logger.LogInformation("Building... done ({Elapsed})", FormatElapsed(stopwatch.ElapsedMilliseconds));
+    }
+
+    private static string FormatElapsed(long elapsedMs)
+    {
+        if (elapsedMs < 1000)
+        {
+            return $"{elapsedMs}ms";
+        }
+
+        long elapsedTenths = elapsedMs / 100;
+        long seconds = elapsedTenths / 10;
+        long tenths = elapsedTenths % 10;
+        return $"{seconds}.{tenths}s";
+    }
+
     private static bool ShouldStartFrontendWatch(WorkspaceProfile effectiveProfile) =>
         effectiveProfile.HasFrontend;
 
@@ -144,7 +189,7 @@ public class WatchWorkflow(
         string filterLabel = string.IsNullOrWhiteSpace(runtimeFilter) ? "auto" : runtimeFilter!;
         string effectiveLabel = DescribeProfile(effectiveProfile);
 
-        _logger.LogInformation(
+        _logger.LogDebug(
             "[{Workflow}] Runtime scope — workspace: {Workspace}, filter: {Filter}, running: {Effective}.",
             WorkflowName,
             workspaceLabel,

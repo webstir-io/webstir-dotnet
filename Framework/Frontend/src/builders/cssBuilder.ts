@@ -118,7 +118,9 @@ async function processAppCss(config: BuilderContext['config'], isProduction: boo
     }
 
     const processed = await processor.process(source, { from: appCssPath, map: { inline: true } });
-    await emitAppDevelopmentCss(config, processed.css);
+    const stylesVersion = await computeAppStylesVersion(config.paths.src.app);
+    const rewritten = rewriteAppStyleImportsForDevelopment(processed.css, stylesVersion);
+    await emitAppDevelopmentCss(config, rewritten);
     await syncAppStyles(config.paths.src.app, path.join(config.paths.build.frontend, FOLDERS.app));
     return {};
 }
@@ -169,6 +171,31 @@ async function syncAppStyles(sourceAppDir: string, destinationAppDir: string): P
     const stylesDestination = path.join(destinationAppDir, 'styles');
     await ensureDir(path.dirname(stylesDestination));
     await copy(stylesSource, stylesDestination);
+}
+
+async function computeAppStylesVersion(sourceAppDir: string): Promise<string> {
+    const stylesDir = path.join(sourceAppDir, 'styles');
+    if (!(await pathExists(stylesDir))) {
+        return 'no-styles';
+    }
+
+    const files = (await glob('**/*.css', { cwd: stylesDir, nodir: true })).sort((a, b) => a.localeCompare(b));
+    if (files.length === 0) {
+        return 'no-styles';
+    }
+
+    let fingerprint = '';
+    for (const relative of files) {
+        const contents = await readFile(path.join(stylesDir, relative));
+        fingerprint += `${normalizeForwardSlashes(relative)}\0${contents}\0`;
+    }
+
+    return hashContent(fingerprint, 10);
+}
+
+function rewriteAppStyleImportsForDevelopment(css: string, stylesVersion: string): string {
+    const importPattern = /(@import\s+['"])(?:\.\/)?(styles\/[^'"]+?\.css)(\?v=[^'"]+)?(['"];?)/g;
+    return css.replace(importPattern, `$1./$2?v=${stylesVersion}$4`);
 }
 
 function resolveAppImports(css: string, appCssFile?: string): string {

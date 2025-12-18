@@ -103,9 +103,17 @@ public sealed class TestWorkflow(
 
     private static WorkspaceProfile ApplyRuntimeFilter(WorkspaceProfile profile, string? runtimeFilter) =>
         string.Equals(runtimeFilter, "backend", StringComparison.OrdinalIgnoreCase)
-            ? profile with { HasFrontend = false, HasBackend = true }
+            ? profile with
+            {
+                HasFrontend = false,
+                HasBackend = true
+            }
             : string.Equals(runtimeFilter, "frontend", StringComparison.OrdinalIgnoreCase)
-                ? profile with { HasFrontend = true, HasBackend = false }
+                ? profile with
+                {
+                    HasFrontend = true,
+                    HasBackend = false
+                }
                 : profile;
 
     private async Task ExecuteBuildWithFilterAsync(WorkspaceProfile profile) =>
@@ -153,14 +161,14 @@ public sealed class TestWorkflow(
 
     private void LogBackendModuleResult(ModuleBuildExecutionResult result)
     {
-        _logger.LogInformation(
+        _logger.LogDebug(
             "[backend] Provider {ProviderId} produced {EntryCount} entry point(s) during tests.",
             result.Provider.Id,
             result.Manifest.EntryPoints.Count);
 
         if (result.Manifest.Module?.Routes is { } routes)
         {
-            _logger.LogInformation(
+            _logger.LogDebug(
                 "[backend] Provider {ProviderId} reported {RouteCount} route(s) in manifest.",
                 result.Provider.Id,
                 routes.Count);
@@ -178,7 +186,7 @@ public sealed class TestWorkflow(
             }
             else
             {
-                _logger.LogInformation("[backend] {Message}", diagnostic.Message);
+                _logger.LogDebug("[backend] {Message}", diagnostic.Message);
             }
         }
 
@@ -194,7 +202,7 @@ public sealed class TestWorkflow(
             }
             else
             {
-                _logger.LogInformation("[backend] {Message}", evt.Message);
+                _logger.LogDebug("[backend] {Message}", evt.Message);
             }
         }
     }
@@ -205,7 +213,7 @@ public sealed class TestWorkflow(
         string filterLabel = string.IsNullOrWhiteSpace(runtimeFilter) ? "auto" : runtimeFilter!;
         string effectiveLabel = DescribeProfile(effectiveProfile);
 
-        _logger.LogInformation(
+        _logger.LogDebug(
             "[{Workflow}] Runtime scope — workspace: {Workspace}, filter: {Filter}, running: {Effective}.",
             WorkflowName,
             workspaceLabel,

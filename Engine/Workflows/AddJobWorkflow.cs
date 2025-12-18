@@ -117,7 +117,10 @@ if (isMain) {
         webstir["moduleManifest"] = moduleManifest;
         pkg["webstir"] = webstir;
 
-        JsonSerializerOptions options = new() { WriteIndented = true };
+        JsonSerializerOptions options = new()
+        {
+            WriteIndented = true
+        };
         File.WriteAllText(packageJsonPath, pkg.ToJsonString(options));
     }
 

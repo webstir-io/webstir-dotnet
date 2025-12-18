@@ -10,7 +10,7 @@ and may be incorporated into the project owned by **Electric Coding LLC**.
 3. Open a Pull Request describing your change with links to related issues or plans.
 
 ## Local Environment
-- **Required runtimes**: .NET 9 SDK, Node.js 20.18.x (or newer).  
+- **Required runtimes**: .NET 10 SDK, Node.js 20.18.x (or newer).  
 - **Registry access**: all framework packages are published to GitHub Packages.  
   - Create a classic personal access token with `read:packages` (and `write:packages` if you publish).  
   - Configure `.npmrc` or export `GH_PACKAGES_TOKEN`/`NODE_AUTH_TOKEN`:

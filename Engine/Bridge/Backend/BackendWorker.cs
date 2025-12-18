@@ -271,7 +271,7 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
 
     private void LogBackendManifest(string stage, ModuleBuildExecutionResult result)
     {
-        _logger.LogInformation(
+        _logger.LogDebug(
             "[backend] {Stage} provider {ProviderId} produced {EntryCount} entry point(s).",
             stage,
             result.Provider.Id,
@@ -279,7 +279,7 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
 
         if (result.Manifest.Module is { Routes: { } routes })
         {
-            _logger.LogInformation(
+            _logger.LogDebug(
                 "[backend] {Stage} manifest includes {RouteCount} route(s) and {CapabilityCount} capability flag(s).",
                 stage,
                 routes.Count,
@@ -304,7 +304,7 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
             }
             else
             {
-                _logger.LogInformation("[backend] {Message}", diagnostic.Message);
+                _logger.LogDebug("[backend] {Message}", diagnostic.Message);
             }
         }
 
@@ -342,7 +342,7 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
         }
         else
         {
-            _logger.LogInformation("[backend] {Message}", evt.Message);
+            _logger.LogDebug("[backend] {Message}", evt.Message);
         }
     }
 

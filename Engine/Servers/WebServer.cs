@@ -336,7 +336,10 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
                 context.Response.ContentType = "application/json";
                 await JsonSerializer.SerializeAsync(
                     context.Response.Body,
-                    new { error = "backend manifest unavailable" },
+                    new
+                    {
+                        error = "backend manifest unavailable"
+                    },
                     BackendManifestSerializerOptions,
                     context.RequestAborted);
             }

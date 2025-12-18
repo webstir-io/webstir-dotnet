@@ -1,0 +1,72 @@
+@layer components {
+  /* App shell */
+  .app-header {
+    border-bottom: 1px solid var(--ws-border);
+    background: var(--ws-bg);
+  }
+
+  .app-header__inner {
+    --ws-container: var(--ws-shell-container, var(--ws-container));
+    display: flex;
+    align-items: center;
+    gap: var(--ws-space-5);
+    padding-block: var(--ws-space-3);
+  }
+
+  .app-brand {
+    flex: 0 0 auto;
+    color: var(--ws-fg);
+    text-decoration: none;
+    font-weight: 700;
+  }
+
+  .app-brand:hover {
+    text-decoration: none;
+  }
+
+  .app-brand:focus-visible {
+    outline: 0.1875rem solid var(--ws-focus);
+    outline-offset: 0.125rem;
+    border-radius: var(--ws-radius-2);
+  }
+
+  .app-nav {
+    display: flex;
+    margin-left: auto;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--ws-space-2);
+    min-width: 0;
+  }
+
+  .app-nav a {
+    color: var(--ws-fg);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.5rem 0.625rem;
+    border-radius: var(--ws-radius-1);
+  }
+
+  .app-nav a:hover {
+    text-decoration: none;
+    background: rgba(17, 24, 39, 0.04);
+  }
+
+  .app-nav a:focus-visible {
+    outline: 0.1875rem solid var(--ws-focus);
+    outline-offset: 0.125rem;
+    border-radius: var(--ws-radius-1);
+  }
+
+  @media (max-width: 40rem) {
+    .app-header__inner {
+      flex-wrap: wrap;
+    }
+
+    .app-nav {
+      flex-basis: 100%;
+      margin-left: 0;
+      justify-content: flex-start;
+    }
+  }
+}

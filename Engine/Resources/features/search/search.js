@@ -152,7 +152,10 @@ function ensureUi() {
         document.body.appendChild(root);
     }
 
-    if (!document.getElementById('webstir-search-style')) {
+    const styleMode = document.documentElement.getAttribute('data-webstir-search-styles');
+    const shouldInjectStyles = !styleMode || styleMode === 'inline';
+
+    if (shouldInjectStyles && !document.getElementById('webstir-search-style')) {
         const style = document.createElement('style');
         style.id = 'webstir-search-style';
         style.textContent = `
@@ -289,18 +292,11 @@ body.webstir-search-open { overflow: hidden; }
     }
 
     const nav = document.querySelector('.app-nav');
-    if (nav && !nav.querySelector('[data-webstir-search-open]')) {
+    if (nav) {
         const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform ?? '');
         const hint = isMac ? 'Cmd K' : 'Ctrl K';
 
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'webstir-search__trigger';
-        button.setAttribute('data-webstir-search-open', '');
-        button.setAttribute('aria-label', 'Search');
-        button.setAttribute('aria-haspopup', 'dialog');
-        button.setAttribute('aria-expanded', 'false');
-        button.innerHTML = [
+        const triggerContent = [
             '<span class="webstir-search__trigger-icon" aria-hidden="true">',
             '  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">',
             '    <circle cx="11" cy="11" r="7"></circle>',
@@ -310,7 +306,34 @@ body.webstir-search-open { overflow: hidden; }
             '<span class="webstir-search__trigger-text">Search</span>',
             `<span class="webstir-search__trigger-hint" aria-hidden="true">${escapeHtml(hint)}</span>`
         ].join('');
-        nav.appendChild(button);
+
+        const existingTrigger = nav.querySelector('[data-webstir-search-open]');
+        if (existingTrigger instanceof HTMLElement) {
+            existingTrigger.classList.add('webstir-search__trigger');
+            existingTrigger.setAttribute('data-webstir-search-open', '');
+            existingTrigger.setAttribute('aria-label', 'Search');
+            existingTrigger.setAttribute('aria-haspopup', 'dialog');
+            if (!existingTrigger.hasAttribute('aria-expanded')) {
+                existingTrigger.setAttribute('aria-expanded', 'false');
+            }
+            existingTrigger.removeAttribute('hidden');
+            if (existingTrigger instanceof HTMLButtonElement) {
+                existingTrigger.type = 'button';
+            }
+            if (!existingTrigger.innerHTML.trim()) {
+                existingTrigger.innerHTML = triggerContent;
+            }
+        } else {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'webstir-search__trigger';
+            button.setAttribute('data-webstir-search-open', '');
+            button.setAttribute('aria-label', 'Search');
+            button.setAttribute('aria-haspopup', 'dialog');
+            button.setAttribute('aria-expanded', 'false');
+            button.innerHTML = triggerContent;
+            nav.appendChild(button);
+        }
     }
 
     return root;

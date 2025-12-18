@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Text.Json;
 using Engine.Extensions;
@@ -12,6 +13,7 @@ public class AppWorkspace
     public void Initialize(string workingFolder) => _workingFolder = workingFolder;
 
     public string WorkingPath => Directory.CreateDirectory(_workingFolder).FullName;
+    public string WorkspaceName => Path.GetFileName(WorkingPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
     public string NodeModulesPath => WorkingPath.CreateSubDirectory(Folders.NodeModules);
     public string WebstirPath => WorkingPath.Combine(Folders.Webstir);
     public string FrontendManifestPath => WebstirPath.Combine(Files.FrontendManifestJson);
@@ -116,4 +118,49 @@ public class AppWorkspace
             return null;
         }
     }
+
+    public string ToDisplayPath(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return filePath;
+        }
+
+        try
+        {
+            string fullFilePath = Path.GetFullPath(filePath);
+            string fullWorkingPath = Path.GetFullPath(TrimEndingSeparators(WorkingPath));
+            string relativePath = Path.GetRelativePath(fullWorkingPath, fullFilePath);
+
+            if (IsOutsideWorkingFolder(relativePath))
+            {
+                return filePath;
+            }
+
+            string projectFolderName = Path.GetFileName(fullWorkingPath);
+            if (string.IsNullOrWhiteSpace(projectFolderName))
+            {
+                return relativePath;
+            }
+
+            return Path.Combine(projectFolderName, relativePath);
+        }
+        catch (Exception)
+        {
+            return filePath;
+        }
+    }
+
+    private static bool IsOutsideWorkingFolder(string relativePath)
+    {
+        if (relativePath.StartsWith("..", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return Path.IsPathRooted(relativePath);
+    }
+
+    private static string TrimEndingSeparators(string path) =>
+        path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 }

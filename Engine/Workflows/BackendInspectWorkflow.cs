@@ -29,7 +29,11 @@ public sealed class BackendInspectWorkflow(
             return;
         }
 
-        WorkspaceProfile backendOnly = profile with { HasFrontend = false, HasBackend = true };
+        WorkspaceProfile backendOnly = profile with
+        {
+            HasFrontend = false,
+            HasBackend = true
+        };
         await ExecuteBuildAsync(backendOnly);
         await PrintManifestSummaryAsync();
     }

@@ -60,8 +60,16 @@ public class PublishWorkflow(
 
     private static WorkspaceProfile ApplyRuntimeFilter(WorkspaceProfile profile, string? runtimeFilter) =>
         string.Equals(runtimeFilter, "backend", StringComparison.OrdinalIgnoreCase)
-            ? profile with { HasFrontend = false, HasBackend = true }
+            ? profile with
+            {
+                HasFrontend = false,
+                HasBackend = true
+            }
             : string.Equals(runtimeFilter, "frontend", StringComparison.OrdinalIgnoreCase)
-                ? profile with { HasFrontend = true, HasBackend = false }
+                ? profile with
+                {
+                    HasFrontend = true,
+                    HasBackend = false
+                }
                 : profile;
 }

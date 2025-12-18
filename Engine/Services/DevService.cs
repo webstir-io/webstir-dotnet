@@ -29,7 +29,7 @@ public class DevService(
     public async Task StartAsync(AppWorkspace workspace, Func<string?, bool, Task<ChangeProcessingResult>>? onChangeAction = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(workspace);
-        _logger.LogInformation("Starting {DevService} for {WorkspacePath}", App.DevService, workspace.WorkingPath);
+        _logger.LogInformation("Starting {DevService} for {Workspace}", App.DevService, workspace.WorkspaceName);
 
         try
         {
@@ -70,7 +70,7 @@ public class DevService(
 
     public async Task StopAsync()
     {
-        _logger.LogInformation("Stopping {DevService}...", App.DevService);
+        _logger.LogDebug("Stopping {DevService}...", App.DevService);
 
         try
         {
@@ -81,7 +81,7 @@ public class DevService(
                 _nodeServer.StopAsync()
             );
 
-            _logger.LogInformation("{DevService} stopped", App.DevService);
+            _logger.LogInformation("Stopping {DevService}... stopped.", App.DevService);
         }
         catch (Exception ex)
         {
@@ -186,13 +186,13 @@ public class DevService(
             ModuleBuildManifest manifest = await BackendManifestLoader.LoadAsync(workspace, cancellationToken);
             if (manifest.Module is not { } module)
             {
-                _logger.LogInformation("Backend manifest loaded without module metadata.");
+                _logger.LogDebug("Backend manifest loaded without module metadata.");
                 return;
             }
 
             if (module.Capabilities is { Count: > 0 } capabilities)
             {
-                _logger.LogInformation(
+                _logger.LogDebug(
                     "Backend capabilities: {Capabilities}.",
                     string.Join(", ", capabilities));
             }
@@ -203,14 +203,14 @@ public class DevService(
                     ", ",
                     routes.Select(route => $"{route.Method.ToUpperInvariant()} {route.Path}"));
 
-                _logger.LogInformation(
+                _logger.LogDebug(
                     "Backend routes available ({RouteCount}): {Routes}.",
                     routes.Count,
                     routeList);
             }
             else
             {
-                _logger.LogInformation("Backend manifest loaded; no route entries defined.");
+                _logger.LogDebug("Backend manifest loaded; no route entries defined.");
             }
         }
         catch (FileNotFoundException)

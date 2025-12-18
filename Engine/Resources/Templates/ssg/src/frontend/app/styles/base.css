@@ -6,15 +6,10 @@
 
   body {
     font-family: var(--ws-font-sans);
-    font-size: 18px;
-    line-height: 1.5;
+    font-size: 16px;
+    line-height: 1.6;
     color: var(--ws-fg);
     background: var(--ws-bg);
-  }
-
-  main {
-    display: block;
-    padding-top: 48px;
   }
 
   h1,
@@ -34,26 +29,28 @@
 
   a {
     color: var(--ws-accent);
-    text-decoration: none;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
   }
 
   a:hover {
-    text-decoration: underline;
+    text-decoration-thickness: 0.12em;
   }
 
   a:focus-visible {
     outline: 3px solid var(--ws-focus);
     outline-offset: 2px;
-    border-radius: 8px;
+    border-radius: var(--ws-radius-1);
   }
 
   code {
     font-family: var(--ws-font-mono);
     font-size: 0.95em;
     padding: 0.12em 0.4em;
-    border-radius: 8px;
+    border-radius: var(--ws-radius-1);
     border: 1px solid var(--ws-border);
     background: rgba(17, 24, 39, 0.06);
+    background: color-mix(in srgb, var(--ws-fg) 6%, transparent);
   }
 
   pre {
@@ -61,6 +58,7 @@
     border-radius: var(--ws-radius-2);
     border: 1px solid var(--ws-border);
     background: rgba(17, 24, 39, 0.04);
+    background: color-mix(in srgb, var(--ws-fg) 4%, transparent);
     overflow-x: auto;
   }
 

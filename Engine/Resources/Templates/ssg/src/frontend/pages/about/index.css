@@ -1,6 +1,6 @@
 @layer overrides {
 .page {
-  padding: 0 0 96px;
+  padding: 48px 0 96px;
 }
 
 .page .ws-container {
@@ -16,7 +16,7 @@
 }
 
 .lead {
-  color: var(--muted);
+  color: var(--ws-muted);
   font-size: 1.1rem;
   margin: 0;
 }

@@ -15,11 +15,15 @@
     --ws-radius-2: 10px;
     --ws-radius-3: 12px;
 
-    --ws-container: 960px;
-    --ws-shell-container: 1320px;
+    --ws-gutter: clamp(1rem, 2.4vw, 2rem);
+    --ws-container-pad: var(--ws-gutter);
+
+    /* Layout sizing (prefer rem for consistency across zoom/devices) */
+    --ws-container: 72rem;
+    --ws-shell-container: 80rem;
     --ws-article: 72ch;
-    --ws-docs-sidebar: 260px;
-    --ws-docs-toc: 240px;
+    --ws-docs-sidebar: 16.25rem;
+    --ws-docs-toc: 15rem;
 
     --ws-space-1: 0.25rem;
     --ws-space-2: 0.5rem;
@@ -35,16 +39,6 @@
       Arial, sans-serif;
     --ws-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
       "Liberation Mono", "Courier New", monospace;
-
-    /* Compatibility aliases (migrate templates incrementally) */
-    --text: var(--ws-fg);
-    --muted: var(--ws-muted);
-    --border: var(--ws-border);
-    --accent: var(--ws-accent);
-    --accent-hover: var(--ws-accent-hover);
-    --focus: var(--ws-focus);
-    --radius: var(--ws-radius-2);
-    --container: var(--ws-container);
   }
 
   [data-theme="dark"] {

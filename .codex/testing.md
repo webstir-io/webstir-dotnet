@@ -29,7 +29,7 @@
   - `dotnet test Tester/Tester.csproj /p:CollectCoverage=true`
 
 ## Requirements
-- .NET 9 SDK installed.
+- .NET 10 SDK installed.
 - Node.js and `tsc` available on `PATH` for tests that emit TypeScript builds.
 - Tester executes under the standard `dotnet test` harness; no custom runner required.
 - Run `./utilities/format-build.sh` before or after testing to fix formatting drift, refresh toolchain packages, and catch build failures early.
