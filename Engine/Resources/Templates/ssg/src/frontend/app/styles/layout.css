@@ -1,4 +1,4 @@
-@layer primitives {
+@layer layout {
   .ws-container {
     width: 100%;
     max-width: var(--ws-container);

@@ -95,7 +95,7 @@ async function loadErrorHandler() {
   errorHandlerLoaded = true;
 
   try {
-    const { install } = await import('./error');
+    const { install } = await import('./error.js');
     install();
   } catch (e) {
     console.error('Failed to load error handler:', e);

@@ -67,7 +67,8 @@ Enable site-wide search:
 
 When enabled, Webstir generates search data and adds the search UI assets to your app:
 
-- `/search.json` (used by `/search.js`)
+- `/search.json` (used by the search feature module)
+- `src/frontend/app/scripts/features/search.ts` (search behavior, added to your source tree and imported by `src/frontend/app/app.ts`)
 - `src/frontend/app/styles/features/search.css` (search UI styling, added to your source tree)
 
 ## Development vs publish

@@ -203,13 +203,11 @@ public sealed class RepairWorkflow(
 
             if (enable.ClientNav)
             {
-                foreach (string relativePath in ResourceHelpers.ListEmbeddedDirectoryFiles($"{Resources.FeaturesPath}.client_nav"))
+                string relativePath = Path.Combine(Folders.Scripts, "features", $"client-nav{FileExtensions.Ts}");
+                string outputPath = Path.Combine(workspaceRoot, appDir, relativePath);
+                if (!File.Exists(outputPath))
                 {
-                    string outputPath = Path.Combine(workspaceRoot, appDir, relativePath);
-                    if (!File.Exists(outputPath))
-                    {
-                        missing.Add(Path.Combine(appDir, relativePath));
-                    }
+                    missing.Add(Path.Combine(appDir, relativePath));
                 }
             }
         }
@@ -254,7 +252,10 @@ public sealed class RepairWorkflow(
 
         if (enable.ClientNav)
         {
-            await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.FeaturesPath}.client_nav", appDir, overwriteExisting: false);
+            await ResourceHelpers.CopyEmbeddedFileAsync(
+                $"{Resources.FeaturesPath}.client_nav.client_nav.ts",
+                Path.Combine(appDir, Folders.Scripts, "features", $"client-nav{FileExtensions.Ts}"),
+                overwriteExisting: false).ConfigureAwait(false);
         }
     }
 }

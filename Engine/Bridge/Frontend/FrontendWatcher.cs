@@ -409,6 +409,9 @@ internal sealed class FrontendWatcher(
         if (_stopping)
         {
             _logger.LogInformation("Frontend watch daemon exited with code {ExitCode}.", exitCode);
+            // StopAsync owns teardown during a graceful shutdown; avoid racing by disposing here.
+            _ready = false;
+            return;
         }
         else if (exitCode is 0 or 130)
         {

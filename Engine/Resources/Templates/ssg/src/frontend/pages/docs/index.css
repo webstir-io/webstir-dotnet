@@ -17,7 +17,7 @@
   grid-template-columns: var(--ws-docs-sidebar) minmax(0, 1fr) var(--ws-docs-toc);
 }
 
-@media (max-width: 53.75rem) {
+@media (max-width: 53.75rem), (max-width: 860px) {
   .docs-layout__inner {
     grid-template-columns: 1fr;
   }
@@ -30,11 +30,26 @@
   padding-top: 24px;
 }
 
-@media (max-width: 53.75rem) {
+@media (max-width: 53.75rem), (max-width: 860px) {
   .docs-sidebar {
     position: static;
     top: auto;
     padding-top: 0;
+  }
+}
+
+@media (max-width: 40rem) {
+  .docs-layout {
+    padding: 32px 0 96px;
+  }
+
+  .docs-layout__inner {
+    gap: 24px;
+  }
+
+  .docs-main {
+    padding-top: 20px;
+    max-width: 100%;
   }
 }
 

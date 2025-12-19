@@ -8,6 +8,29 @@ namespace Engine.Helpers;
 
 public static class ResourceHelpers
 {
+    public static async Task CopyEmbeddedFileAsync(string resourceName, string outputPath)
+        => await CopyEmbeddedFileAsync(resourceName, outputPath, overwriteExisting: true);
+
+    public static async Task CopyEmbeddedFileAsync(string resourceName, string outputPath, bool overwriteExisting)
+    {
+        if (!overwriteExisting && File.Exists(outputPath))
+        {
+            return;
+        }
+
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        Stream? stream = assembly.GetManifestResourceStream(resourceName);
+        if (stream == null)
+        {
+            throw new InvalidOperationException($"Embedded resource not found: {resourceName}");
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+        await using Stream streamToCopy = stream;
+        await using FileStream fileStream = File.Create(outputPath);
+        await streamToCopy.CopyToAsync(fileStream).ConfigureAwait(false);
+    }
+
     public static async Task CopyEmbeddedDirectoryAsync(string resourcePrefix, string destinationPath)
         => await CopyEmbeddedDirectoryAsync(resourcePrefix, destinationPath, overwriteExisting: true);
 
@@ -73,6 +96,8 @@ public static class ResourceHelpers
                 && !name.StartsWith($"{prefixWithDot}{Folders.Src}.", StringComparison.Ordinal)
                 && !name.StartsWith($"{prefixWithDot}Templates.", StringComparison.Ordinal)
                 && !name.StartsWith($"{prefixWithDot}features.", StringComparison.Ordinal)
+                && !name.StartsWith($"{prefixWithDot}modulehost.", StringComparison.Ordinal)
+                && !name.StartsWith($"{prefixWithDot}testhost.", StringComparison.Ordinal)
                 && !name.StartsWith($"{prefixWithDot}optional.", StringComparison.Ordinal))];
 
         foreach (string resourceName in resources)
@@ -106,6 +131,8 @@ public static class ResourceHelpers
                 && !name.StartsWith($"{prefixWithDot}{Folders.Src}.", StringComparison.Ordinal)
                 && !name.StartsWith($"{prefixWithDot}Templates.", StringComparison.Ordinal)
                 && !name.StartsWith($"{prefixWithDot}features.", StringComparison.Ordinal)
+                && !name.StartsWith($"{prefixWithDot}modulehost.", StringComparison.Ordinal)
+                && !name.StartsWith($"{prefixWithDot}testhost.", StringComparison.Ordinal)
                 && !name.StartsWith($"{prefixWithDot}optional.", StringComparison.Ordinal))
             .Select(name => name.Replace(prefixWithDot, ""))];
     }

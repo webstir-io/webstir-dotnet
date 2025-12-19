@@ -1,3 +1,5 @@
+export {};
+
 /**
  * Minimal PJAX-style navigation: swaps the <main> content, updates title/URL,
  * and restores scroll/focus.
@@ -6,7 +8,7 @@
  * - data-no-client-nav
  * - data-client-nav="off"
  */
-export function enableClientNav() {
+export function enableClientNav(): void {
     document.addEventListener('click', async (event) => {
         const target = event.target;
         if (!(target instanceof Element)) {
@@ -53,11 +55,11 @@ export function enableClientNav() {
 }
 
 let activeRequestId = 0;
-let activeController = null;
+let activeController: AbortController | null = null;
 const DYNAMIC_ATTR = 'data-webstir-dynamic';
 const DYNAMIC_VALUE = 'client-nav';
 
-async function renderUrl(url, { pushHistory }) {
+async function renderUrl(url: string, { pushHistory }: { pushHistory: boolean }): Promise<void> {
     activeRequestId += 1;
     const requestId = activeRequestId;
 
@@ -68,7 +70,7 @@ async function renderUrl(url, { pushHistory }) {
     const controller = new AbortController();
     activeController = controller;
 
-    let response;
+    let response: Response;
     try {
         response = await fetch(url, {
             headers: { 'X-Webstir-Client-Nav': '1' },
@@ -122,33 +124,9 @@ async function renderUrl(url, { pushHistory }) {
     window.dispatchEvent(new CustomEvent('webstir:client-nav', { detail: { url } }));
 }
 
-const demoShellId = createShortId();
-let demoNavCount = 0;
-
-function updateDemoIndicators() {
-    const sessionEl = document.getElementById('webstir-client-nav-session');
-    if (sessionEl) {
-        sessionEl.textContent = demoShellId;
-    }
-
-    const countEl = document.getElementById('webstir-client-nav-count');
-    if (countEl) {
-        countEl.textContent = String(demoNavCount);
-    }
-}
-
-function createShortId() {
-    return Math.random().toString(16).slice(2, 10);
-}
-
-updateDemoIndicators();
-window.addEventListener('webstir:client-nav', () => {
-    demoNavCount += 1;
-    updateDemoIndicators();
-});
 enableClientNav();
 
-function syncHead(doc, url) {
+function syncHead(doc: Document, url: string): void {
     const head = document.head;
     const newHead = doc.head;
     if (!head || !newHead) {
@@ -158,8 +136,8 @@ function syncHead(doc, url) {
     const preservedClientNav = head.querySelector('script[data-webstir="client-nav"]');
     const preservedAppCss = head.querySelector('link[rel="stylesheet"][href="/app/app.css"]');
 
-    for (const el of head.querySelectorAll(`script[${DYNAMIC_ATTR}="${DYNAMIC_VALUE}"]`)) {
-        el.remove();
+    for (const element of Array.from(head.querySelectorAll(`script[${DYNAMIC_ATTR}="${DYNAMIC_VALUE}"]`))) {
+        element.remove();
     }
 
     for (const script of Array.from(head.querySelectorAll('script[src]'))) {
@@ -234,7 +212,7 @@ function syncHead(doc, url) {
     }
 }
 
-function executeScripts(container) {
+function executeScripts(container: Element | null): void {
     if (!container) {
         return;
     }
@@ -271,7 +249,7 @@ function executeScripts(container) {
     }
 }
 
-function resolveUrl(value, baseUrl) {
+function resolveUrl(value: string, baseUrl: string): string | null {
     try {
         const trimmed = String(value ?? '').trim();
         if (trimmed && !trimmed.startsWith('/') && !trimmed.startsWith('http:') && !trimmed.startsWith('https:')) {
@@ -288,7 +266,7 @@ function resolveUrl(value, baseUrl) {
     }
 }
 
-function getPageNameFromUrl(url) {
+function getPageNameFromUrl(url: string): string {
     try {
         const pathname = new URL(url, window.location.href).pathname;
         const trimmed = pathname.replace(/^\/+|\/+$/g, '');
@@ -303,9 +281,9 @@ function getPageNameFromUrl(url) {
     }
 }
 
-function cssEscape(value) {
-    if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
-        return CSS.escape(value);
+function cssEscape(value: string): string {
+    if (typeof CSS !== 'undefined' && typeof (CSS as { escape?: (value: string) => string }).escape === 'function') {
+        return (CSS as { escape: (value: string) => string }).escape(value);
     }
-    return value.replace(/["\\\\]/g, '\\\\$&');
+    return value.replace(/[\"\\\\]/g, '\\\\$&');
 }

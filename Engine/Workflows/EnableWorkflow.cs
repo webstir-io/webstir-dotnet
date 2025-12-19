@@ -116,10 +116,13 @@ public class EnableWorkflow(
     private async Task EnableClientNavAsync()
     {
         string appDir = Context.FrontendAppPath;
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.FeaturesPath}.client_nav", appDir);
+        await ResourceHelpers.CopyEmbeddedFileAsync(
+            $"{Resources.FeaturesPath}.client_nav.client_nav.ts",
+            Path.Combine(appDir, Folders.Scripts, "features", $"client-nav{FileExtensions.Ts}")).ConfigureAwait(false);
+        await EnableClientNavScriptAsync(appDir).ConfigureAwait(false);
         bool updatedPackageJson = await UpdatePackageJsonAsync(enableSpa: null, enableClientNav: true, enableSearch: null, enableBackend: null, mode: null);
 
-        string relativePath = Path.Combine(Folders.Src, Folders.Frontend, Folders.App, $"clientNav{FileExtensions.Js}");
+        string relativePath = Path.Combine(Folders.Src, Folders.Frontend, Folders.App, Folders.Scripts, "features", $"client-nav{FileExtensions.Ts}");
         Console.WriteLine("Enabled client-nav.");
         Console.WriteLine($"  + {relativePath}");
         if (updatedPackageJson)
@@ -128,21 +131,94 @@ public class EnableWorkflow(
         }
     }
 
+    private static async Task EnableClientNavScriptAsync(string appDir)
+    {
+        string appTsPath = Path.Combine(appDir, Files.AppTs);
+        if (!File.Exists(appTsPath))
+        {
+            return;
+        }
+
+        string source = await File.ReadAllTextAsync(appTsPath).ConfigureAwait(false);
+        string updated = EnsureClientNavScriptImport(source);
+        if (!string.Equals(source, updated, StringComparison.Ordinal))
+        {
+            await File.WriteAllTextAsync(appTsPath, updated).ConfigureAwait(false);
+        }
+    }
+
     private async Task EnableSearchAsync()
     {
         string appDir = Context.FrontendAppPath;
-        await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.FeaturesPath}.search", appDir);
+        await ResourceHelpers.CopyEmbeddedFileAsync(
+            $"{Resources.FeaturesPath}.search.search.ts",
+            Path.Combine(appDir, Folders.Scripts, "features", $"search{FileExtensions.Ts}")).ConfigureAwait(false);
+        await ResourceHelpers.CopyEmbeddedFileAsync(
+            $"{Resources.FeaturesPath}.search.search.css",
+            Path.Combine(appDir, Folders.Styles, "features", $"search{FileExtensions.Css}")).ConfigureAwait(false);
         await EnableSearchCssAsync(appDir).ConfigureAwait(false);
         await EnsureSearchCssModeEnabledAsync(appDir).ConfigureAwait(false);
+        await EnableSearchScriptAsync(appDir).ConfigureAwait(false);
         bool updatedPackageJson = await UpdatePackageJsonAsync(enableSpa: null, enableClientNav: null, enableSearch: true, enableBackend: null, mode: null);
 
-        string relativePath = Path.Combine(Folders.Src, Folders.Frontend, Folders.App, $"search{FileExtensions.Js}");
+        string relativePath = Path.Combine(Folders.Src, Folders.Frontend, Folders.App, Folders.Scripts, "features", $"search{FileExtensions.Ts}");
         Console.WriteLine("Enabled search.");
         Console.WriteLine($"  + {relativePath}");
         if (updatedPackageJson)
         {
             Console.WriteLine("  Updated package.json: webstir.enable.search=true");
         }
+    }
+
+    private static async Task EnableSearchScriptAsync(string appDir)
+    {
+        string appTsPath = Path.Combine(appDir, Files.AppTs);
+        if (!File.Exists(appTsPath))
+        {
+            return;
+        }
+
+        string source = await File.ReadAllTextAsync(appTsPath).ConfigureAwait(false);
+        string updated = EnsureSearchScriptImport(source);
+        if (!string.Equals(source, updated, StringComparison.Ordinal))
+        {
+            await File.WriteAllTextAsync(appTsPath, updated).ConfigureAwait(false);
+        }
+    }
+
+    private static string EnsureSearchScriptImport(string source)
+        => EnsureSideEffectImport(source, "./scripts/features/search.js");
+
+    private static string EnsureClientNavScriptImport(string source)
+        => EnsureSideEffectImport(source, "./scripts/features/client-nav.js");
+
+    private static string EnsureSideEffectImport(string source, string importPath)
+    {
+        if (HasSideEffectImport(source, importPath))
+        {
+            return source;
+        }
+
+        return AppendStaticImport(source, importPath);
+    }
+
+    private static bool HasSideEffectImport(string source, string importPath)
+    {
+        string pattern = $@"^\s*import\s+(['""]){Regex.Escape(importPath)}\1\s*;?\s*$";
+        return Regex.IsMatch(
+            source,
+            pattern,
+            RegexOptions.Multiline,
+            TimeSpan.FromMilliseconds(250));
+    }
+
+    private static string AppendStaticImport(string source, string importPath)
+    {
+        string suffix = source.EndsWith(Environment.NewLine, StringComparison.Ordinal)
+            ? ""
+            : Environment.NewLine;
+
+        return source + suffix + $"import \"{importPath}\";{Environment.NewLine}";
     }
 
     private static async Task EnableSearchCssAsync(string appDir)
@@ -156,7 +232,7 @@ public class EnableWorkflow(
         string css = await File.ReadAllTextAsync(appCssPath).ConfigureAwait(false);
         string updated = css;
 
-        updated = EnsureLayerIncludes(updated, "search");
+        updated = EnsureLayerIncludes(updated, "features");
         updated = EnsureImportIncludes(updated, "./styles/features/search.css", "./styles/components/buttons.css");
 
         if (!string.Equals(css, updated, StringComparison.Ordinal))

@@ -5,15 +5,15 @@ This starter uses a small, convention-first CSS system. The goal is to keep styl
 ## Principles
 
 - Tokens-first: use CSS custom properties instead of ad-hoc `#hex`/`px` values.
-- Tiny surface area: prefer a few primitives + a few components over "utility everything".
+- Tiny surface area: prefer a few layout building blocks + a few components over "utility everything".
 - Deterministic cascade: use cascade layers so "where do I put this?" is obvious.
 - Accessible defaults: focus rings, readable type, and sensible spacing are part of the system.
 
 ## The Contract (v0)
 
-### Layout primitives (classes)
+### Layout (classes)
 
-Use a small fixed set of primitives:
+Use a small fixed set of layout building blocks:
 
 - `.ws-container` - centered max-width container
 - `.ws-stack` - vertical layout with gap
@@ -21,7 +21,7 @@ Use a small fixed set of primitives:
 - `.ws-grid` - responsive grid
 - `.ws-sidebar` - content + sidebar layout
 
-Tune primitives with CSS variables instead of creating more classes:
+Tune layout building blocks with CSS variables instead of creating more classes:
 
 ```html
 <div class="ws-stack" style="--ws-gap: var(--ws-space-4)">
@@ -66,4 +66,3 @@ Docs-only rules should be scoped under a stable attribute:
 - `[data-scope="docs"] { ... }`
 
 This keeps "docs chrome" styles from leaking into app pages.
-

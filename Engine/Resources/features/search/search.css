@@ -1,4 +1,4 @@
-@layer search {
+@layer features {
   #webstir-search {
     position: fixed;
     inset: 0;
@@ -20,19 +20,19 @@
   .webstir-search__trigger {
     display: inline-flex;
     align-items: center;
-    gap: 0.625rem;
-    padding: 0.5rem 0.625rem;
-    border-radius: var(--ws-radius-2);
-    border: 1px solid var(--ws-border);
-    background: rgba(17, 24, 39, 0.02);
+    gap: 0;
+    padding: 0.5rem;
+    border-radius: var(--ws-radius-1);
+    border: 1px solid transparent;
+    background: transparent;
     color: var(--ws-fg);
     cursor: pointer;
-    font-weight: 650;
-    transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+    font-weight: 600;
+    transition: border-color 140ms ease, background-color 140ms ease;
   }
 
   [data-theme="dark"] .webstir-search__trigger {
-    background: rgba(255, 255, 255, 0.04);
+    background: transparent;
   }
 
   .webstir-search__trigger:hover {
@@ -49,36 +49,23 @@
   }
 
   .webstir-search__trigger[aria-expanded="true"] {
-    border-color: rgba(37, 99, 235, 0.45);
+    border-color: rgba(37, 99, 235, 0.4);
+    background: rgba(37, 99, 235, 0.06);
   }
 
   .webstir-search__trigger-icon {
     display: inline-flex;
     opacity: 0.9;
+    pointer-events: none;
   }
 
-  .webstir-search__trigger-text {
-    opacity: 0.95;
+  .webstir-search__trigger-icon * {
+    pointer-events: none;
   }
 
+  .webstir-search__trigger-text,
   .webstir-search__trigger-hint {
-    margin-left: 0.375rem;
-    padding: 0.1875rem 0.5rem;
-    border-radius: 999px;
-    border: 1px solid rgba(148, 163, 184, 0.24);
-    color: var(--ws-muted);
-    font-size: 0.75rem;
-    font-weight: 750;
-  }
-
-  @media (max-width: 40rem) {
-    .webstir-search__trigger-text {
-      display: none;
-    }
-
-    .webstir-search__trigger-hint {
-      display: none;
-    }
+    display: none;
   }
 
   .webstir-search__backdrop {
@@ -127,6 +114,8 @@
   }
 
   .webstir-search__header {
+    display: grid;
+    gap: 0.75rem;
     padding: 0.875rem;
     border-bottom: 1px solid var(--ws-border);
     background: rgba(17, 24, 39, 0.02);
@@ -195,8 +184,9 @@
 
   .webstir-search__scopes {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
-    padding: 0 0.875rem 0.75rem;
+    padding: 0;
   }
 
   .webstir-search__scopes button {

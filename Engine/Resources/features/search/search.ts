@@ -1,25 +1,49 @@
-const STATE_KEY = '__webstirSearchUiV1';
+export {};
 
-function getState() {
-    const w = window;
-    if (w[STATE_KEY]) {
-        return w[STATE_KEY];
+type SearchScope = 'all' | 'docs' | 'page';
+
+type SearchIndexEntry = {
+    path: string;
+    title: string;
+    description?: string;
+    excerpt: string;
+    headings: string[];
+    kind: 'docs' | 'page';
+    haystack: string;
+};
+
+type SearchUiState = {
+    entries: SearchIndexEntry[] | null;
+    entriesPromise: Promise<SearchIndexEntry[]> | null;
+    open: boolean;
+    scope: SearchScope;
+};
+
+declare global {
+    interface Window {
+        __webstirSearchUiV1?: SearchUiState;
+    }
+}
+
+function getState(): SearchUiState {
+    if (window.__webstirSearchUiV1) {
+        return window.__webstirSearchUiV1;
     }
 
-    const state = {
+    const state: SearchUiState = {
         entries: null,
         entriesPromise: null,
         open: false,
         scope: 'all'
     };
 
-    w[STATE_KEY] = state;
+    window.__webstirSearchUiV1 = state;
     return state;
 }
 
 const state = getState();
 
-function isTypingTarget(target) {
+function isTypingTarget(target: unknown): boolean {
     return target instanceof HTMLElement
         && (target.isContentEditable
             || target.tagName === 'INPUT'
@@ -27,25 +51,25 @@ function isTypingTarget(target) {
             || target.tagName === 'SELECT');
 }
 
-function escapeHtml(value) {
+function escapeHtml(value: unknown): string {
     return String(value)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
+        .replace(/\"/g, '&quot;')
         .replace(/'/g, '&#39;');
 }
 
-function stripAndNormalize(value) {
+function stripAndNormalize(value: unknown): string {
     return String(value).toLowerCase().replace(/\\s+/g, ' ').trim();
 }
 
-function normalizeKind(kind) {
-    const k = typeof kind === 'string' ? kind.toLowerCase().trim() : '';
-    return k == 'page' ? 'page' : 'docs';
+function normalizeKind(kind: unknown): 'docs' | 'page' {
+    const normalized = typeof kind === 'string' ? kind.toLowerCase().trim() : '';
+    return normalized === 'page' ? 'page' : 'docs';
 }
 
-function computeScore(entry, query) {
+function computeScore(entry: SearchIndexEntry, query: string): number {
     let score = 0;
 
     if (entry.title && stripAndNormalize(entry.title).includes(query)) {
@@ -62,14 +86,14 @@ function computeScore(entry, query) {
         score += 6;
     }
 
-    if (entry.kind == 'docs') {
+    if (entry.kind === 'docs') {
         score += 1;
     }
 
     return score;
 }
 
-async function ensureIndexLoaded() {
+async function ensureIndexLoaded(): Promise<SearchIndexEntry[]> {
     if (state.entries !== null) {
         return state.entries;
     }
@@ -79,23 +103,39 @@ async function ensureIndexLoaded() {
     return state.entries;
 }
 
-async function loadIndex() {
+async function loadIndex(): Promise<SearchIndexEntry[]> {
     try {
         const response = await fetch('/search.json', { headers: { Accept: 'application/json' } });
         if (!response.ok) {
             return [];
         }
 
-        const data = await response.json();
+        const data: unknown = await response.json();
         if (!Array.isArray(data)) {
             return [];
         }
 
         return data
-            .filter((entry) => entry && typeof entry.path === 'string' && typeof entry.title === 'string')
+            .filter((entry): entry is {
+                path: string;
+                title: string;
+                description?: unknown;
+                excerpt?: unknown;
+                headings?: unknown;
+                kind?: unknown;
+            } => {
+                if (!entry || typeof entry !== 'object') {
+                    return false;
+                }
+
+                const record = entry as Record<string, unknown>;
+                return typeof record.path === 'string' && typeof record.title === 'string';
+            })
             .map((entry) => {
                 const kind = normalizeKind(entry.kind);
-                const headings = Array.isArray(entry.headings) ? entry.headings.filter((h) => typeof h === 'string') : [];
+                const headings = Array.isArray(entry.headings)
+                    ? entry.headings.filter((h): h is string => typeof h === 'string')
+                    : [];
                 const haystack = stripAndNormalize(
                     `${entry.title} ${entry.description ?? ''} ${entry.excerpt ?? ''} ${headings.join(' ')}`
                 );
@@ -114,41 +154,64 @@ async function loadIndex() {
     }
 }
 
-function getSearchTrigger() {
+function getSearchTrigger(): Element | null {
     return document.querySelector('[data-webstir-search-open]');
 }
 
-function ensureUi() {
+function bindOpenHandler(element: Element): void {
+    if (!(element instanceof HTMLElement)) {
+        return;
+    }
+
+    if (element.getAttribute('data-webstir-open-bound') === 'true') {
+        return;
+    }
+
+    element.setAttribute('data-webstir-open-bound', 'true');
+    element.addEventListener('click', (event) => {
+        event.preventDefault();
+        openSearch();
+    });
+}
+
+function parseScope(scope: string | null | undefined): SearchScope {
+    if (scope === 'docs' || scope === 'page' || scope === 'all') {
+        return scope;
+    }
+    return 'all';
+}
+
+function ensureUi(): HTMLElement {
     let root = document.getElementById('webstir-search');
     if (!root) {
         root = document.createElement('div');
         root.id = 'webstir-search';
         root.innerHTML = [
-            '<div class="webstir-search__backdrop" data-webstir-search-close></div>',
-            '<div class="webstir-search__panel" role="dialog" aria-modal="true" aria-label="Search">',
-            '  <div class="webstir-search__header">',
-            '    <div class="webstir-search__field">',
-            '      <span class="webstir-search__icon" aria-hidden="true">',
-            '        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">',
-            '          <circle cx="11" cy="11" r="7"></circle>',
-            '          <path d="M20 20l-3.5-3.5"></path>',
+            '<div class=\"webstir-search__backdrop\" data-webstir-search-close></div>',
+            '<div class=\"webstir-search__panel\" role=\"dialog\" aria-modal=\"true\" aria-label=\"Search\">',
+            '  <div class=\"webstir-search__header\">',
+            '    <div class=\"webstir-search__field\">',
+            '      <span class=\"webstir-search__icon\" aria-hidden=\"true\">',
+            '        <svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\">',
+            '          <circle cx=\"11\" cy=\"11\" r=\"7\"></circle>',
+            '          <path d=\"M20 20l-3.5-3.5\"></path>',
             '        </svg>',
             '      </span>',
-            '      <input class="webstir-search__input" type="search" placeholder="Search..." autocomplete="off" spellcheck="false" autocapitalize="none" />',
-            '      <button type="button" class="webstir-search__close" data-webstir-search-close aria-label="Close search">Esc</button>',
+            '      <input class=\"webstir-search__input\" type=\"search\" placeholder=\"Search...\" autocomplete=\"off\" spellcheck=\"false\" autocapitalize=\"none\" />',
+            '      <button type=\"button\" class=\"webstir-search__close\" data-webstir-search-close aria-label=\"Close search\">Esc</button>',
+            '    </div>',
+            '    <div class=\"webstir-search__scopes\" hidden>',
+            '      <button type=\"button\" data-scope=\"all\" aria-pressed=\"true\">All</button>',
+            '      <button type=\"button\" data-scope=\"docs\" aria-pressed=\"false\">Docs</button>',
+            '      <button type=\"button\" data-scope=\"page\" aria-pressed=\"false\">Pages</button>',
             '    </div>',
             '  </div>',
-            '  <div class="webstir-search__scopes" hidden>',
-            '    <button type="button" data-scope="all" aria-pressed="true">All</button>',
-            '    <button type="button" data-scope="docs" aria-pressed="false">Docs</button>',
-            '    <button type="button" data-scope="page" aria-pressed="false">Pages</button>',
-            '  </div>',
-            '  <div class="webstir-search__body">',
-            '    <div class="webstir-search__hint">Type at least 2 characters.</div>',
-            '    <ul class="webstir-search__results" hidden></ul>',
+            '  <div class=\"webstir-search__body\">',
+            '    <div class=\"webstir-search__hint\">Start typing to search.</div>',
+            '    <ul class=\"webstir-search__results\" hidden></ul>',
             '  </div>',
             '</div>'
-        ].join('\n');
+        ].join('\\n');
         document.body.appendChild(root);
     }
 
@@ -167,40 +230,27 @@ function ensureUi() {
   pointer-events: none;
   transition: opacity 140ms ease;
 }
-#webstir-search[data-open="true"] { opacity: 1; pointer-events: auto; }
+#webstir-search[data-open=\"true\"] { opacity: 1; pointer-events: auto; }
 body.webstir-search-open { overflow: hidden; }
 
 .webstir-search__trigger {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(255,255,255,0.02);
-  color: inherit;
+  gap: 0;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ws-fg, inherit);
   cursor: pointer;
-  font-weight: 650;
-  transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+  font-weight: 600;
+  transition: border-color 140ms ease, background-color 140ms ease;
 }
-.webstir-search__trigger:hover { background: rgba(255,255,255,0.04); border-color: rgba(148, 163, 184, 0.28); }
+.webstir-search__trigger:hover { background: rgba(17, 24, 39, 0.04); }
 .webstir-search__trigger:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.35); outline-offset: 2px; }
-.webstir-search__trigger[aria-expanded="true"] { border-color: rgba(37, 99, 235, 0.45); }
-.webstir-search__trigger-icon { display: inline-flex; opacity: 0.9; }
-.webstir-search__trigger-text { opacity: 0.9; }
-.webstir-search__trigger-hint {
-  margin-left: 6px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  color: rgba(229,231,235,0.85);
-  font-size: 12px;
-  font-weight: 750;
-}
-@media (max-width: 700px) {
-  .webstir-search__trigger-text { display: none; }
-  .webstir-search__trigger-hint { display: none; }
-}
+.webstir-search__trigger[aria-expanded=\"true\"] { border-color: rgba(37, 99, 235, 0.4); background: rgba(37, 99, 235, 0.06); }
+.webstir-search__trigger-icon { display: inline-flex; opacity: 0.9; pointer-events: none; }
+.webstir-search__trigger-icon * { pointer-events: none; }
 
 .webstir-search__group {
   margin-top: 10px;
@@ -233,14 +283,14 @@ body.webstir-search-open { overflow: hidden; }
   display: flex;
   flex-direction: column;
 }
-#webstir-search[data-open="true"] .webstir-search__panel { transform: translateY(0) scale(1); opacity: 1; }
+#webstir-search[data-open=\"true\"] .webstir-search__panel { transform: translateY(0) scale(1); opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   #webstir-search { transition: none; }
   .webstir-search__panel { transition: none; transform: none; }
   .webstir-search__trigger { transition: none; }
 }
 
-.webstir-search__header { padding: 14px; border-bottom: 1px solid rgba(148, 163, 184, 0.14); }
+.webstir-search__header { display: grid; gap: 12px; padding: 14px; border-bottom: 1px solid rgba(148, 163, 184, 0.14); }
 .webstir-search__field {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -276,9 +326,9 @@ body.webstir-search-open { overflow: hidden; }
   cursor: pointer;
 }
 .webstir-search__close:hover { background: rgba(255,255,255,0.06); }
-.webstir-search__scopes { display: flex; gap: 8px; padding: 0 14px 12px; }
+.webstir-search__scopes { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; }
 .webstir-search__scopes button { padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.18); background: transparent; color: inherit; cursor: pointer; font-weight: 750; font-size: 13px; }
-.webstir-search__scopes button[aria-pressed="true"] { background: rgba(37,99,235,0.22); border-color: rgba(37,99,235,0.4); }
+.webstir-search__scopes button[aria-pressed=\"true\"] { background: rgba(37,99,235,0.22); border-color: rgba(37,99,235,0.4); }
 .webstir-search__body { padding: 14px; overflow: auto; }
 .webstir-search__hint { color: rgba(229,231,235,0.75); }
 .webstir-search__results { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
@@ -292,19 +342,19 @@ body.webstir-search-open { overflow: hidden; }
     }
 
     const nav = document.querySelector('.app-nav');
-    if (nav) {
+    if (nav instanceof HTMLElement) {
         const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform ?? '');
         const hint = isMac ? 'Cmd K' : 'Ctrl K';
 
+        const triggerLabel = `Search (${hint})`;
         const triggerContent = [
-            '<span class="webstir-search__trigger-icon" aria-hidden="true">',
-            '  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">',
-            '    <circle cx="11" cy="11" r="7"></circle>',
-            '    <path d="M20 20l-3.5-3.5"></path>',
+            '<span class=\"webstir-search__trigger-icon\" aria-hidden=\"true\">',
+            '  <svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\">',
+            '    <circle cx=\"11\" cy=\"11\" r=\"7\"></circle>',
+            '    <path d=\"M20 20l-3.5-3.5\"></path>',
             '  </svg>',
             '</span>',
-            '<span class="webstir-search__trigger-text">Search</span>',
-            `<span class="webstir-search__trigger-hint" aria-hidden="true">${escapeHtml(hint)}</span>`
+            `<span class=\"sr-only\">${escapeHtml(triggerLabel)}</span>`
         ].join('');
 
         const existingTrigger = nav.querySelector('[data-webstir-search-open]');
@@ -313,6 +363,9 @@ body.webstir-search-open { overflow: hidden; }
             existingTrigger.setAttribute('data-webstir-search-open', '');
             existingTrigger.setAttribute('aria-label', 'Search');
             existingTrigger.setAttribute('aria-haspopup', 'dialog');
+            existingTrigger.setAttribute('title', triggerLabel);
+            existingTrigger.setAttribute('data-webstir-managed', 'search-trigger');
+            bindOpenHandler(existingTrigger);
             if (!existingTrigger.hasAttribute('aria-expanded')) {
                 existingTrigger.setAttribute('aria-expanded', 'false');
             }
@@ -320,7 +373,7 @@ body.webstir-search-open { overflow: hidden; }
             if (existingTrigger instanceof HTMLButtonElement) {
                 existingTrigger.type = 'button';
             }
-            if (!existingTrigger.innerHTML.trim()) {
+            if (existingTrigger.getAttribute('data-webstir-managed') === 'search-trigger' || !existingTrigger.innerHTML.trim()) {
                 existingTrigger.innerHTML = triggerContent;
             }
         } else {
@@ -331,7 +384,10 @@ body.webstir-search-open { overflow: hidden; }
             button.setAttribute('aria-label', 'Search');
             button.setAttribute('aria-haspopup', 'dialog');
             button.setAttribute('aria-expanded', 'false');
+            button.setAttribute('title', triggerLabel);
+            button.setAttribute('data-webstir-managed', 'search-trigger');
             button.innerHTML = triggerContent;
+            bindOpenHandler(button);
             nav.appendChild(button);
         }
     }
@@ -339,7 +395,7 @@ body.webstir-search-open { overflow: hidden; }
     return root;
 }
 
-function setScope(scope) {
+function setScope(scope: SearchScope): void {
     state.scope = scope;
     const root = document.getElementById('webstir-search');
     if (!root) {
@@ -347,12 +403,12 @@ function setScope(scope) {
     }
 
     root.querySelectorAll('.webstir-search__scopes button[data-scope]').forEach((button) => {
-        const s = button.getAttribute('data-scope');
-        button.setAttribute('aria-pressed', s == scope ? 'true' : 'false');
+        const scopeValue = parseScope(button.getAttribute('data-scope'));
+        button.setAttribute('aria-pressed', scopeValue === scope ? 'true' : 'false');
     });
 }
 
-function openSearch(options) {
+function openSearch(options?: { initialQuery?: string }): void {
     const root = ensureUi();
     root.setAttribute('data-open', 'true');
     state.open = true;
@@ -364,20 +420,20 @@ function openSearch(options) {
     }
 
     const input = root.querySelector('.webstir-search__input');
-    if (input) {
+    if (input instanceof HTMLInputElement) {
         if (options && typeof options.initialQuery === 'string') {
             input.value = options.initialQuery;
             input.focus();
         } else {
-        input.focus();
-        input.select();
+            input.focus();
+            input.select();
         }
     }
 
     void refreshResults();
 }
 
-function closeSearch() {
+function closeSearch(): void {
     const root = document.getElementById('webstir-search');
     if (!root) {
         return;
@@ -393,7 +449,7 @@ function closeSearch() {
     }
 }
 
-async function refreshResults() {
+async function refreshResults(): Promise<void> {
     const root = document.getElementById('webstir-search');
     if (!root) {
         return;
@@ -403,7 +459,10 @@ async function refreshResults() {
     const hint = root.querySelector('.webstir-search__hint');
     const results = root.querySelector('.webstir-search__results');
     const scopes = root.querySelector('.webstir-search__scopes');
-    if (!input || !results || !hint || !scopes) {
+    if (!(input instanceof HTMLInputElement)
+        || !(results instanceof HTMLUListElement)
+        || !(hint instanceof HTMLElement)
+        || !(scopes instanceof HTMLElement)) {
         return;
     }
 
@@ -419,23 +478,23 @@ async function refreshResults() {
     if (!query || query.length < 2) {
         results.setAttribute('hidden', '');
         results.innerHTML = '';
-        hint.textContent = entries.length > 0 ? 'Type to search.' : 'Search index not found yet.';
+        hint.textContent = entries.length > 0 ? 'Start typing to search.' : 'Search index not found yet.';
         return;
     }
 
     const matches = entries
-        .filter((entry) => (state.scope == 'all' ? true : entry.kind == state.scope))
+        .filter((entry) => (state.scope === 'all' ? true : entry.kind === state.scope))
         .filter((entry) => entry.haystack.includes(query))
         .map((entry) => ({ entry, score: computeScore(entry, query) }))
         .sort((a, b) => {
-            if (a.score != b.score) {
+            if (a.score !== b.score) {
                 return b.score - a.score;
             }
             return String(a.entry.title).localeCompare(String(b.entry.title));
         })
         .map((item) => item.entry);
 
-    if (matches.length == 0) {
+    if (matches.length === 0) {
         results.removeAttribute('hidden');
         results.innerHTML = '<li><span>No matches.</span></li>';
         hint.textContent = '';
@@ -445,36 +504,36 @@ async function refreshResults() {
     hint.textContent = '';
     results.removeAttribute('hidden');
 
-    const renderEntry = (entry) => {
+    const renderEntry = (entry: SearchIndexEntry): string => {
         const title = escapeHtml(entry.title);
         const excerpt = escapeHtml(entry.excerpt);
         const href = escapeHtml(entry.path);
         return `<li><a href="${href}"><strong>${title}</strong><span>${excerpt}</span></a></li>`;
     };
 
-    const shouldGroup = state.scope == 'all' && kinds.size > 1;
+    const shouldGroup = state.scope === 'all' && kinds.size > 1;
     if (!shouldGroup) {
         results.innerHTML = matches.slice(0, 12).map(renderEntry).join('');
         return;
     }
 
-    const docs = matches.filter((m) => m.kind == 'docs').slice(0, 6);
-    const pages = matches.filter((m) => m.kind == 'page').slice(0, 6);
+    const docs = matches.filter((m) => m.kind === 'docs').slice(0, 6);
+    const pages = matches.filter((m) => m.kind === 'page').slice(0, 6);
 
-    const sections = [];
+    const sections: string[] = [];
     if (docs.length > 0) {
-        sections.push('<li class="webstir-search__group">Docs</li>');
+        sections.push('<li class=\"webstir-search__group\">Docs</li>');
         sections.push(...docs.map(renderEntry));
     }
     if (pages.length > 0) {
-        sections.push('<li class="webstir-search__group">Pages</li>');
+        sections.push('<li class=\"webstir-search__group\">Pages</li>');
         sections.push(...pages.map(renderEntry));
     }
 
     results.innerHTML = sections.join('');
 }
 
-function boot() {
+function boot(): void {
     const root = ensureUi();
     const input = root.querySelector('.webstir-search__input');
     const closeButtons = root.querySelectorAll('[data-webstir-search-close]');
@@ -492,48 +551,39 @@ function boot() {
                 return;
             }
         }
-        if (target && target.matches && target.matches('.webstir-search__backdrop')) {
+
+        if (target instanceof Element && target.matches('.webstir-search__backdrop')) {
             closeSearch();
         }
     });
 
     root.querySelectorAll('.webstir-search__scopes button[data-scope]').forEach((button) => {
         button.addEventListener('click', () => {
-            const scope = button.getAttribute('data-scope') || 'all';
+            const scope = parseScope(button.getAttribute('data-scope'));
             setScope(scope);
             void refreshResults();
         });
     });
 
-    if (input) {
+    if (input instanceof HTMLInputElement) {
         input.addEventListener('input', () => void refreshResults());
         input.addEventListener('keydown', (event) => {
-            if (event.key == 'Escape') {
+            if (event.key === 'Escape') {
                 event.preventDefault();
                 closeSearch();
             }
         });
     }
 
-    document.addEventListener('click', (event) => {
-        const target = event.target;
-        if (!target || !target.matches) {
-            return;
-        }
-
-        if (target.matches('[data-webstir-search-open]')) {
-            event.preventDefault();
-            openSearch();
-        }
-    });
+    document.querySelectorAll('[data-webstir-search-open]').forEach((trigger) => bindOpenHandler(trigger));
 
     document.addEventListener('keydown', (event) => {
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() == 'k') {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
             event.preventDefault();
             openSearch();
             return;
         }
-        if (event.key == 'Escape' && state.open) {
+        if (event.key === 'Escape' && state.open) {
             event.preventDefault();
             closeSearch();
         }

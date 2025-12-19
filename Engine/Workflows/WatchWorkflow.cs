@@ -24,6 +24,8 @@ public class WatchWorkflow(
     private readonly ILogger<WatchWorkflow> _logger = logger;
     private string? _testRuntimeFilter;
     private WorkspaceProfile _workspaceProfile;
+    private CancellationTokenSource? _watchTestCancellationSource;
+    private Task _watchTestTask = Task.CompletedTask;
 
     public override string WorkflowName => Commands.Watch;
 
@@ -40,7 +42,7 @@ public class WatchWorkflow(
         TestPackageUtilities.LogEnsureMessages(ensureSummary);
 
         await TypeScriptCompiler.CompileAsync(Context);
-        await RunTestsAsync();
+        await RunTestsAsync(CancellationToken.None);
         bool watchStarted = false;
         bool frontendWatchEnabled = ShouldStartFrontendWatch(effectiveProfile);
         try
@@ -65,8 +67,7 @@ public class WatchWorkflow(
                     }
                 }
 
-                await TypeScriptCompiler.CompileAsync(Context);
-                await RunTestsAsync();
+                ScheduleWatchTests();
 
                 if (!frontendWatchEnabled || hotUpdate is null)
                 {
@@ -85,15 +86,63 @@ public class WatchWorkflow(
             {
                 await Frontend.StopWatchAsync();
             }
+
+            await StopWatchTestsAsync();
         }
     }
 
-    private async Task RunTestsAsync()
+    private void ScheduleWatchTests()
+    {
+        _watchTestCancellationSource?.Cancel();
+        _watchTestCancellationSource?.Dispose();
+        _watchTestCancellationSource = new CancellationTokenSource();
+
+        CancellationToken cancellationToken = _watchTestCancellationSource.Token;
+        _watchTestTask = Task.Run(async () =>
+        {
+            try
+            {
+                await TypeScriptCompiler.CompileAsync(Context);
+                await RunTestsAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Watch tests failed.");
+            }
+        }, cancellationToken);
+    }
+
+    private async Task StopWatchTestsAsync()
+    {
+        if (_watchTestCancellationSource is null)
+        {
+            return;
+        }
+
+        _watchTestCancellationSource.Cancel();
+        _watchTestCancellationSource.Dispose();
+        _watchTestCancellationSource = null;
+
+        try
+        {
+            await _watchTestTask;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+
+        _watchTestTask = Task.CompletedTask;
+    }
+
+    private async Task RunTestsAsync(CancellationToken cancellationToken)
     {
         TestCliRunner runner = new(Context);
         Stopwatch stopwatch = Stopwatch.StartNew();
         TestCliRunResult result = await runner.RunTestsAsync(
-            CancellationToken.None,
+            cancellationToken,
             new TestCliRunSettings(_testRuntimeFilter));
         stopwatch.Stop();
 
