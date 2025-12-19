@@ -33,6 +33,7 @@ public sealed class FrontendWorker : IFrontendWorker
     private bool _watchModeEnabled;
     private readonly SemaphoreSlim _packageLock = new(1, 1);
     private bool _packagesVerified;
+    private bool _buildSummaryLogged;
     private readonly IFrontendModuleProviderResolver _moduleProviderResolver;
     private FrontendModuleProvider? _resolvedProvider;
 
@@ -603,11 +604,23 @@ public sealed class FrontendWorker : IFrontendWorker
 
     private void LogModuleBuildResult(string stage, ModuleBuildExecutionResult result)
     {
-        _logger.LogDebug(
-            "[frontend] {Stage} provider {ProviderId} produced {EntryCount} entry point(s).",
-            stage,
-            result.Provider.Id,
-            result.Manifest.EntryPoints.Count);
+        if (!_buildSummaryLogged)
+        {
+            _logger.LogInformation(
+                "[frontend] {Stage} provider {ProviderId} produced {EntryCount} entry point(s).",
+                stage,
+                result.Provider.Id,
+                result.Manifest.EntryPoints.Count);
+            _buildSummaryLogged = true;
+        }
+        else
+        {
+            _logger.LogDebug(
+                "[frontend] {Stage} provider {ProviderId} produced {EntryCount} entry point(s).",
+                stage,
+                result.Provider.Id,
+                result.Manifest.EntryPoints.Count);
+        }
 
         if (result.Manifest.EntryPoints.Count > 0)
         {

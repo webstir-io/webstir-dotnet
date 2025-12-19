@@ -42,6 +42,7 @@ public sealed class SmokeWorkflow(
         try
         {
             Context.Initialize(workspacePath);
+            SetWorkspaceProfile(Context.DetectWorkspaceProfile());
             await ExecuteWorkflowAsync(args).ConfigureAwait(false);
         }
         finally
