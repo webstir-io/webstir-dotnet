@@ -1,0 +1,30 @@
+@layer shell {
+  @media (max-width: 40rem) {
+    body.webstir-menu-open {
+      overflow: hidden;
+    }
+
+    .app-menu.is-open .app-nav {
+      position: absolute;
+      inset-inline: 0;
+      top: 100%;
+      display: flex;
+      padding: var(--ws-space-2);
+      border: 1px solid var(--ws-border);
+      background: var(--ws-bg);
+      box-shadow: 0 1.5rem 3rem -1.5rem rgba(0, 0, 0, 0.28);
+      z-index: 20;
+    }
+
+    body.webstir-menu-open .ws-drawer-backdrop[data-drawer="menu"] {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .app-menu.is-open .app-nav a,
+    .app-menu.is-open .app-nav button {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
+}

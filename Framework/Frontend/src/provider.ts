@@ -1,5 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 
 import { glob } from 'glob';
 import type {
@@ -12,7 +13,6 @@ import type {
     ResolvedModuleWorkspace
 } from '@webstir-io/module-contract';
 
-import packageJson from '../package.json' with { type: 'json' };
 import { runPipeline } from './pipeline.js';
 import type { PipelineMode } from './pipeline.js';
 import { prepareWorkspaceConfig } from './config/setup.js';
@@ -26,7 +26,8 @@ interface PackageJson {
     };
 }
 
-const pkg = packageJson as PackageJson;
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json') as PackageJson;
 
 function resolveWorkspacePaths(workspaceRoot: string): ResolvedModuleWorkspace {
     return {

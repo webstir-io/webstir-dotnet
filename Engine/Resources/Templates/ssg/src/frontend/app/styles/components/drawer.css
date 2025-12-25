@@ -1,0 +1,12 @@
+@layer components {
+  .ws-drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    top: var(--ws-drawer-top, 0px);
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(0.75rem);
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+  }
+}

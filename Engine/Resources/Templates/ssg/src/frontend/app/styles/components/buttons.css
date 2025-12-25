@@ -16,6 +16,47 @@
     cursor: pointer;
   }
 
+  .ws-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--ws-header-control-size, 2.6rem);
+    height: var(--ws-header-control-size, 2.6rem);
+    padding: 0;
+    border-radius: var(--ws-radius-1);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--ws-fg);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 140ms ease, border-color 140ms ease;
+  }
+
+  .ws-icon-button:hover {
+    background: rgba(17, 24, 39, 0.04);
+  }
+
+  [data-theme="dark"] .ws-icon-button:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .ws-icon-button:focus-visible {
+    outline: 0.1875rem solid var(--ws-focus);
+    outline-offset: 0.125rem;
+    border-radius: var(--ws-radius-1);
+  }
+
+  .ws-icon-button[aria-expanded="true"] {
+    border-color: rgba(37, 99, 235, 0.35);
+    background: rgba(37, 99, 235, 0.06);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ws-icon-button {
+      transition: none;
+    }
+  }
+
   :where([data-ui="btn"]):focus-visible,
   .button:focus-visible {
     outline: 0.1875rem solid var(--ws-focus);

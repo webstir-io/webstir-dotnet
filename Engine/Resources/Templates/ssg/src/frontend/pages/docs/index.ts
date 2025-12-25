@@ -170,14 +170,16 @@ function sortEntries(a: DocsNavEntry, b: DocsNavEntry): number {
   return normalizePath(a.path).localeCompare(normalizePath(b.path));
 }
 
-function renderSidebar(entries: DocsNavEntry[]): void {
-  const links = document.getElementById('docs-links');
-  if (!links) return;
-
-  const normalizedCurrent = normalizePath(window.location.pathname);
-  const safeEntries = entries
+function normalizeEntries(entries: DocsNavEntry[]): DocsNavEntry[] {
+  return entries
     .filter((entry) => entry && typeof entry.path === 'string' && typeof entry.title === 'string')
     .map((entry) => ({ ...entry, path: normalizePath(entry.path) }));
+}
+
+function renderSidebar(entries: DocsNavEntry[], links: HTMLElement): void {
+
+  const normalizedCurrent = normalizePath(window.location.pathname);
+  const safeEntries = normalizeEntries(entries);
 
   safeEntries.sort(sortEntries);
 
@@ -271,6 +273,91 @@ function renderSidebar(entries: DocsNavEntry[]): void {
       saveOpenState(openState);
     });
   });
+}
+
+function ensureBreadcrumbContainer(): HTMLElement | null {
+  const main = document.querySelector<HTMLElement>('.docs-main');
+  if (!main) return null;
+
+  let container = main.querySelector<HTMLElement>('.docs-breadcrumb');
+  if (!container) {
+    container = document.createElement('nav');
+    container.className = 'docs-breadcrumb';
+    container.setAttribute('aria-label', 'Breadcrumb');
+    main.insertBefore(container, main.firstChild);
+  }
+  return container;
+}
+
+function renderBreadcrumbs(entries: DocsNavEntry[]): void {
+  const segments = parseDocsSegments(window.location.pathname);
+  const container = ensureBreadcrumbContainer();
+  if (!container) return;
+
+  const safeEntries = normalizeEntries(entries);
+  const entryByPath = new Map<string, DocsNavEntry>();
+  safeEntries.forEach((entry) => {
+    entryByPath.set(normalizePath(entry.path), entry);
+  });
+
+  const { root } = buildNavTree(safeEntries);
+
+  const isRoot = segments.length === 0;
+  const crumbs: Array<{ label: string; href?: string; current?: boolean; home?: boolean }> = [
+    { label: 'Docs', href: isRoot ? undefined : '/docs/', current: isRoot, home: true }
+  ];
+
+  let cursor: FolderNode | undefined = root;
+  const prefix: string[] = [];
+
+  segments.forEach((segment, index) => {
+    prefix.push(segment);
+    const prefixKey = joinPath(prefix);
+    const path = normalizePath(`/docs/${prefixKey}`);
+    const entry = entryByPath.get(path);
+
+    let label = entry?.title?.trim() ? entry.title.trim() : toTitleCase(segment);
+    let href: string | undefined = entry ? path : undefined;
+
+    const next = cursor?.children.get(segment);
+    if (next) {
+      if (!entry) {
+        label = next.label || label;
+        if (next.index) {
+          href = normalizePath(next.index.path);
+        }
+      }
+      cursor = next;
+    }
+
+    const isCurrent = index === segments.length - 1;
+    crumbs.push({ label, href: isCurrent ? undefined : href, current: isCurrent });
+  });
+
+  const homeIcon = [
+    '<span class="docs-breadcrumb__icon" aria-hidden="true">',
+    '  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">',
+    '    <path d="M11.3 3.4a1 1 0 0 1 1.4 0l8 6.6a1 1 0 0 1-.6 1.8h-1.1V20a1 1 0 0 1-1 1h-4.5a1 1 0 0 1-1-1v-5h-3v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8.4H3.9a1 1 0 0 1-.6-1.8l8-6.6Z"></path>',
+    '  </svg>',
+    '</span>'
+  ].join('');
+
+  const items = crumbs.map((crumb) => {
+    const label = escapeHtml(crumb.label);
+    const currentClass = crumb.current ? ' docs-breadcrumb__label--current' : '';
+    const labelHtml = `<span class="docs-breadcrumb__label${currentClass}">${label}</span>`;
+    const content = crumb.home ? `${homeIcon}${labelHtml}` : labelHtml;
+
+    if (crumb.href && !crumb.current) {
+      const ariaLabel = crumb.home ? ' aria-label="Docs home"' : '';
+      return `<li><a class="docs-breadcrumb__item" href="${escapeHtml(crumb.href)}"${ariaLabel}>${content}</a></li>`;
+    }
+    const currentAttr = crumb.current ? ' aria-current="page"' : '';
+    return `<li><span class="docs-breadcrumb__item"${currentAttr}>${content}</span></li>`;
+  });
+
+  container.removeAttribute('hidden');
+  container.innerHTML = `<ol class="docs-breadcrumb__list">${items.join('')}</ol>`;
 }
 
 function slugifyHeading(value: string): string {
@@ -380,7 +467,12 @@ function refreshToc(): void {
 async function refresh(): Promise<void> {
   const nav = await ensureNavLoaded();
   if (nav) {
-    renderSidebar(nav);
+    const sidebarLinks = document.getElementById('docs-links');
+    if (sidebarLinks) {
+      renderSidebar(nav, sidebarLinks);
+    }
+
+    renderBreadcrumbs(nav);
   }
   refreshToc();
 }

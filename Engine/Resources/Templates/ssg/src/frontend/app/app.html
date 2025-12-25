@@ -13,7 +13,7 @@
                 Webstir
             </a>
             <div class="app-menu" data-app-menu>
-                <button class="app-menu__toggle" type="button" aria-label="Menu" aria-controls="app-menu-nav" aria-expanded="false">
+                <button class="app-menu__toggle ws-icon-button" type="button" aria-label="Menu" aria-controls="app-menu-nav" aria-expanded="false">
                     <span class="app-menu__icon app-menu__icon--open" aria-hidden="true">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M4 7h16M4 12h16M4 17h16"></path>
@@ -34,80 +34,10 @@
             </div>
         </div>
     </header>
+    <div class="ws-drawer-backdrop" data-drawer="menu" data-drawer-close aria-hidden="true"></div>
     <main></main>
     <script type="module" src="/app/app.js"></script>
     <script type="module" src="/hmr.js"></script>
-    <script>
-        (() => {
-            const menu = document.querySelector('[data-app-menu]');
-            if (!(menu instanceof HTMLElement)) {
-                return;
-            }
-
-            const mobileQuery = window.matchMedia('(max-width: 40rem)');
-            const toggle = menu.querySelector('.app-menu__toggle');
-            const nav = menu.querySelector('.app-nav');
-
-            if (!(toggle instanceof HTMLButtonElement) || !(nav instanceof HTMLElement)) {
-                return;
-            }
-
-            const setOpen = (open) => {
-                if (open) {
-                    menu.classList.add('is-open');
-                    toggle.setAttribute('aria-expanded', 'true');
-                } else {
-                    menu.classList.remove('is-open');
-                    toggle.setAttribute('aria-expanded', 'false');
-                }
-            };
-
-            const syncMode = () => {
-                if (!mobileQuery.matches) {
-                    setOpen(false);
-                } else {
-                    setOpen(false);
-                }
-            };
-
-            syncMode();
-            mobileQuery.addEventListener('change', syncMode);
-
-            toggle.addEventListener('click', () => {
-                if (!mobileQuery.matches) {
-                    return;
-                }
-
-                setOpen(!menu.classList.contains('is-open'));
-            });
-
-            document.addEventListener('click', (event) => {
-                if (!menu.classList.contains('is-open') || !mobileQuery.matches) {
-                    return;
-                }
-
-                const target = event.target;
-                if (!(target instanceof Element)) {
-                    return;
-                }
-
-                if (!target.closest('[data-app-menu]')) {
-                    setOpen(false);
-                    return;
-                }
-
-                if (target.closest('.app-nav a, .app-nav button')) {
-                    setOpen(false);
-                }
-            }, true);
-
-            document.addEventListener('keydown', (event) => {
-                if (event.key === 'Escape' && menu.classList.contains('is-open') && mobileQuery.matches) {
-                    setOpen(false);
-                }
-            });
-        })();
-    </script>
     <script src="/refresh.js" async></script>
 </body>
 </html>

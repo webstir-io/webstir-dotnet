@@ -1,6 +1,6 @@
 {
   "name": "@webstir-io/webstir-frontend",
-  "version": "0.1.24",
+  "version": "0.1.25",
   "description": "Frontend build and publish tooling for Webstir workspaces.",
   "type": "module",
   "main": "dist/index.js",
@@ -33,7 +33,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
-    "test": "npm run build \u0026\u0026 node -e \u0022const { spawnSync } = require(\u0027node:child_process\u0027); const glob = require(\u0027glob\u0027); const files = glob.sync(\u0027tests/**/*.test.js\u0027); if (!files.length) { console.error(\u0027No frontend test files found\u0027); process.exit(1); } const result = spawnSync(process.execPath, [\u0027--test\u0027, ...files], { stdio: \u0027inherit\u0027 }); process.exit(result.status ?? 1);\u0022"
+    "test": "npm run build \u0026\u0026 node -e \u0022const { spawnSync } = require(\u0027node:child_process\u0027); const glob = require(\u0027glob\u0027); const files = glob.sync(\u0027tests/**/*.test.js\u0027); if (!files.length) { console.error(\u0027No frontend test files found\u0027); process.exit(1); } const env = { ...process.env, BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA: \u0027true\u0027, BROWSERSLIST_IGNORE_OLD_DATA: \u0027true\u0027 }; const result = spawnSync(process.execPath, [\u0027--test\u0027, ...files], { stdio: \u0027inherit\u0027, env }); process.exit(result.status ?? 1);\u0022"
   },
   "files": [
     "dist"
@@ -71,6 +71,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "baseline-browser-mapping": "^2.9.5",
     "@types/csso": "^5.0.4",
     "@types/fs-extra": "^11.0.4",
     "@types/glob": "^8.1.0",

@@ -4,12 +4,19 @@
     height: 100%;
   }
 
+  html {
+    scroll-padding-top: calc(
+      var(--ws-header-sticky-offset, 0px) + var(--ws-space-4)
+    );
+  }
+
   body {
     font-family: var(--ws-font-sans);
     font-size: 16px;
     line-height: 1.6;
     color: var(--ws-fg);
     background: var(--ws-bg);
+    padding-top: var(--ws-header-sticky-offset, 0px);
   }
 
   h1,

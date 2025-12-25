@@ -1,3 +1,5 @@
+import './scripts/components/menu.js';
+
 // Global app initialization
 
 type HotAsset = {
