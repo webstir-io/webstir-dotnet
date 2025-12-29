@@ -1,0 +1,23 @@
+@layer overrides {
+  .docs-layout {
+    --ws-docs-ui-gap: 4px;
+    --ws-docs-ui-gap-lg: 8px;
+    --ws-docs-ui-gap-tight: 10px;
+    --ws-docs-surface-padding: 14px 16px;
+
+    padding: 48px 0 96px;
+    --ws-container: var(--ws-article);
+  }
+
+  .docs-layout__inner {
+    display: block;
+  }
+
+  .docs-main {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+    min-width: 0;
+    --ws-flow-space: var(--ws-space-7);
+  }
+}

@@ -8,7 +8,7 @@ If you add files under `src/frontend/content/**/*.md`, Webstir will:
 - Wrap it in your shared layout (`src/frontend/app/app.html`)
 - Write real pages under `/docs/.../`
 
-The starter includes a docs hub at `/docs/` with basic navigation.
+The starter includes a docs hub at `/docs/`.
 
 ## Add a doc
 
@@ -47,17 +47,6 @@ description: A short summary for the docs index.
 order: 10
 ---
 ```
-
-## Manifests
-
-Webstir also emits helper manifests for docs navigation:
-
-- `/docs-nav.json`
- 
-It’s written alongside your built frontend output:
-
-- `build/frontend/docs-nav.json` while watching
-- `dist/frontend/docs-nav.json` for publish output
 
 ## Search (optional)
 

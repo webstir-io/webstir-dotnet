@@ -6,6 +6,7 @@
     left: 0;
     right: 0;
     z-index: 30;
+    height: calc(var(--ws-header-sticky-offset, 0px) - 1px);
     border-bottom: 1px solid var(--ws-border);
     background: var(--ws-bg);
   }
@@ -43,7 +44,6 @@
     align-items: center;
     gap: var(--ws-space-2);
   }
-
 
   .app-menu__toggle.ws-icon-button {
     display: none;
@@ -91,13 +91,9 @@
     border-radius: var(--ws-radius-1);
   }
 
-  @media (max-width: 40rem) {
+  @media (--ws-sm) {
     .app-menu__toggle.ws-icon-button {
       display: inline-flex;
-    }
-
-    .webstir-search__trigger {
-      order: -1;
     }
 
     .app-nav {

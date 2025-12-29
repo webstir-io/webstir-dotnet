@@ -1,7 +1,6 @@
 @layer components {
   /* Buttons */
-  :where([data-ui="btn"]),
-  .button {
+  :where([data-ui="btn"]) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -11,8 +10,10 @@
     background: var(--ws-bg);
     color: var(--ws-fg);
     text-decoration: none;
-    font-weight: 650;
-    transition: background-color 120ms ease, border-color 120ms ease, filter 120ms ease;
+    font-weight: 600;
+    transition: background-color var(--ws-duration-fast) var(--ws-ease-standard),
+      border-color var(--ws-duration-fast) var(--ws-ease-standard),
+      filter var(--ws-duration-fast) var(--ws-ease-standard);
     cursor: pointer;
   }
 
@@ -29,7 +30,8 @@
     color: var(--ws-fg);
     cursor: pointer;
     user-select: none;
-    transition: background-color 140ms ease, border-color 140ms ease;
+    transition: background-color var(--ws-duration-fast) var(--ws-ease-standard),
+      border-color var(--ws-duration-fast) var(--ws-ease-standard);
   }
 
   .ws-icon-button:hover {
@@ -57,27 +59,23 @@
     }
   }
 
-  :where([data-ui="btn"]):focus-visible,
-  .button:focus-visible {
+  :where([data-ui="btn"]):focus-visible {
     outline: 0.1875rem solid var(--ws-focus);
     outline-offset: 0.125rem;
   }
 
-  :where([data-ui="btn"]):hover,
-  .button:hover {
+  :where([data-ui="btn"]):hover {
     text-decoration: none;
     background: rgba(17, 24, 39, 0.03);
   }
 
-  :where([data-ui="btn"][data-variant="solid"][data-tone="accent"]),
-  .button--primary {
+  :where([data-ui="btn"][data-variant="solid"][data-tone="accent"]) {
     background: var(--ws-accent);
     color: #ffffff;
     border-color: var(--ws-accent);
   }
 
-  :where([data-ui="btn"][data-variant="solid"][data-tone="accent"]):hover,
-  .button--primary:hover {
+  :where([data-ui="btn"][data-variant="solid"][data-tone="accent"]):hover {
     background: var(--ws-accent-hover);
     border-color: var(--ws-accent-hover);
   }

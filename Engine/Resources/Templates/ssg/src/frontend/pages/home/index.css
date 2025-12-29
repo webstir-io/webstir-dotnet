@@ -10,6 +10,7 @@
   max-width: 760px;
   margin-left: auto;
   margin-right: auto;
+  --ws-flow-space: var(--ws-space-6);
 }
 
 .hero .ws-cluster {
@@ -26,20 +27,20 @@
   font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  margin: 0 0 16px;
+  margin: 0;
 }
 
 .hero h1 {
   font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: -0.03em;
-  margin: 0 0 16px;
+  margin: 0;
 }
 
 .hero__lead {
   font-size: 1.15rem;
   color: var(--ws-muted);
-  margin: 0 auto 28px;
+  margin: 0 auto;
   max-width: 64ch;
 }
 
@@ -49,11 +50,12 @@
 
 .start .ws-container {
   max-width: 720px;
+  --ws-flow-space: var(--ws-space-4);
 }
 
 .start h2 {
   font-size: 1.25rem;
-  margin: 0 0 16px;
+  margin: 0;
 }
 
 .start__list {
@@ -67,7 +69,7 @@
 }
 
 .start__list code {
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ws-fg);
 }
 }

@@ -5,9 +5,7 @@
     "lib": ["ES2022", "DOM"],
     "outDir": "../../build/frontend",
     "rootDir": ".",
-    "baseUrl": ".",
-    "incremental": true,
-    "tsBuildInfoFile": "../../build/frontend/.tsbuildinfo"
+    "baseUrl": "."
   },
   "include": ["**/*.ts", "../../types/**/*.d.ts"],
   "exclude": ["node_modules", "../../build", "../../dist"],

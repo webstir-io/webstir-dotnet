@@ -30,6 +30,20 @@
     margin: 0 0 0.5rem 0;
   }
 
+  h1 {
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    font-size: 1.35rem;
+  }
+
   p {
     margin: 0 0 1rem 0;
   }
@@ -56,16 +70,14 @@
     padding: 0.12em 0.4em;
     border-radius: var(--ws-radius-1);
     border: 1px solid var(--ws-border);
-    background: rgba(17, 24, 39, 0.06);
-    background: color-mix(in srgb, var(--ws-fg) 6%, transparent);
+    background: var(--ws-surface-2);
   }
 
   pre {
     padding: 12px 14px;
     border-radius: var(--ws-radius-2);
     border: 1px solid var(--ws-border);
-    background: rgba(17, 24, 39, 0.04);
-    background: color-mix(in srgb, var(--ws-fg) 4%, transparent);
+    background: var(--ws-surface-1);
     overflow-x: auto;
   }
 

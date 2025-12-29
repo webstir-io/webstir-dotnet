@@ -1,5 +1,5 @@
 @layer shell {
-  @media (max-width: 40rem) {
+  @media (--ws-sm) {
     body.webstir-menu-open {
       overflow: hidden;
     }

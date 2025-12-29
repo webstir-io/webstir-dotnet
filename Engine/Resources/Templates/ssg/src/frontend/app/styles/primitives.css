@@ -27,15 +27,4 @@
     gap: var(--ws-gap, var(--ws-space-4));
   }
 
-  .ws-sidebar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--ws-gap, var(--ws-space-6));
-  }
-
-  @media (min-width: 48rem) {
-    .ws-sidebar {
-      grid-template-columns: minmax(0, 1fr) minmax(16rem, var(--ws-sidebar, 20rem));
-    }
-  }
 }

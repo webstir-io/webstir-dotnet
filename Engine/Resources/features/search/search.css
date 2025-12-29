@@ -215,7 +215,11 @@
     color: var(--ws-muted);
   }
 
-  @media (max-width: 40rem) {
+  @media (--ws-sm) {
+    .webstir-search__trigger {
+      order: -1;
+    }
+
     .webstir-search__drawer-inner {
       padding-block: 1rem 1.25rem;
     }

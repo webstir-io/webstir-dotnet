@@ -11,4 +11,8 @@
     white-space: nowrap;
     border: 0;
   }
+
+  :where(.ws-flow) > * + * {
+    margin-top: var(--ws-flow-space, var(--ws-space-4));
+  }
 }

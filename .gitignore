@@ -417,3 +417,4 @@ Sandbox/npmrc/host/.npmrc
 .env
 .env.local
 framework/frontend/*.tgz
+*.tsbuildinfo

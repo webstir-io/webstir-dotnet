@@ -26,7 +26,8 @@ function resolveBackdrop(root: HTMLElement | null): HTMLElement | null {
 const backdrop = resolveBackdrop(menu);
 
 if (menu && toggle) {
-  const mobileQuery = window.matchMedia('(max-width: 40rem)');
+  const bpSm = getComputedStyle(document.documentElement).getPropertyValue('--ws-bp-sm').trim() || '40rem';
+  const mobileQuery = window.matchMedia(`(max-width: ${bpSm})`);
 
   const drawer = createDrawer({
     root: menu,

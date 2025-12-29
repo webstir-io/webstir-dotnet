@@ -440,12 +440,30 @@ internal sealed class FrontendWatcher(
             process.OutputDataReceived -= OnProcessOutput;
             process.ErrorDataReceived -= OnProcessError;
             process.Exited -= OnProcessExited;
-            process.Dispose();
+            try
+            {
+                process.Dispose();
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or IOException)
+            {
+                _logger.LogDebug(ex, "Failed to dispose frontend watch daemon process handle.");
+            }
         }
 
         _process = null;
 
-        _input?.Dispose();
+        if (_input is not null)
+        {
+            try
+            {
+                _input.Dispose();
+            }
+            catch (Exception ex) when (ex is IOException or ObjectDisposedException)
+            {
+                _logger.LogDebug(ex, "Failed to dispose frontend watch daemon input stream.");
+            }
+        }
+
         _input = null;
 
         if (resetReadyState)
