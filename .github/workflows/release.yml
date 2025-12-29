@@ -116,7 +116,7 @@ jobs:
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             BUMP="${RESOLVED_BUMP:-patch}"
-            VERSION=$(dotnet run --project Framework/Framework.csproj -- packages bump --bump "$BUMP" --dry-run --print-version | tail -n 1)
+            VERSION=$(dotnet run --project Framework/Framework.csproj -- packages bump --all --bump "$BUMP" --dry-run --print-version | tail -n 1)
             echo "release_version=$VERSION" >> "$GITHUB_OUTPUT"
             echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
           else
@@ -164,7 +164,7 @@ jobs:
         if: ${{ env.IS_DRY_RUN != 'true' }}
         env:
           RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
-        run: dotnet run --project Framework/Framework.csproj -- packages publish
+        run: dotnet run --project Framework/Framework.csproj -- packages publish --all --set-version "$RELEASE_VERSION"
 
       - name: Verify framework packages
         if: ${{ env.IS_DRY_RUN != 'true' }}
