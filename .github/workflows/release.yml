@@ -173,9 +173,19 @@ jobs:
       - name: Commit release artifacts
         if: ${{ github.event_name == 'workflow_dispatch' && env.IS_DRY_RUN != 'true' }}
         run: |
-          git add Framework/Frontend/package.json Framework/Frontend/package-lock.json \
-                  Framework/Testing/package.json Framework/Testing/package-lock.json \
-                  Framework/Packaging/framework-packages.json Engine/Resources/package.json
+          files=(
+            Framework/Frontend/package.json
+            Framework/Frontend/package-lock.json
+            Framework/Testing/package.json
+            Framework/Testing/package-lock.json
+            Framework/Packaging/framework-packages.json
+            Engine/Resources/package.json
+          )
+          for file in "${files[@]}"; do
+            if [[ -f "$file" ]]; then
+              git add "$file"
+            fi
+          done
           if git diff --cached --quiet; then
             echo "No changes detected; nothing to commit."
           else
