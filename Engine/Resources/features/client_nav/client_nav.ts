@@ -134,7 +134,8 @@ function syncHead(doc: Document, url: string): void {
     }
 
     const preservedClientNav = head.querySelector('script[data-webstir="client-nav"]');
-    const preservedAppCss = head.querySelector('link[rel="stylesheet"][href="/app/app.css"]');
+    const preservedAppCss = Array.from(head.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'))
+        .find((link) => isAppStylesheetHref(link.getAttribute('href'))) ?? null;
 
     for (const element of Array.from(head.querySelectorAll(`script[${DYNAMIC_ATTR}="${DYNAMIC_VALUE}"]`))) {
         element.remove();
@@ -153,28 +154,53 @@ function syncHead(doc: Document, url: string): void {
         }
     }
 
-    for (const link of Array.from(head.querySelectorAll('link[rel="stylesheet"]'))) {
-        if (link === preservedAppCss) {
-            continue;
-        }
-        link.remove();
-    }
-
-    for (const link of Array.from(newHead.querySelectorAll('link[rel="stylesheet"]'))) {
+    const desiredStyles = new Map<string, string>();
+    for (const link of Array.from(newHead.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'))) {
         const href = link.getAttribute('href');
-        if (!href || href === '/app/app.css') {
+        if (!href) {
             continue;
         }
         const resolved = resolveUrl(href, url);
         if (!resolved) {
             continue;
         }
-        if (!head.querySelector(`link[rel="stylesheet"][href="${cssEscape(resolved)}"]`)) {
-            const next = document.createElement('link');
-            next.rel = 'stylesheet';
-            next.href = resolved;
-            head.appendChild(next);
+        const key = stripQueryAndHash(resolved);
+        const finalHref = key === '/app/app.css' && preservedAppCss
+            ? (preservedAppCss.getAttribute('href') ?? resolved)
+            : resolved;
+        desiredStyles.set(key, finalHref);
+    }
+
+    if (preservedAppCss) {
+        const appHref = preservedAppCss.getAttribute('href') ?? '/app/app.css';
+        desiredStyles.set('/app/app.css', appHref);
+    }
+
+    const existingStyles = new Map<string, HTMLLinkElement>();
+    for (const link of Array.from(head.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'))) {
+        const key = normalizeStylesheetKey(link.getAttribute('href'), window.location.href);
+        if (!key) {
+            link.remove();
+            continue;
         }
+        if (desiredStyles.has(key)) {
+            if (!existingStyles.has(key)) {
+                existingStyles.set(key, link);
+            }
+            continue;
+        }
+        link.remove();
+    }
+
+    for (const [key, href] of desiredStyles.entries()) {
+        if (existingStyles.has(key)) {
+            continue;
+        }
+        const next = document.createElement('link');
+        next.rel = 'stylesheet';
+        next.href = href;
+        head.appendChild(next);
+        existingStyles.set(key, next);
     }
 
     for (const script of Array.from(newHead.querySelectorAll('script[src]'))) {
@@ -204,9 +230,6 @@ function syncHead(doc: Document, url: string): void {
         head.appendChild(next);
     }
 
-    if (preservedAppCss && !head.contains(preservedAppCss)) {
-        head.prepend(preservedAppCss);
-    }
     if (preservedClientNav && !head.contains(preservedClientNav)) {
         head.appendChild(preservedClientNav);
     }
@@ -252,10 +275,11 @@ function executeScripts(container: Element | null): void {
 function resolveUrl(value: string, baseUrl: string): string | null {
     try {
         const trimmed = String(value ?? '').trim();
-        if (trimmed && !trimmed.startsWith('/') && !trimmed.startsWith('http:') && !trimmed.startsWith('https:')) {
-            if (trimmed === 'index.js' || trimmed === 'index.css') {
+        const [path, suffix] = splitPathSuffix(trimmed);
+        if (path && !path.startsWith('/') && !path.startsWith('http:') && !path.startsWith('https:')) {
+            if (path === 'index.js' || path === 'index.css') {
                 const pageName = getPageNameFromUrl(baseUrl);
-                return `/pages/${pageName}/${trimmed}`;
+                return `/pages/${pageName}/${path}${suffix}`;
             }
         }
 
@@ -263,6 +287,40 @@ function resolveUrl(value: string, baseUrl: string): string | null {
         return resolved.pathname + resolved.search + resolved.hash;
     } catch {
         return null;
+    }
+}
+
+function normalizeStylesheetKey(href: string | null, baseUrl: string): string | null {
+    const resolved = resolveUrl(href ?? '', baseUrl);
+    if (!resolved) {
+        return null;
+    }
+    return stripQueryAndHash(resolved);
+}
+
+function stripQueryAndHash(value: string): string {
+    return value.split(/[?#]/)[0] ?? value;
+}
+
+function splitPathSuffix(value: string): [string, string] {
+    const [path, suffix = ''] = value.split(/(?=[?#])/);
+    return [path ?? '', suffix ?? ''];
+}
+
+function isAppStylesheetHref(href: string | null): boolean {
+    if (!href) {
+        return false;
+    }
+
+    try {
+        return new URL(href, window.location.origin).pathname === '/app/app.css';
+    } catch {
+        const trimmed = href.trim();
+        if (!trimmed) {
+            return false;
+        }
+        const [path] = trimmed.split(/[?#]/);
+        return path === '/app/app.css';
     }
 }
 

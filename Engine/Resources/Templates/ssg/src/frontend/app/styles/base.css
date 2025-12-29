@@ -71,6 +71,8 @@
     border-radius: var(--ws-radius-1);
     border: 1px solid var(--ws-border);
     background: var(--ws-surface-2);
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   pre {
@@ -85,5 +87,7 @@
     padding: 0;
     border: 0;
     background: transparent;
+    overflow-wrap: normal;
+    word-break: normal;
   }
 }

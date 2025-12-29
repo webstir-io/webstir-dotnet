@@ -54,6 +54,7 @@ internal sealed class PackageConsoleCommand
                 result.Bump,
                 result.BumpExplicit,
                 result.ExplicitVersion,
+                result.PrintVersion,
                 result.Interactive,
                 result.SinceReference,
                 result.AdditionalArguments);
@@ -105,6 +106,7 @@ internal sealed class PackageConsoleCommand
                 Bump: SemanticVersionBump.Patch,
                 BumpExplicit: false,
                 ExplicitVersion: null,
+                PrintVersion: false,
                 Interactive: false,
                 SinceReference: null,
                 AdditionalArguments: Array.Empty<string>());
@@ -125,6 +127,7 @@ internal sealed class PackageConsoleCommand
         bool dryRun = false;
         bool interactive = false;
         bool bumpExplicit = false;
+        bool printVersion = false;
         string? sinceReference = null;
         SemanticVersionBump bump = SemanticVersionBump.Patch;
         SemanticVersion? explicitVersion = null;
@@ -147,12 +150,13 @@ internal sealed class PackageConsoleCommand
                     repositoryRoot,
                     PackageSelection.ChangedPackages,
                     dryRun,
-                bump,
-                bumpExplicit,
-                explicitVersion,
-                interactive,
-                sinceReference,
-                additionalArguments);
+                    bump,
+                    bumpExplicit,
+                    explicitVersion,
+                    PrintVersion: false,
+                    interactive,
+                    sinceReference,
+                    additionalArguments);
             }
 
             switch (token)
@@ -186,6 +190,9 @@ internal sealed class PackageConsoleCommand
                 case "--dry-run":
                     dryRun = true;
                     break;
+                case "--print-version":
+                    printVersion = true;
+                    break;
                 case "--interactive":
                     interactive = true;
                     break;
@@ -217,6 +224,11 @@ internal sealed class PackageConsoleCommand
 
         PackageSelection selection = DetermineSelection(allPackages, changedOnly, identifiers, sinceReference);
 
+        if (printVersion && !command.Equals("bump", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("--print-version is only supported for the bump command.");
+        }
+
         return new PackagesParseResult(
             command,
             ShowHelp: false,
@@ -226,6 +238,7 @@ internal sealed class PackageConsoleCommand
             bump,
             bumpExplicit,
             explicitVersion,
+            printVersion,
             interactive,
             sinceReference,
             additionalArguments);
@@ -342,6 +355,7 @@ internal sealed class PackageConsoleCommand
         Console.WriteLine("  --dry-run           Preview actions without writing files or publishing.");
         Console.WriteLine("  --set-version <x.y.z>  Explicitly set the next version.");
         Console.WriteLine("  --bump <patch|minor|major>  Version bump increment (defaults to patch).");
+        Console.WriteLine("  --print-version    Emit the resolved version to stdout (bump only).");
         Console.WriteLine("  --interactive       Prompt before executing critical steps (future use).");
         Console.WriteLine("  --since <ref>       Detect changes relative to the provided git reference.");
         Console.WriteLine();

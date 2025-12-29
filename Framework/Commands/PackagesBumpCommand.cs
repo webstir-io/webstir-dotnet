@@ -24,7 +24,19 @@ internal sealed class PackagesBumpCommand(
 
     public async Task<int> ExecuteAsync(PackagesCommandContext context, CancellationToken cancellationToken)
     {
-        await RunAsync(context, cancellationToken).ConfigureAwait(false);
+        PackageBumpSummary summary = await RunAsync(context, cancellationToken).ConfigureAwait(false);
+
+        if (context.PrintVersion)
+        {
+            if (!summary.HasPackages || summary.TargetVersion is null)
+            {
+                _logger.LogError("[packages] Unable to resolve a target version for output.");
+                return 1;
+            }
+
+            Console.WriteLine(summary.TargetVersion.Value.ToString());
+        }
+
         return 0;
     }
 

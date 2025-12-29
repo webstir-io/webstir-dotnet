@@ -28,7 +28,7 @@ jobs:
     env:
       NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
       GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
-      IS_DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run) && 'true' || 'false' }}
+      IS_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' && 'true' || 'false' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -116,7 +116,7 @@ jobs:
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             BUMP="${RESOLVED_BUMP:-patch}"
-            VERSION=$(node ./Framework/Scripts/bump-version.mjs --bump "$BUMP" $([[ "${{ github.event.inputs.dry_run }}" == "true" ]] && echo "--dry-run"))
+            VERSION=$(dotnet run --project Framework/Framework.csproj -- packages bump --bump "$BUMP" --dry-run --print-version | tail -n 1)
             echo "release_version=$VERSION" >> "$GITHUB_OUTPUT"
             echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
           else

@@ -107,6 +107,7 @@ internal sealed class Runner(ILogger<Runner> logger, PackageConsoleCommand packa
         Console.WriteLine("  --dry-run         Preview actions without writing files or publishing.");
         Console.WriteLine("  --set-version     Explicitly set the next version (bump/release/publish).");
         Console.WriteLine("  --bump            Choose version bump (patch|minor|major). Defaults to patch.");
+        Console.WriteLine("  --print-version   Emit the resolved version to stdout (bump only).");
         Console.WriteLine("  --frontend/--test legacy shortcuts remain available.");
         Console.WriteLine("  --help, -h        Show this message.");
         return 0;

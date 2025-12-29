@@ -9,32 +9,26 @@
     margin: 0;
   }
 
-  .docs-cards {
+  .docs-index__list {
+    list-style: decimal;
+    margin: 0;
+    padding-left: 1.25rem;
     display: grid;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-    gap: calc(var(--ws-docs-ui-gap, 4px) + var(--ws-docs-ui-gap-lg, 8px));
+    gap: var(--ws-space-2);
   }
 
-  .docs-card {
-    border: 1px solid var(--ws-border);
-    border-radius: var(--ws-radius-2);
-    padding: var(--ws-docs-surface-padding, 14px 16px);
-    text-decoration: none;
+  .docs-index__link {
     color: var(--ws-fg);
-    background: var(--ws-surface-1);
-  }
-
-  .docs-card:hover {
     text-decoration: none;
-    border-color: var(--ws-accent-soft);
+    font-weight: 600;
   }
 
-  .docs-card__title {
-    font-weight: 800;
-    margin-bottom: 6px;
+  .docs-index__link:hover {
+    color: var(--ws-accent);
   }
 
-  .docs-card__body {
+  .docs-index__empty {
+    margin: 0;
     color: var(--ws-muted);
   }
 

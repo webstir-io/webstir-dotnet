@@ -1,60 +1,9 @@
 @layer components {
   /* Markdown content pages */
-  .ws-markdown {
-    max-width: var(--ws-article);
-    margin: 0 auto;
-    padding: 3rem var(--ws-container-pad, 1rem) 6rem;
-  }
-
-  .ws-markdown h1 {
-    margin-bottom: 1.25rem;
-    font-size: 2.25rem;
-    letter-spacing: -0.02em;
-  }
-
-  .ws-markdown p {
-    margin: 0 0 1.4rem 0;
-  }
-
-  .ws-markdown h2 {
-    margin-top: 3.25rem;
-    margin-bottom: 0.75rem;
-    font-size: 1.5rem;
-    scroll-margin-top: calc(var(--ws-header-sticky-offset, 0px) + var(--ws-sticky-gap, 16px) + 8px);
-  }
-
+  .ws-markdown h2,
   .ws-markdown h3 {
-    margin-top: 2.25rem;
-    margin-bottom: 0.6rem;
-    font-size: 1.2rem;
     scroll-margin-top: calc(var(--ws-header-sticky-offset, 0px) + var(--ws-sticky-gap, 16px) + 8px);
   }
-
-  .ws-markdown ul,
-  .ws-markdown ol {
-    margin: 0 0 1.25rem 0;
-    padding-left: 22px;
-  }
-
-  .ws-markdown li {
-    margin: 0.6rem 0;
-  }
-
-  .ws-markdown pre {
-    margin: 1rem 0 1.5rem;
-  }
-
-  .ws-markdown pre code.hljs {
-    display: block;
-    font-size: 0.95rem;
-    line-height: 1.55;
-  }
-
-  .ws-markdown :not(pre) > code {
-    overflow-wrap: anywhere;
-    word-break: break-word;
-  }
-
   .ws-markdown .hljs-comment,
   .ws-markdown .hljs-quote {
     color: var(--ws-muted);
