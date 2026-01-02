@@ -30,10 +30,10 @@ public sealed class InstallWorkflowTests
 
         ForceFrontendSpecDrift(workspace, "file:../override");
 
-        string command = $"{Commands.Install} {ProjectOptions.ProjectName} {workspaceName} {InstallOptions.DryRun} {InstallOptions.PackageManager}=pnpm@9.0.0";
+        string command = $"{Commands.Install} {ProjectOptions.ProjectName} {workspaceName} {InstallOptions.DryRun} {InstallOptions.PackageManager}=pnpm@10.5.2";
         ProcessResult result = context.Run(command, context.OutPath, timeoutMs: 60000);
 
-        Assert.Contains("pnpm@9.0.0", result.StandardOutput, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("pnpm@10.5.2", result.StandardOutput, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

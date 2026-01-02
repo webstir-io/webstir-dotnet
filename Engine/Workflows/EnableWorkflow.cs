@@ -24,6 +24,7 @@ public class EnableWorkflow(
         Spa,
         ClientNav,
         Search,
+        ContentNav,
         Backend
     }
 
@@ -32,7 +33,7 @@ public class EnableWorkflow(
         string[] filteredArgs = [.. args.Where(arg => arg != WorkflowName)];
         if (filteredArgs.Length == 0)
         {
-            throw new WorkflowUsageException($"Usage: {App.Name} {Commands.Enable} <scripts <page>|spa|client-nav|search|backend>");
+            throw new WorkflowUsageException($"Usage: {App.Name} {Commands.Enable} <scripts <page>|spa|client-nav|search|content-nav|backend>");
         }
 
         Feature feature = ParseFeature(filteredArgs[0]);
@@ -56,6 +57,9 @@ public class EnableWorkflow(
             case Feature.Search:
                 await EnableSearchAsync();
                 break;
+            case Feature.ContentNav:
+                await EnableContentNavAsync();
+                break;
             case Feature.Backend:
                 await EnableBackendAsync();
                 break;
@@ -71,10 +75,11 @@ public class EnableWorkflow(
             "spa" => Feature.Spa,
             "client-nav" => Feature.ClientNav,
             "search" => Feature.Search,
+            "content-nav" => Feature.ContentNav,
             "backend" => Feature.Backend,
             _ => throw new WorkflowUsageException(
-                $"Unknown feature '{token}'. Expected scripts, spa, client-nav, search, or backend. " +
-                $"Usage: {App.Name} {Commands.Enable} <scripts <page>|spa|client-nav|search|backend>")
+                $"Unknown feature '{token}'. Expected scripts, spa, client-nav, search, content-nav, or backend. " +
+                $"Usage: {App.Name} {Commands.Enable} <scripts <page>|spa|client-nav|search|content-nav|backend>")
         };
     }
 
@@ -104,7 +109,13 @@ public class EnableWorkflow(
     {
         string appDir = Context.FrontendAppPath;
         await ResourceHelpers.CopyEmbeddedDirectoryAsync($"{Resources.FeaturesPath}.router", appDir);
-        bool updatedPackageJson = await UpdatePackageJsonAsync(enableSpa: true, enableClientNav: null, enableSearch: null, enableBackend: null, mode: null);
+        bool updatedPackageJson = await UpdatePackageJsonAsync(
+            enableSpa: true,
+            enableClientNav: null,
+            enableSearch: null,
+            enableContentNav: null,
+            enableBackend: null,
+            mode: null);
 
         Console.WriteLine("Enabled spa.");
         if (updatedPackageJson)
@@ -120,7 +131,13 @@ public class EnableWorkflow(
             $"{Resources.FeaturesPath}.client_nav.client_nav.ts",
             Path.Combine(appDir, Folders.Scripts, "features", $"client-nav{FileExtensions.Ts}")).ConfigureAwait(false);
         await EnableClientNavScriptAsync(appDir).ConfigureAwait(false);
-        bool updatedPackageJson = await UpdatePackageJsonAsync(enableSpa: null, enableClientNav: true, enableSearch: null, enableBackend: null, mode: null);
+        bool updatedPackageJson = await UpdatePackageJsonAsync(
+            enableSpa: null,
+            enableClientNav: true,
+            enableSearch: null,
+            enableContentNav: null,
+            enableBackend: null,
+            mode: null);
 
         string relativePath = Path.Combine(Folders.Src, Folders.Frontend, Folders.App, Folders.Scripts, "features", $"client-nav{FileExtensions.Ts}");
         Console.WriteLine("Enabled client-nav.");
@@ -159,7 +176,13 @@ public class EnableWorkflow(
         await EnableSearchCssAsync(appDir).ConfigureAwait(false);
         await EnsureSearchCssModeEnabledAsync(appDir).ConfigureAwait(false);
         await EnableSearchScriptAsync(appDir).ConfigureAwait(false);
-        bool updatedPackageJson = await UpdatePackageJsonAsync(enableSpa: null, enableClientNav: null, enableSearch: true, enableBackend: null, mode: null);
+        bool updatedPackageJson = await UpdatePackageJsonAsync(
+            enableSpa: null,
+            enableClientNav: null,
+            enableSearch: true,
+            enableContentNav: null,
+            enableBackend: null,
+            mode: null);
 
         string relativePath = Path.Combine(Folders.Src, Folders.Frontend, Folders.App, Folders.Scripts, "features", $"search{FileExtensions.Ts}");
         Console.WriteLine("Enabled search.");
@@ -167,6 +190,34 @@ public class EnableWorkflow(
         if (updatedPackageJson)
         {
             Console.WriteLine("  Updated package.json: webstir.enable.search=true");
+        }
+    }
+
+    private async Task EnableContentNavAsync()
+    {
+        string appDir = Context.FrontendAppPath;
+        await ResourceHelpers.CopyEmbeddedFileAsync(
+            $"{Resources.FeaturesPath}.content_nav.content_nav.ts",
+            Path.Combine(appDir, Folders.Scripts, "features", $"content-nav{FileExtensions.Ts}")).ConfigureAwait(false);
+        await ResourceHelpers.CopyEmbeddedFileAsync(
+            $"{Resources.FeaturesPath}.content_nav.content_nav.css",
+            Path.Combine(appDir, Folders.Styles, "features", $"content-nav{FileExtensions.Css}")).ConfigureAwait(false);
+        await EnableContentNavCssAsync(appDir).ConfigureAwait(false);
+        await EnableContentNavScriptAsync(appDir).ConfigureAwait(false);
+        bool updatedPackageJson = await UpdatePackageJsonAsync(
+            enableSpa: null,
+            enableClientNav: null,
+            enableSearch: null,
+            enableContentNav: true,
+            enableBackend: null,
+            mode: null);
+
+        string relativePath = Path.Combine(Folders.Src, Folders.Frontend, Folders.App, Folders.Scripts, "features", $"content-nav{FileExtensions.Ts}");
+        Console.WriteLine("Enabled content-nav.");
+        Console.WriteLine($"  + {relativePath}");
+        if (updatedPackageJson)
+        {
+            Console.WriteLine("  Updated package.json: webstir.enable.contentNav=true");
         }
     }
 
@@ -191,6 +242,9 @@ public class EnableWorkflow(
 
     private static string EnsureClientNavScriptImport(string source)
         => EnsureSideEffectImport(source, "./scripts/features/client-nav.js");
+
+    private static string EnsureContentNavScriptImport(string source)
+        => EnsureSideEffectImport(source, "./scripts/features/content-nav.js");
 
     private static string EnsureSideEffectImport(string source, string importPath)
     {
@@ -241,6 +295,26 @@ public class EnableWorkflow(
         }
     }
 
+    private static async Task EnableContentNavCssAsync(string appDir)
+    {
+        string appCssPath = Path.Combine(appDir, Files.AppCss);
+        if (!File.Exists(appCssPath))
+        {
+            return;
+        }
+
+        string css = await File.ReadAllTextAsync(appCssPath).ConfigureAwait(false);
+        string updated = css;
+
+        updated = EnsureLayerIncludes(updated, "features");
+        updated = EnsureImportIncludes(updated, "./styles/features/content-nav.css", "./styles/components/buttons.css");
+
+        if (!string.Equals(css, updated, StringComparison.Ordinal))
+        {
+            await File.WriteAllTextAsync(appCssPath, updated).ConfigureAwait(false);
+        }
+    }
+
     private static async Task EnsureSearchCssModeEnabledAsync(string appDir)
     {
         string appHtmlPath = Path.Combine(appDir, Files.AppHtml);
@@ -265,6 +339,22 @@ public class EnableWorkflow(
         if (!string.Equals(html, updated, StringComparison.Ordinal))
         {
             await File.WriteAllTextAsync(appHtmlPath, updated).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task EnableContentNavScriptAsync(string appDir)
+    {
+        string appTsPath = Path.Combine(appDir, Files.AppTs);
+        if (!File.Exists(appTsPath))
+        {
+            return;
+        }
+
+        string source = await File.ReadAllTextAsync(appTsPath).ConfigureAwait(false);
+        string updated = EnsureContentNavScriptImport(source);
+        if (!string.Equals(source, updated, StringComparison.Ordinal))
+        {
+            await File.WriteAllTextAsync(appTsPath, updated).ConfigureAwait(false);
         }
     }
 
@@ -349,7 +439,13 @@ public class EnableWorkflow(
             await ResourceHelpers.CopyEmbeddedDirectoryAsync(templatePrefix, backendDir);
         }
 
-        bool updatedPackageJson = await UpdatePackageJsonAsync(enableSpa: null, enableClientNav: null, enableSearch: null, enableBackend: true, mode: "full");
+        bool updatedPackageJson = await UpdatePackageJsonAsync(
+            enableSpa: null,
+            enableClientNav: null,
+            enableSearch: null,
+            enableContentNav: null,
+            enableBackend: true,
+            mode: "full");
         EnsureTsReference(Folders.Backend);
 
         Console.WriteLine("Enabled backend.");
@@ -359,7 +455,13 @@ public class EnableWorkflow(
         }
     }
 
-    private async Task<bool> UpdatePackageJsonAsync(bool? enableSpa, bool? enableClientNav, bool? enableSearch, bool? enableBackend, string? mode)
+    private async Task<bool> UpdatePackageJsonAsync(
+        bool? enableSpa,
+        bool? enableClientNav,
+        bool? enableSearch,
+        bool? enableContentNav,
+        bool? enableBackend,
+        string? mode)
     {
         string packageJsonPath = Context.WorkingPath.Combine(Files.PackageJson);
         if (!File.Exists(packageJsonPath))
@@ -391,6 +493,10 @@ public class EnableWorkflow(
         if (enableSearch.HasValue)
         {
             enable["search"] = enableSearch.Value;
+        }
+        if (enableContentNav.HasValue)
+        {
+            enable["contentNav"] = enableContentNav.Value;
         }
         if (enableBackend.HasValue)
         {

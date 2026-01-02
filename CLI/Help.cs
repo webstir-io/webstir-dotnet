@@ -125,7 +125,7 @@ public static class Help
                 Example($"{App.Name} {Commands.Install} ./my-app", "Synchronize packages for ./my-app"),
                 Example($"{App.Name} {Commands.Install} {InstallOptions.DryRun}", "Preview actions without running a package install"),
                 Example($"{App.Name} {Commands.Install} {InstallOptions.Clean}", "Clear cached workspace packages before installing"),
-                Example($"{App.Name} {Commands.Install} {InstallOptions.PackageManager}=pnpm@8", "Run installs with a specific package manager version via Corepack")
+                Example($"{App.Name} {Commands.Install} {InstallOptions.PackageManager}=pnpm@10.5.2", "Run installs with a specific package manager version via Corepack")
             ],
             [
                 Option(InstallOptions.DryRun, "Report pending changes without running a package install"),

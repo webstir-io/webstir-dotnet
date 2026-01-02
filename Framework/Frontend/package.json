@@ -1,6 +1,6 @@
 {
   "name": "@webstir-io/webstir-frontend",
-  "version": "0.1.32",
+  "version": "0.1.33",
   "description": "Frontend build and publish tooling for Webstir workspaces.",
   "type": "module",
   "main": "dist/index.js",

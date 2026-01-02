@@ -48,6 +48,18 @@ order: 10
 ---
 ```
 
+## Content navigation (optional)
+
+Enable docs navigation UI:
+
+- `webstir enable content-nav`
+
+When enabled, Webstir adds a docs sidebar, breadcrumb, and h2 table of contents:
+
+- Sidebar tree is derived from folders + frontmatter titles (and `order`).
+- Breadcrumb labels follow the same frontmatter titles.
+- TOC includes h2 headings only.
+
 ## Search (optional)
 
 Enable site-wide search:
