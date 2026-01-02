@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Engine;
@@ -79,6 +81,7 @@ public static class WorkspaceManager
                 timeoutMs: 20000);
             Assert.Equal(0, init.ExitCode);
 
+            ForceNpmPackageManager(SeedBaselinePath);
             // Seed workspace now exists; write auth if available before install
             EnsureWorkspaceNpmAuth(SeedBaselinePath);
 
@@ -397,6 +400,37 @@ public static class WorkspaceManager
         catch
         {
             // Best-effort only; rely on user-level config if writing fails.
+        }
+    }
+
+    private static void ForceNpmPackageManager(string workspacePath)
+    {
+        string packageJsonPath = Path.Combine(workspacePath, Files.PackageJson);
+        if (!File.Exists(packageJsonPath))
+        {
+            return;
+        }
+
+        try
+        {
+            JsonNode? root = JsonNode.Parse(File.ReadAllText(packageJsonPath));
+            if (root is not JsonObject obj)
+            {
+                return;
+            }
+
+            obj["packageManager"] = "npm";
+
+            JsonSerializerOptions options = new()
+            {
+                WriteIndented = true
+            };
+
+            File.WriteAllText(packageJsonPath, obj.ToJsonString(options) + Environment.NewLine);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Warning: Unable to update package.json packageManager: {ex.Message}");
         }
     }
 }

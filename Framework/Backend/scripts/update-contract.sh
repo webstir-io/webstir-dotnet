@@ -22,6 +22,11 @@ EOF
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+has_script() {
+  local script_name="$1"
+  node -e "const fs=require('fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); const has=!!(pkg.scripts && Object.prototype.hasOwnProperty.call(pkg.scripts, '${script_name}')); process.exit(has ? 0 : 1);"
+}
+
 main() {
   local ver=""
   local exact="false"
@@ -89,12 +94,12 @@ main() {
   echo "› npm run build"
   npm run build
 
-  if npm run | grep -q "^  test"; then
+  if has_script test; then
     echo "› npm test"
     npm test
   fi
 
-  if npm run | grep -q "^  smoke"; then
+  if has_script smoke; then
     echo "› npm run smoke"
     npm run smoke
   fi

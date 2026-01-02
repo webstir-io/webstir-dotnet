@@ -13,56 +13,22 @@ on:
           - patch
           - minor
           - major
-      dry_run:
-        description: "Skip publishing and pushing changes"
-        required: false
-        default: false
-        type: boolean
 
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
-      GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
-      IS_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' && 'true' || 'false' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Configure git user
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        run: |
-          git config user.name "webstir-bot"
-          git config user.email "bot@webstir.dev"
-
       - name: Set up .NET 9 SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-
-      - name: Set up Node 20.18.1
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.18.1
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Configure npm auth for GitHub Packages
-        if: ${{ env.GH_PACKAGES_TOKEN != '' }}
-        run: |
-          NPMRC="${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}"
-          {
-            echo "@webstir-io:registry=https://npm.pkg.github.com"
-            echo "//npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}"
-          } >> "$NPMRC"
-
-      # IS_DRY_RUN is computed in the job env above; no step needed
 
       - name: Resolve bump type
         id: resolve_bump
@@ -116,7 +82,7 @@ jobs:
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             BUMP="${RESOLVED_BUMP:-patch}"
-            VERSION=$(dotnet run --project Framework/Framework.csproj -- packages bump --all --bump "$BUMP" --dry-run --print-version | tail -n 1)
+            VERSION=$(dotnet run --project Framework/Framework.csproj -- packages bump --all --bump "$BUMP" --print-version | tail -n 1)
             echo "release_version=$VERSION" >> "$GITHUB_OUTPUT"
             echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
           else
@@ -126,81 +92,13 @@ jobs:
             echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
           fi
 
-      - name: Exit early for dry runs
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true'
+      - name: Push release tag
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
-          echo "Dry run requested. Versions bumped locally but no artifacts were published." \
-            && exit 0
-
-      - name: Install workspace dependencies
-        if: ${{ env.IS_DRY_RUN != 'true' }}
-        run: npm ci --workspaces
-
-      - name: Build testing contract package
-        if: ${{ env.IS_DRY_RUN != 'true' }}
-        run: npm --workspace Framework/Contracts/testing-contract run build
-
-      - name: Build module contract package
-        if: ${{ env.IS_DRY_RUN != 'true' }}
-        run: npm --workspace Framework/Contracts/module-contract run build
-
-      - name: Build backend package
-        if: ${{ env.IS_DRY_RUN != 'true' }}
-        run: npm --workspace Framework/Backend run build
-
-      - name: Build frontend package
-        if: ${{ env.IS_DRY_RUN != 'true' }}
-        run: npm --workspace Framework/Frontend run build
-
-      - name: Build testing package
-        if: ${{ env.IS_DRY_RUN != 'true' }}
-        run: npm --workspace Framework/Testing run build
-
-      - name: Run .NET workflow tests
-        if: ${{ env.IS_DRY_RUN != 'true' }}
-        run: WEBSTIR_TEST_MODE=full dotnet test Tester/Tester.csproj --nologo --logger "console;verbosity=minimal;summary=true"
-
-      - name: Build and publish framework packages
-        if: ${{ env.IS_DRY_RUN != 'true' }}
-        env:
-          RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
-        run: dotnet run --project Framework/Framework.csproj -- packages publish --all --set-version "$RELEASE_VERSION"
-
-      - name: Verify framework packages
-        if: ${{ env.IS_DRY_RUN != 'true' }}
-        run: dotnet run --project Framework/Framework.csproj -- packages verify
-
-      - name: Commit release artifacts
-        if: ${{ github.event_name == 'workflow_dispatch' && env.IS_DRY_RUN != 'true' }}
-        run: |
-          files=(
-            Framework/Frontend/package.json
-            Framework/Frontend/package-lock.json
-            Framework/Testing/package.json
-            Framework/Testing/package-lock.json
-            Framework/Packaging/framework-packages.json
-            Engine/Resources/package.json
-          )
-          for file in "${files[@]}"; do
-            if [[ -f "$file" ]]; then
-              git add "$file"
-            fi
-          done
-          if git diff --cached --quiet; then
-            echo "No changes detected; nothing to commit."
-          else
-            git commit -m "chore: release v${RELEASE_VERSION}"
-          fi
-
-      - name: Push changes
-        if: ${{ github.event_name == 'workflow_dispatch' && env.IS_DRY_RUN != 'true' }}
-        run: |
-          git push origin HEAD:main
           git tag -f "v${RELEASE_VERSION}"
           git push origin "v${RELEASE_VERSION}"
 
       - name: Create GitHub release
-        if: ${{ env.IS_DRY_RUN != 'true' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.release_version.outputs.release_version }}

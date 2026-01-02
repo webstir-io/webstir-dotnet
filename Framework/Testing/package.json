@@ -1,6 +1,6 @@
 {
   "name": "@webstir-io/webstir-testing",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Testing runtime and CLI for Webstir TypeScript projects.",
   "type": "module",
   "main": "dist/index.js",

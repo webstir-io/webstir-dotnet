@@ -43,10 +43,10 @@ and may be incorporated into the project owned by **Electric Coding LLC**.
 - Keep TypeScript/JavaScript changes formatted via `npm run lint`/`npm run format` when available; `format-build.sh` covers the common cases.
 
 ## Release Workflow (Maintainers)
-1. Update package sources under `Framework/*`.
-2. Run `framework packages bump` / `framework packages sync` / `framework packages verify`.
+1. Publish framework packages from their owning repos (`webstir-frontend`, `webstir-backend`, `webstir-testing`).
+2. Run `Utilities/scripts/sync-framework-versions.sh` to pin released versions and verify.
 3. Commit source, lockfiles, and `framework-packages.json`.
-4. Trigger the release workflow (or run `framework packages publish`) with `GH_PACKAGES_TOKEN` set.
+4. Trigger the release workflow (clean `main` only): `Utilities/scripts/publish.sh patch`.
 
 ## Developer Certificate of Origin
 By signing off, you certify that you have the right to submit the code

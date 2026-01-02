@@ -1,6 +1,6 @@
 {
   "name": "@webstir-io/webstir-backend",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "Reserved manifest for the future Webstir backend tooling package.",
   "type": "module",
   "main": "dist/index.js",
