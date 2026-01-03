@@ -80,8 +80,8 @@ public static class PackageSynchronizer
 
                 EnsureWorkspaceRegistryConfig(workspace, logger);
                 logger?.LogInformation(
-                    "[packages] Installing framework packages with {Manager} (requires GH_PACKAGES_TOKEN for GitHub Packages)...",
-                    manager.DisplayName);
+                    "[packages] Installing framework packages with {Manager}...",
+                    manager.Executable);
                 await workspace.InstallDependenciesAsync().ConfigureAwait(false);
                 installPerformed = true;
 
@@ -122,7 +122,7 @@ public static class PackageSynchronizer
                     {
                         logger?.LogInformation(
                             "[packages] Retrying install with explicit specs using {Manager}: {Specs}",
-                            manager.DisplayName,
+                            manager.Executable,
                             string.Join(", ", specs));
                         await workspace.InstallPackagesAsync(specs.ToArray()).ConfigureAwait(false);
 
@@ -200,11 +200,11 @@ public static class PackageSynchronizer
         }
         catch (IOException ex)
         {
-            logger?.LogDebug(ex, "Failed to remove lock files while refreshing packages for {Manager}.", manager.DisplayName);
+            logger?.LogDebug(ex, "Failed to remove lock files while refreshing packages for {Manager}.", manager.Executable);
         }
         catch (UnauthorizedAccessException ex)
         {
-            logger?.LogDebug(ex, "Insufficient permissions to remove lock files while refreshing packages for {Manager}.", manager.DisplayName);
+            logger?.LogDebug(ex, "Insufficient permissions to remove lock files while refreshing packages for {Manager}.", manager.Executable);
         }
     }
 

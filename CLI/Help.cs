@@ -107,6 +107,8 @@ public static class Help
             "Build the project once",
             [
                 Example($"{App.Name} {Commands.Build}", "Build the project"),
+                Example($"WEBSTIR_FRONTEND_PROVIDER_SPEC=../webstir-frontend {App.Name} {Commands.Build}", "Build with a local frontend provider"),
+                Example($"WEBSTIR_BACKEND_PROVIDER_SPEC=../webstir-backend {App.Name} {Commands.Build} {TestOptions.Runtime} backend", "Build with a local backend provider"),
                 Example($"{App.Name} {Commands.Build} {BuildOptions.Clean}", "Clean build (removes build directory first)"),
                 Example($"{App.Name} {Commands.Build} ./my-app", "Build project in ./my-app directory"),
                 Example($"{App.Name} {Commands.Build} {TestOptions.Runtime} backend", "Focus on backend workers only")

@@ -8,17 +8,22 @@ namespace Framework.Packaging;
 
 public static class FrontendPackageInstaller
 {
-    public static async Task<FrontendPackageEnsureResult> EnsureAsync(IPackageWorkspace workspace)
+    public static async Task<FrontendPackageEnsureResult> EnsureAsync(
+        IPackageWorkspace workspace,
+        string? dependencySpecifierOverride = null)
     {
         ArgumentNullException.ThrowIfNull(workspace);
 
         FrameworkPackageMetadata metadata = FrameworkPackageCatalog.Frontend;
         string packageJsonPath = Path.Combine(workspace.WorkingPath, "package.json");
 
-        string dependencySpecifier = metadata.WorkspaceSpecifier;
+        string dependencySpecifier = string.IsNullOrWhiteSpace(dependencySpecifierOverride)
+            ? metadata.WorkspaceSpecifier
+            : dependencySpecifierOverride;
 
         bool dependencyUpdated = await EnsureDependencyAsync(packageJsonPath, metadata, dependencySpecifier);
-        FrontendPackageInstallState installState = await DetectInstalledVersionMismatchAsync(workspace, metadata);
+        bool ignoreVersionMismatch = !string.IsNullOrWhiteSpace(dependencySpecifierOverride);
+        FrontendPackageInstallState installState = await DetectInstalledVersionMismatchAsync(workspace, metadata, ignoreVersionMismatch);
 
         return new FrontendPackageEnsureResult(dependencyUpdated, installState.VersionMismatch, installState.InstalledVersion, metadata);
     }
@@ -73,7 +78,10 @@ public static class FrontendPackageInstaller
         }
     }
 
-    private static async Task<FrontendPackageInstallState> DetectInstalledVersionMismatchAsync(IPackageWorkspace workspace, FrameworkPackageMetadata metadata)
+    private static async Task<FrontendPackageInstallState> DetectInstalledVersionMismatchAsync(
+        IPackageWorkspace workspace,
+        FrameworkPackageMetadata metadata,
+        bool ignoreVersionMismatch)
     {
         string packageJsonPath = metadata.GetInstalledPackageJsonPath(workspace);
         if (!File.Exists(packageJsonPath))
@@ -85,7 +93,8 @@ public static class FrontendPackageInstaller
         {
             using JsonDocument doc = JsonDocument.Parse(await File.ReadAllTextAsync(packageJsonPath));
             string installedVersion = doc.RootElement.GetProperty("version").GetString() ?? string.Empty;
-            bool mismatch = !string.Equals(installedVersion, metadata.Version, StringComparison.Ordinal);
+            bool mismatch = !ignoreVersionMismatch &&
+                !string.Equals(installedVersion, metadata.Version, StringComparison.Ordinal);
             return new FrontendPackageInstallState(mismatch, installedVersion);
         }
         catch (Exception ex)

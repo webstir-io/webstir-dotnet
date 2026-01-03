@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Engine.Bridge;
+using Engine.Bridge.Module;
 using Engine.Bridge.Test;
 using Engine.Interfaces;
 using Engine.Models;
@@ -54,12 +55,33 @@ public sealed class InstallWorkflow(
             PackageWorkspaceAdapter workspaceAdapter = new(Context);
             WorkspaceProfile profile = WorkspaceProfile;
             PackageManagerDescriptor packageManager = workspaceAdapter.PackageManager;
+            string frontendProviderId = ProviderSpecOverrides.ResolveFrontendProviderId(Context);
+            string? frontendProviderSpec = ProviderSpecOverrides.GetFrontendProviderSpec();
+            string? frontendDependencyOverride = ProviderSpecOverrides.GetDefaultProviderSpec(
+                frontendProviderId,
+                ProviderSpecOverrides.DefaultFrontendProviderId,
+                frontendProviderSpec);
+
+            string testingProviderId = ProviderSpecOverrides.ResolveTestingProviderId(Context);
+            string? testingProviderSpec = ProviderSpecOverrides.GetTestingProviderSpec();
+            string? testingDependencyOverride = ProviderSpecOverrides.GetDefaultProviderSpec(
+                testingProviderId,
+                ProviderSpecOverrides.DefaultTestingProviderId,
+                testingProviderSpec);
+
+            string backendProviderId = ProviderSpecOverrides.ResolveBackendProviderId(Context);
+            string? backendProviderSpec = ProviderSpecOverrides.GetBackendProviderSpec();
+            string? backendDependencyOverride = ProviderSpecOverrides.GetDefaultProviderSpec(
+                backendProviderId,
+                ProviderSpecOverrides.DefaultBackendProviderId,
+                backendProviderSpec);
+
             PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
                 workspaceAdapter,
                 _logger,
-                ensureFrontend: () => FrontendPackageInstaller.EnsureAsync(workspaceAdapter),
-                ensureTesting: () => TestPackageInstaller.EnsureAsync(workspaceAdapter),
-                ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter),
+                ensureFrontend: () => FrontendPackageInstaller.EnsureAsync(workspaceAdapter, frontendDependencyOverride),
+                ensureTesting: () => TestPackageInstaller.EnsureAsync(workspaceAdapter, testingDependencyOverride),
+                ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter, backendDependencyOverride),
                 includeFrontend: profile.HasFrontend,
                 includeTesting: true,
                 includeBackend: profile.HasBackend,
@@ -83,6 +105,36 @@ public sealed class InstallWorkflow(
             if (summary.HasVersionMismatch)
             {
                 ThrowMismatch(summary);
+            }
+
+            if (profile.HasFrontend)
+            {
+                await ProviderPackageInstaller.EnsureAsync(
+                    workspaceAdapter,
+                    frontendProviderId,
+                    frontendProviderSpec,
+                    ProviderSpecOverrides.DefaultFrontendProviderId,
+                    "frontend",
+                    message => _logger.LogInformation(message)).ConfigureAwait(false);
+            }
+
+            await ProviderPackageInstaller.EnsureAsync(
+                workspaceAdapter,
+                testingProviderId,
+                testingProviderSpec,
+                ProviderSpecOverrides.DefaultTestingProviderId,
+                "testing",
+                message => _logger.LogInformation(message)).ConfigureAwait(false);
+
+            if (profile.HasBackend)
+            {
+                await ProviderPackageInstaller.EnsureAsync(
+                    workspaceAdapter,
+                    backendProviderId,
+                    backendProviderSpec,
+                    ProviderSpecOverrides.DefaultBackendProviderId,
+                    "backend",
+                    message => _logger.LogInformation(message)).ConfigureAwait(false);
             }
 
             _logger.LogInformation("Framework packages are synchronized.");
@@ -174,7 +226,7 @@ public sealed class InstallWorkflow(
         if (summary.InstallRequiredButSkipped && !anyChanges)
         {
             anyChanges = true;
-            _logger.LogInformation("[dry-run] {Manager} install would run due to prior package drift.", manager.DisplayName);
+            _logger.LogInformation("[dry-run] {Manager} install would run due to prior package drift.", manager.Executable);
         }
 
         if (!anyChanges)
@@ -209,7 +261,7 @@ public sealed class InstallWorkflow(
                 reasons.Add($"installed {installed}");
             }
 
-            _logger.LogInformation("[dry-run] {Package} requires {Manager} install ({Reasons}).", packageName, manager.DisplayName, string.Join(", ", reasons));
+            _logger.LogInformation("[dry-run] {Package} requires {Manager} install ({Reasons}).", packageName, manager.Executable, string.Join(", ", reasons));
         }
     }
 

@@ -27,7 +27,7 @@
 
   .docs-layout[data-content-nav-ready="true"] .docs-layout__inner {
     display: grid;
-    grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr) minmax(12rem, 16rem);
+    grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
     gap: var(--ws-space-6);
     align-items: start;
   }
@@ -38,6 +38,12 @@
   }
 
   @media (--ws-lg-down) {
+    .docs-layout[data-content-nav-ready="true"] {
+      padding-top: 16px;
+    }
+  }
+
+  @media (--ws-sm) {
     .docs-layout[data-content-nav-ready="true"] .docs-layout__inner {
       grid-template-columns: minmax(0, 1fr);
     }

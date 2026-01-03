@@ -1,6 +1,6 @@
 using System;
-using System.IO;
 using System.Threading.Tasks;
+using Engine.Bridge.Module;
 using Engine.Models;
 using Framework.Packaging;
 
@@ -8,26 +8,53 @@ namespace Engine.Bridge.Test;
 
 internal static class TestPackageUtilities
 {
-    private const string DefaultProviderId = "@webstir-io/webstir-testing";
-    private const string ProviderOverrideVariable = "WEBSTIR_TESTING_PROVIDER";
-    private const string ProviderSpecVariable = "WEBSTIR_TESTING_PROVIDER_SPEC";
-
     internal static async Task<PackageEnsureSummary> EnsurePackageAsync(AppWorkspace workspace)
     {
         NodeRuntime.EnsureMinimumVersion();
         WorkspaceProfile profile = workspace.DetectWorkspaceProfile();
         PackageWorkspaceAdapter workspaceAdapter = new(workspace);
+        string testingProviderId = ProviderSpecOverrides.ResolveTestingProviderId(workspace);
+        string? testingProviderSpec = ProviderSpecOverrides.GetTestingProviderSpec();
+        string? testingDependencyOverride = ProviderSpecOverrides.GetDefaultProviderSpec(
+            testingProviderId,
+            ProviderSpecOverrides.DefaultTestingProviderId,
+            testingProviderSpec);
+
+        string backendProviderId = ProviderSpecOverrides.ResolveBackendProviderId(workspace);
+        string? backendProviderSpec = ProviderSpecOverrides.GetBackendProviderSpec();
+        string? backendDependencyOverride = ProviderSpecOverrides.GetDefaultProviderSpec(
+            backendProviderId,
+            ProviderSpecOverrides.DefaultBackendProviderId,
+            backendProviderSpec);
+
         PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
             workspaceAdapter,
             logger: null,
             ensureFrontend: null,
-            ensureTesting: () => TestPackageInstaller.EnsureAsync(workspaceAdapter),
-            ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter),
+            ensureTesting: () => TestPackageInstaller.EnsureAsync(workspaceAdapter, testingDependencyOverride),
+            ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter, backendDependencyOverride),
             includeFrontend: false,
             includeTesting: true,
             includeBackend: profile.HasBackend,
             autoInstall: true);
-        await EnsureAlternateProviderAsync(workspaceAdapter).ConfigureAwait(false);
+        await ProviderPackageInstaller.EnsureAsync(
+            workspaceAdapter,
+            testingProviderId,
+            testingProviderSpec,
+            ProviderSpecOverrides.DefaultTestingProviderId,
+            "testing",
+            Console.WriteLine).ConfigureAwait(false);
+
+        if (profile.HasBackend)
+        {
+            await ProviderPackageInstaller.EnsureAsync(
+                workspaceAdapter,
+                backendProviderId,
+                backendProviderSpec,
+                ProviderSpecOverrides.DefaultBackendProviderId,
+                "backend",
+                Console.WriteLine).ConfigureAwait(false);
+        }
         ValidateSummary(summary);
         return summary;
     }
@@ -107,52 +134,4 @@ internal static class TestPackageUtilities
         }
     }
 
-    private static async Task EnsureAlternateProviderAsync(IPackageWorkspace workspace)
-    {
-        string? overrideId = Environment.GetEnvironmentVariable(ProviderOverrideVariable);
-        if (string.IsNullOrWhiteSpace(overrideId) || string.Equals(overrideId, DefaultProviderId, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        if (IsPackagePresent(workspace, overrideId))
-        {
-            return;
-        }
-
-        string? overrideSpec = Environment.GetEnvironmentVariable(ProviderSpecVariable);
-        string installSpec = string.IsNullOrWhiteSpace(overrideSpec) ? overrideId : overrideSpec;
-
-        Console.WriteLine($"[packages] Installing testing provider override '{installSpec}'.");
-        await workspace.InstallPackagesAsync(new[] { installSpec }).ConfigureAwait(false);
-    }
-
-    private static bool IsPackagePresent(IPackageWorkspace workspace, string packageName)
-    {
-        if (string.IsNullOrWhiteSpace(packageName))
-        {
-            return false;
-        }
-
-        string nodeModules = workspace.NodeModulesPath;
-        if (!Directory.Exists(nodeModules))
-        {
-            return false;
-        }
-
-        if (!packageName.StartsWith("@", StringComparison.Ordinal))
-        {
-            string packagePath = Path.Combine(nodeModules, packageName);
-            return Directory.Exists(packagePath);
-        }
-
-        string[] segments = packageName.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length != 2)
-        {
-            return false;
-        }
-
-        string scopedPath = Path.Combine(nodeModules, segments[0], segments[1]);
-        return Directory.Exists(scopedPath);
-    }
 }

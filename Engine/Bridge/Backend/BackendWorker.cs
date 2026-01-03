@@ -193,6 +193,14 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
 
             NodeRuntime.EnsureMinimumVersion();
 
+            BackendModuleProvider backendProvider = await EnsureProviderAsync();
+            string backendProviderId = backendProvider.Id;
+            string? backendProviderSpec = ProviderSpecOverrides.GetBackendProviderSpec();
+            string? backendDependencyOverride = ProviderSpecOverrides.GetDefaultProviderSpec(
+                backendProviderId,
+                ProviderSpecOverrides.DefaultBackendProviderId,
+                backendProviderSpec);
+
             PackageWorkspaceAdapter workspaceAdapter = new(workspace);
             PackageManagerDescriptor packageManager = workspaceAdapter.PackageManager;
             PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
@@ -200,7 +208,7 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
                 _logger,
                 ensureFrontend: null,
                 ensureTesting: null,
-                ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter),
+                ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter, backendDependencyOverride),
                 includeFrontend: false,
                 includeTesting: false,
                 includeBackend: true,
@@ -208,7 +216,7 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
 
             if (summary.InstallPerformed)
             {
-                _logger.LogInformation("[backend] Package dependencies refreshed; {Manager} install completed.", packageManager.DisplayName);
+                _logger.LogInformation("[backend] Package dependencies refreshed; {Manager} install completed.", packageManager.Executable);
             }
             else
             {
@@ -229,6 +237,14 @@ public class BackendWorker(AppWorkspace workspace, IOptions<AppSettings> options
             {
                 ThrowMismatch(summary);
             }
+
+            await ProviderPackageInstaller.EnsureAsync(
+                workspaceAdapter,
+                backendProviderId,
+                backendProviderSpec,
+                ProviderSpecOverrides.DefaultBackendProviderId,
+                "backend",
+                message => _logger.LogInformation(message)).ConfigureAwait(false);
 
             _packagesVerified = true;
         }

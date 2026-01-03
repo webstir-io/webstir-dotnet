@@ -546,15 +546,37 @@ public sealed class FrontendWorker : IFrontendWorker
             NodeRuntime.EnsureMinimumVersion();
             _logger.LogDebug("[frontend] Verifying framework packages...");
 
+            FrontendModuleProvider frontendProvider = await EnsureProviderAsync();
+            string frontendProviderId = frontendProvider.Id;
+            string? frontendProviderSpec = ProviderSpecOverrides.GetFrontendProviderSpec();
+            string? frontendDependencyOverride = ProviderSpecOverrides.GetDefaultProviderSpec(
+                frontendProviderId,
+                ProviderSpecOverrides.DefaultFrontendProviderId,
+                frontendProviderSpec);
+
+            string backendProviderId = ProviderSpecOverrides.ResolveBackendProviderId(_workspace);
+            string? backendProviderSpec = ProviderSpecOverrides.GetBackendProviderSpec();
+            string? backendDependencyOverride = ProviderSpecOverrides.GetDefaultProviderSpec(
+                backendProviderId,
+                ProviderSpecOverrides.DefaultBackendProviderId,
+                backendProviderSpec);
+
+            string testingProviderId = ProviderSpecOverrides.ResolveTestingProviderId(_workspace);
+            string? testingProviderSpec = ProviderSpecOverrides.GetTestingProviderSpec();
+            string? testingDependencyOverride = ProviderSpecOverrides.GetDefaultProviderSpec(
+                testingProviderId,
+                ProviderSpecOverrides.DefaultTestingProviderId,
+                testingProviderSpec);
+
             PackageWorkspaceAdapter workspaceAdapter = new(_workspace);
             PackageManagerDescriptor packageManager = workspaceAdapter.PackageManager;
             WorkspaceProfile profile = _workspace.DetectWorkspaceProfile();
             PackageEnsureSummary summary = await PackageSynchronizer.EnsureAsync(
                 workspaceAdapter,
                 _logger,
-                ensureFrontend: () => FrontendPackageInstaller.EnsureAsync(workspaceAdapter),
-                ensureTesting: () => TestPackageInstaller.EnsureAsync(workspaceAdapter),
-                ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter),
+                ensureFrontend: () => FrontendPackageInstaller.EnsureAsync(workspaceAdapter, frontendDependencyOverride),
+                ensureTesting: () => TestPackageInstaller.EnsureAsync(workspaceAdapter, testingDependencyOverride),
+                ensureBackend: () => BackendPackageInstaller.EnsureAsync(workspaceAdapter, backendDependencyOverride),
                 includeFrontend: true,
                 includeTesting: true,
                 includeBackend: profile.HasBackend,
@@ -562,7 +584,7 @@ public sealed class FrontendWorker : IFrontendWorker
 
             if (summary.InstallPerformed)
             {
-                _logger.LogInformation("[frontend] Package dependencies refreshed; {Manager} install completed.", packageManager.DisplayName);
+                _logger.LogInformation("[frontend] Package dependencies refreshed; {Manager} install completed.", packageManager.Executable);
             }
             else
             {
@@ -579,6 +601,33 @@ public sealed class FrontendWorker : IFrontendWorker
             if (summary.HasVersionMismatch)
             {
                 ThrowMismatch(summary);
+            }
+
+            await ProviderPackageInstaller.EnsureAsync(
+                workspaceAdapter,
+                frontendProviderId,
+                frontendProviderSpec,
+                ProviderSpecOverrides.DefaultFrontendProviderId,
+                "frontend",
+                message => _logger.LogInformation(message)).ConfigureAwait(false);
+
+            await ProviderPackageInstaller.EnsureAsync(
+                workspaceAdapter,
+                testingProviderId,
+                testingProviderSpec,
+                ProviderSpecOverrides.DefaultTestingProviderId,
+                "testing",
+                message => _logger.LogInformation(message)).ConfigureAwait(false);
+
+            if (profile.HasBackend)
+            {
+                await ProviderPackageInstaller.EnsureAsync(
+                    workspaceAdapter,
+                    backendProviderId,
+                    backendProviderSpec,
+                    ProviderSpecOverrides.DefaultBackendProviderId,
+                    "backend",
+                    message => _logger.LogInformation(message)).ConfigureAwait(false);
             }
 
             _logger.LogDebug("[frontend] Package verification complete.");
