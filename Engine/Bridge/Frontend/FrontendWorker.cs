@@ -147,13 +147,14 @@ public sealed class FrontendWorker : IFrontendWorker
             ApplySsgPublishAliases();
         }
         await LogPublishManifestAsync();
+        RemoveEmptyLegacyPagesFolder();
     }
 
     private void ApplySsgPublishAliases()
     {
         try
         {
-            string distPagesRoot = _workspace.FrontendDistPagesPath;
+            string distPagesRoot = Path.Combine(_workspace.FrontendDistPath, Folders.Pages);
             if (!Directory.Exists(distPagesRoot))
             {
                 return;
@@ -195,6 +196,29 @@ public sealed class FrontendWorker : IFrontendWorker
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
             _logger.LogWarning(ex, "[frontend] Failed to apply SSG publish aliases.");
+        }
+    }
+
+    private void RemoveEmptyLegacyPagesFolder()
+    {
+        try
+        {
+            string legacyPagesRoot = Path.Combine(_workspace.FrontendDistPath, Folders.Pages);
+            if (!Directory.Exists(legacyPagesRoot))
+            {
+                return;
+            }
+
+            if (Directory.GetFileSystemEntries(legacyPagesRoot).Length > 0)
+            {
+                return;
+            }
+
+            Directory.Delete(legacyPagesRoot);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogWarning(ex, "[frontend] Failed to remove legacy pages folder.");
         }
     }
 

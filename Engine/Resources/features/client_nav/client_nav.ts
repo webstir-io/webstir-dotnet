@@ -203,6 +203,8 @@ function syncHead(doc: Document, url: string): void {
         existingStyles.set(key, next);
     }
 
+    syncCriticalStyles(head, newHead);
+
     for (const script of Array.from(newHead.querySelectorAll('script[src]'))) {
         const src = script.getAttribute('src');
         if (!src) {
@@ -300,6 +302,23 @@ function normalizeStylesheetKey(href: string | null, baseUrl: string): string | 
 
 function stripQueryAndHash(value: string): string {
     return value.split(/[?#]/)[0] ?? value;
+}
+
+function syncCriticalStyles(head: HTMLHeadElement, newHead: HTMLHeadElement): void {
+    for (const style of Array.from(head.querySelectorAll<HTMLStyleElement>('style[data-critical]'))) {
+        style.remove();
+    }
+
+    for (const style of Array.from(newHead.querySelectorAll<HTMLStyleElement>('style[data-critical]'))) {
+        const next = document.createElement('style');
+        for (const attribute of Array.from(style.attributes)) {
+            next.setAttribute(attribute.name, attribute.value);
+        }
+        if (style.textContent) {
+            next.textContent = style.textContent;
+        }
+        head.appendChild(next);
+    }
 }
 
 function splitPathSuffix(value: string): [string, string] {
