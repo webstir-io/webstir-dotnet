@@ -8,9 +8,9 @@
     },
     "@webstir-io/webstir-frontend": {
       "name": "@webstir-io/webstir-frontend",
-      "version": "0.1.34",
-      "registrySpecifier": "@webstir-io/webstir-frontend@0.1.34",
-      "workspaceSpecifier": "^0.1.34"
+      "version": "0.1.36",
+      "registrySpecifier": "@webstir-io/webstir-frontend@0.1.36",
+      "workspaceSpecifier": "^0.1.36"
     },
     "@webstir-io/webstir-testing": {
       "name": "@webstir-io/webstir-testing",

@@ -171,16 +171,9 @@ function clearAppMenuDocsNav(): void {
     const appNav = document.querySelector<HTMLElement>(APP_NAV_SELECTOR);
     const existing = appNav?.querySelector<HTMLElement>(APP_NAV_DOCS_SELECTOR);
     existing?.remove();
-    if (document.body.dataset.docsNavMenu) {
-        delete document.body.dataset.docsNavMenu;
-    }
 }
 
-function renderAppMenuDocsNav(
-    tree: NavNode,
-    currentPath: string,
-    titleByPath: ReadonlyMap<string, string>
-): void {
+function renderAppMenuDocsNav(tree: NavNode, currentPath: string): void {
     const appNav = document.querySelector<HTMLElement>(APP_NAV_SELECTOR);
     if (!appNav) {
         return;
@@ -190,16 +183,21 @@ function renderAppMenuDocsNav(
     section.className = 'app-nav__docs';
     section.dataset.docsNavMenu = 'true';
 
-    const title = document.createElement('span');
-    title.className = 'app-nav__docs-title';
-    title.textContent = titleByPath.get('/docs/') ?? 'Documentation';
+    const topNodes = tree.children;
+    const nodes =
+        topNodes.length === 1 && !topNodes[0].isPage && topNodes[0].children.length > 0
+            ? topNodes[0].children
+            : topNodes;
 
-    const list = renderNavList(tree.children, currentPath);
-    section.appendChild(title);
+    const list = renderNavList(nodes, currentPath);
     section.appendChild(list);
 
-    appNav.appendChild(section);
-    document.body.dataset.docsNavMenu = 'true';
+    const docsLink = appNav.querySelector<HTMLAnchorElement>('a[href="/docs/"], a[href="/docs"]');
+    if (docsLink) {
+        docsLink.insertAdjacentElement('afterend', section);
+    } else {
+        appNav.appendChild(section);
+    }
 }
 
 function renderBreadcrumb(root: HTMLElement, titleByPath: ReadonlyMap<string, string>, currentPath: string): void {
@@ -273,7 +271,7 @@ async function initContentNav(): Promise<void> {
     const tree = buildNavTree(navEntries);
     const currentPath = normalizeDocsPath(window.location.pathname);
     if (navEntries.length > 0) {
-        renderAppMenuDocsNav(tree, currentPath, titleByPath);
+        renderAppMenuDocsNav(tree, currentPath);
     }
 
     for (const layout of layouts) {

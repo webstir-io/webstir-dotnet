@@ -27,7 +27,7 @@
   font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  margin: 0;
+  margin: var(--ws-space-4) 0 0;
 }
 
 .hero h1 {
@@ -35,6 +35,31 @@
   font-weight: 700;
   letter-spacing: -0.03em;
   margin: 0;
+}
+
+.hero__kicker + h1 {
+  margin-top: var(--ws-space-7);
+}
+
+.hero__cta {
+  border-color: var(--ws-border);
+  background: var(--ws-surface-1);
+  color: var(--ws-fg);
+  text-decoration: none;
+  box-shadow: 0 4px 10px -6px rgba(15, 23, 42, 0.35), 0 2px 4px rgba(15, 23, 42, 0.12);
+  transition: box-shadow var(--ws-duration-fast) var(--ws-ease-standard),
+    transform var(--ws-duration-fast) var(--ws-ease-standard);
+}
+
+.hero__cta:hover {
+  background: var(--ws-bg);
+  box-shadow: 0 10px 24px -16px rgba(15, 23, 42, 0.45), 0 4px 8px rgba(15, 23, 42, 0.14);
+  transform: translateY(-1px);
+}
+
+.hero__cta:active {
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.16);
+  transform: translateY(0);
 }
 
 .hero__lead {

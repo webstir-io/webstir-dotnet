@@ -1,14 +1,15 @@
 @layer features {
   .docs-layout[data-content-nav-ready="true"] .docs-sidebar {
-    position: sticky;
-    top: calc(var(--ws-header-sticky-offset, 0px) + var(--ws-sticky-gap, 16px));
-    align-self: start;
-    max-height: calc(100vh - var(--ws-header-sticky-offset, 0px) - var(--ws-sticky-gap, 16px) - var(--ws-space-6));
-    overflow: auto;
-    border: 1px solid var(--ws-border);
-    border-radius: var(--ws-radius-3);
+    position: fixed;
+    top: var(--ws-header-sticky-offset, 0px);
+    bottom: 0;
+    left: 0;
+    width: var(--ws-docs-sidebar-width, 16rem);
+    border: 0;
+    border-right: 1px solid var(--ws-border);
+    border-radius: 0;
     background: var(--ws-surface-1);
-    padding: var(--ws-space-4);
+    padding: var(--ws-space-5) var(--ws-space-6);
   }
 
   .docs-panel__header {
@@ -25,6 +26,24 @@
     letter-spacing: 0.08em;
     font-weight: 700;
     color: var(--ws-muted);
+  }
+
+  .docs-panel__link {
+    font-size: 1rem;
+    letter-spacing: 0;
+    font-weight: 600;
+    color: var(--ws-fg);
+    text-decoration: none;
+  }
+
+  .docs-panel__link:hover {
+    color: var(--ws-accent);
+  }
+
+  .docs-panel__link:focus-visible {
+    outline: 0.1875rem solid var(--ws-focus);
+    outline-offset: 0.125rem;
+    border-radius: var(--ws-radius-2);
   }
 
   .docs-toolbar {
@@ -66,24 +85,15 @@
   .docs-breadcrumb__link {
     color: inherit;
     text-decoration: none;
-    font-weight: 600;
   }
 
   .docs-breadcrumb__link:hover {
     color: var(--ws-accent);
   }
 
-  .docs-nav__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: var(--ws-space-2);
-  }
-
   .docs-nav__list--nested {
     margin-top: var(--ws-space-2);
-    padding-left: var(--ws-space-3);
+    padding-left: var(--ws-space-4);
     border-left: 1px solid var(--ws-border);
   }
 
@@ -102,6 +112,8 @@
 
   .docs-nav__link {
     color: var(--ws-fg);
+    font-size: 0.95rem;
+    padding-left: var(--ws-space-3);
   }
 
   .docs-nav__link:hover {
@@ -117,16 +129,19 @@
     display: none;
   }
 
-  .app-nav__docs-title {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 700;
-    color: var(--ws-muted);
+  .app-nav__docs > .docs-nav__list {
+    padding-left: var(--ws-space-3);
   }
 
-  .app-nav__docs .docs-nav__list {
-    gap: var(--ws-space-1);
+  .app-nav__docs .docs-nav__link {
+    color: var(--ws-fg);
+    font-weight: 400;
+  }
+
+  .app-nav__docs .docs-nav__link:focus-visible {
+    outline: 0.1875rem solid var(--ws-focus);
+    outline-offset: 0.125rem;
+    border-radius: var(--ws-radius-1);
   }
 
   .app-nav__docs .docs-nav__list--nested {
@@ -144,15 +159,12 @@
 
     .app-nav__docs {
       display: grid;
-      gap: var(--ws-space-2);
-      padding-top: var(--ws-space-2);
-      margin-top: var(--ws-space-2);
-      border-top: 1px solid var(--ws-border);
+      gap: var(--ws-space-1);
     }
 
-    body[data-docs-nav-menu="true"] .app-nav > a[href="/docs/"],
-    body[data-docs-nav-menu="true"] .app-nav > a[href="/docs"] {
-      display: none;
+    .app-menu.is-open .app-nav__docs .docs-nav__link {
+      width: 100%;
+      justify-content: space-between;
     }
   }
 }

@@ -6,6 +6,8 @@
 @import "./styles/base.css";
 @import "./styles/primitives.css";
 @import "./styles/components/markdown.css";
+@import "./styles/components/docs.css";
+@import "./styles/components/link-list.css";
 @import "./styles/components/header.css";
 @import "./styles/components/drawer.css";
 @import "./styles/components/buttons.css";
