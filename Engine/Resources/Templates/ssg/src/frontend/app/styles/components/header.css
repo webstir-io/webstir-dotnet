@@ -82,13 +82,29 @@
 
   .app-nav a:hover {
     text-decoration: none;
-    background: rgba(17, 24, 39, 0.04);
+    background: var(--ws-hover);
   }
 
   .app-nav a:focus-visible {
     outline: 0.1875rem solid var(--ws-focus);
     outline-offset: 0.125rem;
     border-radius: var(--ws-radius-1);
+  }
+
+  .app-theme-toggle .theme-toggle__icon {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+  }
+
+  .app-theme-toggle .theme-toggle__icon svg {
+    display: block;
+  }
+
+  [data-theme="dark"] .app-theme-toggle .theme-toggle__icon--dark,
+  [data-theme="light"] .app-theme-toggle .theme-toggle__icon--light {
+    display: inline-flex;
   }
 
   @media (--ws-sm) {

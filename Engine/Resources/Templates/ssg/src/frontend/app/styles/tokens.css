@@ -38,6 +38,7 @@
     /* Surface + motion */
     --ws-surface-1: color-mix(in srgb, var(--ws-fg) 2%, transparent);
     --ws-surface-2: color-mix(in srgb, var(--ws-fg) 5%, transparent);
+    --ws-hover: color-mix(in srgb, var(--ws-fg) 4%, transparent);
     --ws-accent-soft: color-mix(in srgb, var(--ws-accent) 35%, transparent);
     --ws-duration-fast: 120ms;
     --ws-ease-standard: ease;

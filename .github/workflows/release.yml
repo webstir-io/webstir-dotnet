@@ -19,6 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+      GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,6 +32,57 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+
+      - name: Set up Node 20.18.1
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.18.1
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Configure npm auth for GitHub Packages
+        if: ${{ env.GH_PACKAGES_TOKEN != '' }}
+        run: |
+          NPMRC="${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}"
+          {
+            echo "@webstir-io:registry=https://npm.pkg.github.com"
+            echo "//npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}"
+          } >> "$NPMRC"
+
+      - name: Install workspace dependencies
+        run: npm ci --workspaces
+
+      - name: Build testing contract package
+        run: npm --workspace Framework/Contracts/testing-contract run build
+
+      - name: Build module contract package
+        run: npm --workspace Framework/Contracts/module-contract run build
+
+      - name: Build backend package
+        run: npm --workspace Framework/Backend run build
+
+      - name: Build frontend package
+        run: npm --workspace Framework/Frontend run build
+
+      - name: Ensure sharp linux-x64 vendor binding
+        run: |
+          env npm_config_platform=linux npm_config_arch=x64 \
+            npm install --no-save @img/sharp-linux-x64 @img/sharp-libvips-linux-x64
+          SHARP_IGNORE_GLOBAL_LIBVIPS=1 \
+            env npm_config_platform=linux npm_config_arch=x64 \
+            npm rebuild sharp --foreground-scripts --verbose || true
+
+      - name: Build testing package
+        run: npm --workspace Framework/Testing run build
+
+      - name: Build solution
+        run: dotnet build Webstir.sln -v minimal
+
+      - name: Run .NET workflow tests (Full)
+        run: WEBSTIR_TEST_MODE=full dotnet test Tester/Tester.csproj --nologo --logger "console;verbosity=minimal;summary=true"
+
+      - name: Run frontend package tests
+        run: npm --workspace Framework/Frontend test --silent
 
       - name: Resolve bump type
         id: resolve_bump

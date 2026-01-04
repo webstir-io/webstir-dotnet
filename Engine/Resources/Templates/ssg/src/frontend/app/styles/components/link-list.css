@@ -24,10 +24,6 @@
 
   :where(.ws-link-item:hover, .app-nav__docs .docs-nav__link:hover, .webstir-search__quicklinks-list a:hover, .webstir-search__results-list a:hover) {
     text-decoration: none;
-    background: rgba(17, 24, 39, 0.04);
-  }
-
-  [data-theme="dark"] :where(.ws-link-item:hover, .webstir-search__quicklinks-list a:hover, .webstir-search__results-list a:hover) {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--ws-hover);
   }
 }
