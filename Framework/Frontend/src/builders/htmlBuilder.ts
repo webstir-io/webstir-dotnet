@@ -330,7 +330,7 @@ async function minifyHtml(html: string): Promise<string> {
     return minify(html, {
         collapseWhitespace: true,
         keepClosingSlash: true,
-        minifyCSS: false,
+        minifyCSS: true,
         minifyJS: false,
         removeComments: true,
         removeOptionalTags: false,

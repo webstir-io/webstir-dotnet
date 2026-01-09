@@ -84,7 +84,7 @@
   [data-theme="dark"] {
     color-scheme: dark;
 
-    --ws-bg: #0b1220;
+    --ws-bg: #121212;
     --ws-fg: #e5e7eb;
     --ws-muted: #94a3b8;
     --ws-border: rgba(148, 163, 184, 0.24);

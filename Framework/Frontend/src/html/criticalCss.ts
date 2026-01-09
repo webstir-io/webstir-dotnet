@@ -1,9 +1,15 @@
 import path from 'node:path';
+import * as cssoModule from 'csso';
 import type { CheerioAPI } from 'cheerio';
 import { FOLDERS, FILES, EXTENSIONS } from '../core/constants.js';
 import { pathExists, readFile, stat } from '../utils/fs.js';
 
 const INLINE_THRESHOLD_BYTES = 6 * 1024;
+const csso = ((cssoModule as unknown as { default?: typeof cssoModule }).default ?? cssoModule) as typeof cssoModule;
+
+function minifyCriticalCss(css: string): string {
+    return csso.minify(css).css;
+}
 
 export async function inlineCriticalCss(
     document: CheerioAPI,
@@ -25,7 +31,7 @@ export async function inlineCriticalCss(
         return;
     }
 
-    const cssContent = await readFile(cssPath);
+    const cssContent = minifyCriticalCss(await readFile(cssPath));
     const head = document('head').first();
     if (head.length === 0) {
         return;
