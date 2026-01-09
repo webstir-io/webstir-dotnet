@@ -226,7 +226,7 @@ public sealed class InstallWorkflow(
         if (summary.InstallRequiredButSkipped && !anyChanges)
         {
             anyChanges = true;
-            _logger.LogInformation("[dry-run] {Manager} install would run due to prior package drift.", manager.Executable);
+            _logger.LogInformation("[dry-run] {Manager} install would run due to prior package drift.", manager.DisplayName);
         }
 
         if (!anyChanges)
@@ -261,7 +261,7 @@ public sealed class InstallWorkflow(
                 reasons.Add($"installed {installed}");
             }
 
-            _logger.LogInformation("[dry-run] {Package} requires {Manager} install ({Reasons}).", packageName, manager.Executable, string.Join(", ", reasons));
+            _logger.LogInformation("[dry-run] {Package} requires {Manager} install ({Reasons}).", packageName, manager.DisplayName, string.Join(", ", reasons));
         }
     }
 

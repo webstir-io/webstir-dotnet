@@ -98,7 +98,7 @@ async function renderUrl(url: string, { pushHistory }: { pushHistory: boolean })
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
-    syncHead(doc, url);
+    await syncHead(doc, url);
 
     const newMain = doc.querySelector('main');
     const currentMain = document.querySelector('main');
@@ -126,7 +126,7 @@ async function renderUrl(url: string, { pushHistory }: { pushHistory: boolean })
 
 enableClientNav();
 
-function syncHead(doc: Document, url: string): void {
+async function syncHead(doc: Document, url: string): Promise<void> {
     const head = document.head;
     const newHead = doc.head;
     if (!head || !newHead) {
@@ -177,6 +177,7 @@ function syncHead(doc: Document, url: string): void {
     }
 
     const existingStyles = new Map<string, HTMLLinkElement>();
+    const staleStyles: HTMLLinkElement[] = [];
     for (const link of Array.from(head.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'))) {
         const key = normalizeStylesheetKey(link.getAttribute('href'), window.location.href);
         if (!key) {
@@ -189,9 +190,10 @@ function syncHead(doc: Document, url: string): void {
             }
             continue;
         }
-        link.remove();
+        staleStyles.push(link);
     }
 
+    const pendingStyles: HTMLLinkElement[] = [];
     for (const [key, href] of desiredStyles.entries()) {
         if (existingStyles.has(key)) {
             continue;
@@ -201,6 +203,20 @@ function syncHead(doc: Document, url: string): void {
         next.href = href;
         head.appendChild(next);
         existingStyles.set(key, next);
+        pendingStyles.push(next);
+    }
+
+    const stylesReady = pendingStyles.length > 0
+        ? waitForStylesheets(pendingStyles)
+        : Promise.resolve();
+    if (staleStyles.length > 0) {
+        void stylesReady.then(() => {
+            requestAnimationFrame(() => {
+                for (const link of staleStyles) {
+                    link.remove();
+                }
+            });
+        });
     }
 
     syncCriticalStyles(head, newHead);
@@ -235,6 +251,8 @@ function syncHead(doc: Document, url: string): void {
     if (preservedClientNav && !head.contains(preservedClientNav)) {
         head.appendChild(preservedClientNav);
     }
+
+    await stylesReady;
 }
 
 function executeScripts(container: Element | null): void {
@@ -302,6 +320,45 @@ function normalizeStylesheetKey(href: string | null, baseUrl: string): string | 
 
 function stripQueryAndHash(value: string): string {
     return value.split(/[?#]/)[0] ?? value;
+}
+
+function waitForStylesheets(links: HTMLLinkElement[], timeoutMs = 2000): Promise<void> {
+    if (links.length === 0) {
+        return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+        let remaining = links.length;
+        let done = false;
+        const finish = () => {
+            if (done) {
+                return;
+            }
+            done = true;
+            resolve();
+        };
+
+        const timer = window.setTimeout(finish, timeoutMs);
+        const handle = () => {
+            if (done) {
+                return;
+            }
+            remaining -= 1;
+            if (remaining <= 0) {
+                window.clearTimeout(timer);
+                finish();
+            }
+        };
+
+        for (const link of links) {
+            if (link.sheet) {
+                handle();
+                continue;
+            }
+            link.addEventListener('load', handle, { once: true });
+            link.addEventListener('error', handle, { once: true });
+        }
+    });
 }
 
 function syncCriticalStyles(head: HTMLHeadElement, newHead: HTMLHeadElement): void {

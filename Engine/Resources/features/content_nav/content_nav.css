@@ -1,5 +1,5 @@
 @layer features {
-  .docs-layout[data-content-nav-ready="true"] .docs-sidebar {
+  .docs-layout[data-content-nav="true"] .docs-sidebar {
     position: fixed;
     top: var(--ws-header-sticky-offset, 0px);
     bottom: 0;
@@ -149,7 +149,7 @@
   }
 
   @media (--ws-sm) {
-    .docs-layout[data-content-nav-ready="true"] .docs-sidebar {
+    .docs-layout[data-content-nav="true"] .docs-sidebar {
       display: none;
     }
 

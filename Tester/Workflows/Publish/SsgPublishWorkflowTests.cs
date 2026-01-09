@@ -52,10 +52,10 @@ public sealed class SsgPublishWorkflowTests
         context.AssertNoCompilationErrors(result);
 
         string rootIndex = Path.Combine(seedDir, Folders.Dist, Folders.Frontend, Files.IndexHtml);
-        string homeAliasIndex = Path.Combine(seedDir, Folders.Dist, Folders.Frontend, Folders.Home, Files.IndexHtml);
+        string homeManifest = Path.Combine(seedDir, Folders.Dist, Folders.Frontend, Folders.Home, Files.ManifestJson);
 
         Assert.True(File.Exists(rootIndex), $"Expected SSG root alias at {rootIndex}");
-        Assert.True(File.Exists(homeAliasIndex), $"Expected SSG page alias at {homeAliasIndex}");
+        Assert.True(File.Exists(homeManifest), $"Expected SSG home assets manifest at {homeManifest}");
     }
 
     private static void SetWorkspaceMode(string workspaceRoot, string mode)
@@ -77,4 +77,3 @@ public sealed class SsgPublishWorkflowTests
         File.WriteAllText(packageJsonPath, root.ToJsonString(options));
     }
 }
-

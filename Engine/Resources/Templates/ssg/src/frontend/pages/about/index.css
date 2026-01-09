@@ -1,7 +1,7 @@
 @layer overrides {
 .page {
   padding: 48px 0 96px;
-  --ws-container: var(--ws-article);
+  --ws-container: 100%;
 }
 
 .page .ws-flow {
@@ -9,7 +9,7 @@
 }
 
 .page-header {
-  max-width: 70ch;
+  max-width: none;
 }
 
 .page .lead {
@@ -28,6 +28,6 @@
 }
 
 .page .bullets {
-  max-width: 72ch;
+  max-width: none;
 }
 }

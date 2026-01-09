@@ -57,6 +57,11 @@
     opacity: 0.9;
   }
 
+  .app-menu__icon svg {
+    width: var(--ws-icon-size, 20px);
+    height: var(--ws-icon-size, 20px);
+  }
+
   .app-menu__icon--close {
     display: none;
   }
@@ -67,6 +72,19 @@
     flex-wrap: wrap;
     gap: var(--ws-space-2);
     min-width: 0;
+    order: 0;
+  }
+
+  .webstir-search__trigger {
+    order: 1;
+  }
+
+  .app-theme-toggle {
+    order: 2;
+  }
+
+  .app-menu__toggle {
+    order: 3;
   }
 
   .app-nav a {

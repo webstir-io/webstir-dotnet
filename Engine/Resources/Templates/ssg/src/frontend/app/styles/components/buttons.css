@@ -34,6 +34,11 @@
       border-color var(--ws-duration-fast) var(--ws-ease-standard);
   }
 
+  .ws-icon-button svg {
+    width: var(--ws-icon-size, 20px);
+    height: var(--ws-icon-size, 20px);
+  }
+
   .ws-icon-button:hover {
     background: var(--ws-hover);
   }

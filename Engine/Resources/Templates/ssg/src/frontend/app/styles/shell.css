@@ -10,7 +10,7 @@
       top: 100%;
       display: flex;
       padding: var(--ws-space-2);
-      border: 1px solid var(--ws-border);
+      border-bottom: 1px solid var(--ws-border);
       background: var(--ws-bg);
       box-shadow: 0 1.5rem 3rem -1.5rem rgba(0, 0, 0, 0.28);
       z-index: 20;

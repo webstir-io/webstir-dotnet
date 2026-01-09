@@ -200,10 +200,16 @@ function renderAppMenuDocsNav(tree: NavNode, currentPath: string): void {
     }
 }
 
-function renderBreadcrumb(root: HTMLElement, titleByPath: ReadonlyMap<string, string>, currentPath: string): void {
+function renderBreadcrumb(
+    root: HTMLElement,
+    titleByPath: ReadonlyMap<string, string>,
+    currentPath: string
+): boolean {
     if (!currentPath.startsWith('/docs/')) {
-        root.hidden = true;
-        return;
+        root.setAttribute('aria-hidden', 'true');
+        root.dataset.breadcrumbVisible = 'false';
+        root.innerHTML = '';
+        return false;
     }
 
     const list = document.createElement('ol');
@@ -245,7 +251,9 @@ function renderBreadcrumb(root: HTMLElement, titleByPath: ReadonlyMap<string, st
 
     root.innerHTML = '';
     root.appendChild(list);
-    root.hidden = false;
+    root.removeAttribute('aria-hidden');
+    root.dataset.breadcrumbVisible = 'true';
+    return true;
 }
 
 function toTitleCase(value: string): string {
@@ -278,27 +286,16 @@ async function initContentNav(): Promise<void> {
         const sidebar = layout.querySelector<HTMLElement>('[data-docs-sidebar]');
         const navRoot = layout.querySelector<HTMLElement>('[data-docs-nav]');
         const breadcrumb = layout.querySelector<HTMLElement>('[data-docs-breadcrumb]');
-        const toolbar = layout.querySelector<HTMLElement>('[data-docs-toolbar]');
-
         let hasNav = false;
         if (navRoot && sidebar && navEntries.length > 0) {
             const list = renderNavList(tree.children, currentPath);
             navRoot.innerHTML = '';
             navRoot.appendChild(list);
-            navRoot.hidden = false;
-            sidebar.hidden = false;
             hasNav = true;
-        } else if (sidebar) {
-            sidebar.hidden = true;
         }
 
         if (breadcrumb) {
             renderBreadcrumb(breadcrumb, titleByPath, currentPath);
-        }
-        const breadcrumbVisible = Boolean(breadcrumb && !breadcrumb.hidden);
-
-        if (toolbar) {
-            toolbar.hidden = !(hasNav || breadcrumbVisible);
         }
 
         if (hasNav) {
