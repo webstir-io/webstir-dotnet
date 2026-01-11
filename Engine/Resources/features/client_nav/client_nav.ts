@@ -58,6 +58,49 @@ let activeRequestId = 0;
 let activeController: AbortController | null = null;
 const DYNAMIC_ATTR = 'data-webstir-dynamic';
 const DYNAMIC_VALUE = 'client-nav';
+const BASE_PATH = resolveBasePath();
+
+function resolveBasePath(): string {
+    const raw = document.documentElement?.getAttribute('data-webstir-base') ?? '';
+    return normalizeBasePath(raw);
+}
+
+function normalizeBasePath(value: string): string {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === '/') {
+        return '';
+    }
+    if (!trimmed.startsWith('/')) {
+        return `/${trimmed}`;
+    }
+    return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
+}
+
+function withBasePath(value: string): string {
+    if (!BASE_PATH) {
+        return value;
+    }
+    if (!value.startsWith('/') || value.startsWith('//')) {
+        return value;
+    }
+    if (value === BASE_PATH || value.startsWith(`${BASE_PATH}/`) || value.startsWith(`${BASE_PATH}?`) || value.startsWith(`${BASE_PATH}#`)) {
+        return value;
+    }
+    return `${BASE_PATH}${value}`;
+}
+
+function stripBasePath(value: string): string {
+    if (!BASE_PATH || !value.startsWith('/')) {
+        return value;
+    }
+    if (value === BASE_PATH) {
+        return '/';
+    }
+    if (value.startsWith(`${BASE_PATH}/`) || value.startsWith(`${BASE_PATH}?`) || value.startsWith(`${BASE_PATH}#`)) {
+        return value.slice(BASE_PATH.length);
+    }
+    return value;
+}
 
 async function renderUrl(url: string, { pushHistory }: { pushHistory: boolean }): Promise<void> {
     activeRequestId += 1;
@@ -143,13 +186,14 @@ async function syncHead(doc: Document, url: string): Promise<void> {
 
     for (const script of Array.from(head.querySelectorAll('script[src]'))) {
         const src = script.getAttribute('src') ?? '';
+        const normalizedSrc = stripBasePath(src);
         if (script === preservedClientNav) {
             continue;
         }
-        if (src === '/hmr.js' || src === '/refresh.js') {
+        if (normalizedSrc === '/hmr.js' || normalizedSrc === '/refresh.js') {
             continue;
         }
-        if (src.startsWith('/pages/')) {
+        if (normalizedSrc.startsWith('/pages/')) {
             script.remove();
         }
     }
@@ -164,15 +208,15 @@ async function syncHead(doc: Document, url: string): Promise<void> {
         if (!resolved) {
             continue;
         }
-        const key = stripQueryAndHash(resolved);
+        const key = stripBasePath(stripQueryAndHash(resolved));
         const finalHref = key === '/app/app.css' && preservedAppCss
             ? (preservedAppCss.getAttribute('href') ?? resolved)
-            : resolved;
+            : withBasePath(resolved);
         desiredStyles.set(key, finalHref);
     }
 
     if (preservedAppCss) {
-        const appHref = preservedAppCss.getAttribute('href') ?? '/app/app.css';
+        const appHref = preservedAppCss.getAttribute('href') ?? withBasePath('/app/app.css');
         desiredStyles.set('/app/app.css', appHref);
     }
 
@@ -265,11 +309,12 @@ function executeScripts(container: Element | null): void {
         const src = script.getAttribute('src');
         const type = script.getAttribute('type');
 
-        if (src && (src === '/clientNav.js' || src.endsWith('/clientNav.js'))) {
+        const normalizedSrc = src ? stripBasePath(src) : '';
+        if (normalizedSrc && (normalizedSrc === '/clientNav.js' || normalizedSrc.endsWith('/clientNav.js'))) {
             script.remove();
             continue;
         }
-        if (src === '/hmr.js' || src === '/refresh.js') {
+        if (normalizedSrc === '/hmr.js' || normalizedSrc === '/refresh.js') {
             script.remove();
             continue;
         }
@@ -299,12 +344,12 @@ function resolveUrl(value: string, baseUrl: string): string | null {
         if (path && !path.startsWith('/') && !path.startsWith('http:') && !path.startsWith('https:')) {
             if (path === 'index.js' || path === 'index.css') {
                 const pageName = getPageNameFromUrl(baseUrl);
-                return `/pages/${pageName}/${path}${suffix}`;
+                return withBasePath(`/pages/${pageName}/${path}${suffix}`);
             }
         }
 
         const resolved = new URL(value, baseUrl);
-        return resolved.pathname + resolved.search + resolved.hash;
+        return withBasePath(resolved.pathname + resolved.search + resolved.hash);
     } catch {
         return null;
     }
@@ -315,7 +360,7 @@ function normalizeStylesheetKey(href: string | null, baseUrl: string): string | 
     if (!resolved) {
         return null;
     }
-    return stripQueryAndHash(resolved);
+    return stripBasePath(stripQueryAndHash(resolved));
 }
 
 function stripQueryAndHash(value: string): string {
@@ -389,20 +434,21 @@ function isAppStylesheetHref(href: string | null): boolean {
     }
 
     try {
-        return new URL(href, window.location.origin).pathname === '/app/app.css';
+        const normalized = stripBasePath(new URL(href, window.location.origin).pathname);
+        return normalized === '/app/app.css';
     } catch {
         const trimmed = href.trim();
         if (!trimmed) {
             return false;
         }
         const [path] = trimmed.split(/[?#]/);
-        return path === '/app/app.css';
+        return stripBasePath(path) === '/app/app.css';
     }
 }
 
 function getPageNameFromUrl(url: string): string {
     try {
-        const pathname = new URL(url, window.location.href).pathname;
+        const pathname = stripBasePath(new URL(url, window.location.href).pathname);
         const trimmed = pathname.replace(/^\/+|\/+$/g, '');
         if (!trimmed) {
             return 'home';

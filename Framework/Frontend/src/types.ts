@@ -8,6 +8,7 @@ export interface FrontendConfig {
     readonly version: 1;
     readonly paths: FrontendPathConfig;
     readonly features: FrontendFeatureFlags;
+    readonly publish: FrontendPublishConfig;
 }
 
 export interface FrontendPathConfig {
@@ -45,6 +46,10 @@ export interface FrontendFeatureFlags {
     readonly htmlSecurity: boolean;
     readonly imageOptimization: boolean;
     readonly precompression: boolean;
+}
+
+export interface FrontendPublishConfig {
+    readonly basePath: string;
 }
 
 export interface AddPageCommandOptions extends FrontendCommandOptions {

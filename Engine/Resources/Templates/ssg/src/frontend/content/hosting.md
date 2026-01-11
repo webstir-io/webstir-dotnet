@@ -27,6 +27,24 @@ location / {
 }
 ```
 
+## GitHub Pages (project sites)
+
+GitHub Pages project sites live under a subpath (for example, `https://user.github.io/repo/`).
+Configure a base path so published URLs resolve correctly in SSG output:
+
+- `webstir enable github-pages <repo>`
+- Or set `frontend.config.json`:
+
+```json
+{
+  "publish": {
+    "basePath": "/repo"
+  }
+}
+```
+
+When enabled, Webstir adds `utils/deploy-gh-pages.sh` and wires it to `npm run deploy`.
+
 ## Sitemap
 
 Webstir writes `sitemap.xml` during SSG publish. For absolute `<loc>` entries, set:

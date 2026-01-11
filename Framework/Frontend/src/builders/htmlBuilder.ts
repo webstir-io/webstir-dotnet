@@ -18,6 +18,7 @@ import { injectResourceHints } from '../html/resourceHints.js';
 import { inlineCriticalCss } from '../html/criticalCss.js';
 import { findPageFromChangedFile } from '../utils/pathMatch.js';
 import { emitDiagnostic } from '../core/diagnostics.js';
+import { applyBasePath } from '../utils/publicPath.js';
 
 export function createHtmlBuilder(context: BuilderContext): Builder {
     return {
@@ -157,6 +158,7 @@ async function rewriteForPublish(
     shared: { css?: string } | null
 ): Promise<string> {
     const document = load(html);
+    const basePath = context.config.publish.basePath;
 
     removeDevScripts(document);
 
@@ -200,7 +202,7 @@ async function rewriteForPublish(
             });
         }
 
-        const hints = injectResourceHints(document, pageName);
+        const hints = injectResourceHints(document, pageName, basePath);
         if (hints.missingHead) {
             emitDiagnostic({
                 code: 'frontend.resourceHints.missingHead',
@@ -216,6 +218,14 @@ async function rewriteForPublish(
     dedupeHeadMeta(document, 'name');
     dedupeHeadMeta(document, 'property');
     dedupeHeadLinks(document, 'rel');
+
+    if (basePath) {
+        const htmlRoot = document('html').first();
+        if (htmlRoot.length > 0) {
+            htmlRoot.attr('data-webstir-base', basePath);
+        }
+        applyPublishBasePath(document, basePath);
+    }
 
     const htmlOutput = document.root().html() ?? '';
     return await minifyHtml(htmlOutput);
@@ -301,6 +311,54 @@ function dedupeHeadLinks(document: CheerioAPI, attribute: 'rel'): void {
 
         seen.set(key, document(element));
     });
+}
+
+function applyPublishBasePath(document: CheerioAPI, basePath: string): void {
+    const attributes = ['href', 'src', 'action', 'poster'];
+    for (const attribute of attributes) {
+        document(`[${attribute}]`).each((_index, element) => {
+            const current = document(element).attr(attribute);
+            if (!current) {
+                return;
+            }
+            const updated = applyBasePath(current, basePath);
+            if (updated !== current) {
+                document(element).attr(attribute, updated);
+            }
+        });
+    }
+
+    applyBasePathToSrcset(document, 'srcset', basePath);
+    applyBasePathToSrcset(document, 'imagesrcset', basePath);
+}
+
+function applyBasePathToSrcset(document: CheerioAPI, attribute: string, basePath: string): void {
+    document(`[${attribute}]`).each((_index, element) => {
+        const current = document(element).attr(attribute);
+        if (!current) {
+            return;
+        }
+        const updated = rewriteSrcset(current, basePath);
+        if (updated !== current) {
+            document(element).attr(attribute, updated);
+        }
+    });
+}
+
+function rewriteSrcset(value: string, basePath: string): string {
+    return value.split(',')
+        .map((segment) => {
+            const trimmed = segment.trim();
+            if (!trimmed) {
+                return trimmed;
+            }
+            const parts = trimmed.split(/\s+/);
+            const url = parts.shift() ?? '';
+            const descriptor = parts.join(' ');
+            const updatedUrl = applyBasePath(url, basePath);
+            return descriptor ? `${updatedUrl} ${descriptor}` : updatedUrl;
+        })
+        .join(', ');
 }
 
 function removeDevScripts(document: CheerioAPI): void {

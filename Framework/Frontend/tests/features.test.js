@@ -6,11 +6,16 @@ import os from 'node:os';
 
 import { buildConfig } from '../dist/config/workspace.js';
 
-async function createWorkspace(frontendConfig) {
+async function createWorkspace(frontendConfig, packageJson) {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'webstir-frontend-'));
     const workspaceRoot = path.join(tempRoot, 'workspace');
     const frontendRoot = path.join(workspaceRoot, 'src', 'frontend');
     await fs.mkdir(frontendRoot, { recursive: true });
+
+    if (packageJson !== undefined) {
+        const packagePath = path.join(workspaceRoot, 'package.json');
+        await fs.writeFile(packagePath, JSON.stringify(packageJson, null, 2), 'utf8');
+    }
 
     if (frontendConfig !== undefined) {
         const configPath = path.join(frontendRoot, 'frontend.config.json');
@@ -31,6 +36,7 @@ test('buildConfig returns defaults when frontend.config.json is absent', async (
     assert.equal(config.features.htmlSecurity, true);
     assert.equal(config.features.imageOptimization, true);
     assert.equal(config.features.precompression, true);
+    assert.equal(config.publish.basePath, '');
 });
 
 test('buildConfig applies overrides from nested features key', async (t) => {
@@ -60,4 +66,20 @@ test('buildConfig accepts top-level feature flags', async (t) => {
     assert.equal(config.features.htmlSecurity, false);
     assert.equal(config.features.imageOptimization, false);
     assert.equal(config.features.precompression, true);
+});
+
+test('buildConfig applies publish basePath overrides', async (t) => {
+    const workspace = await createWorkspace({
+        publish: {
+            basePath: '/demo/'
+        }
+    }, {
+        webstir: {
+            mode: 'ssg'
+        }
+    });
+    t.after(workspace.cleanup);
+
+    const config = buildConfig(workspace.workspaceRoot);
+    assert.equal(config.publish.basePath, '/demo');
 });

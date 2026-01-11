@@ -1,5 +1,6 @@
 import type { CheerioAPI } from 'cheerio';
 import { FILES, FOLDERS, EXTENSIONS } from '../core/constants.js';
+import { stripBasePath } from '../utils/publicPath.js';
 
 export interface ResourceHintResult {
     readonly added: number;
@@ -7,9 +8,9 @@ export interface ResourceHintResult {
     readonly missingHead: boolean;
 }
 
-export function injectResourceHints(document: CheerioAPI, currentPage: string): ResourceHintResult {
+export function injectResourceHints(document: CheerioAPI, currentPage: string, basePath = ''): ResourceHintResult {
     const head = document('head').first();
-    const pages = [...collectInternalPages(document, currentPage)];
+    const pages = [...collectInternalPages(document, currentPage, basePath)];
 
     if (head.length === 0) {
         return {
@@ -31,11 +32,11 @@ export function injectResourceHints(document: CheerioAPI, currentPage: string): 
     return { added: pages.length, candidates: pages, missingHead: false };
 }
 
-function collectInternalPages(document: CheerioAPI, currentPage: string): Set<string> {
+function collectInternalPages(document: CheerioAPI, currentPage: string, basePath: string): Set<string> {
     const pages = new Set<string>();
     document('a[href]').each((_index, element) => {
         const href = document(element).attr('href');
-        const pageName = normalizePageName(href);
+        const pageName = normalizePageName(href, basePath);
         if (!pageName || pageName === currentPage) {
             return;
         }
@@ -44,7 +45,7 @@ function collectInternalPages(document: CheerioAPI, currentPage: string): Set<st
     return pages;
 }
 
-function normalizePageName(href?: string): string | null {
+function normalizePageName(href: string | undefined, basePath: string): string | null {
     if (!href || href.length === 0) {
         return null;
     }
@@ -60,7 +61,8 @@ function normalizePageName(href?: string): string | null {
     }
 
     if (path.startsWith('/')) {
-        path = path.slice(1);
+        const normalized = stripBasePath(path, basePath);
+        path = normalized.startsWith('/') ? normalized.slice(1) : normalized;
     }
 
     if (path.startsWith(`${FOLDERS.pages}/`)) {

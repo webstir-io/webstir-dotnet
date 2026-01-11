@@ -3,6 +3,8 @@ type DocsNavEntry = {
   title: string;
 };
 
+const BASE_PATH = resolveBasePath();
+
 const indexSelector = '[data-docs-index]';
 const indexRoot = document.querySelector<HTMLElement>(indexSelector);
 
@@ -16,6 +18,35 @@ window.addEventListener('webstir:client-nav', () => {
     void populateDocsIndex(nextRoot);
   }
 });
+
+function resolveBasePath(): string {
+  const raw = document.documentElement?.getAttribute('data-webstir-base') ?? '';
+  return normalizeBasePath(raw);
+}
+
+function normalizeBasePath(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === '/') {
+    return '';
+  }
+  if (!trimmed.startsWith('/')) {
+    return `/${trimmed}`;
+  }
+  return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
+}
+
+function withBasePath(value: string): string {
+  if (!BASE_PATH) {
+    return value;
+  }
+  if (!value.startsWith('/') || value.startsWith('//')) {
+    return value;
+  }
+  if (value === BASE_PATH || value.startsWith(`${BASE_PATH}/`) || value.startsWith(`${BASE_PATH}?`) || value.startsWith(`${BASE_PATH}#`)) {
+    return value;
+  }
+  return `${BASE_PATH}${value}`;
+}
 
 async function populateDocsIndex(root: HTMLElement): Promise<void> {
   const entries = await fetchDocsNav();
@@ -38,7 +69,7 @@ async function populateDocsIndex(root: HTMLElement): Promise<void> {
 
     const link = document.createElement('a');
     link.className = 'docs-index__link';
-    link.href = entry.path;
+    link.href = withBasePath(entry.path);
     link.textContent = entry.title;
 
     item.appendChild(link);
@@ -50,7 +81,7 @@ async function populateDocsIndex(root: HTMLElement): Promise<void> {
 
 async function fetchDocsNav(): Promise<DocsNavEntry[]> {
   try {
-    const response = await fetch('/docs-nav.json');
+    const response = await fetch(withBasePath('/docs-nav.json'));
     if (!response.ok) {
       return [];
     }

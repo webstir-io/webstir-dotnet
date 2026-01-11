@@ -25,7 +25,8 @@ public class EnableWorkflow(
         ClientNav,
         Search,
         ContentNav,
-        Backend
+        Backend,
+        GithubPages
     }
 
     protected override async Task ExecuteWorkflowAsync(string[] args)
@@ -33,7 +34,7 @@ public class EnableWorkflow(
         string[] filteredArgs = [.. args.Where(arg => arg != WorkflowName)];
         if (filteredArgs.Length == 0)
         {
-            throw new WorkflowUsageException($"Usage: {App.Name} {Commands.Enable} <scripts <page>|spa|client-nav|search|content-nav|backend>");
+            throw new WorkflowUsageException($"Usage: {App.Name} {Commands.Enable} <scripts <page>|spa|client-nav|search|content-nav|backend|github-pages>");
         }
 
         Feature feature = ParseFeature(filteredArgs[0]);
@@ -63,6 +64,10 @@ public class EnableWorkflow(
             case Feature.Backend:
                 await EnableBackendAsync();
                 break;
+            case Feature.GithubPages:
+                string? basePath = filteredArgs.Skip(1).FirstOrDefault();
+                await EnableGithubPagesAsync(basePath);
+                break;
         }
     }
 
@@ -77,9 +82,12 @@ public class EnableWorkflow(
             "search" => Feature.Search,
             "content-nav" => Feature.ContentNav,
             "backend" => Feature.Backend,
+            "github-pages" => Feature.GithubPages,
+            "gh-pages" => Feature.GithubPages,
+            "gh-deployments" => Feature.GithubPages,
             _ => throw new WorkflowUsageException(
-                $"Unknown feature '{token}'. Expected scripts, spa, client-nav, search, content-nav, or backend. " +
-                $"Usage: {App.Name} {Commands.Enable} <scripts <page>|spa|client-nav|search|content-nav|backend>")
+                $"Unknown feature '{token}'. Expected scripts, spa, client-nav, search, content-nav, backend, or github-pages. " +
+                $"Usage: {App.Name} {Commands.Enable} <scripts <page>|spa|client-nav|search|content-nav|backend|github-pages>")
         };
     }
 
@@ -115,6 +123,7 @@ public class EnableWorkflow(
             enableSearch: null,
             enableContentNav: null,
             enableBackend: null,
+            enableGithubPages: null,
             mode: null);
 
         Console.WriteLine("Enabled spa.");
@@ -137,6 +146,7 @@ public class EnableWorkflow(
             enableSearch: null,
             enableContentNav: null,
             enableBackend: null,
+            enableGithubPages: null,
             mode: null);
 
         string relativePath = Path.Combine(Folders.Src, Folders.Frontend, Folders.App, Folders.Scripts, "features", $"client-nav{FileExtensions.Ts}");
@@ -182,6 +192,7 @@ public class EnableWorkflow(
             enableSearch: true,
             enableContentNav: null,
             enableBackend: null,
+            enableGithubPages: null,
             mode: null);
 
         string relativePath = Path.Combine(Folders.Src, Folders.Frontend, Folders.App, Folders.Scripts, "features", $"search{FileExtensions.Ts}");
@@ -210,6 +221,7 @@ public class EnableWorkflow(
             enableSearch: null,
             enableContentNav: true,
             enableBackend: null,
+            enableGithubPages: null,
             mode: null);
 
         string relativePath = Path.Combine(Folders.Src, Folders.Frontend, Folders.App, Folders.Scripts, "features", $"content-nav{FileExtensions.Ts}");
@@ -445,6 +457,7 @@ public class EnableWorkflow(
             enableSearch: null,
             enableContentNav: null,
             enableBackend: true,
+            enableGithubPages: null,
             mode: "full");
         EnsureTsReference(Folders.Backend);
 
@@ -455,12 +468,42 @@ public class EnableWorkflow(
         }
     }
 
+    private async Task EnableGithubPagesAsync(string? basePath)
+    {
+        string resolvedBasePath = ResolveGithubPagesBasePath(basePath);
+        string scriptDestination = Context.WorkingPath.Combine(Folders.Utils, Files.DeployGhPagesScript);
+        await ResourceHelpers.CopyEmbeddedFileAsync(
+            $"{Resources.FeaturesPath}.github_pages.{Files.DeployGhPagesScript}",
+            scriptDestination);
+        bool updatedFrontendConfig = await UpdateFrontendConfigAsync(resolvedBasePath);
+        bool updatedPackageJson = await UpdatePackageJsonAsync(
+            enableSpa: null,
+            enableClientNav: null,
+            enableSearch: null,
+            enableContentNav: null,
+            enableBackend: null,
+            enableGithubPages: true,
+            mode: null);
+
+        Console.WriteLine("Enabled github-pages.");
+        Console.WriteLine($"  + {Path.Combine(Folders.Utils, Files.DeployGhPagesScript)}");
+        if (updatedFrontendConfig)
+        {
+            Console.WriteLine($"  Updated frontend.config.json: publish.basePath={resolvedBasePath}");
+        }
+        if (updatedPackageJson)
+        {
+            Console.WriteLine("  Updated package.json: webstir.enable.githubPages=true");
+        }
+    }
+
     private async Task<bool> UpdatePackageJsonAsync(
         bool? enableSpa,
         bool? enableClientNav,
         bool? enableSearch,
         bool? enableContentNav,
         bool? enableBackend,
+        bool? enableGithubPages,
         string? mode)
     {
         string packageJsonPath = Context.WorkingPath.Combine(Files.PackageJson);
@@ -502,9 +545,24 @@ public class EnableWorkflow(
         {
             enable["backend"] = enableBackend.Value;
         }
+        if (enableGithubPages.HasValue)
+        {
+            enable["githubPages"] = enableGithubPages.Value;
+        }
 
         webstir["enable"] = enable;
         root["webstir"] = webstir;
+
+        if (enableGithubPages == true)
+        {
+            JsonObject scripts = root["scripts"] as JsonObject ?? new JsonObject();
+            const string deployScript = "bash ./utils/deploy-gh-pages.sh";
+            if (!scripts.ContainsKey("deploy"))
+            {
+                scripts["deploy"] = deployScript;
+            }
+            root["scripts"] = scripts;
+        }
 
         JsonSerializerOptions options = new()
         {
@@ -512,6 +570,57 @@ public class EnableWorkflow(
         };
         await File.WriteAllTextAsync(packageJsonPath, root.ToJsonString(options) + Environment.NewLine);
         return true;
+    }
+
+    private async Task<bool> UpdateFrontendConfigAsync(string basePath)
+    {
+        string frontendRoot = Context.FrontendPath;
+        string configPath = Path.Combine(frontendRoot, "frontend.config.json");
+        JsonObject root = new();
+
+        if (File.Exists(configPath))
+        {
+            try
+            {
+                JsonNode? parsed = JsonNode.Parse(await File.ReadAllTextAsync(configPath));
+                if (parsed is JsonObject parsedRoot)
+                {
+                    root = parsedRoot;
+                }
+            }
+            catch (JsonException)
+            {
+                root = new JsonObject();
+            }
+        }
+
+        JsonObject publish = root["publish"] as JsonObject ?? new JsonObject();
+        publish["basePath"] = basePath;
+        root["publish"] = publish;
+
+        JsonSerializerOptions options = new()
+        {
+            WriteIndented = true
+        };
+        await File.WriteAllTextAsync(configPath, root.ToJsonString(options) + Environment.NewLine);
+        return true;
+    }
+
+    private string ResolveGithubPagesBasePath(string? basePath)
+    {
+        string candidate = string.IsNullOrWhiteSpace(basePath) ? Context.WorkspaceName : basePath.Trim();
+        if (string.IsNullOrWhiteSpace(candidate))
+        {
+            return "/";
+        }
+
+        string normalized = candidate.StartsWith("/", StringComparison.Ordinal) ? candidate : "/" + candidate;
+        while (normalized.Length > 1 && normalized.EndsWith("/", StringComparison.Ordinal))
+        {
+            normalized = normalized[..^1];
+        }
+
+        return normalized;
     }
 
     private void EnsureTsReference(string folderName)

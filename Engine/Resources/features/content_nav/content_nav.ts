@@ -21,7 +21,8 @@ type ContentNavState = {
 };
 
 const STATE_KEY = '__webstirContentNavState';
-const NAV_URL = '/docs-nav.json';
+const BASE_PATH = resolveBasePath();
+const NAV_URL = withBasePath('/docs-nav.json');
 const NAV_LAYOUT_SELECTOR = '[data-content-nav="true"]';
 const APP_NAV_SELECTOR = '.app-nav';
 const APP_NAV_DOCS_SELECTOR = '[data-docs-nav-menu]';
@@ -35,13 +36,56 @@ function getState(): ContentNavState {
 }
 
 function normalizeDocsPath(pathname: string): string {
-    if (!pathname.startsWith('/docs')) {
-        return pathname;
+    const normalized = stripBasePath(pathname);
+    if (!normalized.startsWith('/docs')) {
+        return normalized;
     }
-    if (pathname === '/docs') {
+    if (normalized === '/docs') {
         return '/docs/';
     }
-    return pathname.endsWith('/') ? pathname : `${pathname}/`;
+    return normalized.endsWith('/') ? normalized : `${normalized}/`;
+}
+
+function resolveBasePath(): string {
+    const raw = document.documentElement?.getAttribute('data-webstir-base') ?? '';
+    return normalizeBasePath(raw);
+}
+
+function normalizeBasePath(value: string): string {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === '/') {
+        return '';
+    }
+    if (!trimmed.startsWith('/')) {
+        return `/${trimmed}`;
+    }
+    return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
+}
+
+function withBasePath(value: string): string {
+    if (!BASE_PATH) {
+        return value;
+    }
+    if (!value.startsWith('/') || value.startsWith('//')) {
+        return value;
+    }
+    if (value === BASE_PATH || value.startsWith(`${BASE_PATH}/`) || value.startsWith(`${BASE_PATH}?`) || value.startsWith(`${BASE_PATH}#`)) {
+        return value;
+    }
+    return `${BASE_PATH}${value}`;
+}
+
+function stripBasePath(value: string): string {
+    if (!BASE_PATH || !value.startsWith('/')) {
+        return value;
+    }
+    if (value === BASE_PATH) {
+        return '/';
+    }
+    if (value.startsWith(`${BASE_PATH}/`) || value.startsWith(`${BASE_PATH}?`) || value.startsWith(`${BASE_PATH}#`)) {
+        return value.slice(BASE_PATH.length);
+    }
+    return value;
 }
 
 async function fetchDocsNav(): Promise<DocsNavEntry[]> {
@@ -144,7 +188,7 @@ function renderNavList(nodes: readonly NavNode[], currentPath: string, depth = 0
         if (node.isPage) {
             const link = document.createElement('a');
             link.className = 'docs-nav__link';
-            link.href = node.path;
+            link.href = withBasePath(node.path);
             link.textContent = node.title;
             if (isActive) {
                 link.setAttribute('aria-current', 'page');
@@ -192,7 +236,9 @@ function renderAppMenuDocsNav(tree: NavNode, currentPath: string): void {
     const list = renderNavList(nodes, currentPath);
     section.appendChild(list);
 
-    const docsLink = appNav.querySelector<HTMLAnchorElement>('a[href="/docs/"], a[href="/docs"]');
+    const docsHref = withBasePath('/docs/');
+    const docsHrefNoSlash = docsHref.endsWith('/') ? docsHref.slice(0, -1) : docsHref;
+    const docsLink = appNav.querySelector<HTMLAnchorElement>(`a[href="${docsHref}"], a[href="${docsHrefNoSlash}"]`);
     if (docsLink) {
         docsLink.insertAdjacentElement('afterend', section);
     } else {
@@ -241,7 +287,7 @@ function renderBreadcrumb(
         } else {
             const link = document.createElement('a');
             link.className = 'docs-breadcrumb__link';
-            link.href = crumb.href;
+            link.href = withBasePath(crumb.href);
             link.textContent = crumb.title;
             item.appendChild(link);
         }

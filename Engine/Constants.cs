@@ -25,6 +25,7 @@ public static class Folders
     public const string Images = "images";
     public const string Fonts = "fonts";
     public const string Media = "media";
+    public const string Utils = "utils";
     public const string Chunks = "chunks";
     public const string Home = "home";
     public const string NodeModules = "node_modules";
@@ -51,6 +52,7 @@ public static class Files
     public const string RefreshJs = "refresh.js";
     public const string HmrJs = "hmr.js";
     public const string RobotsTxt = "robots.txt";
+    public const string DeployGhPagesScript = "deploy-gh-pages.sh";
 }
 
 public static class FileExtensions

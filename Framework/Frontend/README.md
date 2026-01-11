@@ -60,7 +60,7 @@ Binary name: `webstir-frontend`. All commands require `--workspace` pointing to 
 
 ### Feature Flags
 
-`frontend.config.json` enables or disables pipeline features:
+`frontend.config.json` enables or disables pipeline features and publish settings:
 
 ```jsonc
 {
@@ -68,9 +68,14 @@ Binary name: `webstir-frontend`. All commands require `--workspace` pointing to 
     "htmlSecurity": true,
     "imageOptimization": true,
     "precompression": false
+  },
+  "publish": {
+    "basePath": "/my-repo"
   }
 }
 ```
+
+`publish.basePath` prefixes root-relative URLs during `publish` output in SSG workspaces. Use it for subpath hosting (for example, GitHub Pages project sites).
 
 ### Lifecycle Hooks
 

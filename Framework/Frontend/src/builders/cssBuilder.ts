@@ -12,6 +12,7 @@ import { updatePageManifest, updateSharedAssets, readSharedAssets } from '../ass
 import { createCompressedVariants } from '../assets/precompression.js';
 import { shouldProcess } from '../utils/changedFile.js';
 import { findPageFromChangedFile } from '../utils/pathMatch.js';
+import { applyBasePath } from '../utils/publicPath.js';
 
 const MODULE_SUFFIX = '.module';
 const APP_CSS_BASENAME = 'app';
@@ -43,6 +44,7 @@ async function processCss(context: BuilderContext, isProduction: boolean): Promi
     }
 
     const sharedArtifacts = await processAppCss(config, isProduction);
+    const basePath = isProduction ? config.publish.basePath : '';
     const targetPage = findPageFromChangedFile(context.changedFile, config.paths.src.pages);
     const pages = await getPages(config.paths.src.pages);
 
@@ -58,10 +60,11 @@ async function processCss(context: BuilderContext, isProduction: boolean): Promi
         const css = await readFile(entryPath);
         const processor = postcss([autoprefixer]);
         const processed = await processor.process(css, { from: entryPath, map: !isProduction ? { inline: true } : false });
-        const normalized = resolveAppImports(processed.css, isProduction ? sharedArtifacts.appCss : undefined);
+        let normalized = resolveAppImports(processed.css, isProduction ? sharedArtifacts.appCss : undefined, basePath);
+        normalized = rewriteRootRelativeUrls(normalized, basePath);
 
         if (isProduction) {
-            const inlined = await inlineAppImports(normalized, config.paths.dist.frontend);
+            const inlined = await inlineAppImports(normalized, config.paths.dist.frontend, basePath);
             await emitProductionCss(config, page.name, inlined);
         } else {
             await emitDevelopmentCss(config, page.name, normalized);
@@ -107,9 +110,10 @@ async function processAppCss(config: BuilderContext['config'], isProduction: boo
     const source = await readFile(appCssPath);
 
     if (isProduction) {
+        const basePath = config.publish.basePath;
         const stylesMap = await emitAppStylesProduction(config, processor);
         const processed = await processor.process(source, { from: appCssPath, map: false });
-        const rewritten = rewriteAppStyleImports(processed.css, stylesMap);
+        const rewritten = rewriteRootRelativeUrls(rewriteAppStyleImports(processed.css, stylesMap, basePath), basePath);
         const fileName = await emitAppProductionCss(config, rewritten);
         await updateSharedAssets(config.paths.dist.frontend, shared => {
             shared.css = fileName;
@@ -198,18 +202,29 @@ function rewriteAppStyleImportsForDevelopment(css: string, stylesVersion: string
     return css.replace(importPattern, `$1./$2?v=${stylesVersion}$4`);
 }
 
-function resolveAppImports(css: string, appCssFile?: string): string {
+function resolveAppImports(css: string, appCssFile?: string, basePath = ''): string {
     let result = css;
 
     if (appCssFile) {
-        result = result.replace(/@import\s+['"]@app\/app\.css['"];?/g, `@import "/app/${appCssFile}";`);
+        const appHref = applyBasePath(`/app/${appCssFile}`, basePath);
+        result = result.replace(/@import\s+['"]@app\/app\.css['"];?/g, `@import "${appHref}";`);
     }
 
-    return result.replace(/@app\//g, '/app/');
+    const appPrefix = applyBasePath('/app/', basePath);
+    return result.replace(/@app\//g, appPrefix);
 }
 
-async function inlineAppImports(css: string, distRoot: string, seen: Set<string> = new Set()): Promise<string> {
-    const importPattern = /@import\s+(?:url\()?[\s]*['"]\/app\/([^'"\)]+)['"][\s]*\)?;?/g;
+async function inlineAppImports(
+    css: string,
+    distRoot: string,
+    basePath = '',
+    seen: Set<string> = new Set()
+): Promise<string> {
+    const appPrefix = applyBasePath('/app/', basePath);
+    const importPattern = new RegExp(
+        `@import\\s+(?:url\\()?\\s*['"]${escapeRegExp(appPrefix)}([^'"\\)]+)['"]\\s*\\)?;?`,
+        'g'
+    );
     const segments: string[] = [];
     let lastIndex = 0;
 
@@ -218,7 +233,7 @@ async function inlineAppImports(css: string, distRoot: string, seen: Set<string>
         segments.push(css.slice(lastIndex, index));
 
         const relative = normalizeForwardSlashes(match[1] ?? '');
-        const inlined = await inlineAppImport(relative, distRoot, seen);
+        const inlined = await inlineAppImport(relative, distRoot, basePath, seen);
         if (inlined !== null) {
             segments.push(inlined);
         } else {
@@ -232,7 +247,12 @@ async function inlineAppImports(css: string, distRoot: string, seen: Set<string>
     return segments.join('');
 }
 
-async function inlineAppImport(relativePath: string, distRoot: string, seen: Set<string>): Promise<string | null> {
+async function inlineAppImport(
+    relativePath: string,
+    distRoot: string,
+    basePath: string,
+    seen: Set<string>
+): Promise<string | null> {
     if (relativePath.length === 0 || relativePath.includes('..')) {
         return null;
     }
@@ -249,7 +269,7 @@ async function inlineAppImport(relativePath: string, distRoot: string, seen: Set
 
     seen.add(key);
     const content = await readFile(resolved);
-    const inlined = await inlineAppImports(content, distRoot, seen);
+    const inlined = await inlineAppImports(content, distRoot, basePath, seen);
     seen.delete(key);
 
     return inlined;
@@ -299,20 +319,33 @@ async function emitAppStylesProduction(
     return mapping;
 }
 
-function rewriteAppStyleImports(css: string, stylesMap: Map<string, string>): string {
+function rewriteAppStyleImports(css: string, stylesMap: Map<string, string>, basePath = ''): string {
     if (stylesMap.size === 0) {
         return css;
     }
 
     let result = css;
+    const appPrefix = applyBasePath('/app/', basePath);
     for (const [original, hashed] of stylesMap.entries()) {
         const normalizedOriginal = original.startsWith('styles/') ? original : `styles/${original}`;
         const escaped = escapeRegExp(normalizedOriginal);
         const pattern = new RegExp(`(@import\\s+['"])(?:\.\/)?${escaped}(['"];?)`, 'g');
-        result = result.replace(pattern, `$1/app/${hashed}$2`);
+        result = result.replace(pattern, `$1${appPrefix}${hashed}$2`);
     }
 
     return result;
+}
+
+function rewriteRootRelativeUrls(css: string, basePath: string): string {
+    if (!basePath) {
+        return css;
+    }
+
+    const urlPattern = /url\(\s*(['"]?)(\/(?!\/)[^'")]+)\1\s*\)/g;
+    return css.replace(urlPattern, (_match, quote: string, url: string) => {
+        const updated = applyBasePath(url, basePath);
+        return `url(${quote}${updated}${quote})`;
+    });
 }
 
 function normalizeForwardSlashes(value: string): string {

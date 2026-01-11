@@ -37,10 +37,15 @@ export const frontendFeatureFlagsSchema = z.object({
     precompression: z.boolean().default(true)
 });
 
+export const frontendPublishSchema = z.object({
+    basePath: z.string().default('')
+});
+
 export const frontendConfigSchema = z.object({
     version: z.literal(1),
     paths: frontendPathSchema,
-    features: frontendFeatureFlagsSchema
+    features: frontendFeatureFlagsSchema,
+    publish: frontendPublishSchema
 });
 
 export type FrontendConfigInput = z.infer<typeof frontendConfigSchema>;

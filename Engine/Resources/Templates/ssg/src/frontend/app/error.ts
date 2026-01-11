@@ -5,6 +5,36 @@ const MAX_PER_SESSION = 20;
 const MIN_INTERVAL_MS = 1000;
 const DEDUPE_WINDOW_MS = 60_000; // 60s
 const recent = new Map<string, number>(); // fingerprint -> timestamp
+const BASE_PATH = resolveBasePath();
+
+function resolveBasePath(): string {
+  const raw = document.documentElement?.getAttribute('data-webstir-base') ?? '';
+  return normalizeBasePath(raw);
+}
+
+function normalizeBasePath(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === '/') {
+    return '';
+  }
+  if (!trimmed.startsWith('/')) {
+    return `/${trimmed}`;
+  }
+  return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
+}
+
+function withBasePath(value: string): string {
+  if (!BASE_PATH) {
+    return value;
+  }
+  if (!value.startsWith('/') || value.startsWith('//')) {
+    return value;
+  }
+  if (value === BASE_PATH || value.startsWith(`${BASE_PATH}/`) || value.startsWith(`${BASE_PATH}?`) || value.startsWith(`${BASE_PATH}#`)) {
+    return value;
+  }
+  return `${BASE_PATH}${value}`;
+}
 
 function cid(): string {
   const w = window as any;
@@ -98,9 +128,9 @@ export function report(e: ErrorEvent | PromiseRejectionEvent): void {
     const payload = JSON.stringify(p);
     if (navigator.sendBeacon) {
       const blob = new Blob([payload], { type: 'application/json' });
-      navigator.sendBeacon('/client-errors', blob);
+      navigator.sendBeacon(withBasePath('/client-errors'), blob);
     } else {
-      fetch('/client-errors', {
+      fetch(withBasePath('/client-errors'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Correlation-ID': cid() },
         body: payload,

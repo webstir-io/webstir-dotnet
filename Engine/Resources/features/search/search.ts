@@ -29,6 +29,8 @@ declare global {
     }
 }
 
+const BASE_PATH = resolveBasePath();
+
 function getState(): SearchUiState {
     if (window.__webstirSearchUiV2) {
         return window.__webstirSearchUiV2;
@@ -49,6 +51,35 @@ function getState(): SearchUiState {
 
 const state = getState();
 let drawer: DrawerController | null = null;
+
+function resolveBasePath(): string {
+    const raw = document.documentElement?.getAttribute('data-webstir-base') ?? '';
+    return normalizeBasePath(raw);
+}
+
+function normalizeBasePath(value: string): string {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === '/') {
+        return '';
+    }
+    if (!trimmed.startsWith('/')) {
+        return `/${trimmed}`;
+    }
+    return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
+}
+
+function withBasePath(value: string): string {
+    if (!BASE_PATH) {
+        return value;
+    }
+    if (!value.startsWith('/') || value.startsWith('//')) {
+        return value;
+    }
+    if (value === BASE_PATH || value.startsWith(`${BASE_PATH}/`) || value.startsWith(`${BASE_PATH}?`) || value.startsWith(`${BASE_PATH}#`)) {
+        return value;
+    }
+    return `${BASE_PATH}${value}`;
+}
 
 function escapeHtml(value: unknown): string {
     return String(value)
@@ -104,7 +135,7 @@ async function ensureIndexLoaded(): Promise<SearchIndexEntry[]> {
 
 async function loadIndex(): Promise<SearchIndexEntry[]> {
     try {
-        const response = await fetch('/search.json', { headers: { Accept: 'application/json' } });
+        const response = await fetch(withBasePath('/search.json'), { headers: { Accept: 'application/json' } });
         if (!response.ok) {
             return [];
         }
@@ -381,7 +412,7 @@ function renderQuickLinks(): string {
 
     return links
         .map((link) => {
-            const href = escapeHtml(link.getAttribute('href') ?? '#');
+            const href = escapeHtml(withBasePath(link.getAttribute('href') ?? '#'));
             const label = escapeHtml(link.textContent ?? '');
             return `<li><a href="${href}"><span>${label}</span><span class="webstir-search__arrow" aria-hidden="true">→</span></a></li>`;
         })
@@ -460,7 +491,7 @@ async function refreshResults(): Promise<void> {
     const renderEntry = (entry: SearchIndexEntry): string => {
         const title = escapeHtml(entry.title);
         const excerpt = escapeHtml(entry.excerpt);
-        const href = escapeHtml(entry.path);
+        const href = escapeHtml(withBasePath(entry.path));
         return `<li><a href="${href}"><strong>${title}</strong><span>${excerpt}</span></a></li>`;
     };
 

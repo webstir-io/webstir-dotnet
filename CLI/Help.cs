@@ -262,10 +262,12 @@ public static class Help
                 Example($"{App.Name} {Commands.Enable} spa", "Enable client routing and router assets."),
                 Example($"{App.Name} {Commands.Enable} client-nav", "Enable PJAX-style navigation helper."),
                 Example($"{App.Name} {Commands.Enable} search", "Enable site-wide search UI and index output."),
+                Example($"{App.Name} {Commands.Enable} content-nav", "Enable docs sidebar and breadcrumb navigation."),
+                Example($"{App.Name} {Commands.Enable} github-pages my-repo", "Configure publish output for GitHub Pages project sites."),
                 Example($"{App.Name} {Commands.Enable} backend", "Add backend scaffold to a frontend-only app.")
             ],
             null,
-            "<scripts <page>|spa|client-nav|search|backend>");
+            "<scripts <page>|spa|client-nav|search|content-nav|backend|github-pages>");
 
     private static CommandHelp GetHelpCommand() =>
         CreateCommand(Commands.Help,
