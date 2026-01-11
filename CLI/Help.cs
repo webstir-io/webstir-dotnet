@@ -264,10 +264,11 @@ public static class Help
                 Example($"{App.Name} {Commands.Enable} search", "Enable site-wide search UI and index output."),
                 Example($"{App.Name} {Commands.Enable} content-nav", "Enable docs sidebar and breadcrumb navigation."),
                 Example($"{App.Name} {Commands.Enable} github-pages my-repo", "Configure publish output for GitHub Pages project sites."),
+                Example($"{App.Name} {Commands.Enable} gh-deploy my-repo", "Add a GitHub Actions workflow that deploys to gh-pages on push."),
                 Example($"{App.Name} {Commands.Enable} backend", "Add backend scaffold to a frontend-only app.")
             ],
             null,
-            "<scripts <page>|spa|client-nav|search|content-nav|backend|github-pages>");
+            "<scripts <page>|spa|client-nav|search|content-nav|backend|github-pages|gh-deploy>");
 
     private static CommandHelp GetHelpCommand() =>
         CreateCommand(Commands.Help,

@@ -3,10 +3,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist/frontend"
-PUBLISH_CMD="${WEBSTIR_PUBLISH_CMD:-webstir publish --frontend-mode ssg}"
 REMOTE="${GH_PAGES_REMOTE:-origin}"
 BRANCH="${GH_PAGES_BRANCH:-gh-pages}"
 COMMIT_MESSAGE="${GH_PAGES_COMMIT_MESSAGE:-Deploy}"
+COMMIT_NAME="${GH_PAGES_COMMIT_NAME:-github-actions[bot]}"
+COMMIT_EMAIL="${GH_PAGES_COMMIT_EMAIL:-github-actions[bot]@users.noreply.github.com}"
 
 WORKTREE_DIR=""
 cleanup() {
@@ -17,12 +18,29 @@ cleanup() {
 }
 trap cleanup EXIT
 
+publish_site() {
+  if [[ -n "${WEBSTIR_PUBLISH_CMD:-}" ]]; then
+    echo "[gh-pages] Running WEBSTIR_PUBLISH_CMD..."
+    bash -lc "${WEBSTIR_PUBLISH_CMD}"
+    return
+  fi
+
+  local frontend_cli="$ROOT_DIR/node_modules/.bin/webstir-frontend"
+  if [[ ! -f "$frontend_cli" ]]; then
+    echo "[gh-pages] Missing $frontend_cli" >&2
+    echo "[gh-pages] Install dependencies first (npm install / pnpm install)." >&2
+    exit 1
+  fi
+
+  "$frontend_cli" publish -w "$ROOT_DIR" -m ssg
+}
+
 echo "[gh-pages] Publishing static site..."
-eval "$PUBLISH_CMD"
+publish_site
 
 if [[ ! -d "$DIST_DIR" ]]; then
   echo "[gh-pages] Expected dist at $DIST_DIR but it was not found." >&2
-  echo "[gh-pages] Run: webstir publish --frontend-mode ssg" >&2
+  echo "[gh-pages] Run: $ROOT_DIR/node_modules/.bin/webstir-frontend publish -w $ROOT_DIR -m ssg" >&2
   exit 1
 fi
 
@@ -36,8 +54,23 @@ else
 fi
 
 rm -rf "$WORKTREE_DIR"/*
+for entry in "$WORKTREE_DIR"/.*; do
+  name="$(basename "$entry")"
+  if [[ "$name" == "." || "$name" == ".." || "$name" == ".git" ]]; then
+    continue
+  fi
+  rm -rf "$entry"
+done
 cp -R "$DIST_DIR"/. "$WORKTREE_DIR"/
 touch "$WORKTREE_DIR/.nojekyll"
+
+if [[ -z "$(git -C "$WORKTREE_DIR" config user.name || true)" ]]; then
+  git -C "$WORKTREE_DIR" config user.name "$COMMIT_NAME"
+fi
+
+if [[ -z "$(git -C "$WORKTREE_DIR" config user.email || true)" ]]; then
+  git -C "$WORKTREE_DIR" config user.email "$COMMIT_EMAIL"
+fi
 
 git -C "$WORKTREE_DIR" add -A
 if git -C "$WORKTREE_DIR" diff --cached --quiet; then

@@ -33,6 +33,7 @@ GitHub Pages project sites live under a subpath (for example, `https://user.gith
 Configure a base path so published URLs resolve correctly in SSG output:
 
 - `webstir enable github-pages <repo>`
+- `webstir enable gh-deploy <repo>` (also scaffolds a GitHub Actions deploy workflow)
 - Or set `frontend.config.json`:
 
 ```json
@@ -44,6 +45,8 @@ Configure a base path so published URLs resolve correctly in SSG output:
 ```
 
 When enabled, Webstir adds `utils/deploy-gh-pages.sh` and wires it to `npm run deploy`.
+
+When you enable `gh-deploy`, Webstir also adds `.github/workflows/webstir-gh-pages.yml` to deploy automatically on push to `main`.
 
 ## Sitemap
 

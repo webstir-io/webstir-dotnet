@@ -8,7 +8,6 @@ Usage: Utilities/scripts/publish.sh <patch|minor|major|auto>
 
 Examples:
   Utilities/scripts/publish.sh patch
-  Utilities/scripts/publish.sh minor
 
 The script requires a clean git worktree on main.
 EOF

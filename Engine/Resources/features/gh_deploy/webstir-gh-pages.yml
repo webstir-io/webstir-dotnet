@@ -1,0 +1,46 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: read
+
+concurrency:
+  group: gh-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN || github.token }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node 20.18.1
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.18.1
+
+      - name: Configure npm auth for GitHub Packages
+        if: ${{ env.NODE_AUTH_TOKEN != '' }}
+        run: |
+          NPMRC="${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}"
+          {
+            echo "@webstir-io:registry=https://npm.pkg.github.com"
+            echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}"
+          } >> "$NPMRC"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Deploy
+        run: npm run deploy

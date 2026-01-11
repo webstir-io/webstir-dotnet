@@ -8,6 +8,7 @@ public static class App
 
 public static class Folders
 {
+    public const string Github = ".github";
     public const string Src = "src";
     public const string Build = "build";
     public const string Dist = "dist";
@@ -32,6 +33,7 @@ public static class Folders
     public const string Seed = "seed";
     public const string Demo = "demo";
     public const string Temp = "temp";
+    public const string Workflows = "workflows";
 }
 
 public static class Files
@@ -53,6 +55,7 @@ public static class Files
     public const string HmrJs = "hmr.js";
     public const string RobotsTxt = "robots.txt";
     public const string DeployGhPagesScript = "deploy-gh-pages.sh";
+    public const string DeployGhPagesWorkflow = "webstir-gh-pages.yml";
 }
 
 public static class FileExtensions
