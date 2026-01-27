@@ -5,6 +5,7 @@
 
 
 CLI/out
+.artifacts/
 
 # Test output files
 Tester/out/
