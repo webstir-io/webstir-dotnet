@@ -101,16 +101,6 @@ run() {
   fi
 }
 
-# Detect container CPU arch so we install the matching sharp binary.
-SHARP_ARCH="linux-x64"
-SHARP_NPM_ARCH="x64"
-case "$(uname -m)" in
-  arm64|aarch64)
-    SHARP_ARCH="linux-arm64"
-    SHARP_NPM_ARCH="arm64"
-    ;;
-esac
-
 # Ensure npm has the GitHub Packages token when provided.
 if [[ -n "${GH_PACKAGES_TOKEN:-}" ]]; then
   step "Configure npm auth for GitHub Packages"
@@ -129,14 +119,6 @@ step "Build backend package"
 run bun run --cwd Framework/Backend build
 step "Build frontend package"
 run bun run --cwd Framework/Frontend build
-
-step "Install platform-specific sharp binding (@img/sharp-${SHARP_ARCH})"
-run env npm_config_platform=linux npm_config_arch="${SHARP_NPM_ARCH}" \
-  npm install --no-save "@img/sharp-${SHARP_ARCH}" "@img/sharp-libvips-${SHARP_ARCH}" || true
-
-step "Rebuild sharp for ${SHARP_ARCH} (npm rebuild sharp with platform/arch)"
-run env SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm_config_platform=linux npm_config_arch="${SHARP_NPM_ARCH}" \
-  npm rebuild sharp --foreground-scripts --verbose || true
 
 step "Build testing package (bun run --cwd Framework/Testing build)"
 run bun run --cwd Framework/Testing build
