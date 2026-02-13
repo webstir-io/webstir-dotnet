@@ -1,6 +1,6 @@
 # AGENTS.md (Repo Stub)
 
-This repository follows the org baseline at `../workspace-tools/AGENTS.md`.
+This repository follows the org baseline at `../webstir-workspace/AGENTS.md`.
 
 - Scope: TypeScript types and JSON Schema for module providers.
 - Start here: `README.md` for package context and build.
