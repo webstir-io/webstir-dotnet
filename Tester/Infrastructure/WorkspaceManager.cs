@@ -349,6 +349,7 @@ public static class WorkspaceManager
     {
         string output = $"{result.StandardOutput}{Environment.NewLine}{result.StandardError}".ToLowerInvariant();
         return output.Contains("npm.pkg.github.com") ||
+            output.Contains("registry.npmjs.org") ||
             output.Contains("e401") ||
             output.Contains("authentication token not provided") ||
             output.Contains("unable to authenticate");
@@ -365,36 +366,7 @@ public static class WorkspaceManager
                 return;
             }
 
-            // Try environment tokens first.
-            string? token = Environment.GetEnvironmentVariable("GH_PACKAGES_TOKEN");
-            token ??= Environment.GetEnvironmentVariable("NODE_AUTH_TOKEN");
-
-            // If missing, attempt to extract from user ~/.npmrc
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                string userHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                string userNpmrc = Path.Combine(userHome, ".npmrc");
-                if (File.Exists(userNpmrc))
-                {
-                    foreach (string line in File.ReadAllLines(userNpmrc))
-                    {
-                        const string key = "//npm.pkg.github.com/:_authToken=";
-                        if (line.StartsWith(key, StringComparison.OrdinalIgnoreCase))
-                        {
-                            token = line[key.Length..].Trim();
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                return; // fall back to user config only
-            }
-
-            string content = "@webstir-io:registry=https://npm.pkg.github.com\n" +
-                             $"//npm.pkg.github.com/:_authToken={token}\n";
+            string content = "@webstir-io:registry=https://registry.npmjs.org\n";
             File.WriteAllText(npmrcPath, content);
         }
         catch

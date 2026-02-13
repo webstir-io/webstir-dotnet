@@ -46,7 +46,7 @@ resolve_latest() {
   # $2: tag name (e.g., latest, next)
   local short="$1"; local tag="$2";
   local name="@webstir-io/webstir-${short}"
-  local registry="${REGISTRY:-https://npm.pkg.github.com}"
+  local registry="${REGISTRY:-https://registry.npmjs.org}"
   local ver
   # Try dist-tag lookup, then fall back to version (which is also latest)
   if ver=$(npm view "${name}" "dist-tags.${tag}" --registry="${registry}" 2>/dev/null); then

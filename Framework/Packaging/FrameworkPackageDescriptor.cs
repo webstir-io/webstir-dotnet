@@ -29,9 +29,9 @@ internal sealed record FrameworkPackageDescriptor(
         "WEBSTIR_FRONTEND_REGISTRY_SPEC",
         new[] { "node_modules" },
         "@webstir-io/webstir-frontend@{version}",
-        "https://npm.pkg.github.com",
-        "restricted",
-        "GH_PACKAGES_TOKEN");
+        "https://registry.npmjs.org",
+        "public",
+        "NPM_TOKEN");
 
     internal static FrameworkPackageDescriptor Testing
     {
@@ -45,9 +45,9 @@ internal sealed record FrameworkPackageDescriptor(
         "WEBSTIR_TEST_REGISTRY_SPEC",
         new[] { "node_modules", "dist" },
         "@webstir-io/webstir-testing@{version}",
-        "https://npm.pkg.github.com",
-        "restricted",
-        "GH_PACKAGES_TOKEN");
+        "https://registry.npmjs.org",
+        "public",
+        "NPM_TOKEN");
 
     internal static FrameworkPackageDescriptor Backend
     {

@@ -80,10 +80,10 @@ public sealed class PackageAutomationIntegrationTests
     {
         using PackageCliWorkspace workspace = PackageCliWorkspace.Create("publish-missing-token");
 
-        string? originalToken = Environment.GetEnvironmentVariable("GH_PACKAGES_TOKEN");
+        string? originalToken = Environment.GetEnvironmentVariable("NPM_TOKEN");
         string? originalConfig = Environment.GetEnvironmentVariable("NPM_CONFIG_USERCONFIG");
         string? originalSkip = Environment.GetEnvironmentVariable("WEBSTIR_SKIP_NPM_AUTH");
-        Environment.SetEnvironmentVariable("GH_PACKAGES_TOKEN", null);
+        Environment.SetEnvironmentVariable("NPM_TOKEN", null);
         Environment.SetEnvironmentVariable("NPM_CONFIG_USERCONFIG", Path.Combine(workspace.RepositoryRoot, "nonexistent", "npmrc"));
         Environment.SetEnvironmentVariable("WEBSTIR_SKIP_NPM_AUTH", "1");
 
@@ -93,7 +93,7 @@ public sealed class PackageAutomationIntegrationTests
             Assert.Equal(1, result.ExitCode);
 
             string output = string.Concat(result.StandardOutput, result.StandardError);
-            Assert.Contains("GH_PACKAGES_TOKEN", output);
+            Assert.Contains("NPM_TOKEN", output);
             Assert.Contains("does not exist", output, StringComparison.OrdinalIgnoreCase);
 
             using JsonDocument summary = workspace.ReadSummary();
@@ -103,7 +103,7 @@ public sealed class PackageAutomationIntegrationTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable("GH_PACKAGES_TOKEN", originalToken);
+            Environment.SetEnvironmentVariable("NPM_TOKEN", originalToken);
             Environment.SetEnvironmentVariable("NPM_CONFIG_USERCONFIG", originalConfig);
             Environment.SetEnvironmentVariable("WEBSTIR_SKIP_NPM_AUTH", originalSkip);
         }

@@ -385,7 +385,7 @@ public sealed class PackageManagerRunner
 
         if (ContainsRegistryAuthHint(errors) || ContainsRegistryAuthHint(output))
         {
-            errorMessage += "\nHint: Ensure GH_PACKAGES_TOKEN is set and registry auth covers https://npm.pkg.github.com/@webstir-io.";
+            errorMessage += "\nHint: Ensure @webstir-io resolves to https://registry.npmjs.org and npm auth is configured if required.";
         }
 
         return new Exception(errorMessage);

@@ -153,11 +153,11 @@ public static class PackageSynchronizer
     private static void EnsureWorkspaceRegistryConfig(IPackageWorkspace workspace, ILogger? logger)
     {
         string? flag = Environment.GetEnvironmentVariable("WEBSTIR_WRITE_WORKSPACE_NPMRC");
-        bool enabled = !string.IsNullOrWhiteSpace(flag) &&
-            (flag.Equals("1", StringComparison.OrdinalIgnoreCase) ||
-             flag.Equals("true", StringComparison.OrdinalIgnoreCase) ||
-             flag.Equals("yes", StringComparison.OrdinalIgnoreCase));
-        if (!enabled)
+        bool disabled = !string.IsNullOrWhiteSpace(flag) &&
+            (flag.Equals("0", StringComparison.OrdinalIgnoreCase) ||
+             flag.Equals("false", StringComparison.OrdinalIgnoreCase) ||
+             flag.Equals("no", StringComparison.OrdinalIgnoreCase));
+        if (disabled)
         {
             return;
         }
@@ -170,11 +170,9 @@ public static class PackageSynchronizer
                 return;
             }
 
-            string content = "@webstir-io:registry=https://npm.pkg.github.com\n" +
-                             "//npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}\n" +
-                             "always-auth=true\n";
+            string content = "@webstir-io:registry=https://registry.npmjs.org\n";
             File.WriteAllText(npmrcPath, content);
-            logger?.LogDebug("[packages] Wrote workspace .npmrc for GitHub Packages auth.");
+            logger?.LogDebug("[packages] Wrote workspace .npmrc for npmjs package resolution.");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

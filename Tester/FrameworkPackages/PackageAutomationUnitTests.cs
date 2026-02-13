@@ -238,8 +238,8 @@ public sealed class PackageAutomationUnitTests
         FakeProcessRunner runner = new();
         PackagePublishValidator validator = new(metadata, runner, NullLogger<PackagePublishValidator>.Instance);
 
-        string? originalToken = Environment.GetEnvironmentVariable("GH_PACKAGES_TOKEN");
-        Environment.SetEnvironmentVariable("GH_PACKAGES_TOKEN", null);
+        string? originalToken = Environment.GetEnvironmentVariable("NPM_TOKEN");
+        Environment.SetEnvironmentVariable("NPM_TOKEN", null);
 
         try
         {
@@ -254,7 +254,7 @@ public sealed class PackageAutomationUnitTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable("GH_PACKAGES_TOKEN", originalToken);
+            Environment.SetEnvironmentVariable("NPM_TOKEN", originalToken);
         }
     }
 
@@ -270,7 +270,7 @@ public sealed class PackageAutomationUnitTests
             {
                 Assert.Equal("npm", request.FileName);
                 Assert.Contains("ping", request.Arguments, StringComparison.Ordinal);
-                Assert.Contains("https://npm.pkg.github.com", request.Arguments, StringComparison.Ordinal);
+                Assert.Contains("https://registry.npmjs.org", request.Arguments, StringComparison.Ordinal);
                 return new ProcessResult
                 {
                     ExitCode = 0,
@@ -284,8 +284,8 @@ public sealed class PackageAutomationUnitTests
 
         PackagePublishValidator validator = new(metadata, runner, NullLogger<PackagePublishValidator>.Instance);
 
-        string? originalToken = Environment.GetEnvironmentVariable("GH_PACKAGES_TOKEN");
-        Environment.SetEnvironmentVariable("GH_PACKAGES_TOKEN", "fake-token");
+        string? originalToken = Environment.GetEnvironmentVariable("NPM_TOKEN");
+        Environment.SetEnvironmentVariable("NPM_TOKEN", "fake-token");
 
         try
         {
@@ -299,7 +299,7 @@ public sealed class PackageAutomationUnitTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable("GH_PACKAGES_TOKEN", originalToken);
+            Environment.SetEnvironmentVariable("NPM_TOKEN", originalToken);
         }
     }
 
