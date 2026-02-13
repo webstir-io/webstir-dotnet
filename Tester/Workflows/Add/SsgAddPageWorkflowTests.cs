@@ -25,7 +25,7 @@ public sealed class SsgAddPageWorkflowTests
     {
         if (!WorkspaceManager.EnsureLocalPackagesReady())
         {
-            throw new ConditionalSkipException("Skipping add-page tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+            throw new ConditionalSkipException("Skipping add-page tests: framework packages not available (set NPM_TOKEN).");
         }
 
         TestCaseContext context = _fixture.Context;

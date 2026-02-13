@@ -24,7 +24,7 @@ public sealed class CorePipelineTests
     {
         if (!WorkspaceManager.EnsureLocalPackagesReady())
         {
-            throw new ConditionalSkipException("Skipping core pipeline tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+            throw new ConditionalSkipException("Skipping core pipeline tests: framework packages not available (set NPM_TOKEN).");
         }
 
         HtmlPublishScenarioResult scenario = HtmlPublishScenarios.HeadCombined(_fixture.Context);
@@ -52,7 +52,7 @@ public sealed class CorePipelineTests
     {
         if (!WorkspaceManager.EnsureLocalPackagesReady())
         {
-            throw new ConditionalSkipException("Skipping core pipeline tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+            throw new ConditionalSkipException("Skipping core pipeline tests: framework packages not available (set NPM_TOKEN).");
         }
 
         HtmlPublishScenarioResult scenario = HtmlPublishScenarios.PrecompressionEnabled(_fixture.Context);
@@ -83,7 +83,7 @@ public sealed class CorePipelineTests
     {
         if (!WorkspaceManager.EnsureLocalPackagesReady())
         {
-            throw new ConditionalSkipException("Skipping core pipeline tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+            throw new ConditionalSkipException("Skipping core pipeline tests: framework packages not available (set NPM_TOKEN).");
         }
 
         HtmlPublishScenarioResult scenario = HtmlPublishScenarios.HeadCombined(_fixture.Context);

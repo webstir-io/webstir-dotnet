@@ -11,7 +11,7 @@ Examples:
   scripts/publish.sh 0.2.0
 
 The script requires a clean git worktree and an npm login to
-https://npm.pkg.github.com with write:packages access.
+https://registry.npmjs.org with publish access.
 
 By default, the script pushes the version bump commit and tag. To skip pushing,
 pass --no-push or set PUBLISH_NO_PUSH=1.
@@ -63,8 +63,8 @@ main() {
   echo "› npm run test"
   npm run test
 
-  echo "› npm publish --registry=https://npm.pkg.github.com"
-  npm publish --registry="https://npm.pkg.github.com"
+  echo "› npm publish --registry=https://registry.npmjs.org"
+  npm publish --registry="https://registry.npmjs.org"
 
   if [[ "$no_push" == "true" || "${PUBLISH_NO_PUSH:-}" =~ ^([Yy][Ee][Ss]|[Yy]|1|true)$ ]]; then
     echo "› Skipping git push (no-push)."
@@ -91,10 +91,10 @@ ensure_clean_git() {
 }
 
 ensure_npm_login() {
-  if ! npm whoami --registry="https://npm.pkg.github.com" >/dev/null 2>&1; then
+  if ! npm whoami --registry="https://registry.npmjs.org" >/dev/null 2>&1; then
     cat >&2 <<'EOF'
-error: not authenticated with https://npm.pkg.github.com.
-Run: npm login --registry=https://npm.pkg.github.com --scope=@webstir-io
+error: not authenticated with https://registry.npmjs.org.
+Run: npm login --registry=https://registry.npmjs.org --scope=@webstir-io
 EOF
     exit 1
   fi

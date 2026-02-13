@@ -23,7 +23,7 @@ public sealed class BackendPublishWorkflowTests
     {
         if (!WorkspaceManager.EnsureLocalPackagesReady())
         {
-            throw new ConditionalSkipException("Skipping backend publish tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+            throw new ConditionalSkipException("Skipping backend publish tests: framework packages not available (set NPM_TOKEN).");
         }
 
         TestCaseContext context = _fixture.Context;
@@ -58,7 +58,7 @@ public sealed class BackendPublishWorkflowTests
     {
         if (!WorkspaceManager.EnsureLocalPackagesReady())
         {
-            throw new ConditionalSkipException("Skipping backend publish tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+            throw new ConditionalSkipException("Skipping backend publish tests: framework packages not available (set NPM_TOKEN).");
         }
 
         string? prev = Environment.GetEnvironmentVariable("WEBSTIR_BACKEND_SOURCEMAPS");

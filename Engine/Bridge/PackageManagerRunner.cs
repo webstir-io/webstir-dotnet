@@ -398,8 +398,7 @@ public sealed class PackageManagerRunner
             return false;
         }
 
-        return content.Contains("npm.pkg.github.com", StringComparison.OrdinalIgnoreCase) ||
-            content.Contains("E401", StringComparison.OrdinalIgnoreCase) ||
+        return content.Contains("E401", StringComparison.OrdinalIgnoreCase) ||
             content.Contains("E402", StringComparison.OrdinalIgnoreCase) ||
             content.Contains("E403", StringComparison.OrdinalIgnoreCase) ||
             content.Contains("E404", StringComparison.OrdinalIgnoreCase);

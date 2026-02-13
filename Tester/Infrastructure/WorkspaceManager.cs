@@ -348,8 +348,7 @@ public static class WorkspaceManager
     private static bool IsRegistryAuthFailure(ProcessResult result)
     {
         string output = $"{result.StandardOutput}{Environment.NewLine}{result.StandardError}".ToLowerInvariant();
-        return output.Contains("npm.pkg.github.com") ||
-            output.Contains("registry.npmjs.org") ||
+        return output.Contains("registry.npmjs.org") ||
             output.Contains("e401") ||
             output.Contains("authentication token not provided") ||
             output.Contains("unable to authenticate");
