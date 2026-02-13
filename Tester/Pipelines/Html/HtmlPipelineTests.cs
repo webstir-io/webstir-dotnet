@@ -92,7 +92,7 @@ public sealed class HtmlPipelineTests
     {
         if (!WorkspaceManager.EnsureLocalPackagesReady())
         {
-            throw new ConditionalSkipException("Skipping HTML pipeline tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+            throw new ConditionalSkipException("Skipping HTML pipeline tests: framework packages not available (set NPM_TOKEN).");
         }
 
         HtmlPublishScenarioResult scenario = HtmlPublishScenarios.Default(_fixture.Context);
@@ -111,7 +111,7 @@ public sealed class HtmlPipelineTests
     {
         if (!WorkspaceManager.EnsureLocalPackagesReady())
         {
-            throw new ConditionalSkipException("Skipping HTML pipeline tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+            throw new ConditionalSkipException("Skipping HTML pipeline tests: framework packages not available (set NPM_TOKEN).");
         }
 
         HtmlPublishScenarioResult scenario = HtmlPublishScenarios.Default(_fixture.Context);

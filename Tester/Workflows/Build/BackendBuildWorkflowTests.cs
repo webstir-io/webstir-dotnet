@@ -23,7 +23,7 @@ public sealed class BackendBuildWorkflowTests
     {
         if (!WorkspaceManager.EnsureLocalPackagesReady())
         {
-            throw new ConditionalSkipException("Skipping backend build tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+            throw new ConditionalSkipException("Skipping backend build tests: framework packages not available (set NPM_TOKEN).");
         }
 
         TestCaseContext context = _fixture.Context;

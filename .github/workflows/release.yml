@@ -19,9 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,42 +34,28 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20.18.1
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Configure npm auth for npmjs
-        if: ${{ env.NPM_TOKEN != '' }}
-        run: |
-          NPMRC="${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}"
-          {
-            echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}"
-          } >> "$NPMRC"
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.5"
 
       - name: Install workspace dependencies
-        run: npm ci --workspaces
+        run: bun install --frozen-lockfile
 
       - name: Build testing contract package
-        run: npm --workspace Framework/Contracts/testing-contract run build
+        run: bun run --cwd Framework/Contracts/testing-contract build
 
       - name: Build module contract package
-        run: npm --workspace Framework/Contracts/module-contract run build
+        run: bun run --cwd Framework/Contracts/module-contract build
 
       - name: Build backend package
-        run: npm --workspace Framework/Backend run build
+        run: bun run --cwd Framework/Backend build
 
       - name: Build frontend package
-        run: npm --workspace Framework/Frontend run build
-
-      - name: Ensure sharp linux-x64 vendor binding
-        run: |
-          env npm_config_platform=linux npm_config_arch=x64 \
-            npm install --no-save @img/sharp-linux-x64 @img/sharp-libvips-linux-x64
-          SHARP_IGNORE_GLOBAL_LIBVIPS=1 \
-            env npm_config_platform=linux npm_config_arch=x64 \
-            npm rebuild sharp --foreground-scripts --verbose || true
+        run: bun run --cwd Framework/Frontend build
 
       - name: Build testing package
-        run: npm --workspace Framework/Testing run build
+        run: bun run --cwd Framework/Testing build
 
       - name: Build solution
         run: dotnet build Webstir.sln -v minimal
@@ -81,4 +64,4 @@ jobs:
         run: WEBSTIR_TEST_MODE=full dotnet test Tester/Tester.csproj --nologo --logger "console;verbosity=minimal;summary=true"
 
       - name: Run frontend package tests
-        run: npm --workspace Framework/Frontend test --silent
+        run: bun run --cwd Framework/Frontend test

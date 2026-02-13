@@ -23,7 +23,7 @@ public sealed class PublishWorkflowTests
     {
         if (!WorkspaceManager.EnsureLocalPackagesReady())
         {
-            throw new ConditionalSkipException("Skipping publish tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+            throw new ConditionalSkipException("Skipping publish tests: framework packages not available (set NPM_TOKEN).");
         }
 
         TestCaseContext context = _fixture.Context;

@@ -11,23 +11,21 @@ configure_npm_auth() {
     return 0
   fi
 
-  if [[ -z "${GH_PACKAGES_TOKEN:-${NODE_AUTH_TOKEN:-}}" ]]; then
+  if [[ -z "${NPM_TOKEN:-${NODE_AUTH_TOKEN:-}}" ]]; then
     return 0
   fi
 
   if ! command -v npm >/dev/null 2>&1; then
-    echo "[local-ci] warning: npm is not available to configure GitHub Packages auth." >&2
+    echo "[local-ci] warning: npm is not available to configure npmjs auth." >&2
     return 1
   fi
 
-  local token="${GH_PACKAGES_TOKEN:-${NODE_AUTH_TOKEN:-}}"
-  npm config set @webstir-io:registry https://npm.pkg.github.com --location=user >/dev/null 2>&1
-  npm config set //npm.pkg.github.com/:_authToken "$token" --location=user >/dev/null 2>&1
-  npm config set //npm.pkg.github.com/:always-auth true --location=user >/dev/null 2>&1
+  local token="${NPM_TOKEN:-${NODE_AUTH_TOKEN:-}}"
+  npm config set //registry.npmjs.org/:_authToken "$token" --location=user >/dev/null 2>&1
 }
 
 # Try to load credentials from .env.local when running on the host.
-if [[ -z "${GH_PACKAGES_TOKEN:-}" && -f "$ROOT_DIR/.env.local" ]]; then
+if [[ -z "${NPM_TOKEN:-}" && -f "$ROOT_DIR/.env.local" ]]; then
   # shellcheck disable=SC1091
   source "$ROOT_DIR/.env.local"
 fi
@@ -48,8 +46,8 @@ if [[ -z "${LOCAL_CI_IN_CONTAINER:-}" ]]; then
     run
     --rm
     -e LOCAL_CI_IN_CONTAINER=1
-    -e GH_PACKAGES_TOKEN="${GH_PACKAGES_TOKEN:-}"
-    -e NODE_AUTH_TOKEN="${NODE_AUTH_TOKEN:-${GH_PACKAGES_TOKEN:-}}"
+    -e NPM_TOKEN="${NPM_TOKEN:-}"
+    -e NODE_AUTH_TOKEN="${NODE_AUTH_TOKEN:-${NPM_TOKEN:-}}"
     -e WEBSTIR_FRONTEND_REGISTRY_SPEC="${WEBSTIR_FRONTEND_REGISTRY_SPEC:-}"
     -e WEBSTIR_TEST_REGISTRY_SPEC="${WEBSTIR_TEST_REGISTRY_SPEC:-}"
     -e WEBSTIR_BACKEND_REGISTRY_SPEC="${WEBSTIR_BACKEND_REGISTRY_SPEC:-}"
@@ -101,9 +99,9 @@ run() {
   fi
 }
 
-# Ensure npm has the GitHub Packages token when provided.
-if [[ -n "${GH_PACKAGES_TOKEN:-}" ]]; then
-  step "Configure npm auth for GitHub Packages"
+# Ensure npm has the npmjs token when provided.
+if [[ -n "${NPM_TOKEN:-}" ]]; then
+  step "Configure npm auth for npmjs"
   configure_npm_auth >/dev/null 2>&1 || {
     echo "[local-ci] warning: failed to configure npm auth; continuing" >&2
   }

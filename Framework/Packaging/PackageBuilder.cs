@@ -180,16 +180,6 @@ public sealed class PackageBuilder
             return false;
         }
 
-        if (registryUrl.Contains("npm.pkg.github.com", StringComparison.OrdinalIgnoreCase))
-        {
-            string token = Environment.GetEnvironmentVariable("GH_PACKAGES_TOKEN") ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                _logger.LogWarning("[packages] GH_PACKAGES_TOKEN is not set; skipping publish of {Spec}.", spec);
-                return false;
-            }
-        }
-
         if (await PackageExistsAsync(spec, registryUrl, packageDirectory).ConfigureAwait(false))
         {
             _logger.LogInformation("[packages] {Spec} already exists in {Registry}.", spec, registryUrl);

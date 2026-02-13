@@ -36,7 +36,7 @@ public sealed class WatchWorkflowTests
     {
         if (!WorkspaceManager.EnsureLocalPackagesReady())
         {
-            throw new ConditionalSkipException("Skipping watch workflow: framework packages not available (set GH_PACKAGES_TOKEN).");
+            throw new ConditionalSkipException("Skipping watch workflow: framework packages not available (set NPM_TOKEN).");
         }
 
         if (!TestCategoryGuards.ShouldRun(TestCategory.Full))
@@ -108,7 +108,7 @@ public sealed class WatchWorkflowTests
     {
         if (!WorkspaceManager.EnsureLocalPackagesReady())
         {
-            throw new ConditionalSkipException("Skipping watch workflow: framework packages not available (set GH_PACKAGES_TOKEN).");
+            throw new ConditionalSkipException("Skipping watch workflow: framework packages not available (set NPM_TOKEN).");
         }
 
         if (!TestCategoryGuards.ShouldRun(TestCategory.Full))

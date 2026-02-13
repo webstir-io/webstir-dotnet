@@ -20,9 +20,8 @@ elif [[ -f "$DEFAULT_NPMRC" ]]; then
   export NPM_CONFIG_USERCONFIG="$DEFAULT_NPMRC"
 fi
 
-if [[ -z "${GH_PACKAGES_TOKEN:-}" ]]; then
-  echo "deploy-seed: GH_PACKAGES_TOKEN is not set; GitHub Packages auth is required." >&2
-  exit 1
+if [[ -n "${NPM_TOKEN:-${NODE_AUTH_TOKEN:-}}" ]]; then
+  npm config set //registry.npmjs.org/:_authToken "${NPM_TOKEN:-${NODE_AUTH_TOKEN:-}}" --location=user >/dev/null 2>&1 || true
 fi
 
 SEED_DIR="CLI/out/seed"

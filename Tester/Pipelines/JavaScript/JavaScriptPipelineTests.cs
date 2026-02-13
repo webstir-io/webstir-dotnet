@@ -25,7 +25,7 @@ public sealed class JavaScriptPipelineTests
     {
         if (!WorkspaceManager.EnsureLocalPackagesReady())
         {
-            throw new ConditionalSkipException("Skipping JavaScript pipeline tests: framework packages not available (set GH_PACKAGES_TOKEN).");
+            throw new ConditionalSkipException("Skipping JavaScript pipeline tests: framework packages not available (set NPM_TOKEN).");
         }
 
         HtmlPublishScenarioResult scenario = HtmlPublishScenarios.HeadCombined(_fixture.Context);

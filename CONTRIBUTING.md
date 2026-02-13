@@ -11,12 +11,12 @@ and may be incorporated into the project owned by **Electric Coding LLC**.
 
 ## Local Environment
 - **Required runtimes**: .NET 10 SDK, Node.js 20.18.x (or newer).  
-- **Registry access**: all framework packages are published to GitHub Packages.  
-  - Create a classic personal access token with `read:packages` (and `write:packages` if you publish).  
-  - Configure `.npmrc` or export `GH_PACKAGES_TOKEN`/`NODE_AUTH_TOKEN`:
+- **Registry access**: all framework packages are published to npmjs.
+  - Create a npm access token with publish access when you need to release packages.
+  - Configure `.npmrc` or export `NPM_TOKEN`/`NODE_AUTH_TOKEN`:
     ```ini
-    @webstir-io:registry=https://npm.pkg.github.com
-    //npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}
+    @webstir-io:registry=https://registry.npmjs.org
+    //registry.npmjs.org/:_authToken=${NPM_TOKEN}
     ```
 
 ## Common Tasks
