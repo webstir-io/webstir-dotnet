@@ -10,6 +10,7 @@
         "@webstir-io/webstir-testing": "workspace:*",
       },
       "devDependencies": {
+        "@ts-rest/core": "^3.40.0",
         "@types/node": "^20.0.0",
         "jsonschema": "^1.5.0",
       },
@@ -31,10 +32,10 @@
       "name": "@webstir-io/module-contract",
       "version": "0.1.6",
       "dependencies": {
+        "@ts-rest/core": "^3.40.0",
         "zod": "^3.23.8",
       },
       "devDependencies": {
-        "@ts-rest/core": "^3.40.0",
         "@types/node": "^20.19.21",
         "typescript": "^5.7.2",
         "zod-to-json-schema": "^3.23.3",
