@@ -59,8 +59,8 @@
   ],
   "author": "Webstir",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "restricted"
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
