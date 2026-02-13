@@ -28,7 +28,7 @@ publish_site() {
   local frontend_cli="$ROOT_DIR/node_modules/.bin/webstir-frontend"
   if [[ ! -f "$frontend_cli" ]]; then
     echo "[gh-pages] Missing $frontend_cli" >&2
-    echo "[gh-pages] Install dependencies first (npm install / pnpm install)." >&2
+    echo "[gh-pages] Install dependencies first (npm install)." >&2
     exit 1
   fi
 
