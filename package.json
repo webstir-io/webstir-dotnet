@@ -11,7 +11,7 @@
     "Framework/Testing"
   ],
   "scripts": {
-    "build:contracts": "npm run build --workspace Framework/Contracts/testing-contract && npm run build --workspace Framework/Contracts/module-contract",
+    "build:contracts": "bun run --cwd Framework/Contracts/testing-contract build && bun run --cwd Framework/Contracts/module-contract build",
     "validate:contracts": "node ./utilities/scripts/validate-contracts.mjs"
   },
   "devDependencies": {
@@ -19,9 +19,9 @@
     "jsonschema": "^1.5.0"
   },
   "dependencies": {
-    "@webstir-io/webstir-backend": "file:Framework/Backend",
-    "@webstir-io/webstir-frontend": "file:Framework/Frontend",
-    "@webstir-io/webstir-testing": "file:Framework/Testing"
+    "@webstir-io/webstir-backend": "workspace:*",
+    "@webstir-io/webstir-frontend": "workspace:*",
+    "@webstir-io/webstir-testing": "workspace:*"
   },
-  "packageManager": "npm@10.8.2"
+  "packageManager": "bun@1.3.5"
 }

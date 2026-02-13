@@ -8,8 +8,14 @@ RUN apt-get update \
     && npm install -g typescript \
     && rm -rf /var/lib/apt/lists/*
 
+ENV BUN_INSTALL=/root/.bun
+ENV PATH=$BUN_INSTALL/bin:$PATH
+
+# Install Bun 1.3.5 to mirror GitHub Actions
+RUN curl -fsSL https://bun.sh/install | bash -s -- bun-v1.3.5
+
 # Show tool versions in the build log for quick diagnostics
-RUN dotnet --info && node -v && npm -v
+RUN dotnet --info && node -v && npm -v && bun -v
 
 WORKDIR /workspace
 

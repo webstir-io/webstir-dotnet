@@ -45,7 +45,7 @@
     "dist"
   ],
   "engines": {
-    "node": "\u003E=20.18.1"
+    "node": ">=20.18.1"
   },
   "license": "MIT",
   "repository": {
@@ -68,7 +68,7 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
-    "@webstir-io/testing-contract": "file:../Contracts/testing-contract",
+    "@webstir-io/testing-contract": "workspace:*",
     "chokidar": "^3.6.0",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0"

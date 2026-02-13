@@ -33,13 +33,13 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
-    "test": "npm run build \u0026\u0026 node -e \u0022const { spawnSync } = require(\u0027node:child_process\u0027); const glob = require(\u0027glob\u0027); const files = glob.sync(\u0027tests/**/*.test.js\u0027); if (!files.length) { console.error(\u0027No frontend test files found\u0027); process.exit(1); } const env = { ...process.env, BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA: \u0027true\u0027, BROWSERSLIST_IGNORE_OLD_DATA: \u0027true\u0027 }; const result = spawnSync(process.execPath, [\u0027--test\u0027, ...files], { stdio: \u0027inherit\u0027, env }); process.exit(result.status ?? 1);\u0022"
+    "test": "npm run build && node -e \"const { spawnSync } = require('node:child_process'); const glob = require('glob'); const files = glob.sync('tests/**/*.test.js'); if (!files.length) { console.error('No frontend test files found'); process.exit(1); } const env = { ...process.env, BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA: 'true', BROWSERSLIST_IGNORE_OLD_DATA: 'true' }; const result = spawnSync(process.execPath, ['--test', ...files], { stdio: 'inherit', env }); process.exit(result.status ?? 1);\""
   },
   "files": [
     "dist"
   ],
   "engines": {
-    "node": "\u003E=20.18.1"
+    "node": ">=20.18.1"
   },
   "license": "MIT",
   "repository": {
@@ -57,11 +57,12 @@
     "access": "public"
   },
   "dependencies": {
-    "@webstir-io/module-contract": "file:../Contracts/module-contract",
+    "@webstir-io/module-contract": "workspace:*",
     "autoprefixer": "^10.4.18",
     "cheerio": "^1.0.0-rc.12",
     "commander": "^12.1.0",
     "csso": "^5.0.5",
+    "domhandler": "^5.0.3",
     "esbuild": "^0.25.10",
     "fs-extra": "^11.2.0",
     "glob": "^10.4.1",

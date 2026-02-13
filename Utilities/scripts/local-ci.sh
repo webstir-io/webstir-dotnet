@@ -119,24 +119,16 @@ if [[ -n "${GH_PACKAGES_TOKEN:-}" ]]; then
   }
 fi
 
-step "Install workspace dependencies (npm ci --workspaces)"
+step "Install workspace dependencies (bun install --frozen-lockfile)"
 run rm -rf node_modules Framework/*/node_modules || true
-run npm ci --workspaces
+run bun install --frozen-lockfile
 
-step "Install module contract workspace deps"
-run npm --workspace Framework/Contracts/module-contract ci
 step "Build module contract package"
-run npm --workspace Framework/Contracts/module-contract run build
-
-step "Install backend workspace deps"
-run npm --workspace Framework/Backend ci
+run bun run --cwd Framework/Contracts/module-contract build
 step "Build backend package"
-run npm --workspace Framework/Backend run build
-
-step "Install frontend workspace deps"
-run npm --workspace Framework/Frontend ci
+run bun run --cwd Framework/Backend build
 step "Build frontend package"
-run npm --workspace Framework/Frontend run build
+run bun run --cwd Framework/Frontend build
 
 step "Install platform-specific sharp binding (@img/sharp-${SHARP_ARCH})"
 run env npm_config_platform=linux npm_config_arch="${SHARP_NPM_ARCH}" \
@@ -146,8 +138,8 @@ step "Rebuild sharp for ${SHARP_ARCH} (npm rebuild sharp with platform/arch)"
 run env SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm_config_platform=linux npm_config_arch="${SHARP_NPM_ARCH}" \
   npm rebuild sharp --foreground-scripts --verbose || true
 
-step "Build testing package (npm --workspace Framework/Testing run build)"
-run npm --workspace Framework/Testing run build
+step "Build testing package (bun run --cwd Framework/Testing build)"
+run bun run --cwd Framework/Testing build
 
 step "Clear NuGet caches"
 run dotnet nuget locals all --clear >/dev/null
@@ -158,8 +150,8 @@ run dotnet build Webstir.sln -v minimal
 step "Run .NET workflow tests (WEBSTIR_TEST_MODE=full dotnet test)"
 WEBSTIR_TEST_MODE=full run dotnet test Tester/Tester.csproj --nologo --logger "console;verbosity=minimal;summary=true"
 
-step "Run frontend package tests (npm --workspace Framework/Frontend test --silent)"
-run npm --workspace Framework/Frontend test --silent
+step "Run frontend package tests (bun run --cwd Framework/Frontend test)"
+run bun run --cwd Framework/Frontend test
 
 step "Build framework packages (dotnet run -- packages sync)"
 run dotnet run --project Framework/Framework.csproj -- packages sync
