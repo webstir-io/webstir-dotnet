@@ -103,14 +103,14 @@ public class WebServer(IOptions<AppSettings> options, ILogger<WebServer> logger)
         });
 
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
-        builder.WebHost.UseUrls(options.Value.WebServerUrl);
+        builder.WebHost.UseUrls(options.Value.WebServerListenUrl);
         ConfigureServices(builder.Services);
 
         _app = builder.Build();
         ConfigureMiddleware(_app, frontendRoot, resolution.Manifest, workspace);
 
         await _app.StartAsync(cancellationToken);
-        logger.LogInformation("Web server running at {WebServerUrl}", options.Value.WebServerUrl);
+        logger.LogInformation("Web server listening on {WebServerUrl}", options.Value.WebServerListenUrl);
     }
 
     private async Task<FrontendResolution> ResolveFrontendAsync(AppWorkspace workspace, CancellationToken cancellationToken)

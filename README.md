@@ -86,6 +86,7 @@ dist/                 # Production output
 - Web server (ASP.NET Core) serves `build/frontend` at `http://localhost:8088`
   - Injects SSE endpoint for reload notifications
   - Proxies `/api/*` to the Node server
+  - To listen on your LAN, set `AppSettings__WebServerHost=0.0.0.0` (defaults to `localhost`)
 - Node server runs compiled `build/backend/index.js` on `http://localhost:8008`
   - Waits for the `API server running` readiness line and hits `/api/health` before reporting success
   - Tuning flags:
