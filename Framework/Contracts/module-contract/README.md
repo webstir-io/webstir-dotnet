@@ -4,17 +4,9 @@ TypeScript interfaces, helper utilities, and JSON schema describing Webstir modu
 
 ## Install
 
-```ini
-# .npmrc
-@webstir-io:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}
-```
-
 ```bash
 npm install @webstir-io/module-contract
 ```
-
-Consumers only need `read:packages`; publishers also require `write:packages`.
 
 ## Provided Types
 
@@ -167,7 +159,7 @@ When authoring a provider:
 npm install
 npm run build          # cleans, compiles TypeScript, regenerates schema/*.schema.json
 npm run test           # type-checks the Accounts example module
-# Release helper (bumps version/test/publish to GitHub Packages, prompts to push)
+# Release helper (bumps version and pushes tags to trigger release workflow)
 npm run release -- patch
 ```
 

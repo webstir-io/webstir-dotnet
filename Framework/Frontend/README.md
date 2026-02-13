@@ -4,23 +4,11 @@ Frontend build and publish toolkit for Webstir workspaces. The package bundles t
 
 ## Quick Start
 
-1. **Authenticate to GitHub Packages**
-   Configure user-level auth (recommended) or set an env var:
-   - User config (`~/.npmrc`):
-     ```ini
-     @webstir-io:registry=https://npm.pkg.github.com
-     //npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}
-     ```
-   - Or export a token (CI uses `NODE_AUTH_TOKEN`):
-     ```bash
-     export NODE_AUTH_TOKEN="$GH_PACKAGES_TOKEN"
-     ```
-   Use a token with `read:packages` for consumers and `write:packages` for publishers.
-2. **Install the package**
+1. **Install the package**
    ```bash
    npm install @webstir-io/webstir-frontend
    ```
-3. **Run a build**
+2. **Run a build**
    ```bash
    npx webstir-frontend build --workspace /absolute/path/to/workspace
    ```
@@ -127,14 +115,14 @@ npm run test           # Node --test against compiled output
 npm run smoke          # scaffolds a temp workspace and runs build/publish
 ```
 
-GitHub Actions should run `npm ci`, `npm run build`, and `npm run test` before publishing. The package publishes to GitHub Packages per `publishConfig`.
+GitHub Actions should run `npm ci`, `npm run build`, and `npm run test` before publishing. The package publishes to npm per `publishConfig`.
 
 CI notes
 - Package CI runs build + tests on PRs and main; a smoke step runs on main only to exercise the end-to-end path quickly.
 
 ## Troubleshooting
 
-- **“Authentication required for npm.pkg.github.com”** — ensure the configured token has `read:packages`.
+- **Package install fails with 404/permission errors** — verify the package is published to npm and your npm scope/registry configuration points to `https://registry.npmjs.org`.
 - **“No frontend test files found”** — the `test` script expects files under `tests/**/*.test.js` after build.
 - **Missing entry points in manifest** — confirm `build/frontend` contains at least one `.js`/`.mjs` bundle; the provider falls back to `build/app/index.js` and emits a warning if empty.
 

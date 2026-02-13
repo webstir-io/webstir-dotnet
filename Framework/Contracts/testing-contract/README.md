@@ -4,17 +4,9 @@ TypeScript types and JSON schema defining Webstir’s test manifests, runner eve
 
 ## Install
 
-```ini
-# .npmrc
-@webstir-io:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}
-```
-
 ```bash
 npm install @webstir-io/testing-contract
 ```
-
-Consumers require `read:packages` scope; publishers need `write:packages`.
 
 ## Exported Types
 

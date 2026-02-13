@@ -4,23 +4,11 @@ Backend build orchestration for Webstir workspaces. The package exposes a `Modul
 
 ## Quick Start
 
-1. **Authenticate to GitHub Packages**
-   Configure user-level auth (recommended) or set an env var:
-   - User config (`~/.npmrc`):
-     ```ini
-     @webstir-io:registry=https://npm.pkg.github.com
-     //npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}
-     ```
-   - Or export a token (CI uses `NODE_AUTH_TOKEN`):
-     ```bash
-     export NODE_AUTH_TOKEN="$GH_PACKAGES_TOKEN"
-     ```
-   Consumers need `read:packages`; publishers also require `write:packages`.
-2. **Install**
+1. **Install**
    ```bash
    npm install @webstir-io/webstir-backend
    ```
-3. **Run a build**
+2. **Run a build**
    ```ts
    import { backendProvider } from '@webstir-io/webstir-backend';
 
@@ -342,7 +330,7 @@ npm run smoke
 
 - Add tests under `tests/**/*.test.ts` and wire them into `npm test` once the backend runtime is ready.
 - Ensure CI runs `npm ci`, `npm run build`, and any smoke tests before publish.
-- Publishing targets GitHub Packages via `publishConfig.registry`.
+- Publishing targets npm via `publishConfig.registry`.
 - Reference implementation: `examples/accounts/` demonstrates a ts-rest powered module exporting `createModule()` for provider hydration.
 - Use `npm run release -- <patch|minor|major|x.y.z>` to bump the version, build, test, run the smoke check, and publish via the bundled helper script.
 
